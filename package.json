@@ -1,0 +1,29 @@
+{
+  "name": "msr",
+  "version": "1.0.0",
+  "description": "Migration Script Runner",
+  "main": "index.js",
+  "scripts": {
+    "start": "npm run build && node build/index.js",
+    "build": "rimraf ./build && tsc",
+    "start:dev": "npx nodemon",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "migration", "migration script runner", "migration script"
+  ],
+  "author": "Volodymyr Lavrynovych",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/figlet": "^1.5.7",
+    "@types/node": "^20.8.10",
+    "eslint": "^8.52.0",
+    "nodemon": "^3.0.1",
+    "rimraf": "^5.0.5",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "figlet": "^1.7.0"
+  }
+}
