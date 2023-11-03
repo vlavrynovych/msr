@@ -1,3 +1,6 @@
-import figlet from 'figlet';
+export * from './interface';
+export * from './model';
+export * from './service';
 
-console.log(figlet.textSync("Migration Script Runner"));
+
+
