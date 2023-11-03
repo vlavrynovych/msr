@@ -1,16 +1,24 @@
 {
-  "name": "msr",
-  "version": "1.0.0",
+  "name": "migration-script-runner",
+  "version": "0.1.0",
   "description": "Migration Script Runner",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
   "scripts": {
-    "start": "npm run build && node build/index.js",
-    "build": "rimraf ./build && tsc",
+    "start": "start:ts",
+    "start:js": "npm run build && node dist/index.js",
+    "start:ts": "npm run build && npx ts-node index.ts",
     "start:dev": "npx nodemon",
+    "build": "rimraf ./dist && tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
-    "migration", "migration script runner", "migration script"
+    "migration",
+    "migration script runner",
+    "migration script"
   ],
   "author": "Volodymyr Lavrynovych",
   "license": "MIT",
@@ -24,6 +32,9 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "figlet": "^1.7.0"
+    "@types/lodash": "^4.14.200",
+    "figlet": "^1.7.0",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.4"
   }
 }
