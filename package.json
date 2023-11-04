@@ -20,7 +20,11 @@
     "migration script runner",
     "migration script"
   ],
-  "author": "Volodymyr Lavrynovych",
+  "author": {
+    "name": "Volodymyr Lavrynovych",
+    "email": "volodyalavrynovych@gmail.com",
+    "url": "https://www.instagram.com/vlavrynovych/"
+  },
   "license": "MIT",
   "devDependencies": {
     "@types/figlet": "^1.5.7",
@@ -36,5 +40,13 @@
     "figlet": "^1.7.0",
     "lodash": "^4.17.21",
     "moment": "^2.29.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vlavrynovych/msr.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vlavrynovych/msr/issues",
+    "email": "volodyalavrynovych@gmail.com"
   }
 }
