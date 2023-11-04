@@ -16,4 +16,9 @@ install:
 script:
   - npm run coverage
   - npm run coverage:coveralls
+
+  - echo "sonar.projectKey=vlavrynovych:msr" > sonar-project.properties
+  - echo "sonar.projectVersion=develop" >> sonar-project.properties
+  - echo "sonar.projectName=Migration Script Runner" >> sonar-project.properties
+
   - sonar-scanner
