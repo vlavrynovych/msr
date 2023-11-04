@@ -6,6 +6,7 @@
       "es6"
     ],
     "module": "commonjs",
+    "sourceMap": true,
     "declaration": true,
     "moduleResolution": "node",
     "rootDir": ".",

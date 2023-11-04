@@ -1,4 +1,10 @@
 /node_modules
+
+# project folders
 /dist
 /migrations
 /backups
+
+# coverage folders
+/coverage
+.nyc_output
