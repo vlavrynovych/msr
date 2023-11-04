@@ -6,5 +6,5 @@
 /backups
 
 # coverage folders
-/coverage
+/reports
 .nyc_output
