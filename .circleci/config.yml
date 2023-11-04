@@ -1,28 +1,33 @@
 version: 2.1
 
 jobs:
-  test:
+  setup:
     docker:
       - image: circleci/node:16.20.1
-
-    working_directory: ~/repo
-
     steps:
       - checkout
-
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "package.json" }}
-
       - run:
           name: Install Dependencies
           command: npm install
-
       - save_cache:
           paths:
             - node_modules
           key: v1-dependencies-{{ checksum "package.json" }}
-
+  test:
+    docker:
+      - image: circleci/node:16.20.1
+    steps:
       - run:
           name: Run Tests
           command: npm run coverage
+
+workflows:
+  test:
+    jobs:
+      - setup
+      - test:
+          requires:
+            - setup
