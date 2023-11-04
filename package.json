@@ -15,7 +15,9 @@
     "build": "rimraf ./dist && tsc",
     "test": "cross-env TS_NODE_FILES=true mocha --reporter mocha-junit-reporter --reporter-options mochaFile=./reports/mocha/test-results.xml --color --exit test/**/*.ts",
     "coverage": "rimraf ./reports && nyc npm run test",
-    "coverage:coveralls": "nyc report --reporter=text-lcov | coveralls"
+    "coverage:coveralls": "nyc report --reporter=text-lcov | coveralls",
+    "lint": "eslint ./src/ --ext .ts",
+    "lint:report": "eslint ./src/ --ext .ts --format junit --output-file ./reports/eslint.xml"
   },
   "keywords": [
     "migration",
@@ -36,7 +38,7 @@
     "chai": "^4.3.10",
     "coveralls": "^3.1.1",
     "cross-env": "^7.0.3",
-    "eslint": "^8.52.0",
+    "eslint": "^8.53.0",
     "mocha": "^10.2.0",
     "mocha-junit-reporter": "^2.2.1",
     "nodemon": "^3.0.1",
