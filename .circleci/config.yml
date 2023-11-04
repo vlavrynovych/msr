@@ -1,7 +1,7 @@
 version: 2.1
 
 jobs:
-  setup:
+  test:
     docker:
       - image: circleci/node:16.13.0
         auth:
@@ -19,13 +19,6 @@ jobs:
           paths:
             - node_modules
           key: v1-dependencies-{{ checksum "package.json" }}
-  test:
-    docker:
-      - image: circleci/node:16.13.0
-        auth:
-          username: $DOCKER_USER
-          password: $DOCKER_TOKEN
-    steps:
       - run:
           name: Run Tests
           command: npm run coverage
@@ -33,7 +26,4 @@ jobs:
 workflows:
   test:
     jobs:
-      - setup
-      - test:
-          requires:
-            - setup
+      - test
