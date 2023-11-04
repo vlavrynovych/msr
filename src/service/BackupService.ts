@@ -9,15 +9,22 @@ export class BackupService {
     public constructor(private cfg: Config) {}
 
     public async backup(): Promise<any> {
+        console.info('Preparing backup...')
         await this._backup();
         console.info('Backup prepared successfully:\r\n', this.backupFile);
     }
 
     public async restore(): Promise<any> {
-        console.info('Reverting DB...');
+        console.info('Restoring from backup...');
         await this._restore()
-        console.info('DB Reverted to the previous state:\r\n', this.backupFile);
-        process.exit(1);
+        console.info('Restored to the previous state:\r\n', this.backupFile);
+    }
+
+    public deleteBackup() {
+        if(!this.cfg.backupOptions.deleteBackup || !this.backupFile) return;
+        console.log("Deleting backup file...")
+        fs.rmSync(this.backupFile);
+        console.log("Backup file successfully deleted")
     }
 
     private async _restore(): Promise<string> {
@@ -46,12 +53,5 @@ export class BackupService {
     prepareFilePath(bo:BackupOptions) {
         let time = bo.timestamp ? `-${moment().format(bo.timestampFormat)}` : '';
         return `${this.cfg.folders.backups}/${bo.prefix}${bo.custom}${time}${bo.suffix}.${bo.extension}`;
-    }
-
-    public deleteBackup() {
-        if(!this.cfg.backupOptions.deleteBackup || !this.backupFile) return;
-        console.log("Removing backup file...")
-        fs.rmSync(this.backupFile);
-        console.log("Backup file successfully removed")
     }
 }

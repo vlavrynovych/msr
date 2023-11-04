@@ -42,11 +42,11 @@ export class MSRunner {
                 this.backupService.deleteBackup();
                 process.exit(0);
             })
-            .catch(err => {
+            .catch(async err => {
                 console.error(err);
-                return this.backupService.restore();
+                await this.backupService.restore();
+                process.exit(1);
             })
-
     }
 
     private runScripts(scripts:MigrationScriptInfo[]) {

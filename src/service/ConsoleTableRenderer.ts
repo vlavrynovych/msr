@@ -5,7 +5,6 @@ import moment from "moment";
 export class ConsoleTableRenderer {
     constructor(private cfg: Config) {}
 
-
     public drawMigrated(alreadyMigrated: MigrationScriptInfo[], allScripts:MigrationScriptInfo[]) {
         if (alreadyMigrated.length) {
             let table = new AsciiTable3('Migrated');
