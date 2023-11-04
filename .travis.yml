@@ -16,6 +16,7 @@ install:
 script:
   - npm run coverage
   - npm run coverage:coveralls
+  - npm run lint:report
 
   - echo "sonar.projectKey=vlavrynovych_msr" > sonar-project.properties
   - echo "sonar.organization=vlavrynovych" >> sonar-project.properties

@@ -7,7 +7,6 @@
 [![Coverage Status](https://coveralls.io/repos/github/vlavrynovych/msr/badge.svg?branch=develop)](https://coveralls.io/github/vlavrynovych/msr?branch=develop)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=vlavrynovych_msr&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=vlavrynovych_msr)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=vlavrynovych_msr&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=vlavrynovych_msr)
-
 [![GitHub issues](https://img.shields.io/github/issues/vlavrynovych/msr.svg)](https://github.com/vlavrynovych/msr/issues)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/vlavrynovych/msr/develop/LICENSE)
 [![NPM Version][npm-image]][npm-url]
