@@ -1,6 +1,7 @@
 {
   "cache": false,
   "check-coverage": false,
+  "report-dir": "./reports/coverage",
   "extension": [
     ".ts"
   ],
@@ -9,14 +10,14 @@
     "**/*.ts"
   ],
   "exclude": [
-    "coverage/**",
+    "reports/**",
     "node_modules/**",
     "**/*.d.ts",
     "**/*.test.ts"
   ],
   "sourceMap": true,
   "reporter": [
-    "html",
+    "lcov",
     "text",
     "text-summary"
   ],

@@ -13,8 +13,8 @@
     "start:ts": "npm run build && npx ts-node index.ts",
     "start:dev": "npx nodemon",
     "build": "rimraf ./dist && tsc",
-    "test": "cross-env TS_NODE_FILES=true mocha --reporter mocha-junit-reporter --reporter-options mochaFile=./coverage/junit.xml --color --exit test/**/*.ts",
-    "coverage": "nyc npm run test"
+    "test": "cross-env TS_NODE_FILES=true mocha --reporter mocha-junit-reporter --reporter-options mochaFile=./reports/mocha/test-results.xml --color --exit test/**/*.ts",
+    "coverage": "rimraf ./reports && nyc npm run test"
   },
   "keywords": [
     "migration",

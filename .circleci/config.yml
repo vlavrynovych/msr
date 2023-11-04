@@ -23,9 +23,9 @@ jobs:
           name: Run Tests
           command: npm run coverage
       - store_test_results:
-          path: coverage
+          path: reports
       - store_artifacts:
-          path: coverage
+          path: reports/coverage
 workflows:
   test:
     jobs:
