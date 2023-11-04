@@ -38,20 +38,21 @@ export class BackupService {
 
     private async _backup(): Promise<string> {
         let data = await this.cfg.dao.backup();
-        let filePath = this.getFileName(this.cfg.backupOptions);
+        let filePath = this.getFileName();
         fs.writeFileSync(filePath, data);
         this.backupFile = filePath;
         return filePath
     }
 
-    getFileName(bo:BackupOptions) {
-        let path = this.prepareFilePath(bo);
-        if (fs.existsSync(path)) fs.renameSync(path, this.prepareFilePath(bo))
+    getFileName() {
+        let path = BackupService.prepareFilePath(this.cfg);
+        if (fs.existsSync(path)) fs.renameSync(path, BackupService.prepareFilePath(this.cfg))
         return path;
     }
 
-    prepareFilePath(bo:BackupOptions) {
+    static prepareFilePath(cfg:Config) {
+        const bo = cfg.backupOptions;
         let time = bo.timestamp ? `-${moment().format(bo.timestampFormat)}` : '';
-        return `${this.cfg.folders.backups}/${bo.prefix}${bo.custom}${time}${bo.suffix}.${bo.extension}`;
+        return `${cfg.folders.backups}/${bo.prefix}${bo.custom}${time}${bo.suffix}.${bo.extension}`;
     }
 }
