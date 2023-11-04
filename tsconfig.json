@@ -1,0 +1,25 @@
+/* Visit https://aka.ms/tsconfig to read more about this file */
+{
+  "compilerOptions": {
+    "target": "es2019",
+    "lib": [
+      "es6"
+    ],
+    "module": "commonjs",
+    "sourceMap": true,
+    "declaration": true,
+    "moduleResolution": "node",
+    "rootDir": ".",
+    "resolveJsonModule": true,
+    "allowJs": false,
+    "outDir": "dist/",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "skipLibCheck": true,
+    "noEmit": true // disables
+  },
+  "include": ["index.ts", "src/**/*", "test/**/*", "migrations/**/*"],
+  "exclude": ["dist", "node_modules"]
+}

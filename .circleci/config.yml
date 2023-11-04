@@ -1,0 +1,32 @@
+version: 2.1
+
+jobs:
+  test:
+    docker:
+      - image: circleci/node:16.13.0
+        auth:
+          username: $DOCKER_USER
+          password: $DOCKER_TOKEN
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package.json" }}
+      - run:
+          name: Install Dependencies
+          command: npm install
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package.json" }}
+      - run:
+          name: Run Tests
+          command: npm run coverage
+      - store_test_results:
+          path: reports
+      - store_artifacts:
+          path: reports/coverage
+workflows:
+  test:
+    jobs:
+      - test
