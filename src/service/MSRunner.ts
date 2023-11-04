@@ -1,15 +1,18 @@
 import * as fs from 'fs';
 import * as _ from 'lodash'
 import {version} from '../../package.json'
-import {MigrationScriptInfo, Config, BackupService, MigrationInfo} from "../index";
+import {BackupService, Config, MigrationInfo, MigrationScriptInfo} from "../index";
 import figlet from "figlet";
+import {ConsoleTableRenderer} from "./ConsoleTableRenderer";
 
 export class MSRunner {
 
     private backupService:BackupService;
+    tr: ConsoleTableRenderer;
 
     constructor(private cfg:Config) {
         this.backupService = new BackupService(cfg);
+        this.tr = new ConsoleTableRenderer(cfg);
         this.drawFiglet();
     }
 
@@ -30,7 +33,7 @@ export class MSRunner {
                 const migratedScripts:MigrationScriptInfo[] = res[1];
                 const allScripts:MigrationScriptInfo[] = res[2];
 
-                this.drawMigrated(migratedScripts)
+                this.tr.drawMigrated(migratedScripts, allScripts)
                 return this.findDifference(migratedScripts, allScripts)
             })
             .then(scripts => this.runScripts(scripts))
@@ -48,7 +51,7 @@ export class MSRunner {
 
     private runScripts(scripts:MigrationScriptInfo[]) {
         if (scripts.length) {
-            this.drawTodoTable(scripts);
+            this.tr.drawTodoTable(scripts);
             console.info('Processing...');
             _.orderBy(scripts, ['timestamp'], ['desc']);
             return this.execute(scripts);
@@ -59,58 +62,38 @@ export class MSRunner {
     }
 
     async execute(scripts: MigrationScriptInfo[]): Promise<any> {
-        let results: any[] = [];
+        let results: MigrationInfo[] = [];
         let username = require("os").userInfo().username;
 
-        let tasks = scripts.map(script => () => {
-            console.log(`${script.name}: processing...`);
-            console.time(script.name);
+        // let tasks = scripts.map(script => () => {
+        await scripts
+            .map(script=>
+                async () => {
+                    results.push(await this.task(script, username))
+                }
+            )
+            .reduce((p, task) => p.then(() => task()), Promise.resolve());
+        this.tr.drawExecutedTable(results);
+    }
 
-            let details = {
-                name: script.name,
-                timestamp: script.timestamp,
-                startedAt: Date.now(),
-                username: username,
-            } as MigrationInfo;
+    private async task(script:MigrationScriptInfo, username:string) {
+        console.log(`${script.name}: processing...`);
 
-            return script.script && script.script.up(this.cfg.dao, details)
+        let details = {
+            name: script.name,
+            timestamp: script.timestamp,
+            startedAt: Date.now(),
+            username: username,
+        } as MigrationInfo;
 
-            // return script.instance.up(this.db, details)
-                .then(async result => {
-                    details.result = result;
-                    details.finishedAt = Date.now();
-                    await this.log(details)
-                    results.push(details);
-                })
-        });
-
-        // execute
-        await tasks.reduce((p, task) => p.then(() => task()), Promise.resolve());
-        this.drawExecutedTable(results);
+        details.result = await script.script.up(this.cfg.dao, details);
+        details.finishedAt = Date.now();
+        await this.log(details);
+        return details
     }
 
     log(details: MigrationInfo):Promise<any> {
         return Promise.resolve()
-    }
-
-    drawExecutedTable(results: any[]) {
-        // let table = new AsciiTable('Executed');
-        // table.setHeading('Timestamp', 'Name', 'Duration');
-        // results.forEach(m => {
-        //     let duration = moment.duration(moment(m.finishedAt).diff(moment(m.startedAt)));
-        //     table.addRow(m.timestamp, m.name, duration.asSeconds() + 's')
-        // });
-        // console.info(table.toString());
-
-        results.forEach(m => console.log(m));
-    }
-
-    drawTodoTable(scripts:MigrationScriptInfo[]) {
-        scripts.forEach(s => console.log(s))
-    }
-
-    private drawMigrated(alreadyMigrated: MigrationScriptInfo[]) {
-        alreadyMigrated.forEach(script => console.log(script.name))
     }
 
     private async getMigrationScripts(): Promise<MigrationScriptInfo[]> {

@@ -4,7 +4,9 @@ export class ExecutableScript {
     public readonly name!:string;
     public readonly filepath!:string;
     public readonly timestamp!: null | number;
-    public script: IMigrationScript | undefined;
+    public finishedAt!:number
+    public username!:string
+    public script!: IMigrationScript;
 
     constructor(name: string,
                 filepath: string,
