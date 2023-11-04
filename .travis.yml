@@ -21,5 +21,6 @@ script:
   - echo "sonar.organization=vlavrynovych" >> sonar-project.properties
   - echo "sonar.projectVersion=develop" >> sonar-project.properties
   - echo "sonar.projectName=MSR" >> sonar-project.properties
+  - echo "sonar.javascript.lcov.reportPaths=./reports/coverage/lcov.info" >> sonar-project.properties
 
   - sonar-scanner
