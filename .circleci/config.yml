@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   setup:
     docker:
-      - image: circleci/node:16.20.1
+      - image: circleci/node:16.13.0
         auth:
           username: $DOCKER_USER
           password: $DOCKER_TOKEN
@@ -21,7 +21,7 @@ jobs:
           key: v1-dependencies-{{ checksum "package.json" }}
   test:
     docker:
-      - image: circleci/node:16.20.1
+      - image: circleci/node:16.13.0
         auth:
           username: $DOCKER_USER
           password: $DOCKER_TOKEN
