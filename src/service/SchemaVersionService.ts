@@ -1,6 +1,5 @@
 import {MigrationScript} from "../model";
-import {IRunner} from "../interface";
-import {IMigrationInfo} from "../interface";
+import {IRunner, IMigrationInfo} from "../interface";
 
 export class SchemaVersionService {
     constructor(private msr: IRunner) {}

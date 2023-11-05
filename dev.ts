@@ -10,7 +10,10 @@ cfg.backup.folder = `${process.cwd()}/backups`;
 
 const runner: IRunner = {
     cfg: cfg,
-    db: new class implements IDB {},
+    db: new class A implements IDB {
+        constructor() {}
+        dummyMethod():void {}
+    },
 
     createTable(tableName: string): Promise<any> {
         return Promise.resolve(undefined);
