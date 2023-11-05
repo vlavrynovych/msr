@@ -1,7 +1,7 @@
 export class BackupConfig {
     timestamp:boolean = true;
     deleteBackup:boolean = true;
-    folder:string = 'backup'
+    folder:string = 'backups'
 
     prefix:string = 'backup';
     custom:string = '';
