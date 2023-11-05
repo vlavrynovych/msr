@@ -16,12 +16,11 @@ install:
 script:
   - npm run coverage
 
-  - echo "service_name:: travis-ci" > .coveralls.yml
-  - echo "service_job_id:: $TRAVIS_BUILD_ID" >> .coveralls.yml
-  - echo "service_build_url:: $TRAVIS_BUILD_WEB_URL" >> .coveralls.yml
-  - echo "service_branch:: $TRAVIS_PULL_REQUEST_BRANCH" >> .coveralls.yml
-  - echo "service_pull_request:: $TRAVIS_PULL_REQUEST" >> .coveralls.yml
-  - echo "repo_token:: 2XqaHJJuzJIBjZ0l5b1yOOAlE9B3kY6EB" >> .coveralls.yml
+  - export COVERALLS_SERVICE_NAME=travis-ci
+    export COVERALLS_SERVICE_NUMBER=$TRAVIS_BUILD_ID
+    export COVERALLS_GIT_BRANCH=$TRAVIS_PULL_REQUEST_BRANCH
+    export COVERALLS_PULL_REQUEST=$TRAVIS_PULL_REQUEST
+    export COVERALLS_REPO_TOKEN=2XqaHJJuzJIBjZ0l5b1yOOAlE9B3kY6EB
 
   - npm run coverage:coveralls
   - npm run lint:report
