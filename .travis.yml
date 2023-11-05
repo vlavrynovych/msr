@@ -17,15 +17,15 @@ script:
   - npm run test:report
 
   - export COVERALLS_SERVICE_NAME=travis-ci
-    export COVERALLS_SERVICE_NUMBER=$TRAVIS_BUILD_ID
-    export COVERALLS_GIT_BRANCH=$TRAVIS_PULL_REQUEST_BRANCH
-    export COVERALLS_PULL_REQUEST=$TRAVIS_PULL_REQUEST
-    export COVERALLS_REPO_TOKEN=2XqaHJJuzJIBjZ0l5b1yOOAlE9B3kY6EB
+  - export COVERALLS_SERVICE_NUMBER=$TRAVIS_BUILD_ID
+  - export COVERALLS_GIT_BRANCH=$TRAVIS_PULL_REQUEST_BRANCH
+  - export COVERALLS_PULL_REQUEST=$TRAVIS_PULL_REQUEST
+  - export COVERALLS_REPO_TOKEN=2XqaHJJuzJIBjZ0l5b1yOOAlE9B3kY6EB
   - npm run test:coverage:coveralls
 
   - echo "sonar.projectKey=vlavrynovych_msr" > sonar-project.properties
-    echo "sonar.organization=vlavrynovych" >> sonar-project.properties
-    echo "sonar.projectVersion=develop" >> sonar-project.properties
-    echo "sonar.projectName=MSR" >> sonar-project.properties
-    echo "sonar.javascript.lcov.reportPaths=./reports/coverage/lcov.info" >> sonar-project.properties
+  - echo "sonar.organization=vlavrynovych" >> sonar-project.properties
+  - echo "sonar.projectVersion=develop" >> sonar-project.properties
+  - echo "sonar.projectName=MSR" >> sonar-project.properties
+  - echo "sonar.javascript.lcov.reportPaths=./reports/coverage/lcov.info" >> sonar-project.properties
   - sonar-scanner
