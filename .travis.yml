@@ -21,7 +21,7 @@ script:
     export COVERALLS_GIT_BRANCH=$TRAVIS_PULL_REQUEST_BRANCH
     export COVERALLS_PULL_REQUEST=$TRAVIS_PULL_REQUEST
     export COVERALLS_REPO_TOKEN=2XqaHJJuzJIBjZ0l5b1yOOAlE9B3kY6EB
-  - npm run coverage:coveralls
+  - npm run test:coverage:coveralls
 
   - echo "sonar.projectKey=vlavrynovych_msr" > sonar-project.properties
     echo "sonar.organization=vlavrynovych" >> sonar-project.properties
