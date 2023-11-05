@@ -57,13 +57,13 @@ Starts the application in development using nodemon and ts-node to do cold reloa
 npm run test
 ```
 
-Starts unit tests
+Runs tests
 
 ```shell
-npm run coverage
+npm run test:report
 ```
 
-Starts unit tests with coverage
+Runs all tests and generates all the reports: junit, eslint, code coverage
 
 ## Inspiration
 

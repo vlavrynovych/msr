@@ -20,11 +20,8 @@ jobs:
             - node_modules
           key: v1-dependencies-{{ checksum "package.json" }}
       - run:
-          name: Run Tests
-          command: npm run coverage
-      - run:
-          name: Run ESLint
-          command: npm run lint:report
+          name: Run Tests with reports
+          command: npm run test:report
       - store_test_results:
           path: reports
       - store_artifacts:
