@@ -1,30 +1,19 @@
 import { expect } from 'chai';
-import {BackupService, Config, IDAO} from "../../src";
-
-const dao: IDAO = {
-    restore(data: string): Promise<any> {
-        return Promise.resolve("undefined");
-    },
-    backup(): Promise<string> {
-        return Promise.resolve("test");
-    },
-    getName(): string {
-        return "Firebase"
-    }
-}
+import {BackupConfig, BackupService} from "../../src";
 
 describe('BackupService.prepareFilePath', () => {
-    const cfg:Config = new Config(dao);
+
 
     it('check folder', () => {
         // when
+        const cfg:BackupConfig = new BackupConfig();
         let res:string = BackupService.prepareFilePath(cfg);
 
         // then
         expect(res.startsWith('backups/'), 'Should have default folder').to.be.true
 
         // when: folder updated
-        cfg.folders.backups = 'test-folder';
+        cfg.folder = 'test-folder';
         res = BackupService.prepareFilePath(cfg);
 
         // then:
@@ -33,8 +22,9 @@ describe('BackupService.prepareFilePath', () => {
 
     it('check extension', () => {
         // having
+        const cfg:BackupConfig = new BackupConfig();
         const ext:string = 'my-bkp-ext';
-        cfg.backupOptions.extension = ext
+        cfg.extension = ext
 
         // when
         const res:string = BackupService.prepareFilePath(cfg);

@@ -97,13 +97,13 @@ export class MSRunner {
     }
 
     private async getMigrationScripts(): Promise<MigrationScriptInfo[]> {
-        let files:string[] = fs.readdirSync(this.cfg.folders.migrations);
+        let files:string[] = fs.readdirSync(this.cfg.folder);
         return files
             .filter(name => this.cfg.filePattern.test(name))
             .map(name => {
                 const execArray: RegExpExecArray | null = this.cfg.filePattern.exec(name);
                 const timestamp = execArray && parseInt(execArray[1]);
-                return new MigrationScriptInfo(name, `${this.cfg.folders.migrations}/${name}`, timestamp);
+                return new MigrationScriptInfo(name, `${this.cfg.folder}/${name}`, timestamp);
             })
     }
 
