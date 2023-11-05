@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as _ from 'lodash'
-import {BackupService, ConsoleRenderer, IRunner, MigrationScript, SchemaVersionService} from "../index";
+import {BackupService, ConsoleRenderer, IRunner, IScripts, MigrationScript, SchemaVersionService, Utils} from "../index";
 
 export class MSRunner {
 
@@ -20,26 +20,24 @@ export class MSRunner {
         try {
             await this.backupService.backup()
             await this.schemaVersionService.init()
-            const res:[MigrationScript[], MigrationScript[]] = await Promise.all([
-                this.schemaVersionService.getAllMigratedScripts(),
-                this.getMigrationScripts(),
-            ])
-            const migratedScripts: MigrationScript[] = res[0];
-            const allScripts: MigrationScript[] = res[1];
+            const scripts = await Utils.promiseAll({
+                migrated: this.schemaVersionService.getAllMigratedScripts(),
+                all: this.getMigrationScripts()
+            }) as IScripts;
 
-            this.consoleRenderer.drawMigrated(migratedScripts, allScripts)
-            const scripts:MigrationScript[] = _.differenceBy(allScripts, migratedScripts, 'timestamp')
+            this.consoleRenderer.drawMigrated(scripts)
+            scripts.todo = _.differenceBy(scripts.all, scripts.migrated, 'timestamp')
 
 
-            if (!scripts.length) {
+            if (!scripts.todo.length) {
                 console.info('Nothing to do');
                 process.exit(0);
             }
 
-            this.consoleRenderer.drawTodoTable(scripts);
+            this.consoleRenderer.drawTodoTable(scripts.todo);
             console.info('Processing...');
-            const executed:MigrationScript[] = await this.execute(scripts);
-            this.consoleRenderer.drawExecutedTable(executed);
+            scripts.executed = await this.execute(scripts.todo);
+            this.consoleRenderer.drawExecutedTable(scripts.executed);
 
             console.info('Migration finished successfully!');
             this.backupService.deleteBackup();
