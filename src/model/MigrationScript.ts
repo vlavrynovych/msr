@@ -23,11 +23,10 @@ export class MigrationScript extends IMigrationInfo {
             try {
                 const instance = new clazz();
                 // if instance has up method
-                if(instance.up) {
-                    this.script = instance as IRunnableScript;
-                }
+                if(instance.up) this.script = instance as IRunnableScript;
             } catch (e) {
-                //TODO: handle
+                console.error(e);
+                throw new Error('Cannot parse migration script!')
             }
         }
     }

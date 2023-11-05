@@ -32,4 +32,16 @@ describe('BackupService.prepareFilePath', () => {
         // then
         expect(res.endsWith(ext), 'Should have specified extension').to.be.true
     })
+
+    it('check if timestamp is turned off', () => {
+        // having
+        const cfg:BackupConfig = new BackupConfig();
+        cfg.timestamp = false
+
+        // when
+        const res:string = BackupService.prepareFilePath(cfg);
+
+        // then
+        expect(res).eq('backups/backup.bkp', 'Should not have timestamp in the file name')
+    })
 })
