@@ -1,5 +1,5 @@
 import fs from "fs";
-import {BackupOptions, Config} from "../model";
+import {BackupConfig, Config} from "../model";
 import moment from "moment";
 
 export class BackupService {
@@ -21,7 +21,7 @@ export class BackupService {
     }
 
     public deleteBackup() {
-        if(!this.cfg.backupOptions.deleteBackup || !this.backupFile) return;
+        if(!this.cfg.backup.deleteBackup || !this.backupFile) return;
         console.log("Deleting backup file...")
         fs.rmSync(this.backupFile);
         console.log("Backup file successfully deleted")
@@ -45,14 +45,13 @@ export class BackupService {
     }
 
     getFileName() {
-        let path = BackupService.prepareFilePath(this.cfg);
-        if (fs.existsSync(path)) fs.renameSync(path, BackupService.prepareFilePath(this.cfg))
+        let path = BackupService.prepareFilePath(this.cfg.backup);
+        if (fs.existsSync(path)) fs.renameSync(path, BackupService.prepareFilePath(this.cfg.backup))
         return path;
     }
 
-    static prepareFilePath(cfg:Config) {
-        const bo = cfg.backupOptions;
-        let time = bo.timestamp ? `-${moment().format(bo.timestampFormat)}` : '';
-        return `${cfg.folders.backups}/${bo.prefix}${bo.custom}${time}${bo.suffix}.${bo.extension}`;
+    static prepareFilePath(cfg:BackupConfig) {
+        let time = cfg.timestamp ? `-${moment().format(cfg.timestampFormat)}` : '';
+        return `${cfg.folder}/${cfg.prefix}${cfg.custom}${time}${cfg.suffix}.${cfg.extension}`;
     }
 }

@@ -17,7 +17,7 @@ const dao: IDAO = {
 }
 
 const cfg = new Config(dao);
-cfg.folders.migrations = `${process.cwd()}/migrations`;
-cfg.folders.backups = `${process.cwd()}/backups`;
+cfg.folder = `${process.cwd()}/migrations`;
+cfg.backup.folder = `${process.cwd()}/backups`;
 
 new MSRunner(cfg).migrate()
