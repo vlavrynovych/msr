@@ -1,117 +1,99 @@
 import * as fs from 'fs';
 import * as _ from 'lodash'
-import {version} from '../../package.json'
-import {BackupService, Config, MigrationInfo, MigrationScriptInfo} from "../index";
-import figlet from "figlet";
-import {ConsoleTableRenderer} from "./ConsoleTableRenderer";
+import {BackupService, ConsoleRenderer, IRunner, MigrationScript, SchemaVersionService} from "../index";
 
 export class MSRunner {
 
     private backupService:BackupService;
-    tr: ConsoleTableRenderer;
+    private consoleRenderer: ConsoleRenderer;
+    private schemaVersionService: SchemaVersionService;
 
-    constructor(private cfg:Config) {
-        this.backupService = new BackupService(cfg);
-        this.tr = new ConsoleTableRenderer(cfg);
-        this.drawFiglet();
-    }
+    constructor(private runner:IRunner) {
+        this.backupService = new BackupService(runner);
+        this.schemaVersionService = new SchemaVersionService(runner);
+        this.consoleRenderer = new ConsoleRenderer(runner);
 
-    private drawFiglet() {
-        let text = figlet.textSync("Migration Script Runner");
-        text = text.replace('|_|                                     ',
-            `|_| MSR v.${version}: ${this.cfg.dao.getName()}`);
-        console.log(text);
+        this.consoleRenderer.drawFiglet();
     }
 
     public async migrate(): Promise<any> {
-        await Promise.all([
-            this.backupService.backup(),
-            this.getMigratedScripts(),
-            this.getMigrationScripts(),
-        ])
-            .then(res => {
-                const migratedScripts:MigrationScriptInfo[] = res[1];
-                const allScripts:MigrationScriptInfo[] = res[2];
+        try {
+            await this.backupService.backup()
+            await this.schemaVersionService.init()
+            const res:[MigrationScript[], MigrationScript[]] = await Promise.all([
+                this.schemaVersionService.getAllMigratedScripts(),
+                this.getMigrationScripts(),
+            ])
+            const migratedScripts: MigrationScript[] = res[0];
+            const allScripts: MigrationScript[] = res[1];
 
-                this.tr.drawMigrated(migratedScripts, allScripts)
-                return this.findDifference(migratedScripts, allScripts)
-            })
-            .then(scripts => this.runScripts(scripts))
-            .then(() => {
-                console.info('Migration finished successfully!');
-                this.backupService.deleteBackup();
+            this.consoleRenderer.drawMigrated(migratedScripts, allScripts)
+            const scripts:MigrationScript[] = _.differenceBy(allScripts, migratedScripts, 'timestamp')
+
+
+            if (!scripts.length) {
+                console.info('Nothing to do');
                 process.exit(0);
-            })
-            .catch(async err => {
-                console.error(err);
-                await this.backupService.restore();
-                process.exit(1);
-            })
-    }
+            }
 
-    private runScripts(scripts:MigrationScriptInfo[]) {
-        if (scripts.length) {
-            this.tr.drawTodoTable(scripts);
+            this.consoleRenderer.drawTodoTable(scripts);
             console.info('Processing...');
-            _.orderBy(scripts, ['timestamp'], ['desc']);
-            return this.execute(scripts);
-        } else {
-            console.info('Nothing to do');
-            process.exit(0);
+            const executed:MigrationScript[] = await this.execute(scripts);
+            this.consoleRenderer.drawExecutedTable(executed);
+
+            console.info('Migration finished successfully!');
+            this.backupService.deleteBackup();
+            process.exit(0)
+        } catch (err) {
+            console.error(err);
+            await this.backupService.restore();
+            process.exit(1);
         }
     }
 
-    async execute(scripts: MigrationScriptInfo[]): Promise<any> {
-        let results: MigrationInfo[] = [];
-        let username = require("os").userInfo().username;
+    async execute(scripts: MigrationScript[]): Promise<MigrationScript[]> {
+        scripts = _.orderBy(scripts, ['timestamp'], ['asc'])
+        const executed: MigrationScript[] = [];
+        const username = require("os").userInfo().username;
 
-        // let tasks = scripts.map(script => () => {
-        await scripts
-            .map(script=>
-                async () => {
-                    results.push(await this.task(script, username))
+        // prepares queue of migration tasks
+        const tasks = _.orderBy(scripts, ['timestamp'], ['asc'])
+            .map((s: MigrationScript) => {
+                s.username = username;
+                return async () => {
+                    executed.push(await this.task(s))
                 }
-            )
-            .reduce((p, task) => p.then(() => task()), Promise.resolve());
-        this.tr.drawExecutedTable(results);
+            });
+
+        // runs migrations
+        await tasks.reduce(async (promise, nextTask) => {
+                await promise
+                return nextTask()
+            }, Promise.resolve());
+
+        return executed;
     }
 
-    private async task(script:MigrationScriptInfo, username:string) {
+    private async task(script:MigrationScript) {
         console.log(`${script.name}: processing...`);
 
-        let details = {
-            name: script.name,
-            timestamp: script.timestamp,
-            startedAt: Date.now(),
-            username: username,
-        } as MigrationInfo;
+        script.startedAt = Date.now()
+        script.result = await script.script.up(this.runner.db, script, this.runner);
+        script.finishedAt = Date.now();
 
-        details.result = await script.script.up(this.cfg.dao, details);
-        details.finishedAt = Date.now();
-        await this.log(details);
-        return details
+        await this.schemaVersionService.register(script);
+        return script
     }
 
-    log(details: MigrationInfo):Promise<any> {
-        return Promise.resolve()
-    }
-
-    private async getMigrationScripts(): Promise<MigrationScriptInfo[]> {
-        let files:string[] = fs.readdirSync(this.cfg.folder);
+    private async getMigrationScripts(): Promise<MigrationScript[]> {
+        const files:string[] = fs.readdirSync(this.runner.cfg.folder);
         return files
-            .filter(name => this.cfg.filePattern.test(name))
+            .filter(name => this.runner.cfg.filePattern.test(name))
             .map(name => {
-                const execArray: RegExpExecArray | null = this.cfg.filePattern.exec(name);
-                const timestamp = execArray && parseInt(execArray[1]);
-                return new MigrationScriptInfo(name, `${this.cfg.folder}/${name}`, timestamp);
+                const execArray: RegExpExecArray | null = this.runner.cfg.filePattern.exec(name);
+                if(execArray == null) throw new Error("Wrong file name format")
+                const timestamp = parseInt(execArray[1]);
+                return new MigrationScript(name, `${this.runner.cfg.folder}/${name}`, timestamp);
             })
-    }
-
-    private getMigratedScripts(): Promise<MigrationScriptInfo[]> {
-        return Promise.resolve([]);
-    }
-
-    public findDifference(migratedScripts:MigrationScriptInfo[], allScripts:MigrationScriptInfo[]): any {
-        return _.differenceBy(allScripts, migratedScripts, 'timestamp');
     }
 }

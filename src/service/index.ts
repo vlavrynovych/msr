@@ -1,3 +1,4 @@
 export * from './BackupService'
-export * from './ConsoleTableRenderer'
+export * from './SchemaVersionService'
+export * from './ConsoleRenderer'
 export * from './MSRunner'

@@ -1,6 +1,4 @@
-
-export interface IDAO {
-    getName(): string;
+export interface IBackup {
     backup(): Promise<string>
     restore(data: string): Promise<any>;
 }

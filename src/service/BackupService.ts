@@ -1,12 +1,13 @@
 import fs from "fs";
-import {BackupConfig, Config} from "../model";
+import {BackupConfig} from "../model";
 import moment from "moment";
+import {IRunner} from "../interface";
 
 export class BackupService {
 
     private backupFile: string | undefined;
 
-    public constructor(private cfg: Config) {}
+    public constructor(private msr: IRunner) {}
 
     public async backup(): Promise<any> {
         console.info('Preparing backup...')
@@ -21,7 +22,7 @@ export class BackupService {
     }
 
     public deleteBackup() {
-        if(!this.cfg.backup.deleteBackup || !this.backupFile) return;
+        if(!this.msr.cfg.backup.deleteBackup || !this.backupFile) return;
         console.log("Deleting backup file...")
         fs.rmSync(this.backupFile);
         console.log("Backup file successfully deleted")
@@ -29,29 +30,29 @@ export class BackupService {
 
     private async _restore(): Promise<string> {
         if (this.backupFile &&fs.existsSync(this.backupFile)) {
-            let data = fs.readFileSync(this.backupFile, 'utf8');
-            return this.cfg.dao.restore(data);
+            const data:string = fs.readFileSync(this.backupFile, 'utf8');
+            return this.msr.restore(data);
         }
 
         return Promise.reject(`Cannot open ${this.backupFile}`);
     }
 
     private async _backup(): Promise<string> {
-        let data = await this.cfg.dao.backup();
-        let filePath = this.getFileName();
+        const data = await this.msr.backup();
+        const filePath = this.getFileName();
         fs.writeFileSync(filePath, data);
         this.backupFile = filePath;
         return filePath
     }
 
-    getFileName() {
-        let path = BackupService.prepareFilePath(this.cfg.backup);
-        if (fs.existsSync(path)) fs.renameSync(path, BackupService.prepareFilePath(this.cfg.backup))
+    getFileName():string {
+        const path:string = BackupService.prepareFilePath(this.msr.cfg.backup);
+        if (fs.existsSync(path)) fs.renameSync(path, BackupService.prepareFilePath(this.msr.cfg.backup))
         return path;
     }
 
-    static prepareFilePath(cfg:BackupConfig) {
-        let time = cfg.timestamp ? `-${moment().format(cfg.timestampFormat)}` : '';
+    static prepareFilePath(cfg:BackupConfig):string {
+        const time:string = cfg.timestamp ? `-${moment().format(cfg.timestampFormat)}` : '';
         return `${cfg.folder}/${cfg.prefix}${cfg.custom}${time}${cfg.suffix}.${cfg.extension}`;
     }
 }
