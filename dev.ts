@@ -11,9 +11,6 @@ cfg.backup.folder = `${process.cwd()}/backups`;
 const runner: IRunner = {
     cfg: cfg,
     db: new class A implements IDB {
-        constructor() {
-            // empty constructor
-        }
         dummyMethod():string {
             throw new Error("Not implemented");
         }
