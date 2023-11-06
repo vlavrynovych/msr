@@ -3,5 +3,5 @@ import {IDB} from "./dao";
 import {IMigrationInfo} from "./IMigrationInfo";
 
 export interface IRunnableScript {
-    up(dao:IDB, info:IMigrationInfo, msr:IRunner):Promise<any>;
+    up(dao:IDB, info:IMigrationInfo, msr:IRunner):Promise<string>;
 }

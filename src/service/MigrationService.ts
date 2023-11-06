@@ -19,11 +19,4 @@ export class MigrationService implements IMigrationService {
                 return new MigrationScript(name, `${this.cfg.folder}/${name}`, timestamp);
             })
     }
-
-    public async validate(scripts:MigrationScript[]): Promise<boolean> | never {
-        scripts.forEach(s => {
-            // Implement any validation rules here
-        })
-        return true;
-    }
 }

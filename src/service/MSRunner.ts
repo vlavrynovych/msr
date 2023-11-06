@@ -1,4 +1,5 @@
 import * as _ from 'lodash'
+import * as os from 'os'
 import {
     BackupService,
     ConsoleRenderer,
@@ -29,7 +30,7 @@ export class MSRunner {
         this.consoleRenderer.drawFiglet();
     }
 
-    public async migrate(): Promise<any> {
+    public async migrate(): Promise<void> {
         try {
             // inits
             await this.backupService.backup()
@@ -44,14 +45,12 @@ export class MSRunner {
 
             // defines scripts which should be executed
             scripts.todo = this.getTodo(scripts.migrated, scripts.all);
-            scripts.todo.forEach(s => s.init())
+            await Promise.all(scripts.todo.map(s => s.init()))
+
             if (!scripts.todo.length) {
                 console.info('Nothing to do');
                 process.exit(0);
             }
-
-            console.info('Validating...');
-            await this.migrationService.validate(scripts.todo);
 
             console.info('Processing...');
             this.consoleRenderer.drawTodoTable(scripts.todo);
@@ -83,7 +82,7 @@ export class MSRunner {
     async execute(scripts: MigrationScript[]): Promise<MigrationScript[]> {
         scripts = _.orderBy(scripts, ['timestamp'], ['asc'])
         const executed: MigrationScript[] = [];
-        const username = require("os").userInfo().username;
+        const username:string = os.userInfo().username;
 
         // prepares queue of migration tasks
         const tasks = _.orderBy(scripts, ['timestamp'], ['asc'])
