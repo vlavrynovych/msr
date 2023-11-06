@@ -11,8 +11,7 @@ export class Utils {
 
         await Promise.all(
             keys.map(async (key) => {
-                const value = await map[key as keyof T] as T[keyof T] extends Promise<infer R> ? R : never;
-                result[key as keyof T] = value;
+                result[key as keyof T] = await map[key as keyof T] as T[keyof T] extends Promise<infer R> ? R : never;
             })
         );
 
@@ -32,7 +31,7 @@ export class Utils {
                 if(hasUpFunction) {
                     runnable.push(instance as IRunnableScript)
                 } else {
-                    console.warn("")
+                    console.warn(`${errorPrefix}: the 'up()' function was not found`)
                 }
             } catch (e) {
                 console.error(e);
@@ -40,8 +39,8 @@ export class Utils {
             }
         }
 
-        if(!runnable.length) throw new Error(`${errorPrefix}:: no executable content found`)
-        if(runnable.length > 1) throw new Error(`${errorPrefix}:: multiple executable instances were found`)
+        if(!runnable.length) throw new Error(`${errorPrefix}: no executable content found`)
+        if(runnable.length > 1) throw new Error(`${errorPrefix}: multiple executable instances were found`)
 
         return runnable[0];
     }
