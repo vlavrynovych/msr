@@ -14,7 +14,7 @@ export class SchemaVersionService<T extends ISchemaVersion & IMigrationScript> i
         if(!isValid) throw new Error("Schema version table is invalid")
     }
 
-    public async register(details:IMigrationInfo):Promise<any> {
+    public async register(details:IMigrationInfo):Promise<void> {
         return this.service.register(details);
     }
 

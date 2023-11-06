@@ -3,6 +3,7 @@ import {IRunnableScript} from "../interface";
 
 export class Utils {
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public static async promiseAll<T extends {[key: string]: Promise<any>}>(map:T):
         Promise<{ [K in keyof T]: T[K] extends Promise<infer R> ? R : never }> {
         const keys = Object.keys(map);
@@ -18,8 +19,8 @@ export class Utils {
         return result;
     }
 
-    public static parseRunnable(script:MigrationScript):IRunnableScript | never {
-        const exports = require(script.filepath);
+    public static async parseRunnable(script:MigrationScript):Promise<IRunnableScript> | never {
+        const exports = await import(script.filepath);
         const runnable:IRunnableScript[] = [];
         const errorPrefix:string = `${script.name}: Cannot parse migration script`
 

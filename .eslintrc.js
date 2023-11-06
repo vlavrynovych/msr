@@ -27,7 +27,7 @@ module.exports = {
     },
     "plugins": [
         "@typescript-eslint",
-        "only-warn" // temp solution before errors are fixed
+        // "only-warn"
     ],
     "rules": {
     }

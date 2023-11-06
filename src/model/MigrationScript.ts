@@ -15,7 +15,7 @@ export class MigrationScript extends IMigrationInfo {
         this.timestamp = timestamp;
     }
 
-    init():void {
-        this.script = Utils.parseRunnable(this)
+    async init():Promise<void> {
+        this.script = await Utils.parseRunnable(this)
     }
 }

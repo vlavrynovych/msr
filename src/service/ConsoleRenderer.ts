@@ -55,7 +55,7 @@ export class ConsoleRenderer {
 
         const table = new AsciiTable3('Executed');
         table.setHeading('Timestamp', 'Name', 'Duration', 'Result');
-        scripts.forEach(m => table.addRow(m.timestamp, m.name, ConsoleRenderer.getDuration(m), m.result || 'OK!'));
+        scripts.forEach(m => table.addRow(m.timestamp, m.name, ConsoleRenderer.getDuration(m), m.result));
         console.log(table.toString());
     }
 

@@ -10,13 +10,13 @@ export class BackupService implements IBackupService {
 
     public constructor(private runner: IRunner) {}
 
-    public async backup(): Promise<any> {
+    public async backup(): Promise<void> {
         console.info('Preparing backup...')
         await this._backup();
         console.info('Backup prepared successfully:\r\n', this.backupFile);
     }
 
-    public async restore(): Promise<any> {
+    public async restore(): Promise<void> {
         console.info('Restoring from backup...');
         await this._restore()
         console.info('Restored to the previous state:\r\n', this.backupFile);
