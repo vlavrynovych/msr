@@ -1,3 +1,6 @@
+import {MigrationScript} from "../model";
+import {IRunnableScript} from "../interface";
+
 export class Utils {
 
     public static async promiseAll<T extends {[key: string]: Promise<any>}>(map:T):
@@ -13,5 +16,32 @@ export class Utils {
         );
 
         return result;
+    }
+
+    public static parseRunnable(script:MigrationScript):IRunnableScript | never {
+        const exports = require(script.filepath);
+        const runnable:IRunnableScript[] = [];
+        const errorPrefix:string = `${script.name}: Cannot parse migration script`
+
+        for(const key in exports) {
+            try {
+                const clazz = exports[key];
+                const instance = new clazz();
+                const hasUpFunction = instance.up && typeof instance.up === 'function'
+                if(hasUpFunction) {
+                    runnable.push(instance as IRunnableScript)
+                } else {
+                    console.warn("")
+                }
+            } catch (e) {
+                console.error(e);
+                throw new Error(`${errorPrefix}: ${e}`)
+            }
+        }
+
+        if(!runnable.length) throw new Error(`${errorPrefix}:: no executable content found`)
+        if(runnable.length > 1) throw new Error(`${errorPrefix}:: multiple executable instances were found`)
+
+        return runnable[0];
     }
 }

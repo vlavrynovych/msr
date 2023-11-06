@@ -1,13 +1,14 @@
 import fs from "fs";
-import {BackupConfig} from "../model";
 import moment from "moment";
-import {IRunner} from "../interface";
 
-export class BackupService {
+import {BackupConfig} from "../model";
+import {IBackupService, IRunner} from "../interface";
+
+export class BackupService implements IBackupService {
 
     private backupFile: string | undefined;
 
-    public constructor(private msr: IRunner) {}
+    public constructor(private runner: IRunner) {}
 
     public async backup(): Promise<any> {
         console.info('Preparing backup...')
@@ -22,7 +23,7 @@ export class BackupService {
     }
 
     public deleteBackup() {
-        if(!this.msr.cfg.backup.deleteBackup || !this.backupFile) return;
+        if(!this.runner.cfg.backup.deleteBackup || !this.backupFile) return;
         console.log("Deleting backup file...")
         fs.rmSync(this.backupFile);
         console.log("Backup file successfully deleted")
@@ -31,23 +32,23 @@ export class BackupService {
     private async _restore(): Promise<string> {
         if (this.backupFile &&fs.existsSync(this.backupFile)) {
             const data:string = fs.readFileSync(this.backupFile, 'utf8');
-            return this.msr.restore(data);
+            return this.runner.restore(data);
         }
 
         return Promise.reject(`Cannot open ${this.backupFile}`);
     }
 
     private async _backup(): Promise<string> {
-        const data = await this.msr.backup();
+        const data = await this.runner.backup();
         const filePath = this.getFileName();
         fs.writeFileSync(filePath, data);
         this.backupFile = filePath;
         return filePath
     }
 
-    getFileName():string {
-        const path:string = BackupService.prepareFilePath(this.msr.cfg.backup);
-        if (fs.existsSync(path)) fs.renameSync(path, BackupService.prepareFilePath(this.msr.cfg.backup))
+    private getFileName():string {
+        const path:string = BackupService.prepareFilePath(this.runner.cfg.backup);
+        if (fs.existsSync(path)) fs.renameSync(path, BackupService.prepareFilePath(this.runner.cfg.backup))
         return path;
     }
 

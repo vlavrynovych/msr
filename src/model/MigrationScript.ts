@@ -1,4 +1,5 @@
 import {IMigrationInfo, IRunnableScript} from "../interface";
+import {Utils} from "../service";
 
 export class MigrationScript extends IMigrationInfo {
 
@@ -12,22 +13,9 @@ export class MigrationScript extends IMigrationInfo {
         this.name = name;
         this.filepath = filepath;
         this.timestamp = timestamp;
-        this.initMigrationScript()
     }
 
-    initMigrationScript():void {
-        const exports = require(this.filepath);
-
-        for(const prop in exports) {
-            const clazz = exports[prop];
-            try {
-                const instance = new clazz();
-                // if instance has up method
-                if(instance.up) this.script = instance as IRunnableScript;
-            } catch (e) {
-                console.error(e);
-                throw new Error('Cannot parse migration script!')
-            }
-        }
+    init():void {
+        this.script = Utils.parseRunnable(this)
     }
 }
