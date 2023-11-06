@@ -41,12 +41,21 @@ export class ConsoleRenderer {
         console.log(table.toString());
     }
 
+    public drawIgnoredTable(scripts:MigrationScript[]) {
+        if(!scripts.length) return;
+
+        const table = new AsciiTable3('Ignored Scripts');
+        table.setHeading('Timestamp', 'Name', 'Path');
+        scripts.forEach(m => table.addRow(m.timestamp, m.name, m.filepath));
+        console.warn(table.toString());
+    }
+
     public drawExecutedTable(scripts: IMigrationInfo[]) {
         if(!scripts.length) return;
 
         const table = new AsciiTable3('Executed');
         table.setHeading('Timestamp', 'Name', 'Duration', 'Result');
-        scripts.forEach(m => table.addRow(m.timestamp, m.name, ConsoleRenderer.getDuration(m), m.result));
+        scripts.forEach(m => table.addRow(m.timestamp, m.name, ConsoleRenderer.getDuration(m), m.result || 'OK!'));
         console.log(table.toString());
     }
 

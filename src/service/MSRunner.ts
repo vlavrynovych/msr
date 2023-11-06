@@ -1,50 +1,60 @@
-import * as fs from 'fs';
 import * as _ from 'lodash'
 import {
     BackupService,
     ConsoleRenderer,
+    IBackupService,
+    MigrationService,
+    IMigrationService,
+    MigrationScript,
     IRunner,
     ISchemaVersionService,
     IScripts,
-    MigrationScript,
     SchemaVersionService,
     Utils
 } from "../index";
 
 export class MSRunner {
 
-    backupService:BackupService;
-    consoleRenderer: ConsoleRenderer;
-    schemaVersionService: ISchemaVersionService;
+    backupService:IBackupService
+    schemaVersionService: ISchemaVersionService
+    consoleRenderer: ConsoleRenderer
+    migrationService:IMigrationService
 
     constructor(private runner:IRunner) {
         this.backupService = new BackupService(runner);
         this.schemaVersionService = new SchemaVersionService(runner);
         this.consoleRenderer = new ConsoleRenderer(runner);
+        this.migrationService = new MigrationService(runner.cfg);
 
         this.consoleRenderer.drawFiglet();
     }
 
     public async migrate(): Promise<any> {
         try {
+            // inits
             await this.backupService.backup()
             await this.schemaVersionService.init(this.runner.cfg.tableName)
+
+            // collects information about migrations
             const scripts = await Utils.promiseAll({
                 migrated: this.schemaVersionService.getAllMigratedScripts(),
-                all: this.getMigrationScripts()
+                all: this.migrationService.readMigrationScripts()
             }) as IScripts;
-
             this.consoleRenderer.drawMigrated(scripts)
-            scripts.todo = _.differenceBy(scripts.all, scripts.migrated, 'timestamp')
 
-
+            // defines scripts which should be executed
+            scripts.todo = this.getTodo(scripts.migrated, scripts.all);
+            scripts.todo.forEach(s => s.init())
             if (!scripts.todo.length) {
                 console.info('Nothing to do');
                 process.exit(0);
             }
 
-            this.consoleRenderer.drawTodoTable(scripts.todo);
+            console.info('Validating...');
+            await this.migrationService.validate(scripts.todo);
+
             console.info('Processing...');
+            this.consoleRenderer.drawTodoTable(scripts.todo);
             scripts.executed = await this.execute(scripts.todo);
             this.consoleRenderer.drawExecutedTable(scripts.executed);
 
@@ -56,6 +66,18 @@ export class MSRunner {
             await this.backupService.restore();
             process.exit(1);
         }
+    }
+
+    getTodo(migrated:MigrationScript[], all:MigrationScript[]) {
+        if(!migrated.length) return all;
+        const lastMigrated:number = Math.max(...migrated.map(s => s.timestamp))
+
+        const newScripts:MigrationScript[] = _.differenceBy(all, migrated, 'timestamp')
+        const todo:MigrationScript[] = newScripts.filter(s => s.timestamp > lastMigrated)
+        const ignored:MigrationScript[] = _.differenceBy(newScripts, todo, 'timestamp')
+        this.consoleRenderer.drawIgnoredTable(ignored);
+
+        return todo;
     }
 
     async execute(scripts: MigrationScript[]): Promise<MigrationScript[]> {
@@ -90,17 +112,5 @@ export class MSRunner {
 
         await this.schemaVersionService.register(script);
         return script
-    }
-
-    private async getMigrationScripts(): Promise<MigrationScript[]> {
-        const files:string[] = fs.readdirSync(this.runner.cfg.folder);
-        return files
-            .filter(name => this.runner.cfg.filePattern.test(name))
-            .map(name => {
-                const execArray: RegExpExecArray | null = this.runner.cfg.filePattern.exec(name);
-                if(execArray == null) throw new Error("Wrong file name format")
-                const timestamp = parseInt(execArray[1]);
-                return new MigrationScript(name, `${this.runner.cfg.folder}/${name}`, timestamp);
-            })
     }
 }
