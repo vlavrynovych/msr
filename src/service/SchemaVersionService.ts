@@ -2,34 +2,24 @@ import {MigrationScript} from "../model";
 import {IRunner, IMigrationInfo} from "../interface";
 
 export class SchemaVersionService {
-    constructor(private msr: IRunner) {}
+    constructor(private runner: IRunner) {}
 
     public async init():Promise<void> {
-        if(await this.isInitialized()) {
-            await this.validate();
-            return;
+        const table = this.runner.cfg.tableName;
+        const init = await this.runner.isInitialized(table);
+        if(!init) {
+            const created = await this.runner.createTable(table);
+            if(!created) throw new Error("Cannot create table")
         }
-        await this.createSchemaVersionTable();
+        const isValid = await this.runner.validateTable(table);
+        if(!isValid) throw new Error("Schema version table is invalid")
     }
 
     public async register(details:IMigrationInfo):Promise<any> {
-        return this.msr.register(details);
+        return this.runner.register(details);
     }
 
     public async getAllMigratedScripts():Promise<MigrationScript[]> {
-        return this.msr.getAll();
-    }
-
-    private async isInitialized():Promise<boolean> {
-        return this.msr.isInitialized(this.msr.cfg.tableName);
-    }
-
-    private async createSchemaVersionTable():Promise<boolean> {
-        await this.msr.createTable(this.msr.cfg.tableName);
-        return await this.validate();
-    }
-
-    private async validate():Promise<boolean> {
-        return this.msr.validateTable(this.msr.cfg.tableName);
+        return await this.runner.getAll();
     }
 }

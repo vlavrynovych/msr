@@ -6,8 +6,7 @@
     ".ts"
   ],
   "include": [
-    "**/*.js",
-    "**/*.ts"
+    "src/**/*.ts"
   ],
   "exclude": [
     "reports/**",
