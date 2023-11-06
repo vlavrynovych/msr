@@ -1,12 +1,21 @@
 import * as fs from 'fs';
 import * as _ from 'lodash'
-import {BackupService, ConsoleRenderer, IRunner, IScripts, MigrationScript, SchemaVersionService, Utils} from "../index";
+import {
+    BackupService,
+    ConsoleRenderer,
+    IRunner,
+    ISchemaVersionService,
+    IScripts,
+    MigrationScript,
+    SchemaVersionService,
+    Utils
+} from "../index";
 
 export class MSRunner {
 
-    private backupService:BackupService;
-    private consoleRenderer: ConsoleRenderer;
-    private schemaVersionService: SchemaVersionService;
+    backupService:BackupService;
+    consoleRenderer: ConsoleRenderer;
+    schemaVersionService: ISchemaVersionService;
 
     constructor(private runner:IRunner) {
         this.backupService = new BackupService(runner);
@@ -19,7 +28,7 @@ export class MSRunner {
     public async migrate(): Promise<any> {
         try {
             await this.backupService.backup()
-            await this.schemaVersionService.init()
+            await this.schemaVersionService.init(this.runner.cfg.tableName)
             const scripts = await Utils.promiseAll({
                 migrated: this.schemaVersionService.getAllMigratedScripts(),
                 all: this.getMigrationScripts()

@@ -17,7 +17,7 @@ const runner: IRunner = {
     },
 
     createTable(tableName: string): Promise<any> {
-        return Promise.resolve(undefined);
+        return Promise.resolve(true);
     },
     getAll(): Promise<MigrationScript[]> {
         return Promise.resolve([]);
@@ -29,7 +29,7 @@ const runner: IRunner = {
         return Promise.resolve(undefined);
     },
     validateTable(tableName: string): Promise<any> {
-        return Promise.resolve(undefined);
+        return Promise.resolve(true);
     },
     restore(data: string): Promise<any> {
         return Promise.resolve("undefined");

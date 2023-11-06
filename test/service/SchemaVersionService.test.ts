@@ -19,7 +19,9 @@ describe('SchemaVersionService:init', () => {
     let r:IRunner
 
     before(() => {
-        const db:IDB = new class implements IDB {}
+        const db:IDB = new class implements IDB {
+            test(){throw new Error('Not implemented')}
+        }
         r = new class implements IRunner {
             cfg:Config = cfg;
             db: IDB = db;
@@ -68,7 +70,7 @@ describe('SchemaVersionService:init', () => {
         valid = true
 
         // and: init
-        await new SchemaVersionService(r).init();
+        await new SchemaVersionService(r).init(cfg.tableName);
 
         // then
         expect(r.isInitialized).have.been.called.once.with(cfg.tableName)
@@ -83,7 +85,7 @@ describe('SchemaVersionService:init', () => {
         valid = false
 
         // and: init
-        await expect(new SchemaVersionService(r).init()).to.be.rejectedWith("Schema version table is invalid");
+        await expect(new SchemaVersionService(r).init(cfg.tableName)).to.be.rejectedWith("Schema version table is invalid");
 
         // then
         expect(r.isInitialized).have.been.called.once.with(cfg.tableName)
@@ -98,7 +100,7 @@ describe('SchemaVersionService:init', () => {
         valid = true
 
         // and: init
-        await new SchemaVersionService(r).init();
+        await new SchemaVersionService(r).init(cfg.tableName);
 
         // then
         expect(r.isInitialized).have.been.called.once.with(cfg.tableName)
@@ -113,7 +115,7 @@ describe('SchemaVersionService:init', () => {
         valid = false
 
         // and: init
-        await expect(new SchemaVersionService(r).init()).to.be.rejectedWith("Schema version table is invalid");
+        await expect(new SchemaVersionService(r).init(cfg.tableName)).to.be.rejectedWith("Schema version table is invalid");
 
         // then
         expect(r.isInitialized).have.been.called.once.with(cfg.tableName)
@@ -128,7 +130,7 @@ describe('SchemaVersionService:init', () => {
         valid = false
 
         // and: init
-        await expect(new SchemaVersionService(r).init()).to.be.rejectedWith("Cannot create table");
+        await expect(new SchemaVersionService(r).init(cfg.tableName)).to.be.rejectedWith("Cannot create table");
 
         // then
         expect(r.isInitialized).have.been.called.once.with(cfg.tableName)

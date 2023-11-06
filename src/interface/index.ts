@@ -1,4 +1,5 @@
 export * from './dao'
+export * from './service'
 export * from './IRunner'
 export * from './IRunnableScript'
 export * from './IScripts'
