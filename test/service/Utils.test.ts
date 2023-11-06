@@ -1,10 +1,10 @@
 import { expect } from 'chai';
-import {Utils} from "../../src";
+import {IMigrationInfo, IRunner, Utils} from "../../src";
+import {TestUtils} from "../TestUtils";
 
-describe('Utils.promiseAll', () => {
+describe('Utils', () => {
 
-
-    it('check keys', async () => {
+    it('promiseAll: check keys', async () => {
         // when
         const map = {
             a: Promise.resolve(1),
@@ -20,7 +20,7 @@ describe('Utils.promiseAll', () => {
         expect(res.c, 'key "c" should be undefined').is.undefined
     })
 
-    it('check types', async () => {
+    it('promiseAll: check types', async () => {
         // having: custom type
         type T = {a:1, b:2};
         // when
@@ -47,5 +47,38 @@ describe('Utils.promiseAll', () => {
         expect(typeof res.custom).eq('object', 'Should have number type')
         expect(res.custom.a, 'Field a of custom type T should be undefined').is.undefined
         expect(res.custom.b).eq(2, 'Field b of custom type T should have 2 as a value')
+    })
+
+    it('parseRunnable: valid', async () => {
+        // when
+        const res = await Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_valid.ts'));
+
+        // then
+        expect(res).not.undefined
+        expect(typeof res.up === 'function').is.true
+        expect(await res.up({}, {} as IMigrationInfo, {} as IRunner)).eq('result string')
+
+        // when
+        const res2 = await Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_valid-multiple-exports.ts'));
+
+        // then
+        expect(res2).not.undefined
+        expect(typeof res2.up === 'function').is.true
+        expect(await res2.up({}, {} as IMigrationInfo, {} as IRunner)).eq('result string')
+    })
+
+    it('parseRunnable: invalid - no executable content', async () => {
+        await expect(Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_invalid.ts')))
+            .to.be.rejectedWith("V202311062345_invalid.ts: Cannot parse migration script: no executable content found");
+    })
+
+    it('parseRunnable: invalid - multiple executable instances', async () => {
+        await expect(Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_invalid-multiple-exports.ts')))
+            .to.be.rejectedWith("V202311062345_invalid-multiple-exports.ts: Cannot parse migration script: multiple executable instances were found");
+    })
+
+    it('parseRunnable: invalid - parse error', async () => {
+        await expect(Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_invalid-parse-error.ts')))
+            .to.be.rejectedWith("V202311062345_invalid-parse-error.ts: Cannot parse migration script: TypeError: clazz is not a constructor");
     })
 })
