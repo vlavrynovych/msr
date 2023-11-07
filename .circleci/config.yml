@@ -20,10 +20,11 @@ jobs:
             - node_modules
           key: v1-dependencies-{{ checksum "package.json" }}
       - run:
+          name: Creates backups folder
+          command: mkdir backups
+      - run:
           name: Run Tests with reports
-          command:
-            - mkdir backups
-            - npm run test:report
+          command: npm run test:report
       - store_test_results:
           path: reports
       - store_artifacts:
