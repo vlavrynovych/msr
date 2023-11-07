@@ -1,5 +1,7 @@
 import { expect } from 'chai';
-import {BackupConfig, BackupService} from "../../src";
+import fs from "fs";
+import sinon from 'sinon';
+import {BackupConfig, BackupService, Config, IRunner} from "../../src";
 
 describe('BackupService.prepareFilePath', () => {
 
@@ -43,5 +45,54 @@ describe('BackupService.prepareFilePath', () => {
 
         // then
         expect(res).eq('backups/backup.bkp', 'Should not have timestamp in the file name')
+    })
+})
+
+describe('BackupService', () => {
+
+    it('deleteBackup: check when turned off', () => {
+        // when
+        const cfg = new Config();
+        cfg.backup.deleteBackup = false;
+        const bs = new BackupService({cfg: cfg} as IRunner);
+
+        // then
+        bs.deleteBackup()
+    })
+
+    it('restore: check when no file', async () => {
+        // when
+        const cfg = new Config();
+        cfg.backup.deleteBackup = false;
+        const bs = new BackupService({cfg: cfg} as IRunner);
+
+        // then
+        await expect(bs.restore()).to.be.rejectedWith("Cannot open undefined");
+    })
+
+    it('backup: file overwrite', async () => {
+        // when
+        const cfg = new Config();
+        cfg.backup.deleteBackup = false;
+        cfg.backup.timestamp = false;
+        cfg.backup.suffix = `-backup-file-overwrite-${new Date().getTime()}`;
+        const bs = new BackupService({
+            cfg: cfg,
+            async backup(): Promise<string> {
+                return 'data'
+            }
+        } as IRunner);
+
+        // and: stub methods
+        const fn = sinon.stub(fs, 'existsSync')
+            .callsFake((v) => { return true })
+        const fn2 = sinon.stub(fs, 'renameSync')
+            .callsFake((v, v2) => {return true })
+
+        // then
+        await bs.backup()
+
+        fn.restore()
+        fn2.restore()
     })
 })

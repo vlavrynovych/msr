@@ -31,6 +31,7 @@ export class MSRunner {
     }
 
     public async migrate(): Promise<void> {
+        let success = true;
         try {
             // inits
             await this.backupService.backup()
@@ -49,22 +50,26 @@ export class MSRunner {
 
             if (!scripts.todo.length) {
                 console.info('Nothing to do');
-                process.exit(0);
+                this.exit(true)
             }
 
             console.info('Processing...');
             this.consoleRenderer.drawTodoTable(scripts.todo);
             scripts.executed = await this.execute(scripts.todo);
             this.consoleRenderer.drawExecutedTable(scripts.executed);
-
             console.info('Migration finished successfully!');
-            this.backupService.deleteBackup();
-            process.exit(0)
         } catch (err) {
-            console.error(err);
+            console.error(err)
+            success = false
             await this.backupService.restore();
-            process.exit(1);
+        } finally {
+            this.backupService.deleteBackup();
         }
+        this.exit(success)
+    }
+
+    exit(success:boolean):void {
+        process.exit(success ? 0 : 1);
     }
 
     getTodo(migrated:MigrationScript[], all:MigrationScript[]) {
@@ -102,7 +107,7 @@ export class MSRunner {
         return executed;
     }
 
-    private async task(script:MigrationScript) {
+    async task(script:MigrationScript) {
         console.log(`${script.name}: processing...`);
 
         script.startedAt = Date.now()
