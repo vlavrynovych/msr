@@ -1,58 +1,60 @@
 import fs from "fs";
-import {BackupOptions, Config} from "../model";
 import moment from "moment";
 
-export class BackupService {
+import {BackupConfig} from "../model";
+import {IBackupService, IRunner} from "../interface";
+
+export class BackupService implements IBackupService {
 
     private backupFile: string | undefined;
 
-    public constructor(private cfg: Config) {}
+    public constructor(private runner: IRunner) {}
 
-    public async backup(): Promise<any> {
+    public async backup(): Promise<void> {
         console.info('Preparing backup...')
         await this._backup();
         console.info('Backup prepared successfully:\r\n', this.backupFile);
     }
 
-    public async restore(): Promise<any> {
+    public async restore(): Promise<void> {
         console.info('Restoring from backup...');
         await this._restore()
         console.info('Restored to the previous state:\r\n', this.backupFile);
     }
 
     public deleteBackup() {
-        if(!this.cfg.backupOptions.deleteBackup || !this.backupFile) return;
+        if(!this.runner.cfg.backup.deleteBackup || !this.backupFile) return;
         console.log("Deleting backup file...")
         fs.rmSync(this.backupFile);
+        this.backupFile = undefined;
         console.log("Backup file successfully deleted")
     }
 
     private async _restore(): Promise<string> {
-        if (this.backupFile &&fs.existsSync(this.backupFile)) {
-            let data = fs.readFileSync(this.backupFile, 'utf8');
-            return this.cfg.dao.restore(data);
+        if (this.backupFile && fs.existsSync(this.backupFile)) {
+            const data:string = fs.readFileSync(this.backupFile, 'utf8');
+            return this.runner.restore(data);
         }
 
         return Promise.reject(`Cannot open ${this.backupFile}`);
     }
 
     private async _backup(): Promise<string> {
-        let data = await this.cfg.dao.backup();
-        let filePath = this.getFileName();
+        const data = await this.runner.backup();
+        const filePath = this.getFileName();
         fs.writeFileSync(filePath, data);
         this.backupFile = filePath;
         return filePath
     }
 
-    getFileName() {
-        let path = BackupService.prepareFilePath(this.cfg);
-        if (fs.existsSync(path)) fs.renameSync(path, BackupService.prepareFilePath(this.cfg))
+    private getFileName():string {
+        const path:string = BackupService.prepareFilePath(this.runner.cfg.backup);
+        if (fs.existsSync(path)) fs.renameSync(path, BackupService.prepareFilePath(this.runner.cfg.backup))
         return path;
     }
 
-    static prepareFilePath(cfg:Config) {
-        const bo = cfg.backupOptions;
-        let time = bo.timestamp ? `-${moment().format(bo.timestampFormat)}` : '';
-        return `${cfg.folders.backups}/${bo.prefix}${bo.custom}${time}${bo.suffix}.${bo.extension}`;
+    static prepareFilePath(cfg:BackupConfig):string {
+        const time:string = cfg.timestamp ? `-${moment().format(cfg.timestampFormat)}` : '';
+        return `${cfg.folder}/${cfg.prefix}${cfg.custom}${time}${cfg.suffix}.${cfg.extension}`;
     }
 }

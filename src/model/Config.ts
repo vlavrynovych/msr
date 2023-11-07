@@ -1,13 +1,8 @@
-import {BackupOptions} from "./index";
-import {IDAO} from "../interface";
+import {BackupConfig} from "./index";
 
 export class Config {
-    filePattern:RegExp = /^V(\d{12})_/;
-    folders = {
-        migrations: 'migrations',
-        backups: 'backups'
-    }
-    backupOptions:BackupOptions = new BackupOptions();
-
-    constructor(public dao: IDAO) {}
+    filePattern:RegExp = /^V(\d{12})_/
+    folder:string = 'migrations'
+    tableName:string = 'schema_version';
+    backup:BackupConfig = new BackupConfig()
 }

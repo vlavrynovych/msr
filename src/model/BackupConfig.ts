@@ -1,6 +1,7 @@
-export class BackupOptions {
+export class BackupConfig {
     timestamp:boolean = true;
     deleteBackup:boolean = true;
+    folder:string = 'backups'
 
     prefix:string = 'backup';
     custom:string = '';
