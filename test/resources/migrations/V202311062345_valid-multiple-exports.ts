@@ -8,5 +8,7 @@ export class TestScript implements IRunnableScript {
 }
 
 export class A {
-
+    test() {
+        return 1
+    }
 }

@@ -26,11 +26,12 @@ export class BackupService implements IBackupService {
         if(!this.runner.cfg.backup.deleteBackup || !this.backupFile) return;
         console.log("Deleting backup file...")
         fs.rmSync(this.backupFile);
+        this.backupFile = undefined;
         console.log("Backup file successfully deleted")
     }
 
     private async _restore(): Promise<string> {
-        if (this.backupFile &&fs.existsSync(this.backupFile)) {
+        if (this.backupFile && fs.existsSync(this.backupFile)) {
             const data:string = fs.readFileSync(this.backupFile, 'utf8');
             return this.runner.restore(data);
         }

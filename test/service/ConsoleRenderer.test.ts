@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import {ConsoleRenderer, IMigrationInfo} from "../../src";
+import {Config, ConsoleRenderer, IMigrationInfo, IRunner, IScripts, MigrationScript} from "../../src";
 
 describe('ConsoleRenderer.getDuration', () => {
 
@@ -61,5 +61,36 @@ describe('ConsoleRenderer.getDuration', () => {
 
         // then
         expect(res2).eq("-5s", 'It is weird but should be -5s')
+    })
+
+
+    it('render tables', () => {
+        // having
+        const list = [
+            {timestamp: 1, name: '1'} as MigrationScript,
+            {timestamp: 2, name: '2'} as MigrationScript,
+        ]
+
+        const list2 = [
+            {timestamp: 1, name: '1'} as MigrationScript,
+            {timestamp: 2, name: '2'} as MigrationScript,
+            {timestamp: 3, name: '3'} as MigrationScript,
+        ]
+
+        // when
+        const cr = new ConsoleRenderer({cfg: new Config()} as IRunner)
+
+        // then
+        cr.drawExecutedTable(list)
+        cr.drawTodoTable(list)
+        cr.drawIgnoredTable(list)
+        cr.drawMigrated({
+            migrated: list2,
+            all: list
+        } as IScripts)
+
+        cr.drawMigrated({
+            migrated: list2,
+        } as IScripts)
     })
 })
