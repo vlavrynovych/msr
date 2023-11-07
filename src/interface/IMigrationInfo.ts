@@ -1,4 +1,4 @@
-export class MigrationInfo {
+export class IMigrationInfo {
     name!:string
     timestamp!:number
     startedAt:number = Date.now()

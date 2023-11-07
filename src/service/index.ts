@@ -1,3 +1,6 @@
 export * from './BackupService'
-export * from './ConsoleTableRenderer'
+export * from './SchemaVersionService'
+export * from './MigrationService'
+export * from './ConsoleRenderer'
+export * from './Utils'
 export * from './MSRunner'

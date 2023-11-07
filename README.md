@@ -1,4 +1,26 @@
 # Migration Script Runner
+
+*TODO: point labels to master*
+
+[![Build Status](https://app.travis-ci.com/vlavrynovych/msr.svg?branch=develop)](https://app.travis-ci.com/vlavrynovych/msr)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/vlavrynovych/msr/tree/develop.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/vlavrynovych/msr/tree/develop)
+[![Coverage Status](https://coveralls.io/repos/github/vlavrynovych/msr/badge.svg?branch=develop)](https://coveralls.io/github/vlavrynovych/msr?branch=develop)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=vlavrynovych_msr&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=vlavrynovych_msr)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=vlavrynovych_msr&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=vlavrynovych_msr)
+[![GitHub issues](https://img.shields.io/github/issues/vlavrynovych/msr.svg)](https://github.com/vlavrynovych/msr/issues)
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/vlavrynovych/msr/develop/LICENSE)
+[![NPM Version][npm-image]][npm-url]
+[![NPM Downloads][npm-downloads-image]][npm-url]
+![Static Badge](https://img.shields.io/badge/in%20Ukraine-dodgerblue?label=Proudly%20made&labelColor=%23FFFF00)
+
+[//]: # ([![NPM]&#40;https://nodei.co/npm/migration-script-runner.png?downloads=true&#41;]&#40;https://nodei.co/npm/migration-script-runner/&#41;)
+[//]: # ([![SonarCloud]&#40;https://sonarcloud.io/images/project_badges/sonarcloud-white.svg&#41;]&#40;https://sonarcloud.io/summary/new_code?id=vlavrynovych_msr&#41;)
+
+[npm-image]: https://img.shields.io/npm/v/migration-script-runner.svg?style=flat
+[npm-url]: https://npmjs.org/package/migration-script-runner
+[npm-downloads-image]: https://img.shields.io/npm/dm/migration-script-runner.svg?style=flat
+
+
 An abstract implementation of script runner which can be extended by your own implementation
 
 ## Development
@@ -35,13 +57,13 @@ Starts the application in development using nodemon and ts-node to do cold reloa
 npm run test
 ```
 
-Starts unit tests
+Runs tests
 
 ```shell
-npm run coverage
+npm run test:report
 ```
 
-Starts unit tests with coverage
+Runs all tests and generates all the reports: junit, eslint, code coverage
 
 ## Inspiration
 
