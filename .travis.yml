@@ -14,6 +14,7 @@ install:
   - npm install
 
 script:
+  - mkdir backups
   - npm run test:report
 
   - export COVERALLS_SERVICE_NAME=travis-ci
