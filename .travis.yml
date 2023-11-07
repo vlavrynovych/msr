@@ -29,4 +29,7 @@ script:
   - echo "sonar.projectVersion=develop" >> sonar-project.properties
   - echo "sonar.projectName=MSR" >> sonar-project.properties
   - echo "sonar.javascript.lcov.reportPaths=reports/coverage/lcov.info" >> sonar-project.properties
+  - echo "sonar.sources=src >> sonar-project.properties
+  - echo "sonar.tests=test >> sonar-project.properties
+  - echo "sonar.exclusions=test >> sonar-project.properties
   - sonar-scanner
