@@ -1,14 +1,12 @@
 # Migration Script Runner
 
-*TODO: point labels to master*
-
-[![Build Status](https://app.travis-ci.com/vlavrynovych/msr.svg?branch=develop)](https://app.travis-ci.com/vlavrynovych/msr)
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/vlavrynovych/msr/tree/develop.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/vlavrynovych/msr/tree/develop)
-[![Coverage Status](https://coveralls.io/repos/github/vlavrynovych/msr/badge.svg?branch=develop)](https://coveralls.io/github/vlavrynovych/msr?branch=develop)
+[![Build Status](https://app.travis-ci.com/vlavrynovych/msr.svg?branch=master)](https://app.travis-ci.com/vlavrynovych/msr)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/vlavrynovych/msr/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/vlavrynovych/msr/tree/master)
+[![Coverage Status](https://coveralls.io/repos/github/vlavrynovych/msr/badge.svg?branch=master)](https://coveralls.io/github/vlavrynovych/msr?branch=master)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=vlavrynovych_msr&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=vlavrynovych_msr)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=vlavrynovych_msr&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=vlavrynovych_msr)
 [![GitHub issues](https://img.shields.io/github/issues/vlavrynovych/msr.svg)](https://github.com/vlavrynovych/msr/issues)
-[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/vlavrynovych/msr/develop/LICENSE)
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/vlavrynovych/msr/master/LICENSE)
 [![NPM Version][npm-image]][npm-url]
 [![NPM Downloads][npm-downloads-image]][npm-url]
 ![Static Badge](https://img.shields.io/badge/in%20Ukraine-dodgerblue?label=Proudly%20made&labelColor=%23FFFF00)
