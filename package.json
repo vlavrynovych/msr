@@ -11,7 +11,7 @@
     "start": "start:ts",
     "start:js": "npm run build && node dist/index.js",
     "start:ts": "npm run build && npx ts-node src/index.ts",
-    "build": "rimraf ./dist && tsc",
+    "build": "rimraf ./dist && tsc && rimraf ./dist/test",
     "test": "npm run lint && npm run test:mocha",
     "test:mocha": "cross-env TS_NODE_FILES=true mocha --color --exit test/**/*.ts",
     "test:watch": "npx nodemon",
