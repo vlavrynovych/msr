@@ -46,9 +46,9 @@ Starts the app directly from ./index.ts.
 ### Local developments
 
 ```shell
-npm run start:dev
+npm run test:watch
 ```
-Starts the application in development using nodemon and ts-node to do cold reloading.
+Triggers tests for each change
 
 
 ```shell
