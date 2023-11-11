@@ -4,7 +4,6 @@ import {TestUtils} from "../TestUtils";
 
 describe('MigrationService', () => {
 
-
     it('readMigrationScripts: wrong file name format', async () => {
         // when:
         const cfg =TestUtils.getConfig()
@@ -43,5 +42,14 @@ describe('MigrationService', () => {
         // then
         expect(res).not.undefined
         expect(res.length).eq(0, 'Should be 0 migrations in empty folder')
+    })
+
+    it('readMigrationScripts: folder not found', async () => {
+        // when:
+        const cfg = TestUtils.getConfig('non-existent-folder')
+        const ms = new MigrationService()
+
+        // then
+        await expect(ms.readMigrationScripts(cfg)).to.be.rejectedWith("ENOENT: no such file or directory");
     })
 })
