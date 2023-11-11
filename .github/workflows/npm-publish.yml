@@ -1,0 +1,53 @@
+name: npm-publish
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  check:
+    name: Check Version
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check if version has been updated
+        id: check
+        uses: EndBug/version-check@v2
+
+      - name: Log when unchanged
+        if: steps.check.outputs.changed == 'false'
+        run: 'echo "No version change"'
+
+      - name: Log when changed
+        if: steps.check.outputs.changed == 'true'
+        run: 'echo "Version change found in commit ${{ steps.check.outputs.commit }}! New version: ${{ steps.check.outputs.version }} (${{ steps.check.outputs.type }})"'
+  publish:
+    needs:
+      - check
+    if: needs.check.outputs.changed == 'true'
+    name: Publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+
+      - run: npm install
+      - run: mkdir backups
+
+      - run: npm run test:mocha
+      - run: npm run build
+
+      - run: git diff --name-only
+
+      - uses: JS-DevTools/npm-publish@v3
+        with:
+          token: ${{ secrets.NPM_AUTH_TOKEN }}
+          dry-run: true
