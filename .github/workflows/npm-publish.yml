@@ -54,5 +54,5 @@ jobs:
 
       - uses: thejeff77/action-push-tag@v1.0.0
         with:
-          tag: 'v${{ needs.check.outputs.version }}'
-          message: 'v${{ needs.check.outputs.version }}: ${{ needs.check.outputs.type }} release, commit ${{ needs.check.outputs.commit }}'
+          tag: ${{ needs.check.outputs.version }}
+          message: '${{ needs.check.outputs.version }}: ${{ needs.check.outputs.type }} release, commit ${{ needs.check.outputs.commit }}'
