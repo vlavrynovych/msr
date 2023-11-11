@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       changed: ${{ steps.check.outputs.changed }}
+      version: ${{ steps.check.outputs.version }}
+      commit: ${{ steps.check.outputs.commit }}
+      type: ${{ steps.check.outputs.type }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -45,9 +48,11 @@ jobs:
       - run: npm run test:mocha
       - run: npm run build
 
-      - run: git diff --name-only
-
       - uses: JS-DevTools/npm-publish@v3
         with:
           token: ${{ secrets.NPM_AUTH_TOKEN }}
-#          dry-run: true
+
+      - uses: actions-ecosystem/action-push-tag@v1
+        with:
+          tag: 'v${{ needs.check.outputs.version }}'
+          message: 'v${{ needs.check.outputs.version }}: ${{ needs.check.outputs.type }} release, commit ${{ needs.check.outputs.commit }}'
