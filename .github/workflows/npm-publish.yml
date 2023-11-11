@@ -11,12 +11,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: "16"
       - run: npm install
+      - run: echo "$PWD"
+      - run: ls
 
       - run: npm run test:mocha
       - run: npm run build
