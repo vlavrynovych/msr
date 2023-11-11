@@ -17,6 +17,10 @@ jobs:
         with:
           node-version: "16"
       - run: npm install
+      - run: ls
+      - run: cd ..
+      - run: ls
+
       - run: npm run test:mocha
       - run: npm run build
 
