@@ -16,6 +16,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "16"
+
       - run: npm install
       - run: mkdir backups
 
@@ -26,10 +27,16 @@ jobs:
         id: check
         uses: EndBug/version-check@v2
 
+      - name: Log when unchanged
+        if: steps.check.outputs.changed == 'false'
+        run: 'echo "No version change" && exit 0'
+
       - name: Log when changed
         if: steps.check.outputs.changed == 'true'
         run: 'echo "Version change found in commit ${{ steps.check.outputs.commit }}! New version: ${{ steps.check.outputs.version }} (${{ steps.check.outputs.type }})"'
 
-      - name: Log when unchanged
-        if: steps.check.outputs.changed == 'false'
-        run: 'echo "No version change :/"'
+      - uses: JS-DevTools/npm-publish@v3
+#        if: steps.check.outputs.changed == 'true'
+        with:
+          token: ${{ secrets.NPM_AUTH_TOKEN }}
+          dry-run: true
