@@ -1,6 +1,6 @@
 {
   "name": "migration-script-runner",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Migration Script Runner",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
