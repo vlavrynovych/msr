@@ -12,7 +12,7 @@ describe('BackupService.prepareFilePath', () => {
         let res:string = BackupService.prepareFilePath(cfg);
 
         // then
-        expect(res.startsWith('backups/'), 'Should have default folder').to.be.true
+        expect(res).to.include('/backups/', 'Should have default folder')
 
         // when: folder updated
         cfg.folder = 'test-folder';
@@ -44,7 +44,7 @@ describe('BackupService.prepareFilePath', () => {
         const res:string = BackupService.prepareFilePath(cfg);
 
         // then
-        expect(res).eq('backups/backup.bkp', 'Should not have timestamp in the file name')
+        expect(res).to.include('/backups/backup.bkp', 'Should not have timestamp in the file name')
     })
 })
 

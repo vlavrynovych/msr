@@ -2,6 +2,7 @@ import {expect, spy} from 'chai';
 import {afterEach} from "mocha";
 import sinon from 'sinon';
 import {Config, IDB, IMigrationInfo, IRunner, MigrationScript, MSRunner} from "../../src";
+import {TestUtils} from "../TestUtils";
 
 describe('MSRunner', () => {
 
@@ -14,10 +15,7 @@ describe('MSRunner', () => {
     let msr:MSRunner
 
     before(() => {
-        let cfg = new Config()
-        cfg.folder = `${process.cwd()}/migrations`;
-        cfg.backup.folder = `${process.cwd()}/backups`;
-
+        let cfg = TestUtils.getConfig()
         const db:IDB = new class implements IDB {
             test(){throw new Error('Not implemented')}
         }
@@ -54,6 +52,7 @@ describe('MSRunner', () => {
     })
 
     beforeEach(() => {
+        r.cfg = TestUtils.getConfig() // reset config before each test
         initialized = true
         created = true
         valid = true
@@ -88,13 +87,11 @@ describe('MSRunner', () => {
         expect(msr.getTodo).have.been.called.once
         expect(msr.execute).have.been.called.once
         expect(msr.task).have.been.called.once
-
-
     })
 
     it('no new scripts', async () => {
         // having: empty folder
-        r.cfg.folder = `${process.cwd()}/backups`;
+        r.cfg = TestUtils.getConfig(TestUtils.EMPTY_FOLDER)
 
         // when
         await msr.migrate()

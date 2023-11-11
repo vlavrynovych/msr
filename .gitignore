@@ -2,7 +2,6 @@
 
 # project folders
 /dist
-/migrations
 /backups
 
 # coverage folders
