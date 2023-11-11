@@ -17,8 +17,7 @@ jobs:
         with:
           node-version: "16"
       - run: npm install
-      - run: echo "$PWD"
-      - run: ls
+      - run: mkdir backups
 
       - run: npm run test:mocha
       - run: npm run build
