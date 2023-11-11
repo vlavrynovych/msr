@@ -1,5 +1,5 @@
-import {MigrationScript} from "../../model";
+import {Config, MigrationScript} from "../../model";
 
 export interface IMigrationService {
-    readMigrationScripts(): Promise<MigrationScript[]>
+    readMigrationScripts(cfg: Config): Promise<MigrationScript[]>
 }

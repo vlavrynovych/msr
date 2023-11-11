@@ -6,17 +6,23 @@ import {Config, MigrationScript} from "../model";
 
 export class MigrationService implements IMigrationService {
 
-    constructor(private cfg:Config) {}
+    public async readMigrationScripts(cfg: Config): Promise<MigrationScript[]> {
+        const folder = cfg.folder;
+        const pattern = cfg.filePattern;
 
-    public async readMigrationScripts(): Promise<MigrationScript[]> {
-        const files:string[] = fs.readdirSync(this.cfg.folder);
+        const files:string[] = fs.readdirSync(folder)
+            .filter(f => !f.startsWith('.')) // ignores hidden files
+
+        if(!files.length) {
+            console.warn(`Migration scripts folder is empty. Please check your configuration.\r\n${folder}`)
+        }
         return files
-            .filter(name => this.cfg.filePattern.test(name))
+            .filter(name => pattern.test(name))
             .map(name => {
-                const execArray: RegExpExecArray | null = this.cfg.filePattern.exec(name);
+                const execArray: RegExpExecArray | null = pattern.exec(name);
                 if(execArray == null) throw new Error("Wrong file name format")
                 const timestamp = parseInt(execArray[1]);
-                return new MigrationScript(name, `${this.cfg.folder}/${name}`, timestamp);
+                return new MigrationScript(name, `${folder}/${name}`, timestamp);
             })
     }
 }

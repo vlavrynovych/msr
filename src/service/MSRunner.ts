@@ -25,7 +25,7 @@ export class MSRunner {
         this.backupService = new BackupService(runner);
         this.schemaVersionService = new SchemaVersionService(runner);
         this.consoleRenderer = new ConsoleRenderer(runner);
-        this.migrationService = new MigrationService(runner.cfg);
+        this.migrationService = new MigrationService();
 
         this.consoleRenderer.drawFiglet();
     }
@@ -40,7 +40,7 @@ export class MSRunner {
             // collects information about migrations
             const scripts = await Utils.promiseAll({
                 migrated: this.schemaVersionService.getAllMigratedScripts(),
-                all: this.migrationService.readMigrationScripts()
+                all: this.migrationService.readMigrationScripts(this.runner.cfg)
             }) as IScripts;
             this.consoleRenderer.drawMigrated(scripts)
 
