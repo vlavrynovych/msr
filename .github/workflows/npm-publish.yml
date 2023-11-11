@@ -52,7 +52,7 @@ jobs:
         with:
           token: ${{ secrets.NPM_AUTH_TOKEN }}
 
-      - uses: actions-ecosystem/action-push-tag@v1
+      - uses: thejeff77/action-push-tag@v1.0.0
         with:
           tag: 'v${{ needs.check.outputs.version }}'
           message: 'v${{ needs.check.outputs.version }}: ${{ needs.check.outputs.type }} release, commit ${{ needs.check.outputs.commit }}'
