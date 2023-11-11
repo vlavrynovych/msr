@@ -1,10 +1,8 @@
 name: npm-publish
-#on: push
 on:
   push:
     branches:
       - main
-      - feature/20
 
 jobs:
   check:
@@ -30,7 +28,6 @@ jobs:
   publish:
     needs:
       - check
-#    if: contains(github.ref, 'main') && needs.check.outputs.status.changed == 'true'
     if: needs.check.outputs.changed == 'true'
     name: Publish
     runs-on: ubuntu-latest
@@ -47,6 +44,8 @@ jobs:
 
       - run: npm run test:mocha
       - run: npm run build
+
+      - run: git diff --name-only
 
       - uses: JS-DevTools/npm-publish@v3
         with:
