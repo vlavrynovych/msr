@@ -6,7 +6,26 @@ on:
       - feature/20
 
 jobs:
+  check:
+    name: Version check
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.check.outputs }}
+    steps:
+      - name: Check if version has been updated
+        id: check
+        uses: EndBug/version-check@v2
+
+      - name: Log when unchanged
+        if: steps.check.outputs.changed == 'false'
+        run: 'echo "No version change"'
+
+      - name: Log when changed
+        if: steps.check.outputs.changed == 'true'
+        run: 'echo "Version change found in commit ${{ steps.check.outputs.commit }}! New version: ${{ steps.check.outputs.version }} (${{ steps.check.outputs.type }})"'
   npm-publish:
+    needs: check
+    if: needs.check.outputs.status.changed == 'true'
     name: npm-publish
     runs-on: ubuntu-latest
     steps:
@@ -23,20 +42,7 @@ jobs:
       - run: npm run test:mocha
       - run: npm run build
 
-      - name: Check if version has been updated
-        id: check
-        uses: EndBug/version-check@v2
-
-      - name: Log when unchanged
-        if: steps.check.outputs.changed == 'false'
-        run: 'echo "No version change" && exit 0'
-
-      - name: Log when changed
-        if: steps.check.outputs.changed == 'true'
-        run: 'echo "Version change found in commit ${{ steps.check.outputs.commit }}! New version: ${{ steps.check.outputs.version }} (${{ steps.check.outputs.type }})"'
-
       - uses: JS-DevTools/npm-publish@v3
-#        if: steps.check.outputs.changed == 'true'
         with:
           token: ${{ secrets.NPM_AUTH_TOKEN }}
           dry-run: true
