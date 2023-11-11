@@ -18,8 +18,8 @@
     "strict": true,
     "noImplicitAny": true,
     "skipLibCheck": true,
-    "noEmit": true // disables
+//    "noEmit": true // disables
   },
-  "include": ["index.ts", "src/**/*", "test/**/*", "migrations/**/*"],
+  "include": ["src/**/*", "test/**/*"],
   "exclude": ["dist", "node_modules"]
 }
