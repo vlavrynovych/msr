@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import {IMigrationInfo, IRunner, Utils} from "../../src";
+import {IMigrationInfo, IDatabaseMigrationHandler, Utils} from "../../src";
 import {TestUtils} from "../TestUtils";
 
 describe('Utils', () => {
@@ -56,7 +56,7 @@ describe('Utils', () => {
         // then
         expect(res).not.undefined
         expect(typeof res.up === 'function').is.true
-        expect(await res.up({}, {} as IMigrationInfo, {} as IRunner)).eq('result string')
+        expect(await res.up({}, {} as IMigrationInfo, {} as IDatabaseMigrationHandler)).eq('result string')
 
         // when
         const res2 = await Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_valid-multiple-exports.ts'));
@@ -64,7 +64,7 @@ describe('Utils', () => {
         // then
         expect(res2).not.undefined
         expect(typeof res2.up === 'function').is.true
-        expect(await res2.up({}, {} as IMigrationInfo, {} as IRunner)).eq('result string')
+        expect(await res2.up({}, {} as IMigrationInfo, {} as IDatabaseMigrationHandler)).eq('result string')
     })
 
     it('parseRunnable: invalid - no executable content', async () => {

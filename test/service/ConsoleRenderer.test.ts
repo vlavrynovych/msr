@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import {Config, ConsoleRenderer, IMigrationInfo, IRunner, IScripts, MigrationScript} from "../../src";
+import {Config, ConsoleRenderer, IMigrationInfo, IDatabaseMigrationHandler, IScripts, MigrationScript} from "../../src";
 
 describe('ConsoleRenderer.getDuration', () => {
 
@@ -78,7 +78,7 @@ describe('ConsoleRenderer.getDuration', () => {
         ]
 
         // when
-        const cr = new ConsoleRenderer({cfg: new Config()} as IRunner)
+        const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
 
         // then
         cr.drawExecutedTable(list)
