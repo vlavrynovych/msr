@@ -1,10 +1,9 @@
 import { expect } from 'chai';
 import fs from "fs";
 import sinon from 'sinon';
-import {BackupConfig, BackupService, Config, IRunner} from "../../src";
+import {BackupConfig, BackupService, Config, IDatabaseMigrationHandler} from "../../src";
 
 describe('BackupService.prepareFilePath', () => {
-
 
     it('check folder', () => {
         // when
@@ -54,7 +53,7 @@ describe('BackupService', () => {
         // when
         const cfg = new Config();
         cfg.backup.deleteBackup = false;
-        const bs = new BackupService({cfg: cfg} as IRunner);
+        const bs = new BackupService({cfg: cfg} as IDatabaseMigrationHandler);
 
         // then
         bs.deleteBackup()
@@ -64,7 +63,7 @@ describe('BackupService', () => {
         // when
         const cfg = new Config();
         cfg.backup.deleteBackup = false;
-        const bs = new BackupService({cfg: cfg} as IRunner);
+        const bs = new BackupService({cfg: cfg} as IDatabaseMigrationHandler);
 
         // then
         await expect(bs.restore()).to.be.rejectedWith("Cannot open undefined");
@@ -81,7 +80,7 @@ describe('BackupService', () => {
             async backup(): Promise<string> {
                 return 'data'
             }
-        } as IRunner);
+        } as IDatabaseMigrationHandler);
 
         // and: stub methods
         const fn = sinon.stub(fs, 'existsSync')

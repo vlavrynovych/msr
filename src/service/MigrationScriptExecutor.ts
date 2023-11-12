@@ -7,24 +7,24 @@ import {
     MigrationService,
     IMigrationService,
     MigrationScript,
-    IRunner,
+    IDatabaseMigrationHandler,
     ISchemaVersionService,
     IScripts,
     SchemaVersionService,
     Utils
 } from "../index";
 
-export class MSRunner {
+export class MigrationScriptExecutor {
 
     backupService:IBackupService
     schemaVersionService: ISchemaVersionService
     consoleRenderer: ConsoleRenderer
     migrationService:IMigrationService
 
-    constructor(private runner:IRunner) {
-        this.backupService = new BackupService(runner);
-        this.schemaVersionService = new SchemaVersionService(runner);
-        this.consoleRenderer = new ConsoleRenderer(runner);
+    constructor(private handler:IDatabaseMigrationHandler) {
+        this.backupService = new BackupService(handler);
+        this.schemaVersionService = new SchemaVersionService(handler);
+        this.consoleRenderer = new ConsoleRenderer(handler);
         this.migrationService = new MigrationService();
 
         this.consoleRenderer.drawFiglet();
@@ -35,12 +35,12 @@ export class MSRunner {
         try {
             // inits
             await this.backupService.backup()
-            await this.schemaVersionService.init(this.runner.cfg.tableName)
+            await this.schemaVersionService.init(this.handler.cfg.tableName)
 
             // collects information about migrations
             const scripts = await Utils.promiseAll({
                 migrated: this.schemaVersionService.getAllMigratedScripts(),
-                all: this.migrationService.readMigrationScripts(this.runner.cfg)
+                all: this.migrationService.readMigrationScripts(this.handler.cfg)
             }) as IScripts;
             this.consoleRenderer.drawMigrated(scripts)
 
@@ -111,7 +111,7 @@ export class MSRunner {
         console.log(`${script.name}: processing...`);
 
         script.startedAt = Date.now()
-        script.result = await script.script.up(this.runner.db, script, this.runner);
+        script.result = await script.script.up(this.handler.db, script, this.handler);
         script.finishedAt = Date.now();
 
         await this.schemaVersionService.register(script);

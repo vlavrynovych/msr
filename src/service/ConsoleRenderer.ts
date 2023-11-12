@@ -3,15 +3,15 @@ import figlet from "figlet";
 import {AsciiTable3, AlignmentEnum} from 'ascii-table3';
 import {version} from '../../package.json'
 
-import {IMigrationInfo, IRunner, IScripts, MigrationScript} from "../index";
+import {IMigrationInfo, IDatabaseMigrationHandler, IScripts, MigrationScript} from "../index";
 
 export class ConsoleRenderer {
-    constructor(private runner: IRunner) {}
+    constructor(private handler: IDatabaseMigrationHandler) {}
 
     public drawFiglet() {
         let text = figlet.textSync("Migration Script Runner");
         text = text.replace('|_|                                     ',
-            `|_| MSR v.${version}: ${this.runner.getName()}`);
+            `|_| MSR v.${version}: ${this.handler.getName()}`);
         console.log(text);
     }
 
@@ -25,7 +25,7 @@ export class ConsoleRenderer {
             const finished = moment(m.finishedAt);
             const date = finished.format('YYYY/MM/DD HH:mm');
             const ago = finished.fromNow();
-            const name = m.name.replace(this.runner.cfg.filePattern, '');
+            const name = m.name.replace(this.handler.cfg.filePattern, '');
             const found = (scripts.all || []).find(s => s.timestamp === m.timestamp) ? 'Y' : 'N';
             table.addRow(m.timestamp, name, `${date} (${ago})`, ConsoleRenderer.getDuration(m), m.username, found)
         });

@@ -2,13 +2,13 @@ import fs from "fs";
 import moment from "moment";
 
 import {BackupConfig} from "../model";
-import {IBackupService, IRunner} from "../interface";
+import {IBackupService, IDatabaseMigrationHandler} from "../interface";
 
 export class BackupService implements IBackupService {
 
     private backupFile: string | undefined;
 
-    public constructor(private runner: IRunner) {}
+    public constructor(private handler: IDatabaseMigrationHandler) {}
 
     public async backup(): Promise<void> {
         console.info('Preparing backup...')
@@ -23,7 +23,7 @@ export class BackupService implements IBackupService {
     }
 
     public deleteBackup() {
-        if(!this.runner.cfg.backup.deleteBackup || !this.backupFile) return;
+        if(!this.handler.cfg.backup.deleteBackup || !this.backupFile) return;
         console.log("Deleting backup file...")
         fs.rmSync(this.backupFile);
         this.backupFile = undefined;
@@ -33,14 +33,14 @@ export class BackupService implements IBackupService {
     private async _restore(): Promise<string> {
         if (this.backupFile && fs.existsSync(this.backupFile)) {
             const data:string = fs.readFileSync(this.backupFile, 'utf8');
-            return this.runner.restore(data);
+            return this.handler.restore(data);
         }
 
         return Promise.reject(`Cannot open ${this.backupFile}`);
     }
 
     private async _backup(): Promise<string> {
-        const data = await this.runner.backup();
+        const data = await this.handler.backup();
         const filePath = this.getFileName();
         fs.writeFileSync(filePath, data);
         this.backupFile = filePath;
@@ -48,8 +48,8 @@ export class BackupService implements IBackupService {
     }
 
     private getFileName():string {
-        const path:string = BackupService.prepareFilePath(this.runner.cfg.backup);
-        if (fs.existsSync(path)) fs.renameSync(path, BackupService.prepareFilePath(this.runner.cfg.backup))
+        const path:string = BackupService.prepareFilePath(this.handler.cfg.backup);
+        if (fs.existsSync(path)) fs.renameSync(path, BackupService.prepareFilePath(this.handler.cfg.backup))
         return path;
     }
 

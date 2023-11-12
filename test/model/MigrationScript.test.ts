@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import {IMigrationInfo, IRunner} from "../../src";
+import {IMigrationInfo, IDatabaseMigrationHandler} from "../../src";
 import {TestUtils} from "../TestUtils";
 
 describe('MigrationScript', () => {
@@ -14,6 +14,6 @@ describe('MigrationScript', () => {
         // then
         expect(ms.script).not.undefined
         expect(typeof ms.script.up === 'function').is.true
-        expect(await ms.script.up({}, {} as IMigrationInfo, {} as IRunner)).eq('result string')
+        expect(await ms.script.up({}, {} as IMigrationInfo, {} as IDatabaseMigrationHandler)).eq('result string')
     })
 })
