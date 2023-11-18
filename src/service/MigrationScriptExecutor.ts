@@ -58,11 +58,11 @@ export class MigrationScriptExecutor {
             scripts.executed = await this.execute(scripts.todo);
             this.consoleRenderer.drawExecutedTable(scripts.executed);
             console.info('Migration finished successfully!');
+            this.backupService.deleteBackup();
         } catch (err) {
             console.error(err)
             success = false
             await this.backupService.restore();
-        } finally {
             this.backupService.deleteBackup();
         }
         this.exit(success)
