@@ -1,7 +1,15 @@
 import {expect, spy} from 'chai';
 import {afterEach} from "mocha";
 import sinon from 'sinon';
-import {Config, IDB, IMigrationInfo, IDatabaseMigrationHandler, MigrationScript, MigrationScriptExecutor} from "../../src";
+import {
+    Config,
+    IDB,
+    IMigrationInfo,
+    IDatabaseMigrationHandler,
+    MigrationScript,
+    MigrationScriptExecutor,
+    IBackup, ISchemaVersion, IMigrationScript
+} from "../../src";
 import {TestUtils} from "../TestUtils";
 
 const processExit = sinon.stub(process, 'exit');
@@ -22,31 +30,35 @@ describe('MigrationScriptExecutor', () => {
             test(){throw new Error('Not implemented')}
         }
         handler = new class implements IDatabaseMigrationHandler {
+            backup:IBackup = {
+                backup(): Promise<string> { return Promise.resolve('content') },
+                restore(data: string): Promise<any> { return Promise.resolve('restored') }
+            };
+            schemaVersion:ISchemaVersion = {
+                migrations: {
+                    getAll(): Promise<MigrationScript[]> {
+                        return Promise.resolve(scripts);
+                    },
+                    save(details: IMigrationInfo): Promise<any> {
+                        return Promise.resolve(undefined);
+                    }
+                } as IMigrationScript,
+
+                createTable(tableName: string): Promise<boolean> {
+                    return Promise.resolve(created);
+                },
+
+                isInitialized(tableName: string): Promise<boolean> {
+                    return Promise.resolve(initialized);
+                },
+
+                validateTable(tableName: string): Promise<boolean> {
+                    return Promise.resolve(valid);
+                }
+            };
             cfg:Config = cfg;
             db: IDB = db;
-
-            backup(): Promise<string> { return Promise.resolve('content') }
-            restore(data: string): Promise<any> { return Promise.resolve('restored') }
             getName(): string { return "Test Implementation" }
-
-            createTable(tableName: string): Promise<boolean> {
-                return Promise.resolve(created);
-            }
-
-            isInitialized(tableName: string): Promise<boolean> {
-                return Promise.resolve(initialized);
-            }
-
-            getAll(): Promise<MigrationScript[]> {
-                return Promise.resolve(scripts);
-            }
-            register(details: IMigrationInfo): Promise<any> {
-                return Promise.resolve(undefined);
-            }
-
-            validateTable(tableName: string): Promise<boolean> {
-                return Promise.resolve(valid);
-            }
         }
 
         executor = new MigrationScriptExecutor(handler);
@@ -57,7 +69,9 @@ describe('MigrationScriptExecutor', () => {
         initialized = true
         created = true
         valid = true
-        spy.on(handler, ['isInitialized', 'createTable', 'validateTable', 'register', 'getAll']);
+        spy.on(handler.schemaVersion, ['isInitialized', 'createTable', 'validateTable']);
+        spy.on(handler.schemaVersion.migrations, ['save', 'getAll']);
+
         spy.on(executor, ['migrate', 'getTodo', 'execute', 'task']);
         spy.on(executor.backupService, ['restore', 'deleteBackup', 'backup']);
         spy.on(executor.migrationService, ['readMigrationScripts']);
@@ -76,11 +90,11 @@ describe('MigrationScriptExecutor', () => {
         await executor.migrate()
 
         // then
-        expect(handler.isInitialized).have.been.called.once
-        expect(handler.createTable).have.not.been.called
-        expect(handler.validateTable).have.been.called.once
-        expect(handler.getAll).have.been.called.once
-        expect(handler.register).have.been.called.once
+        expect(handler.schemaVersion.isInitialized).have.been.called.once
+        expect(handler.schemaVersion.createTable).have.not.been.called
+        expect(handler.schemaVersion.validateTable).have.been.called.once
+        expect(handler.schemaVersion.migrations.getAll).have.been.called.once
+        expect(handler.schemaVersion.migrations.save).have.been.called.once
 
         expect(executor.migrationService.readMigrationScripts).have.been.called.once
 
@@ -102,11 +116,11 @@ describe('MigrationScriptExecutor', () => {
         await executor.migrate()
 
         // then
-        expect(handler.isInitialized).have.been.called.once
-        expect(handler.createTable).have.not.been.called
-        expect(handler.validateTable).have.been.called.once
-        expect(handler.getAll).have.been.called.once
-        expect(handler.register).have.not.been.called
+        expect(handler.schemaVersion.isInitialized).have.been.called.once
+        expect(handler.schemaVersion.createTable).have.not.been.called
+        expect(handler.schemaVersion.validateTable).have.been.called.once
+        expect(handler.schemaVersion.migrations.getAll).have.been.called.once
+        expect(handler.schemaVersion.migrations.save).have.not.been.called
 
         expect(executor.migrationService.readMigrationScripts).have.been.called.once
 
@@ -128,11 +142,11 @@ describe('MigrationScriptExecutor', () => {
         await executor.migrate()
 
         // then
-        expect(handler.isInitialized).have.been.called.once
-        expect(handler.createTable).have.not.been.called
-        expect(handler.validateTable).have.been.called.once
-        expect(handler.getAll).have.not.been.called
-        expect(handler.register).have.not.been.called
+        expect(handler.schemaVersion.isInitialized).have.been.called.once
+        expect(handler.schemaVersion.createTable).have.not.been.called
+        expect(handler.schemaVersion.validateTable).have.been.called.once
+        expect(handler.schemaVersion.migrations.getAll).have.not.been.called
+        expect(handler.schemaVersion.migrations.save).have.not.been.called
 
         expect(executor.migrationService.readMigrationScripts).have.not.been.called.once
 

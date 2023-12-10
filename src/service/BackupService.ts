@@ -33,14 +33,14 @@ export class BackupService implements IBackupService {
     private async _restore(): Promise<void> {
         if (this.backupFile && fs.existsSync(this.backupFile)) {
             const data:string = fs.readFileSync(this.backupFile, 'utf8');
-            return this.handler.restore(data);
+            return this.handler.backup.restore(data);
         }
 
         return Promise.reject(`Cannot open ${this.backupFile}`);
     }
 
     private async _backup(): Promise<string> {
-        const data = await this.handler.backup();
+        const data = await this.handler.backup.backup();
         const filePath = this.getFileName();
         fs.writeFileSync(filePath, data);
         this.backupFile = filePath;

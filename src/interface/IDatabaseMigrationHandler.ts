@@ -1,8 +1,10 @@
 import {Config} from "../model";
 import {IBackup, IDB, IMigrationScript, ISchemaVersion} from "./dao";
 
-export interface IDatabaseMigrationHandler extends ISchemaVersion, IMigrationScript, IBackup{
+export interface IDatabaseMigrationHandler {
     getName(): string
-    cfg:Config
-    db:IDB
+    cfg: Config
+    db: IDB
+    schemaVersion: ISchemaVersion
+    backup: IBackup
 }

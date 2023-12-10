@@ -77,8 +77,10 @@ describe('BackupService', () => {
         cfg.backup.suffix = `-backup-file-overwrite-${Date.now()}`;
         const bs = new BackupService({
             cfg: cfg,
-            async backup(): Promise<string> {
-                return 'data'
+            backup: {
+                async backup(): Promise<string> {
+                    return 'data'
+                }
             }
         } as IDatabaseMigrationHandler);
 
