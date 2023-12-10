@@ -30,7 +30,7 @@ export class BackupService implements IBackupService {
         console.log("Backup file successfully deleted")
     }
 
-    private async _restore(): Promise<string> {
+    private async _restore(): Promise<void> {
         if (this.backupFile && fs.existsSync(this.backupFile)) {
             const data:string = fs.readFileSync(this.backupFile, 'utf8');
             return this.handler.restore(data);
