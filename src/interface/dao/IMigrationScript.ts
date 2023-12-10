@@ -3,5 +3,6 @@ import {IMigrationInfo} from "../IMigrationInfo";
 
 export interface IMigrationScript {
     getAll():Promise<MigrationScript[]>;
-    save(details: IMigrationInfo): Promise<void>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    save(details: IMigrationInfo): Promise<any>;
 }
