@@ -14,7 +14,8 @@ export class SchemaVersionService<T extends ISchemaVersion> implements ISchemaVe
         if(!isValid) throw new Error("Schema version table is invalid")
     }
 
-    public async save(details:IMigrationInfo):Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    public async save(details:IMigrationInfo):Promise<any> {
         return this.service.migrations.save(details);
     }
 
