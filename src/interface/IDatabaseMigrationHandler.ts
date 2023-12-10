@@ -1,5 +1,5 @@
 import {Config} from "../model";
-import {IBackup, IDB, IMigrationScript, ISchemaVersion} from "./dao";
+import {IBackup, IDB, ISchemaVersion} from "./dao";
 
 export interface IDatabaseMigrationHandler {
     getName(): string
