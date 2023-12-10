@@ -4,6 +4,8 @@ import sinon from 'sinon';
 import {Config, IDB, IMigrationInfo, IDatabaseMigrationHandler, MigrationScript, MigrationScriptExecutor} from "../../src";
 import {TestUtils} from "../TestUtils";
 
+const processExit = sinon.stub(process, 'exit');
+
 describe('MigrationScriptExecutor', () => {
 
     let initialized = true
@@ -48,7 +50,6 @@ describe('MigrationScriptExecutor', () => {
         }
 
         executor = new MigrationScriptExecutor(handler);
-        sinon.stub(process, 'exit');
     })
 
     beforeEach(() => {
@@ -63,7 +64,11 @@ describe('MigrationScriptExecutor', () => {
     })
 
     afterEach(() => {
-        spy.restore();
+        spy.restore()
+    })
+
+    after(() => {
+        processExit.restore()
     })
 
     it('golden path', async () => {

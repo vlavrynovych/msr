@@ -74,7 +74,7 @@ describe('BackupService', () => {
         const cfg = new Config();
         cfg.backup.deleteBackup = false;
         cfg.backup.timestamp = false;
-        cfg.backup.suffix = `-backup-file-overwrite-${new Date().getTime()}`;
+        cfg.backup.suffix = `-backup-file-overwrite-${Date.now()}`;
         const bs = new BackupService({
             cfg: cfg,
             async backup(): Promise<string> {
