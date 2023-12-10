@@ -23,7 +23,7 @@ export class MigrationScriptExecutor {
 
     constructor(private handler:IDatabaseMigrationHandler) {
         this.backupService = new BackupService(handler);
-        this.schemaVersionService = new SchemaVersionService(handler);
+        this.schemaVersionService = new SchemaVersionService(handler.schemaVersion);
         this.consoleRenderer = new ConsoleRenderer(handler);
         this.migrationService = new MigrationService();
 
@@ -114,7 +114,7 @@ export class MigrationScriptExecutor {
         script.result = await script.script.up(this.handler.db, script, this.handler);
         script.finishedAt = Date.now();
 
-        await this.schemaVersionService.register(script);
+        await this.schemaVersionService.save(script);
         return script
     }
 }
