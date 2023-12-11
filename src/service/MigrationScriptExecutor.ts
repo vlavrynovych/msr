@@ -68,6 +68,24 @@ export class MigrationScriptExecutor {
         this.exit(success)
     }
 
+    public async list(number = 0) {
+        const scripts = await Utils.promiseAll({
+            migrated: this.schemaVersionService.getAllMigratedScripts(),
+            all: this.migrationService.readMigrationScripts(this.handler.cfg)
+        }) as IScripts;
+
+
+        if(number) {
+            scripts.migrated = _
+                .chain(scripts.migrated)
+                .orderBy(['timestamp'], ['desc'])
+                .splice(0, number)
+                .value()
+        }
+
+        this.consoleRenderer.drawMigrated(scripts)
+    }
+
     exit(success:boolean):void {
         process.exit(success ? 0 : 1);
     }
