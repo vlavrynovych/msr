@@ -180,4 +180,35 @@ describe('MigrationScriptExecutor', () => {
         expect(todo.length).eq(1, "Should be one new script")
         expect(todo[0].timestamp).eq(3, "New script has timestamp = 3")
     })
+
+    it('list', async () => {
+        scripts = [
+            {timestamp: 1, name: 'n1', username: 'v1'} as MigrationScript,
+            {timestamp: 2, name: 'n2', username: 'v2'} as MigrationScript,
+            {timestamp: 3, name: 'n3', username: 'v3'} as MigrationScript,
+        ]
+
+        spy.on(console, ['log'], (...items) => {
+            const msg:string = items[0]
+            expect(msg.includes("n1")).is.true
+            expect(msg.includes("n2")).is.true
+            expect(msg.includes("n3")).is.true
+        });
+
+        await executor.list()
+        await executor.list(0)
+        await executor.list(-2)
+        await executor.list(100)
+        spy.restore()
+
+        spy.on(console, ['log'], (...items) => {
+            const msg:string = items[0]
+            expect(msg.includes("n3")).is.true
+            expect(!msg.includes("n2")).is.true
+            expect(!msg.includes("n1")).is.true
+        });
+
+        await executor.list(1)
+        spy.restore()
+    })
 })
