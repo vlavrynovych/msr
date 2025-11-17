@@ -20,7 +20,8 @@
     "test:coverage:coveralls": "nyc report --reporter=text-lcov | coveralls",
     "test:report": "rimraf ./reports && npm run lint:report && npm run test:coverage",
     "lint": "eslint ./src/ --ext .ts",
-    "lint:report": "eslint ./src/ --ext .ts --format junit --output-file ./reports/eslint.xml"
+    "lint:report": "eslint ./src/ --ext .ts --format junit --output-file ./reports/eslint.xml",
+    "postinstall": "[ -f node_modules/fsevents/fsevents.node ] && xattr -d com.apple.quarantine node_modules/fsevents/fsevents.node 2>/dev/null || true"
   },
   "keywords": [
     "migration",
