@@ -1,0 +1,222 @@
+# MindCompass Labels Configuration
+# Organized by color groups for visual clarity
+
+# ========================================
+# PRIORITY (Red to Orange spectrum)
+# ========================================
+- name: "🔥 Priority: Critical"
+  emoji: "🔥"
+  color: "#B60205"
+  description: "Urgent fixes needed immediately - system breaking issues"
+
+- name: "⚡ Priority: High"
+  emoji: "⚡"
+  color: "#D93F0B"
+  description: "Important tasks requiring quick attention"
+
+- name: "🟡 Priority: Medium"
+  emoji: "🟡"
+  color: "#FBCA04"
+  description: "Standard priority tasks"
+
+- name: "🟢 Priority: Low"
+  emoji: "🟢"
+  color: "#0E8A16"
+  description: "Nice to have, can wait"
+
+# ========================================
+# STATUS (Yellow to Green spectrum)
+# ========================================
+- name: "🧪 Status: Ready for Testing"
+  emoji: "🧪"
+  color: "#FBCA04"
+  description: "Development completed, ready for testing"
+
+- name: "✅ Status: Verified"
+  emoji: "✅"
+  color: "#0E8A16"
+  description: "Testing passed and verified"
+
+# ========================================
+# TESTING EFFORT (Pastel spectrum)
+# ========================================
+- name: "🟢 Test: Low"
+  emoji: "🟢"
+  color: "#c2e0c6"
+  description: "Minimal testing effort needed"
+
+- name: "🟡 Test: Medium"
+  emoji: "🟡"
+  color: "#f9d0c4"
+  description: "Moderate testing effort required"
+
+- name: "🔴 Test: High"
+  emoji: "🔴"
+  color: "#f9c0c0"
+  description: "Comprehensive testing required"
+
+- name: "❌ Test: Not Needed"
+  emoji: "❌"
+  color: "#d4d4d4"
+  description: "No testing required"
+
+# ========================================
+# TYPE (Functional categories)
+# ========================================
+- name: "🐛 Type: Bug"
+  emoji: "🐛"
+  color: "#D93F0B"
+  description: "Something isn't working correctly"
+
+- name: "✨ Type: Feature"
+  emoji: "✨"
+  color: "#0E8A16"
+  description: "New functionality or enhancement"
+
+- name: "📋 Type: Epic"
+  emoji: "📋"
+  color: "#0052CC"
+  description: "Phase or epic tracking issue (parent of multiple tasks)"
+
+- name: "🧹 Type: Tech Debt"
+  emoji: "🧹"
+  color: "#D4C5F9"
+  description: "Code cleanup, refactoring, or technical improvements"
+
+- name: "📝 Type: Documentation"
+  emoji: "📝"
+  color: "#1D76DB"
+  description: "Documentation updates or improvements"
+
+- name: "🔬 Type: Testing"
+  emoji: "🔬"
+  color: "#214134"
+  description: "Test-related improvements (unit, integration, e2e)"
+
+- name: "🎨 Type: UI/UX"
+  emoji: "🎨"
+  color: "#7FB862"
+  description: "User interface or user experience improvements"
+
+- name: "⚡ Type: Performance"
+  emoji: "⚡"
+  color: "#2C5F0E"
+  description: "Performance optimization"
+
+- name: "🗂️ Type: Project Management"
+  emoji: "🗂️"
+  color: "#7F8C8D"
+  description: "Project documentation, organization, and infrastructure tasks"
+
+# ========================================
+# BLOCKERS (Dark colors)
+# ========================================
+- name: "🧱 Blocked"
+  emoji: "🧱"
+  color: "#000000"
+  description: "Cannot proceed due to external dependencies or blockers"
+
+- name: "💤 On Hold"
+  emoji: "💤"
+  color: "#5A5A5A"
+  description: "Paused, not currently being worked on"
+
+# ========================================
+# DOMAIN-SPECIFIC (MindCompass features)
+# ========================================
+- name: "🧠 Domain: Decision Engine"
+  emoji: "🧠"
+  color: "#5319E7"
+  description: "Core decision-making logic and algorithms"
+
+- name: "📊 Domain: Analytics"
+  emoji: "📊"
+  color: "#0075CA"
+  description: "Data analysis, metrics, and reporting"
+
+- name: "🔌 Domain: Integration"
+  emoji: "🔌"
+  color: "#FCB4F9"
+  description: "Third-party integrations or API work"
+
+- name: "🔒 Domain: Security"
+  emoji: "🔒"
+  color: "#B60205"
+  description: "Security, authentication, or authorization"
+
+# ========================================
+# DEVELOPMENT WORKFLOW
+# ========================================
+- name: "📚 Needs: Documentation"
+  emoji: "📚"
+  color: "#FFA500"
+  description: "Documentation needs to be added or updated"
+
+- name: "🧪 Needs: Tests"
+  emoji: "🧪"
+  color: "#FBCA04"
+  description: "Tests need to be written or improved"
+
+- name: "🔍 Needs: Investigation"
+  emoji: "🔍"
+  color: "#FFC107"
+  description: "Requires research or investigation before implementation"
+
+# ========================================
+# INFRASTRUCTURE
+# ========================================
+- name: "🏗️ Infra: CI/CD"
+  emoji: "🏗️"
+  color: "#0366D6"
+  description: "Continuous Integration/Deployment pipeline changes"
+
+- name: "🐳 Infra: Docker"
+  emoji: "🐳"
+  color: "#2496ED"
+  description: "Docker or containerization related"
+
+- name: "☁️ Infra: Cloud"
+  emoji: "☁️"
+  color: "#4A90E2"
+  description: "Cloud infrastructure, deployment, or configuration"
+
+- name: "⚙️ Infra: DevOps"
+  emoji: "⚙️"
+  color: "#0E8A16"
+  description: "DevOps tooling, scripts, or automation"
+
+# ========================================
+# ISSUE MANAGEMENT
+# ========================================
+- name: "🔄 Duplicate"
+  emoji: "🔄"
+  color: "#CCCCCC"
+  description: "This issue or pull request already exists"
+
+- name: "❓ Question"
+  emoji: "❓"
+  color: "#D876E3"
+  description: "Further information is requested"
+
+- name: "🚫 Wontfix"
+  emoji: "🚫"
+  color: "#808080"
+  description: "This will not be worked on"
+
+- name: "♻️ Dependencies"
+  emoji: "♻️"
+  color: "#0366D6"
+  description: "Dependency updates or management"
+
+# ========================================
+# SPECIAL (Unique situations)
+# ========================================
+- name: "🚀 Release"
+  emoji: "🚀"
+  color: "#0E8A16"
+  description: "Release-related tasks"
+
+- name: "❗ DO NOT MERGE"
+  emoji: "❗"
+  color: "#B60205"
+  description: "Work in progress, not ready to merge"
