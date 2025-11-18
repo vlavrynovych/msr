@@ -17,6 +17,6 @@ export default tseslint.config(
         }
     },
     {
-        ignores: ['dist/**', 'node_modules/**', '.eslintrc.js']
+        ignores: ['dist/**', 'node_modules/**']
     }
 );
