@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   test:
     docker:
-      - image: circleci/node:16.13.0
+      - image: cimg/node:20.18
         auth:
           username: $DOCKER_USER
           password: $DOCKER_TOKEN
