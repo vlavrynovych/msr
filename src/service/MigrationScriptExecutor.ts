@@ -42,7 +42,7 @@ export class MigrationScriptExecutor {
                 migrated: this.schemaVersionService.getAllMigratedScripts(),
                 all: this.migrationService.readMigrationScripts(this.handler.cfg)
             }) as IScripts;
-            this.consoleRenderer.drawMigrated(scripts)
+            this.consoleRenderer.drawMigrated(scripts, this.handler.cfg.displayLimit)
 
             // defines scripts which should be executed
             scripts.todo = this.getTodo(scripts.migrated, scripts.all);
@@ -74,16 +74,7 @@ export class MigrationScriptExecutor {
             all: this.migrationService.readMigrationScripts(this.handler.cfg)
         }) as IScripts;
 
-
-        if(number) {
-            scripts.migrated = _
-                .chain(scripts.migrated)
-                .orderBy(['timestamp'], ['desc'])
-                .splice(0, number)
-                .value()
-        }
-
-        this.consoleRenderer.drawMigrated(scripts)
+        this.consoleRenderer.drawMigrated(scripts, number)
     }
 
     exit(success:boolean):void {

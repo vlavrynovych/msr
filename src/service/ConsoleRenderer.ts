@@ -4,6 +4,7 @@ import {AsciiTable3, AlignmentEnum} from 'ascii-table3';
 import {version} from '../../package.json'
 
 import {IMigrationInfo, IDatabaseMigrationHandler, IScripts, MigrationScript} from "../index";
+import _ from "lodash";
 
 export class ConsoleRenderer {
     constructor(private handler: IDatabaseMigrationHandler) {}
@@ -15,8 +16,16 @@ export class ConsoleRenderer {
         console.log(text);
     }
 
-    public drawMigrated(scripts:IScripts) {
+    public drawMigrated(scripts:IScripts, number = 0) {
         if (!scripts.migrated.length) return
+
+        if(number > 0) {
+            scripts.migrated = _
+                .chain(scripts.migrated)
+                .orderBy(['timestamp'], ['desc'])
+                .splice(0, number)
+                .value()
+        }
 
         const table = new AsciiTable3('Migrated');
         table.setHeading('Timestamp', 'Name', 'Executed', 'Duration', 'Username', 'Found Locally');
