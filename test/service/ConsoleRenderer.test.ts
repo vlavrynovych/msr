@@ -93,4 +93,75 @@ describe('ConsoleRenderer.getDuration', () => {
             migrated: list2,
         } as IScripts)
     })
+
+    it('render tables with displayLimit', () => {
+        // having
+        const list = [
+            {timestamp: 1, name: '1'} as MigrationScript,
+            {timestamp: 2, name: '2'} as MigrationScript,
+            {timestamp: 3, name: '3'} as MigrationScript,
+        ]
+
+        // when
+        const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+
+        // then
+        cr.drawMigrated({migrated: list} as IScripts, 2)
+        cr.drawMigrated({migrated: [...list]} as IScripts, 0)
+    })
+
+    it('displayLimit should show all when 0', () => {
+        const list = [
+            {timestamp: 1, name: '1'} as MigrationScript,
+            {timestamp: 2, name: '2'} as MigrationScript,
+            {timestamp: 3, name: '3'} as MigrationScript,
+        ]
+        const scripts = {migrated: list} as IScripts
+        const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+        cr.drawMigrated(scripts, 0)
+        expect(scripts.migrated.length).eq(3, 'Should show all 3 when displayLimit is 0')
+    })
+
+    it('displayLimit should limit to N migrations', () => {
+        const list = [
+            {timestamp: 1, name: '1'} as MigrationScript,
+            {timestamp: 2, name: '2'} as MigrationScript,
+            {timestamp: 3, name: '3'} as MigrationScript,
+        ]
+        const scripts = {migrated: [...list]} as IScripts
+        const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+        cr.drawMigrated(scripts, 2)
+        expect(scripts.migrated.length).eq(2, 'Should show only 2 when displayLimit is 2')
+    })
+
+    it('displayLimit should show most recent first', () => {
+        const list = [
+            {timestamp: 1, name: 'Old'} as MigrationScript,
+            {timestamp: 2, name: 'Recent'} as MigrationScript,
+        ]
+        const scripts = {migrated: [...list]} as IScripts
+        const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+        cr.drawMigrated(scripts, 1)
+        expect(scripts.migrated.length).eq(1, 'Should show only 1')
+        expect(scripts.migrated[0].name).eq('Recent', 'Should show most recent')
+    })
+
+    it('displayLimit greater than available should show all', () => {
+        const list = [
+            {timestamp: 1, name: '1'} as MigrationScript,
+            {timestamp: 2, name: '2'} as MigrationScript,
+        ]
+        const scripts = {migrated: [...list]} as IScripts
+        const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+        cr.drawMigrated(scripts, 10)
+        expect(scripts.migrated.length).eq(2, 'Should show all 2 when limit is 10')
+    })
+
+    it('displayLimit with empty list should not error', () => {
+        const list: MigrationScript[] = []
+        const scripts = {migrated: list} as IScripts
+        const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+        cr.drawMigrated(scripts, 5)
+        expect(scripts.migrated.length).eq(0, 'Should handle empty list')
+    })
 })
