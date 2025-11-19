@@ -86,109 +86,158 @@ describe('MigrationScriptExecutor', () => {
         processExit.restore()
     })
 
+    /**
+     * Test: Successful migration execution (happy path)
+     * Validates the complete migration workflow when everything succeeds:
+     * 1. Schema initialization and validation
+     * 2. Reading migration scripts from filesystem
+     * 3. Creating backup before execution
+     * 4. Determining which migrations to run
+     * 5. Executing migrations and saving results
+     * 6. Cleaning up backup
+     */
     it('golden path', async () => {
-        // when
+        // Execute the full migration workflow
         await executor.migrate()
 
-        // then
+        // Verify schema operations: check if initialized → skip creation → validate
         expect(handler.schemaVersion.isInitialized).have.been.called.once
         expect(handler.schemaVersion.createTable).have.not.been.called
         expect(handler.schemaVersion.validateTable).have.been.called.once
         expect(handler.schemaVersion.migrations.getAll).have.been.called.once
         expect(handler.schemaVersion.migrations.save).have.been.called.once
 
+        // Verify migration discovery ran
         expect(executor.migrationService.readMigrationScripts).have.been.called.once
 
+        // Verify backup lifecycle: created → not restored (success) → deleted
         expect(executor.backupService.backup).have.been.called.once
         expect(executor.backupService.restore).have.not.been.called
         expect(executor.backupService.deleteBackup).have.been.called.once
 
+        // Verify all migration workflow methods were called
         expect(executor.migrate).have.been.called.once
         expect(executor.getTodo).have.been.called.once
         expect(executor.execute).have.been.called.once
         expect(executor.task).have.been.called.once
     })
 
+    /**
+     * Test: Migration with no new scripts to execute
+     * Validates the system handles "nothing to do" gracefully when all
+     * migrations have already been executed. Backup is still created as
+     * a safety measure, but no migrations run.
+     */
     it('no new scripts', async () => {
-        // having: empty folder
+        // Configure to use empty migrations directory
         handler.cfg = TestUtils.getConfig(TestUtils.EMPTY_FOLDER)
 
-        // when
+        // Execute migration with no scripts to run
         await executor.migrate()
 
-        // then
+        // Verify schema operations still ran
         expect(handler.schemaVersion.isInitialized).have.been.called.once
         expect(handler.schemaVersion.createTable).have.not.been.called
         expect(handler.schemaVersion.validateTable).have.been.called.once
         expect(handler.schemaVersion.migrations.getAll).have.been.called.once
         expect(handler.schemaVersion.migrations.save).have.not.been.called
 
+        // Verify script discovery still ran
         expect(executor.migrationService.readMigrationScripts).have.been.called.once
 
+        // Verify backup lifecycle completed even with no migrations
         expect(executor.backupService.backup).have.been.called.once
         expect(executor.backupService.restore).have.not.been.called
         expect(executor.backupService.deleteBackup).have.been.called.once
 
+        // Verify workflow ran but no individual migration tasks executed
         expect(executor.migrate).have.been.called.once
         expect(executor.getTodo).have.been.called.once
         expect(executor.execute).have.been.called.once
         expect(executor.task).have.not.been.called.once
     })
 
+    /**
+     * Test: Migration failure triggers backup restore
+     * Validates the error recovery workflow when schema validation fails:
+     * 1. Backup is created
+     * 2. Validation fails
+     * 3. Backup is restored to undo any changes
+     * 4. Backup is cleaned up
+     * This ensures the database returns to its pre-migration state on failure.
+     */
     it('throw an error - restore', async () => {
-        // having:
+        // Simulate schema validation failure
         valid = false
 
-        // when
+        // Execute migration which will fail validation
         await executor.migrate()
 
-        // then
+        // Verify schema validation was attempted
         expect(handler.schemaVersion.isInitialized).have.been.called.once
         expect(handler.schemaVersion.createTable).have.not.been.called
         expect(handler.schemaVersion.validateTable).have.been.called.once
         expect(handler.schemaVersion.migrations.getAll).have.not.been.called
         expect(handler.schemaVersion.migrations.save).have.not.been.called
 
+        // Verify migration discovery was skipped after validation failure
         expect(executor.migrationService.readMigrationScripts).have.not.been.called.once
 
+        // Verify error recovery: backup created → restored → cleaned up
         expect(executor.backupService.backup).have.been.called.once
         expect(executor.backupService.restore).have.been.called
         expect(executor.backupService.deleteBackup).have.been.called.once
 
+        // Verify workflow stopped early due to validation failure
         expect(executor.migrate).have.been.called.once
         expect(executor.getTodo).have.not.been.called.once
         expect(executor.execute).have.not.been.called.once
         expect(executor.task).have.not.been.called.once
     })
 
+    /**
+     * Test: getTodo identifies new migrations to execute
+     * Validates that getTodo() correctly filters migrations by comparing
+     * already-executed migrations against all available migrations. Only
+     * migrations with timestamps newer than the last executed should be returned.
+     */
     it('getTodo: with migrated scripts', async () => {
-        // having:
+        // Define already-executed migrations (timestamps 1 and 2)
         const migrated = [
             {timestamp: 1} as MigrationScript,
             {timestamp: 2} as MigrationScript,
         ]
 
+        // Define all available migrations (includes new one with timestamp 3)
         const all = [
             {timestamp: 1} as MigrationScript,
             {timestamp: 2} as MigrationScript,
             {timestamp: 3} as MigrationScript,
         ]
 
-        // when
+        // Get list of pending migrations
         const todo = executor.getTodo(migrated, all);
 
-        // then
+        // Verify only the new migration is returned
         expect(todo.length).eq(1, "Should be one new script")
         expect(todo[0].timestamp).eq(3, "New script has timestamp = 3")
     })
 
+    /**
+     * Test: list() displays migration history with display limits
+     * Validates that the list() method correctly displays already-executed
+     * migrations and respects the displayLimit parameter for showing a
+     * limited number of most recent migrations.
+     */
     it('list', async () => {
+        // Setup test data with 3 executed migrations
         scripts = [
             {timestamp: 1, name: 'n1', username: 'v1'} as MigrationScript,
             {timestamp: 2, name: 'n2', username: 'v2'} as MigrationScript,
             {timestamp: 3, name: 'n3', username: 'v3'} as MigrationScript,
         ]
 
+        // Spy on console output to verify all migrations are displayed
         spy.on(console, ['log'], (...items) => {
             const msg:string = items[0]
             expect(msg.includes("n1")).is.true
@@ -196,12 +245,14 @@ describe('MigrationScriptExecutor', () => {
             expect(msg.includes("n3")).is.true
         });
 
+        // Test various display limits: default, 0 (all), negative, and large number
         await executor.list()
         await executor.list(0)
         await executor.list(-2)
         await executor.list(100)
         spy.restore()
 
+        // Spy again to verify display limit of 1 shows only most recent
         spy.on(console, ['log'], (...items) => {
             const msg:string = items[0]
             expect(msg.includes("n3")).is.true
@@ -209,12 +260,19 @@ describe('MigrationScriptExecutor', () => {
             expect(!msg.includes("n1")).is.true
         });
 
+        // Test display limit of 1 (should show only n3)
         await executor.list(1)
         spy.restore()
     })
 
+    /**
+     * Test: execute() handles migration errors properly
+     * Validates that when a migration's up() method throws an error, the
+     * error is propagated to the caller. This is critical for the error
+     * recovery workflow (backup restore).
+     */
     it('execute: should handle migration script throwing error', async () => {
-        // having: migration that throws
+        // Create a migration script that will throw an error
         const errorScript = TestUtils.prepareMigration('V202311020036_test.ts');
         errorScript.script = {
             async up() {
@@ -222,12 +280,18 @@ describe('MigrationScriptExecutor', () => {
             }
         } as any;
 
-        // when
+        // Verify the error is propagated correctly
         await expect(executor.execute([errorScript])).to.be.rejectedWith('Migration execution failed');
     })
 
+    /**
+     * Test: execute() stops on first failure (fail-fast behavior)
+     * Validates that when executing multiple migrations, if one fails,
+     * subsequent migrations are NOT executed. This prevents cascading
+     * failures and maintains database consistency.
+     */
     it('execute: should stop on first migration failure', async () => {
-        // having: multiple migrations, first one fails
+        // Create first migration that will fail
         const script1 = TestUtils.prepareMigration('V202311020036_test.ts');
         script1.timestamp = 1;
         script1.script = {
@@ -236,6 +300,7 @@ describe('MigrationScriptExecutor', () => {
             }
         } as any;
 
+        // Create second migration with execution tracking
         const script2 = TestUtils.prepareMigration('V202311020036_test.ts');
         script2.timestamp = 2;
         let script2Executed = false;
@@ -246,19 +311,25 @@ describe('MigrationScriptExecutor', () => {
             }
         } as any;
 
-        // when
+        // Attempt to execute both migrations
         try {
             await executor.execute([script1, script2]);
             expect.fail('Should have thrown');
         } catch (e: any) {
-            // then: second script should not execute
+            // Verify second migration was NOT executed (fail-fast)
             expect(script2Executed).to.be.false;
             expect(e.message).to.include('First migration failed');
         }
     })
 
+    /**
+     * Test: migrate() triggers restore on execution failure
+     * Integration test validating that when a migration execution fails,
+     * the backup restore is automatically triggered. This test uses real
+     * file system stubbing to simulate a migration that throws an error.
+     */
     it('migrate: should call restore on migration failure', async () => {
-        // having: migration that will fail
+        // Stub filesystem to return a failing migration script
         handler.cfg = TestUtils.getConfig();
         const readStub = sinon.stub(fs, 'readFileSync');
         readStub.returns(`
@@ -267,10 +338,10 @@ describe('MigrationScriptExecutor', () => {
             }
         `);
 
-        // when
+        // Execute migration (will fail)
         await executor.migrate();
 
-        // then
+        // Verify error recovery workflow: backup → restore → cleanup
         expect(executor.backupService.backup).have.been.called;
         expect(executor.backupService.restore).have.been.called;
         expect(executor.backupService.deleteBackup).have.been.called;
@@ -278,8 +349,14 @@ describe('MigrationScriptExecutor', () => {
         readStub.restore();
     })
 
+    /**
+     * Test: task() handles database save failures
+     * Validates that when a migration executes successfully but saving
+     * the migration record to the database fails, the error is propagated.
+     * This prevents the system from incorrectly thinking a migration succeeded.
+     */
     it('task: should handle schemaVersionService.save failure', async () => {
-        // having: migration script with mocked up() method
+        // Create a migration script that will succeed
         const script = TestUtils.prepareMigration('V202311020036_test.ts');
         script.script = {
             async up() {
@@ -287,52 +364,70 @@ describe('MigrationScriptExecutor', () => {
             }
         } as any;
 
-        // and: save that fails
+        // Stub save() to fail when recording the migration
         const saveStub = sinon.stub(handler.schemaVersion.migrations, 'save');
         saveStub.rejects(new Error('Failed to save migration record'));
 
-        // when/then
+        // Verify the save error is propagated
         await expect(executor.task(script)).to.be.rejectedWith('Failed to save migration record');
 
         saveStub.restore();
     })
 
+    /**
+     * Test: getTodo with no previous migrations returns all scripts
+     * Edge case test for first-time migration execution. When no migrations
+     * have been run yet (empty migrated list), all available migrations
+     * should be returned as pending.
+     */
     it('getTodo: should handle empty migrated list', () => {
-        // having
+        // Simulate no migrations have been executed yet
         const migrated: MigrationScript[] = [];
         const all = [
             {timestamp: 1} as MigrationScript,
             {timestamp: 2} as MigrationScript,
         ];
 
-        // when
+        // Get pending migrations
         const todo = executor.getTodo(migrated, all);
 
-        // then: should return all scripts
+        // Verify all migrations are returned as pending
         expect(todo.length).eq(2, 'Should return all scripts when no migrations done');
     })
 
+    /**
+     * Test: getTodo ignores scripts older than last executed migration
+     * Validates that migrations with timestamps older than the most recent
+     * executed migration are filtered out. This prevents running "missing"
+     * old migrations that were skipped or added after newer ones executed.
+     */
     it('getTodo: should ignore scripts older than last migration', () => {
-        // having: last migrated is timestamp 5
+        // Last executed migration has timestamp 5
         const migrated = [
             {timestamp: 5} as MigrationScript,
         ];
 
+        // Available migrations include older, current, and newer
         const all = [
             {timestamp: 3} as MigrationScript,  // older - should be ignored
             {timestamp: 5} as MigrationScript,  // already migrated
             {timestamp: 7} as MigrationScript,  // newer - should be todo
         ];
 
-        // when
+        // Get pending migrations
         const todo = executor.getTodo(migrated, all);
 
-        // then
+        // Verify only the newer migration is returned
         expect(todo.length).eq(1, 'Should only return scripts newer than last migration');
         expect(todo[0].timestamp).eq(7);
     })
 
     describe('Integration Tests', () => {
+        /**
+         * Integration test for the complete successful migration workflow.
+         * Validates the happy path: backup creation, migration execution, and cleanup.
+         * This ensures all components work together correctly when everything succeeds.
+         */
         it('E2E: should execute full backup → migrate → cleanup cycle', async () => {
             // This tests the full happy path with real file I/O
             handler.cfg = TestUtils.getConfig();
@@ -350,6 +445,15 @@ describe('MigrationScriptExecutor', () => {
             expect(executor.backupService.deleteBackup).have.been.called;
         })
 
+        /**
+         * Integration test for error recovery workflow.
+         * Validates that when migration fails (validation error), the system:
+         * 1. Creates a backup before starting
+         * 2. Detects the failure
+         * 3. Restores from backup to recover
+         * 4. Cleans up the backup file
+         * This ensures database consistency is maintained even when migrations fail.
+         */
         it('E2E: should execute backup → fail → restore → cleanup cycle', async () => {
             // This tests error handling with restore
             initialized = true;
@@ -365,6 +469,12 @@ describe('MigrationScriptExecutor', () => {
             expect(executor.migrationService.readMigrationScripts).have.not.been.called;
         })
 
+        /**
+         * Integration test for sequential migration execution.
+         * Validates that multiple migrations are executed in the correct order (by timestamp)
+         * and that each migration's result is properly recorded and saved.
+         * This ensures the migration system maintains execution order consistency.
+         */
         it('E2E: should handle multiple sequential migrations', async () => {
             // having: setup for multiple migration execution
             handler.cfg = TestUtils.getConfig();
@@ -408,6 +518,15 @@ describe('MigrationScriptExecutor', () => {
             expect(handler.schemaVersion.migrations.save).have.been.called.exactly(3);
         })
 
+        /**
+         * Integration test for atomic migration execution.
+         * Validates that when a migration fails in the middle of a batch:
+         * 1. Migrations before the failure are saved (committed)
+         * 2. The failing migration is not saved
+         * 3. Migrations after the failure are not executed
+         * This ensures partial consistency - successfully executed migrations remain applied.
+         * Note: In production, the backup/restore mechanism handles rollback if needed.
+         */
         it('E2E: should maintain database consistency on partial failure', async () => {
             // This verifies that if migration 2/3 fails, only migration 1 is saved
             const script1 = TestUtils.prepareMigration('V202311020036_test.ts');
@@ -439,6 +558,14 @@ describe('MigrationScriptExecutor', () => {
             }
         })
 
+        /**
+         * Integration test for empty migration scenario.
+         * Validates that when no migrations are pending:
+         * 1. The system still creates a backup (defensive programming)
+         * 2. No migrations are executed
+         * 3. Cleanup occurs normally
+         * This ensures the system handles "nothing to do" gracefully without errors.
+         */
         it('E2E: should handle empty migration list gracefully', async () => {
             // having: no migrations to run
             handler.cfg = TestUtils.getConfig(TestUtils.EMPTY_FOLDER);
