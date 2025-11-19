@@ -81,4 +81,67 @@ describe('Utils', () => {
         await expect(Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_invalid-parse-error.ts')))
             .to.be.rejectedWith("V202311062345_invalid-parse-error.ts: Cannot parse migration script: TypeError: clazz is not a constructor");
     })
+
+    it('promiseAll: should handle single rejected promise', async () => {
+        // when: one promise rejects
+        const map = {
+            a: Promise.resolve(1),
+            b: Promise.reject(new Error('Promise B failed')),
+            c: Promise.resolve(3)
+        }
+
+        // then: should reject with the error
+        await expect(Utils.promiseAll(map)).to.be.rejectedWith('Promise B failed');
+    })
+
+    it('promiseAll: should handle multiple rejected promises', async () => {
+        // when: multiple promises reject
+        const map = {
+            a: Promise.reject(new Error('Promise A failed')),
+            b: Promise.reject(new Error('Promise B failed')),
+            c: Promise.resolve(3)
+        }
+
+        // then: should reject with first error (Promise.all behavior)
+        await expect(Utils.promiseAll(map)).to.be.rejected;
+    })
+
+    it('promiseAll: should handle all promises rejected', async () => {
+        // when: all promises reject
+        const map = {
+            a: Promise.reject(new Error('Error A')),
+            b: Promise.reject(new Error('Error B'))
+        }
+
+        // then: should reject
+        await expect(Utils.promiseAll(map)).to.be.rejected;
+    })
+
+    it('promiseAll: should handle empty object', async () => {
+        // when: empty map
+        const map = {}
+
+        // and
+        const res = await Utils.promiseAll(map);
+
+        // then: should return empty object
+        expect(Object.keys(res).length).eq(0, 'Should return empty object');
+    })
+
+    it('promiseAll: should preserve rejection error details', async () => {
+        // when: promise rejects with specific error
+        const customError = new Error('Custom error message');
+        customError.name = 'CustomError';
+        const map = {
+            failing: Promise.reject(customError)
+        }
+
+        // then: should preserve error details
+        try {
+            await Utils.promiseAll(map);
+            expect.fail('Should have thrown');
+        } catch (e: any) {
+            expect(e.message).to.include('Custom error message');
+        }
+    })
 })
