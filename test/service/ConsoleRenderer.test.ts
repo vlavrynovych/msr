@@ -164,4 +164,89 @@ describe('ConsoleRenderer.getDuration', () => {
         cr.drawMigrated(scripts, 5)
         expect(scripts.migrated.length).eq(0, 'Should handle empty list')
     })
+
+    it('getDuration: should handle invalid timestamps', () => {
+        // when: NaN timestamps
+        const res1 = ConsoleRenderer.getDuration({startedAt: NaN, finishedAt: 1000} as IMigrationInfo)
+        expect(res1).to.include('s', 'Should return string with s suffix')
+
+        // when: undefined timestamps
+        const res2 = ConsoleRenderer.getDuration({startedAt: undefined, finishedAt: 1000} as any)
+        expect(res2).to.include('s', 'Should handle undefined startedAt')
+
+        // when: both undefined
+        const res3 = ConsoleRenderer.getDuration({} as IMigrationInfo)
+        expect(res3).to.include('s', 'Should handle missing timestamps')
+    })
+
+    it('getDuration: should handle very large time differences', () => {
+        // when: 1 year difference
+        const oneYear = 365 * 24 * 60 * 60 * 1000
+        const res = ConsoleRenderer.getDuration({
+            startedAt: 0,
+            finishedAt: oneYear
+        } as IMigrationInfo)
+
+        // then: should calculate correctly
+        expect(res).eq('31536000s', 'Should handle 1 year = 31536000 seconds')
+    })
+
+    it('drawMigrated: should handle migration names with special characters', () => {
+        // having: migrations with special chars
+        const list = [
+            {timestamp: 1, name: 'TestTM', finishedAt: Date.now(), username: 'user'} as MigrationScript,
+            {timestamp: 2, name: 'Test<>&"', finishedAt: Date.now(), username: 'user'} as MigrationScript,
+        ]
+        const scripts = {migrated: list, all: list} as IScripts
+        const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+
+        // then: should not throw
+        cr.drawMigrated(scripts)
+    })
+
+    it('drawMigrated: should handle very long migration names', () => {
+        // having: migration with 500 char name
+        const longName = 'V'.repeat(500)
+        const list = [
+            {timestamp: 1, name: longName, finishedAt: Date.now(), username: 'user'} as MigrationScript,
+        ]
+        const scripts = {migrated: list, all: list} as IScripts
+        const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+
+        // then: should not throw
+        cr.drawMigrated(scripts)
+    })
+
+    it('drawMigrated: should handle large arrays efficiently', () => {
+        // having: 1000 migrations
+        const list = Array.from({length: 1000}, (_, i) => ({
+            timestamp: i,
+            name: `Migration${i}`,
+            finishedAt: Date.now(),
+            username: 'user'
+        } as MigrationScript))
+
+        const scripts = {migrated: list, all: list} as IScripts
+        const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+
+        // when: render with display limit
+        const start = Date.now()
+        cr.drawMigrated(scripts, 10)
+        const duration = Date.now() - start
+
+        // then: should be fast
+        expect(duration).to.be.lessThan(100, 'Should render quickly (< 100ms)')
+        expect(scripts.migrated.length).eq(10, 'Should limit to 10')
+    })
+
+    it('drawExecutedTable: should handle migrations with undefined results', () => {
+        const list = [
+            {timestamp: 1, name: 'Test1', result: undefined} as IMigrationInfo,
+            {timestamp: 2, name: 'Test2', result: null} as any,
+        ]
+        const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+
+        // then: should not throw
+        cr.drawExecutedTable(list)
+    })
 })
