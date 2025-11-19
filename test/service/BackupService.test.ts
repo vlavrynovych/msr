@@ -96,4 +96,201 @@ describe('BackupService', () => {
         fn.restore()
         fn2.restore()
     })
+
+    it('backup: should handle write permission error', async () => {
+        // having
+        const cfg = new Config();
+        cfg.backup.timestamp = false;
+        cfg.backup.suffix = `-test-${Date.now()}`;
+        const bs = new BackupService({
+            cfg: cfg,
+            backup: {
+                async backup(): Promise<string> {
+                    return 'data'
+                }
+            }
+        } as IDatabaseMigrationHandler);
+
+        // and: stub writeFileSync to throw permission error
+        const writeStub = sinon.stub(fs, 'writeFileSync')
+            .throws(new Error('EACCES: permission denied'));
+
+        // then
+        await expect(bs.backup()).to.be.rejectedWith('EACCES: permission denied');
+
+        writeStub.restore();
+    })
+
+    it('backup: should handle disk full error', async () => {
+        // having
+        const cfg = new Config();
+        cfg.backup.timestamp = false;
+        cfg.backup.suffix = `-test-${Date.now()}`;
+        const bs = new BackupService({
+            cfg: cfg,
+            backup: {
+                async backup(): Promise<string> {
+                    return 'data'
+                }
+            }
+        } as IDatabaseMigrationHandler);
+
+        // and: stub writeFileSync to throw disk full error
+        const writeStub = sinon.stub(fs, 'writeFileSync')
+            .throws(new Error('ENOSPC: no space left on device'));
+
+        // then
+        await expect(bs.backup()).to.be.rejectedWith('ENOSPC: no space left on device');
+
+        writeStub.restore();
+    })
+
+    it('backup: should handle backup() method failure from handler', async () => {
+        // having
+        const cfg = new Config();
+        const bs = new BackupService({
+            cfg: cfg,
+            backup: {
+                async backup(): Promise<string> {
+                    throw new Error('Database connection failed')
+                }
+            }
+        } as IDatabaseMigrationHandler);
+
+        // then
+        await expect(bs.backup()).to.be.rejectedWith('Database connection failed');
+    })
+
+    it('restore: should handle corrupted backup data', async () => {
+        // having
+        const cfg = new Config();
+        cfg.backup.timestamp = false;
+        cfg.backup.suffix = `-corrupted-${Date.now()}`;
+        let restoredData: string | undefined;
+        const bs = new BackupService({
+            cfg: cfg,
+            backup: {
+                async backup(): Promise<string> {
+                    return 'valid data'
+                },
+                async restore(data: string): Promise<any> {
+                    restoredData = data;
+                    if (data === 'corrupted') {
+                        throw new Error('Failed to parse corrupted backup')
+                    }
+                    return Promise.resolve('restored')
+                }
+            }
+        } as IDatabaseMigrationHandler);
+
+        // and: create backup and then corrupt it
+        await bs.backup();
+        const readStub = sinon.stub(fs, 'readFileSync')
+            .returns('corrupted' as any);
+
+        // then
+        await expect(bs.restore()).to.be.rejectedWith('Failed to parse corrupted backup');
+
+        readStub.restore();
+    })
+
+    it('restore: should handle file read permission error', async () => {
+        // having
+        const cfg = new Config();
+        cfg.backup.timestamp = false;
+        cfg.backup.suffix = `-perm-test-${Date.now()}`;
+        const bs = new BackupService({
+            cfg: cfg,
+            backup: {
+                async backup(): Promise<string> {
+                    return 'data'
+                },
+                async restore(data: string): Promise<any> {
+                    return Promise.resolve('restored')
+                }
+            }
+        } as IDatabaseMigrationHandler);
+
+        // and: create backup
+        await bs.backup();
+
+        // and: stub readFileSync to throw permission error
+        const readStub = sinon.stub(fs, 'readFileSync')
+            .throws(new Error('EACCES: permission denied'));
+
+        // then
+        await expect(bs.restore()).to.be.rejectedWith('EACCES: permission denied');
+
+        readStub.restore();
+    })
+
+    it('deleteBackup: should handle file deletion error', async () => {
+        // having
+        const cfg = new Config();
+        cfg.backup.deleteBackup = true;
+        cfg.backup.timestamp = false;
+        cfg.backup.suffix = `-delete-test-${Date.now()}`;
+        const bs = new BackupService({
+            cfg: cfg,
+            backup: {
+                async backup(): Promise<string> {
+                    return 'data'
+                }
+            }
+        } as IDatabaseMigrationHandler);
+
+        // and: create backup
+        await bs.backup();
+
+        // and: stub rmSync to throw error
+        const rmStub = sinon.stub(fs, 'rmSync')
+            .throws(new Error('EACCES: permission denied'));
+
+        // then: should throw error
+        expect(() => bs.deleteBackup()).to.throw('EACCES: permission denied');
+
+        rmStub.restore();
+    })
+
+    it('deleteBackup: should handle already deleted file', () => {
+        // having
+        const cfg = new Config();
+        cfg.backup.deleteBackup = true;
+        const bs = new BackupService({
+            cfg: cfg,
+            backup: {
+                async backup(): Promise<string> {
+                    return 'data'
+                }
+            }
+        } as IDatabaseMigrationHandler);
+
+        // when: delete without backup
+        bs.deleteBackup();
+
+        // then: should not throw (backupFile is undefined, early return)
+        // No assertion needed, test passes if no exception
+    })
+
+    it('backup: should handle very large backup data', async () => {
+        // having
+        const cfg = new Config();
+        cfg.backup.timestamp = false;
+        cfg.backup.suffix = `-large-${Date.now()}`;
+        const largeData = 'x'.repeat(10 * 1024 * 1024); // 10MB string
+        const bs = new BackupService({
+            cfg: cfg,
+            backup: {
+                async backup(): Promise<string> {
+                    return largeData
+                }
+            }
+        } as IDatabaseMigrationHandler);
+
+        // then: should handle large data without error
+        await bs.backup();
+
+        // cleanup
+        bs.deleteBackup();
+    })
 })
