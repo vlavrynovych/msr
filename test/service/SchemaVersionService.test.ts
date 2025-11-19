@@ -157,4 +157,89 @@ describe('SchemaVersionService:init', () => {
         expect(schemaVersion.createTable).have.not.been.called
         expect(schemaVersion.validateTable).have.not.been.called
     })
+
+    it('init: should handle empty tableName gracefully', async () => {
+        // SchemaVersionService doesn't validate tableName, delegates to underlying service
+        // when: empty string tableName
+        initialized = false;
+        created = true;
+        valid = true;
+
+        await new SchemaVersionService(schemaVersion).init('');
+        expect(schemaVersion.isInitialized).have.been.called.with('');
+    })
+
+    it('init: should handle very long tableName', async () => {
+        // when: 1000 char tableName
+        const longTableName = 'a'.repeat(1000);
+        initialized = false;
+        created = true;
+        valid = true;
+
+        // then: should not throw (delegates to service)
+        await new SchemaVersionService(schemaVersion).init(longTableName);
+        expect(schemaVersion.createTable).have.been.called.with(longTableName);
+    })
+
+    it('init: should handle special characters in tableName', async () => {
+        // when: tableName with special chars
+        initialized = false;
+        created = true;
+        valid = true;
+
+        await new SchemaVersionService(schemaVersion).init('test-table_123');
+        expect(schemaVersion.createTable).have.been.called.with('test-table_123');
+    })
+
+    it('save: should handle very large migration info objects', async () => {
+        // when: large migration info
+        const largeMigration = {
+            timestamp: 1,
+            name: 'test',
+            result: 'x'.repeat(100000), // 100KB result
+            startedAt: Date.now(),
+            finishedAt: Date.now()
+        } as IMigrationInfo;
+
+        // then: should not throw
+        await new SchemaVersionService(schemaVersion).save(largeMigration);
+        expect(schemaVersion.migrations.save).have.been.called.with(largeMigration);
+    })
+
+    it('save: should handle migration info with undefined fields', async () => {
+        // when: migration with missing fields
+        const incompleteMigration = {
+            timestamp: undefined,
+            name: undefined
+        } as any;
+
+        // then: should delegate to service (service handles validation)
+        await new SchemaVersionService(schemaVersion).save(incompleteMigration);
+        expect(schemaVersion.migrations.save).have.been.called;
+    })
+
+    it('getAllMigratedScripts: should handle empty results', async () => {
+        // when: no migrations
+        scripts = [];
+
+        // then
+        const res = await new SchemaVersionService(schemaVersion).getAllMigratedScripts();
+        expect(res.length).eq(0, 'Should return empty array');
+    })
+
+    it('getAllMigratedScripts: should handle large number of scripts', async () => {
+        // when: 10000 migrations
+        scripts = Array.from({length: 10000}, (_, i) => ({
+            timestamp: i,
+            name: `Migration${i}`
+        } as MigrationScript));
+
+        // then
+        const start = Date.now();
+        const res = await new SchemaVersionService(schemaVersion).getAllMigratedScripts();
+        const duration = Date.now() - start;
+
+        expect(res.length).eq(10000, 'Should return all scripts');
+        expect(duration).to.be.lessThan(100, 'Should be fast (< 100ms)');
+    })
 })
