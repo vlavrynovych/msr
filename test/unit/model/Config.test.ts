@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { Config, BackupConfig } from '../../src/index';
+import { Config, BackupConfig } from '../../../src/index';
 
 describe('Config', () => {
 

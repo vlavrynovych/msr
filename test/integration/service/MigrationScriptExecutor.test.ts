@@ -10,8 +10,8 @@ import {
     MigrationScript,
     MigrationScriptExecutor,
     IBackup, ISchemaVersion, IMigrationScript
-} from "../../src";
-import {TestUtils} from "../helpers/TestUtils";
+} from "../../../src";
+import {TestUtils} from "../../helpers/TestUtils";
 
 const processExit = sinon.stub(process, 'exit');
 

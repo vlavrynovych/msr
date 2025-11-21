@@ -2,5 +2,7 @@
   "extensions": ["ts"],
   "package": "./package.json",
   "spec": ["test/**/*.test.ts"],
-  "require": ["ts-node/register", "test/setup.ts"]
+  "require": ["ts-node/register", "test/setup.ts"],
+  "color": true,
+  "exit": true
 }
