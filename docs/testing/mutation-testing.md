@@ -1,6 +1,23 @@
+---
+layout: default
+title: Mutation Testing
+parent: Testing
+nav_order: 1
+---
+
 # Mutation Testing Guide
+{: .no_toc }
 
 This project uses [Stryker Mutator](https://stryker-mutator.io/) for mutation testing to verify the quality of our test suite.
+{: .fs-6 .fw-300 }
+
+## Table of contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
+---
 
 ## What is Mutation Testing?
 
