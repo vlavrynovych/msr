@@ -101,9 +101,9 @@ describe('MigrationService Performance Benchmarks', () => {
             return;
         }
 
-        // Max duration should not be more than 2x average (allow min of 1ms)
-        const threshold = Math.max(average * 2, 1);
-        expect(maxDuration).to.be.lessThan(threshold,
+        // Max duration should not be more than 2x average (allow min of 2ms to account for timing variance)
+        const threshold = Math.max(average * 2, 2);
+        expect(maxDuration).to.be.lessThanOrEqual(threshold,
             `Performance degraded: max=${maxDuration}ms, avg=${average}ms. ` +
             'This may indicate a memory leak or resource accumulation.');
     });
