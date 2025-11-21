@@ -7,7 +7,7 @@ import {
     IMigrationInfo,
     ISchemaVersion,
     IMigrationScript
-} from "../../src";
+} from "../../../src";
 
 describe('SchemaVersionService:init', () => {
 

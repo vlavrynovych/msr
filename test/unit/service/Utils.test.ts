@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import {IMigrationInfo, IDatabaseMigrationHandler, Utils} from "../../src";
-import {TestUtils} from "../helpers/TestUtils";
+import {IMigrationInfo, IDatabaseMigrationHandler, Utils} from "../../../src";
+import {TestUtils} from "../../helpers/TestUtils";
 
 describe('Utils', () => {
 

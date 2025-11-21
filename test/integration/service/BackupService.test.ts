@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import fs from "fs";
 import sinon from 'sinon';
-import {BackupConfig, BackupService, Config, IDatabaseMigrationHandler} from "../../src";
+import {BackupConfig, BackupService, Config, IDatabaseMigrationHandler} from "../../../src";
 
 describe('BackupService.prepareFilePath', () => {
 

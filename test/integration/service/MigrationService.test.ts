@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import {MigrationScript, MigrationService} from "../../src";
-import {TestUtils} from "../helpers/TestUtils";
+import {MigrationScript, MigrationService} from "../../../src";
+import {TestUtils} from "../../helpers/TestUtils";
 
 describe('MigrationService', () => {
 

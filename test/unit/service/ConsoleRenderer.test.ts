@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import {Config, ConsoleRenderer, IMigrationInfo, IDatabaseMigrationHandler, IScripts, MigrationScript} from "../../src";
+import {Config, ConsoleRenderer, IMigrationInfo, IDatabaseMigrationHandler, IScripts, MigrationScript} from "../../../src";
 
 describe('ConsoleRenderer.getDuration', () => {
 
