@@ -63,7 +63,7 @@ describe('SchemaVersionService:init', () => {
      * init() creates it and validates it successfully. This is the first-run
      * scenario when the migration system is used for the first time.
      */
-    it('Need to init table - valid', async () => {
+    it('should initialize table when it does not exist and is valid', async () => {
         // Simulate table doesn't exist yet
         initialized = false
         created = true
@@ -83,7 +83,7 @@ describe('SchemaVersionService:init', () => {
      * Validates error handling when the table is created but validation fails.
      * This could indicate database issues or incorrect table schema.
      */
-    it('Need to init table - invalid', async () => {
+    it('should fail initialization when created table is invalid', async () => {
         // Simulate table creation succeeds but validation fails
         initialized = false
         created = true
@@ -111,7 +111,7 @@ describe('SchemaVersionService:init', () => {
      * init() skips the creation step and only validates. This is the normal case
      * after the first run of the migration system.
      */
-    it('No need to init table - valid', async () => {
+    it('should skip initialization when table exists and is valid', async () => {
         // Simulate table already exists
         initialized = true
         created = false
@@ -132,7 +132,7 @@ describe('SchemaVersionService:init', () => {
      * been corrupted or modified incorrectly. This prevents running migrations
      * against a broken tracking table.
      */
-    it('No need to init table - invalid', async () => {
+    it('should fail validation when existing table is invalid', async () => {
         // Simulate existing table that's invalid
         initialized = true
         created = false
@@ -153,7 +153,7 @@ describe('SchemaVersionService:init', () => {
      * version table. This could happen due to permission issues or database
      * constraints. The error should be clear and validation should not run.
      */
-    it('Cannot create table', async () => {
+    it('should throw error when table creation fails', async () => {
         // Simulate table creation failure
         initialized = false
         created = false
@@ -181,7 +181,7 @@ describe('SchemaVersionService:init', () => {
      * without calling any other schema version methods. This is used after each
      * successful migration to record it in the database.
      */
-    it('Check register', async () => {
+    it('should register migration info successfully', async () => {
         // Create a migration info object to save
         const m = {} as IMigrationInfo;
         await new SchemaVersionService(schemaVersion).save({} as IMigrationInfo);
@@ -200,7 +200,7 @@ describe('SchemaVersionService:init', () => {
      * already-executed migrations from the database without calling any other
      * schema version methods. This is used to determine which migrations to skip.
      */
-    it('Check getAllMigratedScripts', async () => {
+    it('should retrieve all migrated scripts successfully', async () => {
         // Retrieve all migrated scripts from the database
         const res = await new SchemaVersionService(schemaVersion).getAllMigratedScripts();
 

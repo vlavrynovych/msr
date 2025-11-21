@@ -11,7 +11,7 @@ import {
     MigrationScriptExecutor,
     IBackup, ISchemaVersion, IMigrationScript
 } from "../../src";
-import {TestUtils} from "../TestUtils";
+import {TestUtils} from "../helpers/TestUtils";
 
 const processExit = sinon.stub(process, 'exit');
 
@@ -96,7 +96,7 @@ describe('MigrationScriptExecutor', () => {
      * 5. Executing migrations and saving results
      * 6. Cleaning up backup
      */
-    it('golden path', async () => {
+    it('should execute migration workflow successfully', async () => {
         // Execute the full migration workflow
         await executor.migrate()
 
@@ -128,7 +128,7 @@ describe('MigrationScriptExecutor', () => {
      * migrations have already been executed. Backup is still created as
      * a safety measure, but no migrations run.
      */
-    it('no new scripts', async () => {
+    it('should handle case when no new scripts exist', async () => {
         // Configure to use empty migrations directory
         handler.cfg = TestUtils.getConfig(TestUtils.EMPTY_FOLDER)
 
@@ -166,7 +166,7 @@ describe('MigrationScriptExecutor', () => {
      * 4. Backup is cleaned up
      * This ensures the database returns to its pre-migration state on failure.
      */
-    it('throw an error - restore', async () => {
+    it('should restore backup when migration throws error', async () => {
         // Simulate schema validation failure
         valid = false
 
@@ -201,7 +201,7 @@ describe('MigrationScriptExecutor', () => {
      * already-executed migrations against all available migrations. Only
      * migrations with timestamps newer than the last executed should be returned.
      */
-    it('getTodo: with migrated scripts', async () => {
+    it('should filter out migrated scripts from todo list', async () => {
         // Define already-executed migrations (timestamps 1 and 2)
         const migrated = [
             {timestamp: 1} as MigrationScript,
@@ -229,7 +229,7 @@ describe('MigrationScriptExecutor', () => {
      * migrations and respects the displayLimit parameter for showing a
      * limited number of most recent migrations.
      */
-    it('list', async () => {
+    it('should list all migrations with status', async () => {
         // Setup test data with 3 executed migrations
         scripts = [
             {timestamp: 1, name: 'n1', username: 'v1'} as MigrationScript,

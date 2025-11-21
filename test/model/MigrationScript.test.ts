@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import {IMigrationInfo, IDatabaseMigrationHandler} from "../../src";
-import {TestUtils} from "../TestUtils";
+import {TestUtils} from "../helpers/TestUtils";
 
 describe('MigrationScript', () => {
     /**
@@ -10,7 +10,7 @@ describe('MigrationScript', () => {
      * be undefined before init() and contain a runnable script with up() method after.
      * This lazy loading pattern is used to avoid loading all migrations into memory.
      */
-    it('init: simple run', async () => {
+    it('should load script content when init is called', async () => {
         // Create a MigrationScript object (script content not yet loaded)
         const ms = TestUtils.prepareMigration('V202311062345_valid.ts');
         expect(ms.script).is.undefined

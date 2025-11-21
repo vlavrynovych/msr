@@ -11,7 +11,7 @@ describe('BackupService.prepareFilePath', () => {
      * defaulting to '/backups/' but respecting custom folder configuration.
      * This ensures backups are saved to the expected location.
      */
-    it('check folder', () => {
+    it('should use correct folder configuration', () => {
         // Test with default configuration
         const cfg:BackupConfig = new BackupConfig();
         let res:string = BackupService.prepareFilePath(cfg);
@@ -32,7 +32,7 @@ describe('BackupService.prepareFilePath', () => {
      * Validates that the backup file path ends with the configured extension.
      * Different backup implementations may use different extensions (.bkp, .sql, .json, etc.).
      */
-    it('check extension', () => {
+    it('should use correct file extension', () => {
         // Configure custom extension
         const cfg:BackupConfig = new BackupConfig();
         const ext:string = 'my-bkp-ext';
@@ -51,7 +51,7 @@ describe('BackupService.prepareFilePath', () => {
      * consistent (backup.bkp) rather than time-based. This allows for
      * single-backup scenarios where old backups are overwritten.
      */
-    it('check if timestamp is turned off', () => {
+    it('should omit timestamp when timestamp is disabled', () => {
         // Configure to disable timestamps
         const cfg:BackupConfig = new BackupConfig();
         cfg.timestamp = false
@@ -72,7 +72,7 @@ describe('BackupService', () => {
      * calling deleteBackup() does nothing (no-op). This allows users
      * to keep backups around for manual review or rollback.
      */
-    it('deleteBackup: check when turned off', () => {
+    it('should not delete backup when deleteBackup is disabled', () => {
         // Configure to disable backup deletion
         const cfg = new Config();
         cfg.backup.deleteBackup = false;
@@ -88,7 +88,7 @@ describe('BackupService', () => {
      * file has been created yet. This prevents undefined behavior when
      * trying to restore from nothing.
      */
-    it('restore: check when no file', async () => {
+    it('should fail when restoring with no backup file', async () => {
         // Create backup service without creating a backup file
         const cfg = new Config();
         cfg.backup.deleteBackup = false;
@@ -104,7 +104,7 @@ describe('BackupService', () => {
      * it is renamed (moved aside) before creating the new backup. This
      * prevents data loss from overwriting previous backups.
      */
-    it('backup: file overwrite', async () => {
+    it('should handle file overwrite when creating backup', async () => {
         // Configure backup with fixed filename (no timestamp)
         const cfg = new Config();
         cfg.backup.deleteBackup = false;
