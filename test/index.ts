@@ -1,2 +1,2 @@
-export * from './TestConfig'
-export * from './TestUtils'
+export * from './helpers/TestConfig'
+export * from './helpers/TestUtils'

@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import {MigrationScript, MigrationService} from "../../src";
-import {TestUtils} from "../TestUtils";
+import {TestUtils} from "../helpers/TestUtils";
 
 describe('MigrationService', () => {
 
@@ -10,7 +10,7 @@ describe('MigrationService', () => {
      * can't be parsed (exec returns null). This prevents silent failures when
      * developers use incorrect naming conventions like missing timestamp.
      */
-    it('readMigrationScripts: wrong file name format', async () => {
+    it('should throw error when file name format is wrong', async () => {
         // Configure to accept filenames but fail to extract timestamp
         const cfg =TestUtils.getConfig()
         cfg.filePattern.test = (value) => {return true}
@@ -34,7 +34,7 @@ describe('MigrationService', () => {
      * parsing their metadata (timestamp, name, filepath). The script content
      * should NOT be loaded yet (lazy loading pattern).
      */
-    it('readMigrationScripts: success', async () => {
+    it('should read valid migration scripts successfully', async () => {
         // Read migration scripts from test directory
         const ms = new MigrationService()
         const res:MigrationScript[] = await ms.readMigrationScripts(TestUtils.getConfig());
@@ -59,7 +59,7 @@ describe('MigrationService', () => {
      * returns an empty array rather than throwing an error. This is the
      * expected behavior for projects with no migrations yet.
      */
-    it('readMigrationScripts: empty folder', async () => {
+    it('should return empty array for empty folder', async () => {
         // Read from empty test directory
         const cfg = TestUtils.getConfig(TestUtils.EMPTY_FOLDER)
         const res:MigrationScript[] = await new MigrationService().readMigrationScripts(cfg)
@@ -75,7 +75,7 @@ describe('MigrationService', () => {
      * directory fails with a clear filesystem error. Helps developers catch
      * misconfigured migration paths.
      */
-    it('readMigrationScripts: folder not found', async () => {
+    it('should throw error when folder is not found', async () => {
         // Attempt to read from non-existent directory
         const cfg = TestUtils.getConfig('non-existent-folder')
         const ms = new MigrationService()

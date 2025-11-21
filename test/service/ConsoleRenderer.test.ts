@@ -9,7 +9,7 @@ describe('ConsoleRenderer.getDuration', () => {
      * with correct formatting. Tests a full day (86400 seconds) to ensure
      * large durations are handled properly.
      */
-    it('check valid numbers', () => {
+    it('should calculate duration correctly for valid timestamps', () => {
         // Calculate duration for 1 full day (01/01/2020 to 01/02/2020)
         const res = ConsoleRenderer.getDuration({
             startedAt: 1577829600000,   // 01/01/2020
@@ -26,7 +26,7 @@ describe('ConsoleRenderer.getDuration', () => {
      * for sub-second durations. Important for showing accurate migration times
      * for fast migrations.
      */
-    it('check precision', () => {
+    it('should maintain precision for fractional seconds', () => {
         // Test 0.8 seconds (800ms)
         const res = ConsoleRenderer.getDuration({startedAt: 200, finishedAt: 1000} as IMigrationInfo);
         expect(res).eq("0.8s", '1s - 0.2s = 0.8s')
@@ -46,7 +46,7 @@ describe('ConsoleRenderer.getDuration', () => {
      * to avoid displaying noise like "0.9998s" instead of "1s". This keeps
      * the console output clean and readable.
      */
-    it('check rounding', () => {
+    it('should round insignificant decimals', () => {
         // Calculate duration with negligible difference (0.0002s)
         const res = ConsoleRenderer.getDuration({startedAt: 0.2, finishedAt: 1000} as IMigrationInfo);
 
@@ -60,7 +60,7 @@ describe('ConsoleRenderer.getDuration', () => {
      * shouldn't happen in normal operation, the formatter should handle it
      * gracefully by showing a negative duration.
      */
-    it('check for negative number', () => {
+    it('should handle negative durations', () => {
         // Calculate duration where finish time is before start time
         const res = ConsoleRenderer.getDuration({startedAt: 4000, finishedAt: 1000} as IMigrationInfo);
 
@@ -73,7 +73,7 @@ describe('ConsoleRenderer.getDuration', () => {
      * Edge case test for instantaneous migrations (same start and finish time).
      * Should display "0s" rather than empty string or undefined.
      */
-    it('check if zero', () => {
+    it('should handle zero duration', () => {
         // Calculate duration with identical start and finish times
         const res = ConsoleRenderer.getDuration({startedAt: 0, finishedAt: 0} as IMigrationInfo);
 
@@ -108,7 +108,7 @@ describe('ConsoleRenderer.getDuration', () => {
      * without throwing errors. Tests drawExecutedTable, drawTodoTable,
      * drawIgnoredTable, and drawMigrated with various input combinations.
      */
-    it('render tables', () => {
+    it('should render all table types without errors', () => {
         // Prepare test data: 2 migrations and 3 migrations
         const list = [
             {timestamp: 1, name: '1'} as MigrationScript,
@@ -143,7 +143,7 @@ describe('ConsoleRenderer.getDuration', () => {
      * Validates that the displayLimit parameter controls how many migrations
      * are shown in the console output. Tests with limits of 2 and 0 (all).
      */
-    it('render tables with displayLimit', () => {
+    it('should respect displayLimit parameter when rendering', () => {
         // Prepare 3 migrations
         const list = [
             {timestamp: 1, name: '1'} as MigrationScript,
