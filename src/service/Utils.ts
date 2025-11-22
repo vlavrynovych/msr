@@ -1,5 +1,6 @@
 import {MigrationScript} from "../model";
-import {IRunnableScript} from "../interface";
+import {IRunnableScript, ILogger} from "../interface";
+import {ConsoleLogger} from "../logger";
 
 /**
  * Utility functions for the migration system.
@@ -57,6 +58,7 @@ export class Utils {
      * - Not export multiple executable classes
      *
      * @param script - MigrationScript object containing the filepath to load
+     * @param logger - Logger instance for output (defaults to ConsoleLogger)
      *
      * @returns Instantiated migration script object with `up()` method
      *
@@ -76,7 +78,7 @@ export class Utils {
      * // Now can call: await runnable.up(db, info, handler)
      * ```
      */
-    public static async parseRunnable(script:MigrationScript):Promise<IRunnableScript> | never {
+    public static async parseRunnable(script:MigrationScript, logger: ILogger = new ConsoleLogger()):Promise<IRunnableScript> | never {
         const exports = await import(script.filepath);
         const runnable:IRunnableScript[] = [];
         const errorPrefix:string = `${script.name}: Cannot parse migration script`
@@ -89,10 +91,10 @@ export class Utils {
                 if(hasUpFunction) {
                     runnable.push(instance as IRunnableScript)
                 } else {
-                    console.warn(`${errorPrefix}: the 'up()' function was not found`)
+                    logger.warn(`${errorPrefix}: the 'up()' function was not found`)
                 }
             } catch (e) {
-                console.error(e);
+                logger.error(e as string);
                 throw new Error(`${errorPrefix}: ${e}`)
             }
         }

@@ -3,17 +3,21 @@ import figlet from "figlet";
 import {AsciiTable3, AlignmentEnum} from 'ascii-table3';
 import {version} from '../../package.json'
 
-import {IMigrationInfo, IDatabaseMigrationHandler, IScripts, MigrationScript} from "../index";
+import {IMigrationInfo, IDatabaseMigrationHandler, IScripts, MigrationScript, ILogger} from "../index";
 import _ from "lodash";
+import {ConsoleLogger} from "../logger";
 
 export class ConsoleRenderer {
-    constructor(private handler: IDatabaseMigrationHandler) {}
+    constructor(
+        private handler: IDatabaseMigrationHandler,
+        private logger: ILogger = new ConsoleLogger()
+    ) {}
 
     public drawFiglet() {
         let text = figlet.textSync("Migration Script Runner");
         text = text.replace('|_|                                     ',
             `|_| MSR v.${version}: ${this.handler.getName()}`);
-        console.log(text);
+        this.logger.log(text);
     }
 
     public drawMigrated(scripts:IScripts, number = 0) {
@@ -38,7 +42,7 @@ export class ConsoleRenderer {
             const found = (scripts.all || []).find(s => s.timestamp === m.timestamp) ? 'Y' : 'N';
             table.addRow(m.timestamp, name, `${date} (${ago})`, ConsoleRenderer.getDuration(m), m.username, found)
         });
-        console.log(table.toString());
+        this.logger.log(table.toString());
     }
 
     public drawTodoTable(scripts:MigrationScript[]) {
@@ -47,7 +51,7 @@ export class ConsoleRenderer {
         const table = new AsciiTable3('TODO');
         table.setHeading('Timestamp', 'Name', 'Path');
         scripts.forEach(m => table.addRow(m.timestamp, m.name, m.filepath));
-        console.log(table.toString());
+        this.logger.log(table.toString());
     }
 
     public drawIgnoredTable(scripts:MigrationScript[]) {
@@ -56,7 +60,7 @@ export class ConsoleRenderer {
         const table = new AsciiTable3('Ignored Scripts');
         table.setHeading('Timestamp', 'Name', 'Path');
         scripts.forEach(m => table.addRow(m.timestamp, m.name, m.filepath));
-        console.warn(table.toString());
+        this.logger.warn(table.toString());
     }
 
     public drawExecutedTable(scripts: IMigrationInfo[]) {
@@ -65,7 +69,7 @@ export class ConsoleRenderer {
         const table = new AsciiTable3('Executed');
         table.setHeading('Timestamp', 'Name', 'Duration', 'Result');
         scripts.forEach(m => table.addRow(m.timestamp, m.name, ConsoleRenderer.getDuration(m), m.result));
-        console.log(table.toString());
+        this.logger.log(table.toString());
     }
 
     public static getDuration(m:IMigrationInfo) {

@@ -12,8 +12,10 @@ import {
     IScripts,
     SchemaVersionService,
     Utils,
-    IMigrationResult
+    IMigrationResult,
+    ILogger
 } from "../index";
+import {ConsoleLogger} from "../logger";
 
 /**
  * Main executor class for running database migrations.
@@ -61,6 +63,7 @@ export class MigrationScriptExecutor {
      * migration discovery) and displays the application banner.
      *
      * @param handler - Database migration handler implementing database-specific operations
+     * @param logger - Logger instance for output (defaults to ConsoleLogger)
      *
      * @example
      * ```typescript
@@ -68,11 +71,14 @@ export class MigrationScriptExecutor {
      * const executor = new MigrationScriptExecutor(handler);
      * ```
      */
-    constructor(private handler:IDatabaseMigrationHandler) {
-        this.backupService = new BackupService(handler);
+    constructor(
+        private handler:IDatabaseMigrationHandler,
+        private logger: ILogger = new ConsoleLogger()
+    ) {
+        this.backupService = new BackupService(handler, logger);
         this.schemaVersionService = new SchemaVersionService(handler.schemaVersion);
-        this.consoleRenderer = new ConsoleRenderer(handler);
-        this.migrationService = new MigrationService();
+        this.consoleRenderer = new ConsoleRenderer(handler, logger);
+        this.migrationService = new MigrationService(logger);
 
         this.consoleRenderer.drawFiglet();
     }
@@ -139,7 +145,7 @@ export class MigrationScriptExecutor {
             await Promise.all(scripts.todo.map(s => s.init()))
 
             if (!scripts.todo.length) {
-                console.info('Nothing to do');
+                this.logger.info('Nothing to do');
                 this.backupService.deleteBackup();
                 return {
                     success: true,
@@ -149,11 +155,11 @@ export class MigrationScriptExecutor {
                 };
             }
 
-            console.info('Processing...');
+            this.logger.info('Processing...');
             this.consoleRenderer.drawTodoTable(scripts.todo);
             scripts.executed = await this.execute(scripts.todo);
             this.consoleRenderer.drawExecutedTable(scripts.executed);
-            console.info('Migration finished successfully!');
+            this.logger.info('Migration finished successfully!');
             this.backupService.deleteBackup();
 
             return {
@@ -163,7 +169,7 @@ export class MigrationScriptExecutor {
                 ignored
             };
         } catch (err) {
-            console.error(err)
+            this.logger.error(err as string)
             errors.push(err as Error);
             await this.backupService.restore();
             this.backupService.deleteBackup();
@@ -311,7 +317,7 @@ export class MigrationScriptExecutor {
      * @private
      */
     async task(script:MigrationScript) {
-        console.log(`${script.name}: processing...`);
+        this.logger.log(`${script.name}: processing...`);
 
         script.startedAt = Date.now()
         script.result = await script.script.up(this.handler.db, script, this.handler);

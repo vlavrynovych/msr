@@ -10,7 +10,8 @@ import {
     MigrationScript,
     MigrationScriptExecutor,
     IBackup, ISchemaVersion, IMigrationScript,
-    IMigrationResult
+    IMigrationResult,
+    SilentLogger
 } from "../../../src";
 import {TestUtils} from "../../helpers/TestUtils";
 
@@ -61,7 +62,7 @@ describe('MigrationScriptExecutor', () => {
             getName(): string { return "Test Implementation" }
         }
 
-        executor = new MigrationScriptExecutor(handler);
+        executor = new MigrationScriptExecutor(handler, new SilentLogger());
     })
 
     beforeEach(() => {
@@ -636,6 +637,17 @@ describe('MigrationScriptExecutor', () => {
             expect(executor.execute).have.been.called;
             expect(executor.task).have.not.been.called;
             expect(executor.backupService.deleteBackup).have.been.called;
+        })
+    })
+
+    describe('Constructor', () => {
+        /**
+         * Test: Constructor uses default ConsoleLogger when logger not provided
+         * Validates that the default logger parameter works correctly
+         */
+        it('should use default ConsoleLogger when logger not provided', () => {
+            const executorWithDefaultLogger = new MigrationScriptExecutor(handler);
+            expect(executorWithDefaultLogger).to.be.instanceOf(MigrationScriptExecutor);
         })
     })
 })

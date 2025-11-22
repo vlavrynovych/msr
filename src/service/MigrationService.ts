@@ -1,8 +1,9 @@
 import fs from "fs";
 import {parseInt} from "lodash";
 
-import {IMigrationService} from "../interface";
+import {IMigrationService, ILogger} from "../interface";
 import {Config, MigrationScript} from "../model";
+import {ConsoleLogger} from "../logger";
 
 /**
  * Service for discovering and loading migration script files from the filesystem.
@@ -21,6 +22,15 @@ import {Config, MigrationScript} from "../model";
  * ```
  */
 export class MigrationService implements IMigrationService {
+
+    /**
+     * Creates a new MigrationService.
+     *
+     * @param logger - Logger instance for output (defaults to ConsoleLogger)
+     */
+    public constructor(
+        private logger: ILogger = new ConsoleLogger()
+    ) {}
 
     /**
      * Scan the migrations directory and load all valid migration scripts.
@@ -57,7 +67,7 @@ export class MigrationService implements IMigrationService {
             .filter(f => !f.startsWith('.')) // ignores hidden files
 
         if(!files.length) {
-            console.warn(`Migration scripts folder is empty. Please check your configuration.\r\n${folder}`)
+            this.logger.warn(`Migration scripts folder is empty. Please check your configuration.\r\n${folder}`)
         }
         return files
             .filter(name => pattern.test(name))

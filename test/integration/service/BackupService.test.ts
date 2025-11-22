@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import fs from "fs";
 import sinon from 'sinon';
-import {BackupConfig, BackupService, Config, IDatabaseMigrationHandler} from "../../../src";
+import {BackupConfig, BackupService, Config, IDatabaseMigrationHandler, SilentLogger} from "../../../src";
 
 describe('BackupService', () => {
 
@@ -125,7 +125,7 @@ describe('BackupService', () => {
                         return 'data'
                     }
                 }
-            } as IDatabaseMigrationHandler);
+            } as IDatabaseMigrationHandler, new SilentLogger());
 
             // Stub filesystem to simulate existing file
             const fn = sinon.stub(fs, 'existsSync')
@@ -158,7 +158,7 @@ describe('BackupService', () => {
                         return 'data'
                     }
                 }
-            } as IDatabaseMigrationHandler);
+            } as IDatabaseMigrationHandler, new SilentLogger());
 
             // Stub filesystem to simulate permission error
             const writeStub = sinon.stub(fs, 'writeFileSync')
@@ -188,7 +188,7 @@ describe('BackupService', () => {
                         return 'data'
                     }
                 }
-            } as IDatabaseMigrationHandler);
+            } as IDatabaseMigrationHandler, new SilentLogger());
 
             // Stub filesystem to simulate disk full error
             const writeStub = sinon.stub(fs, 'writeFileSync')
@@ -452,7 +452,7 @@ describe('BackupService', () => {
                         return 'data'
                     }
                 }
-            } as IDatabaseMigrationHandler);
+            } as IDatabaseMigrationHandler, new SilentLogger());
 
             // Create backup successfully
             await bs.backup();
@@ -484,7 +484,7 @@ describe('BackupService', () => {
                         return 'data'
                     }
                 }
-            } as IDatabaseMigrationHandler);
+            } as IDatabaseMigrationHandler, new SilentLogger());
 
             // Call deleteBackup without creating a backup first
             bs.deleteBackup();

@@ -2,7 +2,8 @@ import fs from "fs";
 import moment from "moment";
 
 import {BackupConfig} from "../model";
-import {IBackupService, IDatabaseMigrationHandler} from "../interface";
+import {IBackupService, IDatabaseMigrationHandler, ILogger} from "../interface";
+import {ConsoleLogger} from "../logger";
 
 /**
  * Service for creating, restoring, and managing database backup files.
@@ -31,8 +32,12 @@ export class BackupService implements IBackupService {
      * Creates a new BackupService.
      *
      * @param handler - Database migration handler with backup configuration
+     * @param logger - Logger instance for output (defaults to ConsoleLogger)
      */
-    public constructor(private handler: IDatabaseMigrationHandler) {}
+    public constructor(
+        private handler: IDatabaseMigrationHandler,
+        private logger: ILogger = new ConsoleLogger()
+    ) {}
 
     /**
      * Create a database backup file.
@@ -48,9 +53,9 @@ export class BackupService implements IBackupService {
      * ```
      */
     public async backup(): Promise<void> {
-        console.info('Preparing backup...')
+        this.logger.info('Preparing backup...')
         await this._backup();
-        console.info('Backup prepared successfully:\r\n', this.backupFile);
+        this.logger.info('Backup prepared successfully:\r\n', this.backupFile);
     }
 
     /**
@@ -72,9 +77,9 @@ export class BackupService implements IBackupService {
      * ```
      */
     public async restore(): Promise<void> {
-        console.info('Restoring from backup...');
+        this.logger.info('Restoring from backup...');
         await this._restore()
-        console.info('Restored to the previous state:\r\n', this.backupFile);
+        this.logger.info('Restored to the previous state:\r\n', this.backupFile);
     }
 
     /**
@@ -91,10 +96,10 @@ export class BackupService implements IBackupService {
      */
     public deleteBackup() {
         if(!this.handler.cfg.backup.deleteBackup || !this.backupFile) return;
-        console.log("Deleting backup file...")
+        this.logger.log("Deleting backup file...")
         fs.rmSync(this.backupFile);
         this.backupFile = undefined;
-        console.log("Backup file successfully deleted")
+        this.logger.log("Backup file successfully deleted")
     }
 
     private async _restore(): Promise<void> {
