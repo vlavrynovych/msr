@@ -1,7 +1,7 @@
 {
-  "name": "migration-script-runner",
-  "version": "0.1.11",
-  "description": "Migration Script Runner",
+  "name": "@msr/core",
+  "version": "0.2.0",
+  "description": "Migration Script Runner - Core Framework",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -84,10 +84,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/vlavrynovych/msr.git"
+    "url": "https://github.com/migration-script-runner/msr-core.git"
   },
   "bugs": {
-    "url": "https://github.com/vlavrynovych/msr/issues",
+    "url": "https://github.com/migration-script-runner/msr-core/issues",
     "email": "volodyalavrynovych@gmail.com"
   }
 }

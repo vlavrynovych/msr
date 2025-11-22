@@ -4,8 +4,8 @@
 # Site settings
 title: Migration Script Runner
 description: Abstract database migration script runner for TypeScript/JavaScript
-baseurl: "/msr"
-url: "https://vlavrynovych.github.io"
+baseurl: "/msr-core"
+url: "https://migration-script-runner.github.io"
 
 # Theme
 remote_theme: just-the-docs/just-the-docs
@@ -19,9 +19,9 @@ color_scheme: nil
 # Aux links for the upper right navigation
 aux_links:
   "MSR on GitHub":
-    - "//github.com/vlavrynovych/msr"
+    - "//github.com/migration-script-runner/msr-core"
   "MSR on npm":
-    - "//npmjs.org/package/migration-script-runner"
+    - "//npmjs.org/package/@msr/core"
 
 # Makes Aux links open in a new tab
 aux_links_new_tab: true
@@ -31,7 +31,7 @@ back_to_top: true
 back_to_top_text: "Back to top"
 
 # Footer content
-footer_content: "Copyright &copy; 2023-2025 Volodymyr Lavrynovych. Distributed under the <a href=\"https://github.com/vlavrynovych/msr/blob/master/LICENSE\">MIT License</a>."
+footer_content: "Copyright &copy; 2023-2025 Volodymyr Lavrynovych. Distributed under the <a href=\"https://github.com/migration-script-runner/msr-core/blob/master/LICENSE\">MIT License</a>."
 
 # Footer last edited timestamp
 last_edit_timestamp: true
