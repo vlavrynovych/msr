@@ -31,6 +31,29 @@ If tests don't catch a mutation, it indicates:
 - Weak test assertions
 - Tests that don't actually verify behavior
 
+## When to Run Mutation Tests
+
+{: .note }
+> **Mutation testing is NOT part of the regular CI pipeline** (`npm run test:report`) due to its long execution time (30-60 minutes).
+
+### Recommended Usage
+
+Run mutation tests in these scenarios:
+
+- **After major test suite changes**: When you've added significant new tests
+- **Before releases**: As part of the release quality checklist
+- **Weekly/Monthly schedule**: Set up a scheduled CI job to track quality over time
+- **When investigating test quality**: If you suspect tests are passing without properly validating behavior
+- **During test refactoring**: To ensure refactored tests still catch bugs effectively
+
+### Not Recommended
+
+- ❌ On every commit or pull request (too slow)
+- ❌ During active development cycles (use incremental mode instead)
+- ❌ In parallel with other tests (resource intensive)
+
+---
+
 ## Running Mutation Tests
 
 ### Full Mutation Test Run
@@ -41,6 +64,12 @@ If tests don't catch a mutation, it indicates:
 npm run test:mutation
 ```
 
+**Use this for:**
+- Release quality checks
+- Scheduled CI jobs
+- Initial mutation test runs
+- Comprehensive quality assessment
+
 ### Incremental Mutation Testing
 
 Only tests changes since the last run (much faster for iterative development):
@@ -48,6 +77,12 @@ Only tests changes since the last run (much faster for iterative development):
 ```bash
 npm run test:mutation:incremental
 ```
+
+**Use this for:**
+- Local development and testing
+- Iterating on new test cases
+- Quick validation after code changes
+- Daily development workflow
 
 ### View Results
 

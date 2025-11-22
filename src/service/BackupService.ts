@@ -4,24 +4,91 @@ import moment from "moment";
 import {BackupConfig} from "../model";
 import {IBackupService, IDatabaseMigrationHandler} from "../interface";
 
+/**
+ * Service for creating, restoring, and managing database backup files.
+ *
+ * Handles the entire backup lifecycle:
+ * - Creating backups before migrations run
+ * - Restoring database state if migrations fail
+ * - Cleaning up backup files after successful migrations
+ *
+ * @example
+ * ```typescript
+ * const service = new BackupService(handler);
+ *
+ * await service.backup();        // Create backup before migration
+ * // ... run migrations ...
+ * await service.restore();       // Restore if migration fails
+ * service.deleteBackup();        // Clean up if migration succeeds
+ * ```
+ */
 export class BackupService implements IBackupService {
 
+    /** Path to the currently active backup file */
     private backupFile: string | undefined;
 
+    /**
+     * Creates a new BackupService.
+     *
+     * @param handler - Database migration handler with backup configuration
+     */
     public constructor(private handler: IDatabaseMigrationHandler) {}
 
+    /**
+     * Create a database backup file.
+     *
+     * Calls the database handler's backup() method to serialize the database state,
+     * generates a filename based on the backup configuration, and writes the backup
+     * data to disk.
+     *
+     * @example
+     * ```typescript
+     * await service.backup();
+     * // Backup file created: ./backups/backup-2025-01-22-01-30-45.bkp
+     * ```
+     */
     public async backup(): Promise<void> {
         console.info('Preparing backup...')
         await this._backup();
         console.info('Backup prepared successfully:\r\n', this.backupFile);
     }
 
+    /**
+     * Restore database from the backup file.
+     *
+     * Reads the backup file and calls the database handler's restore() method
+     * to restore the database to its previous state. Called automatically if
+     * a migration fails.
+     *
+     * @throws {Error} If backup file doesn't exist or cannot be read
+     *
+     * @example
+     * ```typescript
+     * try {
+     *   await runMigrations();
+     * } catch (error) {
+     *   await service.restore(); // Restore to backup
+     * }
+     * ```
+     */
     public async restore(): Promise<void> {
         console.info('Restoring from backup...');
         await this._restore()
         console.info('Restored to the previous state:\r\n', this.backupFile);
     }
 
+    /**
+     * Delete the backup file from disk.
+     *
+     * Only deletes if `config.backup.deleteBackup` is true. Called automatically
+     * after successful migrations or after restore completes.
+     *
+     * @example
+     * ```typescript
+     * // After successful migration
+     * service.deleteBackup(); // Removes backup file
+     * ```
+     */
     public deleteBackup() {
         if(!this.handler.cfg.backup.deleteBackup || !this.backupFile) return;
         console.log("Deleting backup file...")
@@ -53,6 +120,27 @@ export class BackupService implements IBackupService {
         return path;
     }
 
+    /**
+     * Generate backup file path based on configuration.
+     *
+     * Constructs the full backup filename using prefix, custom name, timestamp,
+     * suffix, and extension from the backup configuration.
+     *
+     * @param cfg - Backup configuration
+     * @returns Full path to backup file
+     *
+     * @example
+     * ```typescript
+     * const config = new BackupConfig();
+     * config.folder = './backups';
+     * config.prefix = 'db';
+     * config.timestamp = true;
+     * config.timestampFormat = 'YYYYMMDD-HHmmss';
+     *
+     * const path = BackupService.prepareFilePath(config);
+     * // Returns: './backups/db-20250122-013045.bkp'
+     * ```
+     */
     static prepareFilePath(cfg:BackupConfig):string {
         const time:string = cfg.timestamp ? `-${moment().format(cfg.timestampFormat)}` : '';
         return `${cfg.folder}/${cfg.prefix}${cfg.custom}${time}${cfg.suffix}.${cfg.extension}`;
