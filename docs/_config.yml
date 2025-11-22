@@ -21,7 +21,7 @@ aux_links:
   "MSR on GitHub":
     - "//github.com/migration-script-runner/msr-core"
   "MSR on npm":
-    - "//npmjs.org/package/@msr/core"
+    - "//npmjs.org/package/@migration-script-runner/core"
 
 # Makes Aux links open in a new tab
 aux_links_new_tab: true

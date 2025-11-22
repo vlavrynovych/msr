@@ -29,7 +29,7 @@ Complete API documentation for Migration Script Runner.
 The main class for executing database migrations.
 
 ```typescript
-import { MigrationScriptExecutor, IDatabaseMigrationHandler } from 'migration-script-runner';
+import { MigrationScriptExecutor, IDatabaseMigrationHandler } from '@migration-script-runner/core';
 
 const handler = new MyDatabaseHandler();
 const executor = new MigrationScriptExecutor(handler);
@@ -113,7 +113,7 @@ await executor.list(10);
 Main configuration class.
 
 ```typescript
-import { Config } from 'migration-script-runner';
+import { Config } from '@migration-script-runner/core';
 
 const config = new Config();
 ```
@@ -137,7 +137,7 @@ See [Configuration Guide](../configuration) for detailed examples.
 Backup system configuration.
 
 ```typescript
-import { BackupConfig } from 'migration-script-runner';
+import { BackupConfig } from '@migration-script-runner/core';
 
 const backupConfig = new BackupConfig();
 ```
@@ -359,7 +359,7 @@ Dynamically imports the migration file and creates an instance of the exported c
 Internal utility functions (not typically used directly).
 
 ```typescript
-import { Utils } from 'migration-script-runner';
+import { Utils } from '@migration-script-runner/core';
 ```
 
 #### Methods
@@ -400,7 +400,7 @@ static async parseRunnable(filepath: string): Promise<IMigrationScript>
 Service for scanning and loading migration files.
 
 ```typescript
-import { MigrationService } from 'migration-script-runner';
+import { MigrationService } from '@migration-script-runner/core';
 
 const service = new MigrationService();
 const scripts = await service.readMigrationScripts(config);
@@ -428,7 +428,7 @@ async readMigrationScripts(config: Config): Promise<MigrationScript[]>
 Service for managing the schema version tracking table.
 
 ```typescript
-import { SchemaVersionService } from 'migration-script-runner';
+import { SchemaVersionService } from '@migration-script-runner/core';
 
 const service = new SchemaVersionService(config, handler);
 await service.init();
@@ -471,7 +471,7 @@ async getAllMigratedScripts(): Promise<IMigrationInfo[]>
 Service for backup and restore operations.
 
 ```typescript
-import { BackupService } from 'migration-script-runner';
+import { BackupService } from '@migration-script-runner/core';
 
 const service = new BackupService(config.backup, handler);
 const backupPath = await service.backup();
@@ -522,7 +522,7 @@ import {
   IDatabaseMigrationHandler,
   Config,
   BackupConfig
-} from 'migration-script-runner';
+} from '@migration-script-runner/core';
 ```
 
 ---

@@ -47,7 +47,7 @@ yarn add migration-script-runner
 MSR is database-agnostic. You need to implement the `IDatabaseMigrationHandler` interface for your specific database:
 
 ```typescript
-import { IDatabaseMigrationHandler, IMigrationInfo } from 'migration-script-runner';
+import { IDatabaseMigrationHandler, IMigrationInfo } from '@migration-script-runner/core';
 
 export class MyDatabaseHandler implements IDatabaseMigrationHandler {
 
@@ -100,7 +100,7 @@ Create a migration file following the naming convention: `V{timestamp}_{descript
 Example: `V202501220100_initial_setup.ts`
 
 ```typescript
-import { IMigrationScript, IMigrationInfo, IDatabaseMigrationHandler } from 'migration-script-runner';
+import { IMigrationScript, IMigrationInfo, IDatabaseMigrationHandler } from '@migration-script-runner/core';
 
 export default class InitialSetup implements IMigrationScript {
 
@@ -128,7 +128,7 @@ export default class InitialSetup implements IMigrationScript {
 Create a configuration object to customize MSR behavior:
 
 ```typescript
-import { Config, BackupConfig } from 'migration-script-runner';
+import { Config, BackupConfig } from '@migration-script-runner/core';
 
 const config = new Config();
 
@@ -155,7 +155,7 @@ config.backup.timestamp = true;
 ### Execute Pending Migrations
 
 ```typescript
-import { MigrationScriptExecutor } from 'migration-script-runner';
+import { MigrationScriptExecutor } from '@migration-script-runner/core';
 
 const executor = new MigrationScriptExecutor(config, new MyDatabaseHandler());
 

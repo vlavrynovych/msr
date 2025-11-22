@@ -39,7 +39,7 @@ npm install migration-script-runner
 ### Basic Usage
 
 ```typescript
-import { MigrationScriptExecutor, Config } from 'migration-script-runner';
+import { MigrationScriptExecutor, Config } from '@migration-script-runner/core';
 
 // Implement your database handler
 class MyDatabaseHandler implements IDatabaseMigrationHandler {
