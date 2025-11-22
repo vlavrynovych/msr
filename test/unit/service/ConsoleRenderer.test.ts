@@ -522,6 +522,20 @@ describe('ConsoleRenderer', () => {
             } as IScripts)
         })
 
+        /**
+         * Test: Early return for empty arrays
+         * Validates that rendering methods handle empty arrays gracefully
+         * by returning early without attempting to render tables.
+         */
+        it('should handle empty arrays without rendering', () => {
+            const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+
+            // These should all return early without rendering (and not throw)
+            cr.drawExecutedTable([])
+            cr.drawTodoTable([])
+            cr.drawIgnoredTable([])
+        })
+
     })
 
 })

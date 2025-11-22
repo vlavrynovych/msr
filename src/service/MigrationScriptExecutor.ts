@@ -170,8 +170,8 @@ export class MigrationScriptExecutor {
 
             return {
                 success: false,
-                executed: scripts.executed || [],
-                migrated: scripts.migrated || [],
+                executed: scripts.executed,
+                migrated: scripts.migrated,
                 ignored,
                 errors
             };
