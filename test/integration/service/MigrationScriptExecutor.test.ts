@@ -9,11 +9,10 @@ import {
     IDatabaseMigrationHandler,
     MigrationScript,
     MigrationScriptExecutor,
-    IBackup, ISchemaVersion, IMigrationScript
+    IBackup, ISchemaVersion, IMigrationScript,
+    IMigrationResult
 } from "../../../src";
 import {TestUtils} from "../../helpers/TestUtils";
-
-const processExit = sinon.stub(process, 'exit');
 
 describe('MigrationScriptExecutor', () => {
 
@@ -82,10 +81,6 @@ describe('MigrationScriptExecutor', () => {
         spy.restore()
     })
 
-    after(() => {
-        processExit.restore()
-    })
-
     describe('migrate()', () => {
         /**
          * Test: Successful migration execution (happy path)
@@ -99,7 +94,15 @@ describe('MigrationScriptExecutor', () => {
          */
         it('should execute migration workflow successfully', async () => {
             // Execute the full migration workflow
-            await executor.migrate()
+            const result: IMigrationResult = await executor.migrate()
+
+            // Verify result object
+            expect(result.success).to.be.true
+            expect(result.executed).to.be.an('array')
+            expect(result.executed.length).to.equal(1)
+            expect(result.migrated).to.be.an('array')
+            expect(result.ignored).to.be.an('array')
+            expect(result.errors).to.be.undefined
 
             // Verify schema operations: check if initialized → skip creation → validate
             expect(handler.schemaVersion.isInitialized).have.been.called.once
@@ -134,7 +137,15 @@ describe('MigrationScriptExecutor', () => {
             handler.cfg = TestUtils.getConfig(TestUtils.EMPTY_FOLDER)
 
             // Execute migration with no scripts to run
-            await executor.migrate()
+            const result: IMigrationResult = await executor.migrate()
+
+            // Verify result object
+            expect(result.success).to.be.true
+            expect(result.executed).to.be.an('array')
+            expect(result.executed.length).to.equal(0)
+            expect(result.migrated).to.be.an('array')
+            expect(result.ignored).to.be.an('array')
+            expect(result.errors).to.be.undefined
 
             // Verify schema operations still ran
             expect(handler.schemaVersion.isInitialized).have.been.called.once
@@ -154,7 +165,7 @@ describe('MigrationScriptExecutor', () => {
             // Verify workflow ran but no individual migration tasks executed
             expect(executor.migrate).have.been.called.once
             expect(executor.getTodo).have.been.called.once
-            expect(executor.execute).have.been.called.once
+            expect(executor.execute).have.not.been.called.once
             expect(executor.task).have.not.been.called.once
         })
 
@@ -172,7 +183,16 @@ describe('MigrationScriptExecutor', () => {
             valid = false
 
             // Execute migration which will fail validation
-            await executor.migrate()
+            const result: IMigrationResult = await executor.migrate()
+
+            // Verify result object indicates failure
+            expect(result.success).to.be.false
+            expect(result.executed).to.be.an('array')
+            expect(result.executed.length).to.equal(0)
+            expect(result.migrated).to.be.an('array')
+            expect(result.ignored).to.be.an('array')
+            expect(result.errors).to.be.an('array')
+            expect(result.errors!.length).to.be.greaterThan(0)
 
             // Verify schema validation was attempted
             expect(handler.schemaVersion.isInitialized).have.been.called.once
@@ -199,21 +219,31 @@ describe('MigrationScriptExecutor', () => {
         /**
          * Test: migrate() triggers restore on execution failure
          * Integration test validating that when a migration execution fails,
-         * the backup restore is automatically triggered. This test uses real
-         * file system stubbing to simulate a migration that throws an error.
+         * the backup restore is automatically triggered. This test directly
+         * stubs a migration script to throw an error during execution.
          */
         it('should call restore on migration failure', async () => {
-            // Stub filesystem to return a failing migration script
+            // Create a migration script that will throw an error
             handler.cfg = TestUtils.getConfig();
-            const readStub = sinon.stub(fs, 'readFileSync');
-            readStub.returns(`
-                export class FailingMigration {
-                    async up() { throw new Error('Migration failed'); }
+
+            // Stub the migration service to return a failing script
+            const failingScript = TestUtils.prepareMigration('V202311020036_fail.ts');
+            failingScript.script = {
+                async up() {
+                    throw new Error('Migration execution failed');
                 }
-            `);
+            } as any;
+
+            const readStub = sinon.stub(executor.migrationService, 'readMigrationScripts');
+            readStub.resolves([failingScript]);
 
             // Execute migration (will fail)
-            await executor.migrate();
+            const result: IMigrationResult = await executor.migrate();
+
+            // Verify result indicates failure
+            expect(result.success).to.be.false
+            expect(result.errors).to.be.an('array')
+            expect(result.errors!.length).to.be.greaterThan(0)
 
             // Verify error recovery workflow: backup → restore → cleanup
             expect(executor.backupService.backup).have.been.called;
@@ -445,7 +475,12 @@ describe('MigrationScriptExecutor', () => {
             valid = true;
 
             // when: execute full migration
-            await executor.migrate();
+            const result: IMigrationResult = await executor.migrate();
+
+            // then: verify result indicates success
+            expect(result.success).to.be.true
+            expect(result.executed).to.be.an('array')
+            expect(result.errors).to.be.undefined
 
             // then: verify key methods were called
             expect(executor.backupService.backup).have.been.called;
@@ -470,7 +505,12 @@ describe('MigrationScriptExecutor', () => {
             valid = false; // cause validation to fail
 
             // when: execute migration that will fail
-            await executor.migrate();
+            const result: IMigrationResult = await executor.migrate();
+
+            // then: verify result indicates failure
+            expect(result.success).to.be.false
+            expect(result.errors).to.be.an('array')
+            expect(result.errors!.length).to.be.greaterThan(0)
 
             // then: verify error handling lifecycle
             expect(executor.backupService.backup).have.been.called;
@@ -583,7 +623,13 @@ describe('MigrationScriptExecutor', () => {
             valid = true;
 
             // when: execute with no scripts
-            await executor.migrate();
+            const result: IMigrationResult = await executor.migrate();
+
+            // then: verify result indicates success with no executions
+            expect(result.success).to.be.true
+            expect(result.executed).to.be.an('array')
+            expect(result.executed.length).to.equal(0)
+            expect(result.errors).to.be.undefined
 
             // then: should complete without error
             expect(executor.backupService.backup).have.been.called;

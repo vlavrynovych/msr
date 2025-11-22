@@ -118,7 +118,16 @@ import { MyDatabaseHandler } from './my-database-handler';
 const handler = new MyDatabaseHandler();
 const executor = new MigrationScriptExecutor(handler);
 
-await executor.migrate();
+// As a library - returns result object
+const result = await executor.migrate();
+if (result.success) {
+  console.log(`Successfully executed ${result.executed.length} migrations`);
+} else {
+  console.error('Migration failed:', result.errors);
+}
+
+// As a CLI - control process exit
+process.exit(result.success ? 0 : 1);
 ```
 
 ---
@@ -165,11 +174,37 @@ See the [Configuration Guide](https://migration-script-runner.github.io/msr-core
 
 ## 💡 Usage Examples
 
-### Run All Pending Migrations
+### Library Usage (Recommended)
+
+MSR can be used as a library in your application without terminating the process:
+
+```typescript
+import { MigrationScriptExecutor, IMigrationResult } from '@migration-script-runner/core';
+
+const executor = new MigrationScriptExecutor(handler);
+const result: IMigrationResult = await executor.migrate();
+
+if (result.success) {
+  console.log(`✅ Executed ${result.executed.length} migrations`);
+  console.log(`📋 Total migrated: ${result.migrated.length}`);
+  // Continue with application startup
+  startServer();
+} else {
+  console.error('❌ Migration failed:', result.errors);
+  // Handle error gracefully
+  await sendAlert(result.errors);
+  process.exit(1);
+}
+```
+
+### CLI Usage
+
+For CLI tools, control the process exit based on the result:
 
 ```typescript
 const executor = new MigrationScriptExecutor(handler);
-await executor.migrate();
+const result = await executor.migrate();
+process.exit(result.success ? 0 : 1);
 ```
 
 ### List All Migrations
@@ -214,8 +249,12 @@ Migration Script Runner was created to solve migration challenges when:
 - ✅ You need full control over the migration process
 - ✅ You want a lightweight, database-agnostic solution
 - ✅ You prefer TypeScript and type safety
+- ✅ You need to integrate migrations into larger applications (Express, NestJS, etc.)
+- ✅ You want structured error handling and migration results
 
 Unlike framework-specific migration tools, MSR doesn't lock you into a particular ORM or database. You implement the database interface, MSR handles the workflow.
+
+**Library-first design:** MSR returns structured results instead of calling `process.exit()`, making it safe to use in web servers, background workers, and any long-running applications.
 
 ---
 

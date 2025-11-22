@@ -11,6 +11,7 @@ This section contains migration guides for upgrading between major versions of M
 
 ## Available Migration Guides
 
+- [**v0.2.x → v0.3.0**](v0.2-to-v0.3.md) - **Breaking:** `migrate()` now returns `IMigrationResult`, no longer calls `process.exit()`
 - [**v0.1.x → v0.2.0**](v0.1-to-v0.2.md) - Package rename from `migration-script-runner` to `@migration-script-runner/core`
 
 ## Migration Policy
