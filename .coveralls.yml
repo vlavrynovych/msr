@@ -1,8 +1,3 @@
 # .coveralls.yml
-service_name: travis-pro
-service_job_id: $TRAVIS_JOB_ID
-service_build_url: $TRAVIS_BUILD_WEB_URL
-service_branch: $TRAVIS_BRANCH
-service_pull_request: $TRAVIS_PULL_REQUEST
-
+service_name: circle-ci
 repo_token: qMg8zGqNEtPR6egj5XMqLJeMVZ4sd8njN

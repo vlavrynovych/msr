@@ -25,6 +25,9 @@ jobs:
       - run:
           name: Run Tests with reports
           command: npm run test:report
+      - run:
+          name: Upload coverage to Coveralls
+          command: npm run test:coverage:coveralls
       - store_test_results:
           path: reports
       - store_artifacts:
