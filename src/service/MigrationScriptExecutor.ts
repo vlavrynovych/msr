@@ -11,7 +11,8 @@ import {
     ISchemaVersionService,
     IScripts,
     SchemaVersionService,
-    Utils
+    Utils,
+    IMigrationResult
 } from "../index";
 
 /**
@@ -87,29 +88,46 @@ export class MigrationScriptExecutor {
      * 5. Updates the schema version table after each successful migration
      * 6. Deletes the backup on success, or restores from backup on failure
      *
-     * The process exits with code 0 on success, or code 1 on failure.
-     *
-     * @throws {Error} If any migration fails, the error is logged, database is restored
-     *                 from backup, and the process exits with code 1.
+     * @returns Promise resolving to a MigrationResult object containing:
+     *          - success: true if all migrations completed successfully, false otherwise
+     *          - executed: array of migrations that were executed during this run
+     *          - migrated: array of previously executed migrations from database history
+     *          - ignored: array of migrations with timestamps older than the last executed
+     *          - errors: array of errors if any occurred (only present when success is false)
      *
      * @example
      * ```typescript
      * const executor = new MigrationScriptExecutor(handler);
      *
      * // Run all pending migrations
-     * await executor.migrate();
-     * // Process will exit after migrations complete
+     * const result = await executor.migrate();
+     *
+     * if (result.success) {
+     *   console.log(`Executed ${result.executed.length} migrations`);
+     *   process.exit(0);
+     * } else {
+     *   console.error('Migration failed:', result.errors);
+     *   process.exit(1);
+     * }
      * ```
      */
-    public async migrate(): Promise<void> {
-        let success = true;
+    public async migrate(): Promise<IMigrationResult> {
+        let scripts: IScripts = {
+            all: [],
+            migrated: [],
+            todo: [],
+            executed: []
+        };
+        let ignored: MigrationScript[] = [];
+        const errors: Error[] = [];
+
         try {
             // inits
             await this.backupService.backup()
             await this.schemaVersionService.init(this.handler.cfg.tableName)
 
             // collects information about migrations
-            const scripts = await Utils.promiseAll({
+            scripts = await Utils.promiseAll({
                 migrated: this.schemaVersionService.getAllMigratedScripts(),
                 all: this.migrationService.readMigrationScripts(this.handler.cfg)
             }) as IScripts;
@@ -117,11 +135,18 @@ export class MigrationScriptExecutor {
 
             // defines scripts which should be executed
             scripts.todo = this.getTodo(scripts.migrated, scripts.all);
+            ignored = this.getIgnored(scripts.migrated, scripts.all);
             await Promise.all(scripts.todo.map(s => s.init()))
 
             if (!scripts.todo.length) {
                 console.info('Nothing to do');
-                this.exit(true)
+                this.backupService.deleteBackup();
+                return {
+                    success: true,
+                    executed: [],
+                    migrated: scripts.migrated,
+                    ignored
+                };
             }
 
             console.info('Processing...');
@@ -130,13 +155,27 @@ export class MigrationScriptExecutor {
             this.consoleRenderer.drawExecutedTable(scripts.executed);
             console.info('Migration finished successfully!');
             this.backupService.deleteBackup();
+
+            return {
+                success: true,
+                executed: scripts.executed,
+                migrated: scripts.migrated,
+                ignored
+            };
         } catch (err) {
             console.error(err)
-            success = false
+            errors.push(err as Error);
             await this.backupService.restore();
             this.backupService.deleteBackup();
+
+            return {
+                success: false,
+                executed: scripts.executed || [],
+                migrated: scripts.migrated || [],
+                ignored,
+                errors
+            };
         }
-        this.exit(success)
     }
 
     /**
@@ -171,16 +210,6 @@ export class MigrationScriptExecutor {
     }
 
     /**
-     * Exit the process with appropriate status code.
-     *
-     * @param success - Whether the operation was successful (true = exit 0, false = exit 1)
-     * @private
-     */
-    exit(success:boolean):void {
-        process.exit(success ? 0 : 1);
-    }
-
-    /**
      * Determine which migration scripts need to be executed.
      *
      * Compares all discovered migration files against already-executed migrations
@@ -207,6 +236,27 @@ export class MigrationScriptExecutor {
         this.consoleRenderer.drawIgnoredTable(ignored);
 
         return todo;
+    }
+
+    /**
+     * Get scripts that were ignored due to being older than the last migration.
+     *
+     * Returns migration scripts that have timestamps older than the last executed
+     * migration. These represent out-of-order migrations that won't be executed.
+     *
+     * @param migrated - Array of previously executed migrations from the database
+     * @param all - Array of all migration script files discovered in the migrations folder
+     * @returns Array of ignored migration scripts
+     *
+     * @private
+     */
+    getIgnored(migrated:MigrationScript[], all:MigrationScript[]): MigrationScript[] {
+        if(!migrated.length) return [];
+        const lastMigrated:number = Math.max(...migrated.map(s => s.timestamp))
+
+        const newScripts:MigrationScript[] = _.differenceBy(all, migrated, 'timestamp')
+        const todo:MigrationScript[] = newScripts.filter(s => s.timestamp > lastMigrated)
+        return _.differenceBy(newScripts, todo, 'timestamp')
     }
 
     /**

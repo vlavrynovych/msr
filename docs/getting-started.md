@@ -154,13 +154,53 @@ config.backup.timestamp = true;
 
 ### Execute Pending Migrations
 
+MSR can be used either as a library (recommended) or as a CLI tool.
+
+#### Library Usage (Recommended)
+
+Use MSR as a library to integrate migrations into your application without terminating the process:
+
+```typescript
+import { MigrationScriptExecutor, IMigrationResult } from '@migration-script-runner/core';
+
+const handler = new MyDatabaseHandler();
+const executor = new MigrationScriptExecutor(handler);
+
+// Run migrations and get structured results
+const result: IMigrationResult = await executor.migrate();
+
+if (result.success) {
+  console.log(`✅ Successfully executed ${result.executed.length} migrations`);
+  console.log(`📋 Total migrations in database: ${result.migrated.length}`);
+
+  if (result.ignored.length > 0) {
+    console.warn(`⚠️ Ignored ${result.ignored.length} out-of-order migrations`);
+  }
+
+  // Continue with application startup
+  await startApplication();
+} else {
+  console.error('❌ Migration failed');
+  result.errors?.forEach(err => console.error(err));
+
+  // Handle error gracefully
+  await notifyAdmins(result.errors);
+  process.exit(1);
+}
+```
+
+#### CLI Usage
+
+For standalone migration scripts, control the process exit based on results:
+
 ```typescript
 import { MigrationScriptExecutor } from '@migration-script-runner/core';
 
-const executor = new MigrationScriptExecutor(config, new MyDatabaseHandler());
+const handler = new MyDatabaseHandler();
+const executor = new MigrationScriptExecutor(handler);
 
-// Run all pending migrations
-await executor.migrate();
+const result = await executor.migrate();
+process.exit(result.success ? 0 : 1);
 ```
 
 ### List All Migrations
@@ -168,14 +208,9 @@ await executor.migrate();
 ```typescript
 // List all migrations with their status
 await executor.list();
-```
 
-### Get Pending Migrations
-
-```typescript
-// Get list of migrations that haven't been executed yet
-const pending = await executor.getTodo();
-console.log(`${pending.length} migrations pending`);
+// List only the last 10 migrations
+await executor.list(10);
 ```
 
 ---

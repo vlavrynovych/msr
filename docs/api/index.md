@@ -48,26 +48,45 @@ constructor(handler: IDatabaseMigrationHandler)
 
 ##### migrate()
 
-Execute all pending migrations.
+Execute all pending migrations and return a structured result.
 
 ```typescript
-await executor.migrate(): Promise<void>
+await executor.migrate(): Promise<IMigrationResult>
 ```
 
-**Returns:** Promise that resolves when all migrations complete
+**Returns:** `Promise<IMigrationResult>` containing:
+- `success`: `boolean` - Whether all migrations completed successfully
+- `executed`: `MigrationScript[]` - Migrations executed during this run
+- `migrated`: `MigrationScript[]` - Previously executed migrations from database history
+- `ignored`: `MigrationScript[]` - Migrations with timestamps older than the last executed
+- `errors?`: `Error[]` - Array of errors if any occurred (only present when success is false)
 
-**Throws:** Error if any migration fails (database will be restored from backup)
-
-**Example:**
+**Example (Library Usage):**
 ```typescript
-try {
-  await executor.migrate();
-  console.log('Migrations completed successfully');
-} catch (error) {
-  console.error('Migration failed:', error);
-  // Database has been automatically restored from backup
+import { IMigrationResult } from '@migration-script-runner/core';
+
+const result: IMigrationResult = await executor.migrate();
+
+if (result.success) {
+  console.log(`✅ Successfully executed ${result.executed.length} migrations`);
+  console.log(`📋 Total migrated: ${result.migrated.length}`);
+  // Continue with application startup
+  startServer();
+} else {
+  console.error('❌ Migration failed:', result.errors);
+  // Handle error gracefully without terminating process
+  await sendAlert(result.errors);
 }
 ```
+
+**Example (CLI Usage):**
+```typescript
+const result = await executor.migrate();
+process.exit(result.success ? 0 : 1);
+```
+
+{: .note }
+> **Breaking Change (v0.3.0):** The `migrate()` method now returns a `Promise<IMigrationResult>` instead of `Promise<void>`. It no longer calls `process.exit()` internally, making MSR safe to use as a library in long-running applications like web servers.
 
 ---
 
@@ -246,6 +265,46 @@ async restore(data: string): Promise<void>
 - `data`: Serialized backup data (from `backup()`)
 
 Called if any migration fails. Should restore database to the state captured in the backup.
+
+---
+
+### IMigrationResult
+
+Result object returned by migration operations.
+
+```typescript
+interface IMigrationResult {
+  success: boolean;
+  executed: MigrationScript[];
+  migrated: MigrationScript[];
+  ignored: MigrationScript[];
+  errors?: Error[];
+}
+```
+
+#### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `success` | `boolean` | Whether all migrations completed successfully |
+| `executed` | `MigrationScript[]` | Migrations executed during this run |
+| `migrated` | `MigrationScript[]` | Previously executed migrations from database |
+| `ignored` | `MigrationScript[]` | Migrations older than last executed (skipped) |
+| `errors` | `Error[]?` | Array of errors (only present when success is false) |
+
+**Example:**
+```typescript
+const result: IMigrationResult = await executor.migrate();
+
+console.log('Success:', result.success);
+console.log('Executed:', result.executed.length);
+console.log('Total migrated:', result.migrated.length);
+console.log('Ignored:', result.ignored.length);
+
+if (!result.success) {
+  console.error('Errors:', result.errors);
+}
+```
 
 ---
 
@@ -519,9 +578,11 @@ All classes and interfaces are fully typed. Import types as needed:
 import {
   IMigrationScript,
   IMigrationInfo,
+  IMigrationResult,
   IDatabaseMigrationHandler,
   Config,
-  BackupConfig
+  BackupConfig,
+  MigrationScriptExecutor
 } from '@migration-script-runner/core';
 ```
 
