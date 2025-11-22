@@ -12,7 +12,7 @@ Complete API documentation for Migration Script Runner.
 {: .fs-6 .fw-300 }
 
 {: .note }
-> This is a manual API reference. Detailed JSDoc comments and auto-generated TypeDoc documentation will be added in a future release ([#4](https://github.com/vlavrynovych/msr/issues/4)).
+> This is a comprehensive manual API reference. All public APIs also include JSDoc comments in the source code for IDE intellisense support.
 
 ## Table of contents
 {: .no_toc .text-delta }
@@ -29,20 +29,20 @@ Complete API documentation for Migration Script Runner.
 The main class for executing database migrations.
 
 ```typescript
-import { MigrationScriptExecutor, Config, IDatabaseMigrationHandler } from 'migration-script-runner';
+import { MigrationScriptExecutor, IDatabaseMigrationHandler } from 'migration-script-runner';
 
-const executor = new MigrationScriptExecutor(config, handler);
+const handler = new MyDatabaseHandler();
+const executor = new MigrationScriptExecutor(handler);
 ```
 
 #### Constructor
 
 ```typescript
-constructor(config: Config, handler: IDatabaseMigrationHandler)
+constructor(handler: IDatabaseMigrationHandler)
 ```
 
 **Parameters:**
-- `config`: Configuration object
-- `handler`: Database handler implementation
+- `handler`: Database migration handler (which contains the config via `handler.cfg`)
 
 #### Methods
 
@@ -76,17 +76,26 @@ try {
 Display all migrations with their execution status.
 
 ```typescript
-await executor.list(): Promise<void>
+await executor.list(number?: number): Promise<void>
 ```
 
-Prints a formatted table showing:
-- Executed migrations (from database)
-- Local migration files
-- Whether local files exist for executed migrations
+**Parameters:**
+- `number` (optional): Maximum number of migrations to display (0 = all). Defaults to 0.
+
+**Prints a formatted table showing:**
+- Timestamp and name of each migration
+- Execution date/time for completed migrations
+- Duration of execution
+- Whether the migration file still exists locally
 
 **Example:**
 ```typescript
+// List all migrations
 await executor.list();
+
+// List only the last 10 migrations
+await executor.list(10);
+
 // Outputs:
 // +-------------+------------------+----------+----------+
 // | Timestamp   | Name             | Executed | Duration |
@@ -94,48 +103,6 @@ await executor.list();
 // | 202501220100| initial_setup    | ...      | 0.5s     |
 // +-------------+------------------+----------+----------+
 ```
-
----
-
-##### getTodo()
-
-Get list of pending migrations that haven't been executed.
-
-```typescript
-await executor.getTodo(): Promise<MigrationScript[]>
-```
-
-**Returns:** Array of `MigrationScript` objects that need to be executed
-
-**Example:**
-```typescript
-const pending = await executor.getTodo();
-console.log(`${pending.length} migrations pending`);
-
-for (const migration of pending) {
-  console.log(`- ${migration.name}`);
-}
-```
-
----
-
-##### execute()
-
-Execute a specific migration script.
-
-```typescript
-await executor.execute(script: MigrationScript): Promise<any>
-```
-
-**Parameters:**
-- `script`: Migration script to execute
-
-**Returns:** Promise resolving to the result returned by the migration's `up()` method
-
-**Throws:** Error if migration execution fails
-
-{: .warning }
-This is a low-level method. Use `migrate()` for normal operations.
 
 ---
 

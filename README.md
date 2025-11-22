@@ -21,6 +21,15 @@
 
 An abstract implementation of script runner which can be extended by your own implementation
 
+## Documentation
+
+📚 **[Full Documentation](https://vlavrynovych.github.io/msr/)**
+
+- [Getting Started](https://vlavrynovych.github.io/msr/getting-started)
+- [Configuration Guide](https://vlavrynovych.github.io/msr/configuration)
+- [API Reference](https://vlavrynovych.github.io/msr/api/)
+- [Writing Migrations](https://vlavrynovych.github.io/msr/guides/writing-migrations)
+
 ## Development
 
 ### Scripts overview
