@@ -5,4 +5,4 @@ service_build_url: $TRAVIS_BUILD_WEB_URL
 service_branch: $TRAVIS_BRANCH
 service_pull_request: $TRAVIS_PULL_REQUEST
 
-repo_token: 2XqaHJJuzJIBjZ0l5b1yOOAlE9B3kY6EB
+repo_token: qMg8zGqNEtPR6egj5XMqLJeMVZ4sd8njN
