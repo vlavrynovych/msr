@@ -25,7 +25,7 @@ The `Config` class controls the behavior of the migration system.
 ### Basic Configuration
 
 ```typescript
-import { Config } from 'migration-script-runner';
+import { Config } from '@migration-script-runner/core';
 
 const config = new Config();
 config.folder = './migrations';
@@ -143,7 +143,7 @@ This only affects display output. All migrations are still tracked internally.
 Configuration for the backup system. See [Backup Configuration](#backup-configuration) below.
 
 ```typescript
-import { BackupConfig } from 'migration-script-runner';
+import { BackupConfig } from '@migration-script-runner/core';
 
 config.backup = new BackupConfig();
 config.backup.folder = './backups';
@@ -159,7 +159,7 @@ The `BackupConfig` class controls backup behavior.
 ### Basic Backup Configuration
 
 ```typescript
-import { BackupConfig } from 'migration-script-runner';
+import { BackupConfig } from '@migration-script-runner/core';
 
 const backupConfig = new BackupConfig();
 backupConfig.folder = './backups';
@@ -322,7 +322,7 @@ The extension can be specified with or without the leading dot (`.bkp` or `bkp`)
 Here's a complete configuration example with all options:
 
 ```typescript
-import { Config, BackupConfig, MigrationScriptExecutor } from 'migration-script-runner';
+import { Config, BackupConfig, MigrationScriptExecutor } from '@migration-script-runner/core';
 import { MyDatabaseHandler } from './database-handler';
 
 // Create configuration

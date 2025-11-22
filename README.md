@@ -11,12 +11,12 @@
 [![NPM Downloads][npm-downloads-image]][npm-url]
 ![Static Badge](https://img.shields.io/badge/in%20Ukraine-dodgerblue?label=Proudly%20made&labelColor=%23FFFF00)
 
-[//]: # ([![NPM]&#40;https://nodei.co/npm/@msr/core.png?downloads=true&#41;]&#40;https://nodei.co/npm/@msr/core/&#41;)
+[//]: # ([![NPM]&#40;https://nodei.co/npm/@migration-script-runner/core.png?downloads=true&#41;]&#40;https://nodei.co/npm/@migration-script-runner/core/&#41;)
 [//]: # ([![SonarCloud]&#40;https://sonarcloud.io/images/project_badges/sonarcloud-white.svg&#41;]&#40;https://sonarcloud.io/summary/new_code?id=migration-script-runner_msr-core&#41;)
 
-[npm-image]: https://img.shields.io/npm/v/@msr/core.svg?style=flat
-[npm-url]: https://npmjs.org/package/@msr/core
-[npm-downloads-image]: https://img.shields.io/npm/dm/@msr/core.svg?style=flat
+[npm-image]: https://img.shields.io/npm/v/@migration-script-runner/core.svg?style=flat
+[npm-url]: https://npmjs.org/package/@migration-script-runner/core
+[npm-downloads-image]: https://img.shields.io/npm/dm/@migration-script-runner/core.svg?style=flat
 
 **A database-agnostic migration script runner for TypeScript and JavaScript projects.**
 
@@ -56,13 +56,13 @@ MSR provides a lightweight, flexible framework for managing database migrations.
 ## 📦 Installation
 
 ```bash
-npm install @msr/core
+npm install @migration-script-runner/core
 ```
 
 Or with yarn:
 
 ```bash
-yarn add @msr/core
+yarn add @migration-script-runner/core
 ```
 
 ---
@@ -74,7 +74,7 @@ yarn add @msr/core
 Create a handler for your specific database:
 
 ```typescript
-import { IDatabaseMigrationHandler, Config } from '@msr/core';
+import { IDatabaseMigrationHandler, Config } from '@migration-script-runner/core';
 
 export class MyDatabaseHandler implements IDatabaseMigrationHandler {
   cfg: Config;
@@ -99,7 +99,7 @@ Create a migration file following the naming pattern: `V{timestamp}_{description
 
 ```typescript
 // migrations/V202501220100_initial_setup.ts
-import { IMigrationScript, IMigrationInfo, IDatabaseMigrationHandler } from '@msr/core';
+import { IMigrationScript, IMigrationInfo, IDatabaseMigrationHandler } from '@migration-script-runner/core';
 
 export default class InitialSetup implements IMigrationScript {
   async up(db: any, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string> {
@@ -113,7 +113,7 @@ export default class InitialSetup implements IMigrationScript {
 ### 3. Run Migrations
 
 ```typescript
-import { MigrationScriptExecutor } from '@msr/core';
+import { MigrationScriptExecutor } from '@migration-script-runner/core';
 import { MyDatabaseHandler } from './my-database-handler';
 
 const handler = new MyDatabaseHandler();
@@ -143,7 +143,7 @@ await executor.migrate();
 Customize MSR behavior through the `Config` class:
 
 ```typescript
-import { Config, BackupConfig } from '@msr/core';
+import { Config, BackupConfig } from '@migration-script-runner/core';
 
 const config = new Config();
 
@@ -370,7 +370,7 @@ Created in Ukraine 🇺🇦
 
 - **Documentation:** https://migration-script-runner.github.io/msr-core/
 - **Issues:** https://github.com/migration-script-runner/msr-core/issues
-- **npm:** https://www.npmjs.com/package/@msr/core
+- **npm:** https://www.npmjs.com/package/@migration-script-runner/core
 
 ---
 

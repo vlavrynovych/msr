@@ -11,7 +11,7 @@ This section contains migration guides for upgrading between major versions of M
 
 ## Available Migration Guides
 
-- [**v0.1.x → v0.2.0**](v0.1-to-v0.2.md) - Package rename and organization move
+- [**v0.1.x → v0.2.0**](v0.1-to-v0.2.md) - Package rename from `migration-script-runner` to `@migration-script-runner/core`
 
 ## Migration Policy
 
@@ -55,4 +55,4 @@ If you encounter issues during migration:
 To stay informed about new versions and breaking changes:
 - Watch the [GitHub repository](https://github.com/migration-script-runner/msr-core)
 - Check the [Changelog](https://github.com/migration-script-runner/msr-core/releases)
-- Follow the [npm package](https://www.npmjs.com/package/@msr/core)
+- Follow the [npm package](https://www.npmjs.com/package/@migration-script-runner/core)

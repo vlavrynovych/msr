@@ -63,7 +63,7 @@ V202501220100_create users.ts       ❌ Space instead of underscore
 ### Basic Template
 
 ```typescript
-import { IMigrationScript, IMigrationInfo, IDatabaseMigrationHandler } from 'migration-script-runner';
+import { IMigrationScript, IMigrationInfo, IDatabaseMigrationHandler } from '@migration-script-runner/core';
 
 export default class MigrationName implements IMigrationScript {
 

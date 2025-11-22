@@ -1,5 +1,5 @@
 {
-  "name": "@msr/core",
+  "name": "@migration-script-runner/core",
   "version": "0.2.0",
   "description": "Migration Script Runner - Core Framework",
   "main": "dist/index.js",
