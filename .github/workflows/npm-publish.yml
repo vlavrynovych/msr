@@ -51,6 +51,7 @@ jobs:
       - uses: JS-DevTools/npm-publish@v3
         with:
           token: ${{ secrets.NPM_AUTH_TOKEN }}
+          access: public
 
       - uses: thejeff77/action-push-tag@v1.0.0
         with:

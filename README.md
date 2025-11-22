@@ -1,22 +1,22 @@
 # Migration Script Runner
 
-[![Build Status](https://app.travis-ci.com/vlavrynovych/msr.svg?branch=master)](https://app.travis-ci.com/vlavrynovych/msr)
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/vlavrynovych/msr/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/vlavrynovych/msr/tree/master)
-[![Coverage Status](https://coveralls.io/repos/github/vlavrynovych/msr/badge.svg?branch=master)](https://coveralls.io/github/vlavrynovych/msr?branch=master)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=vlavrynovych_msr&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=vlavrynovych_msr)
-[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=vlavrynovych_msr&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=vlavrynovych_msr)
-[![GitHub issues](https://img.shields.io/github/issues/vlavrynovych/msr.svg)](https://github.com/vlavrynovych/msr/issues)
-[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/vlavrynovych/msr/master/LICENSE)
+[![Build Status](https://app.travis-ci.com/migration-script-runner/msr-core.svg?branch=master)](https://app.travis-ci.com/migration-script-runner/msr-core)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/migration-script-runner/msr-core/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/migration-script-runner/msr-core/tree/master)
+[![Coverage Status](https://coveralls.io/repos/github/migration-script-runner/msr-core/badge.svg?branch=master)](https://coveralls.io/github/migration-script-runner/msr-core?branch=master)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=migration-script-runner_msr-core&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=migration-script-runner_msr-core)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=migration-script-runner_msr-core&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=migration-script-runner_msr-core)
+[![GitHub issues](https://img.shields.io/github/issues/migration-script-runner/msr-core.svg)](https://github.com/migration-script-runner/msr-core/issues)
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/migration-script-runner/msr-core/master/LICENSE)
 [![NPM Version][npm-image]][npm-url]
 [![NPM Downloads][npm-downloads-image]][npm-url]
 ![Static Badge](https://img.shields.io/badge/in%20Ukraine-dodgerblue?label=Proudly%20made&labelColor=%23FFFF00)
 
-[//]: # ([![NPM]&#40;https://nodei.co/npm/migration-script-runner.png?downloads=true&#41;]&#40;https://nodei.co/npm/migration-script-runner/&#41;)
-[//]: # ([![SonarCloud]&#40;https://sonarcloud.io/images/project_badges/sonarcloud-white.svg&#41;]&#40;https://sonarcloud.io/summary/new_code?id=vlavrynovych_msr&#41;)
+[//]: # ([![NPM]&#40;https://nodei.co/npm/@msr/core.png?downloads=true&#41;]&#40;https://nodei.co/npm/@msr/core/&#41;)
+[//]: # ([![SonarCloud]&#40;https://sonarcloud.io/images/project_badges/sonarcloud-white.svg&#41;]&#40;https://sonarcloud.io/summary/new_code?id=migration-script-runner_msr-core&#41;)
 
-[npm-image]: https://img.shields.io/npm/v/migration-script-runner.svg?style=flat
-[npm-url]: https://npmjs.org/package/migration-script-runner
-[npm-downloads-image]: https://img.shields.io/npm/dm/migration-script-runner.svg?style=flat
+[npm-image]: https://img.shields.io/npm/v/@msr/core.svg?style=flat
+[npm-url]: https://npmjs.org/package/@msr/core
+[npm-downloads-image]: https://img.shields.io/npm/dm/@msr/core.svg?style=flat
 
 **A database-agnostic migration script runner for TypeScript and JavaScript projects.**
 
@@ -56,13 +56,13 @@ MSR provides a lightweight, flexible framework for managing database migrations.
 ## 📦 Installation
 
 ```bash
-npm install migration-script-runner
+npm install @msr/core
 ```
 
 Or with yarn:
 
 ```bash
-yarn add migration-script-runner
+yarn add @msr/core
 ```
 
 ---
@@ -74,7 +74,7 @@ yarn add migration-script-runner
 Create a handler for your specific database:
 
 ```typescript
-import { IDatabaseMigrationHandler, Config } from 'migration-script-runner';
+import { IDatabaseMigrationHandler, Config } from '@msr/core';
 
 export class MyDatabaseHandler implements IDatabaseMigrationHandler {
   cfg: Config;
@@ -99,7 +99,7 @@ Create a migration file following the naming pattern: `V{timestamp}_{description
 
 ```typescript
 // migrations/V202501220100_initial_setup.ts
-import { IMigrationScript, IMigrationInfo, IDatabaseMigrationHandler } from 'migration-script-runner';
+import { IMigrationScript, IMigrationInfo, IDatabaseMigrationHandler } from '@msr/core';
 
 export default class InitialSetup implements IMigrationScript {
   async up(db: any, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string> {
@@ -113,7 +113,7 @@ export default class InitialSetup implements IMigrationScript {
 ### 3. Run Migrations
 
 ```typescript
-import { MigrationScriptExecutor } from 'migration-script-runner';
+import { MigrationScriptExecutor } from '@msr/core';
 import { MyDatabaseHandler } from './my-database-handler';
 
 const handler = new MyDatabaseHandler();
@@ -126,15 +126,15 @@ await executor.migrate();
 
 ## 📚 Documentation
 
-**[Full Documentation](https://vlavrynovych.github.io/msr/)** | **[API Reference](https://vlavrynovych.github.io/msr/api/)** | **[Examples](https://vlavrynovych.github.io/msr/guides/writing-migrations)**
+**[Full Documentation](https://migration-script-runner.github.io/msr-core/)** | **[API Reference](https://migration-script-runner.github.io/msr-core/api/)** | **[Examples](https://migration-script-runner.github.io/msr-core/guides/writing-migrations)**
 
 ### Quick Links
 
-- **[Getting Started Guide](https://vlavrynovych.github.io/msr/getting-started)** - Complete setup walkthrough
-- **[Configuration](https://vlavrynovych.github.io/msr/configuration)** - All configuration options
-- **[API Reference](https://vlavrynovych.github.io/msr/api/)** - Complete API documentation
-- **[Writing Migrations](https://vlavrynovych.github.io/msr/guides/writing-migrations)** - Best practices and patterns
-- **[Testing](https://vlavrynovych.github.io/msr/testing/)** - Testing your migrations
+- **[Getting Started Guide](https://migration-script-runner.github.io/msr-core/getting-started)** - Complete setup walkthrough
+- **[Configuration](https://migration-script-runner.github.io/msr-core/configuration)** - All configuration options
+- **[API Reference](https://migration-script-runner.github.io/msr-core/api/)** - Complete API documentation
+- **[Writing Migrations](https://migration-script-runner.github.io/msr-core/guides/writing-migrations)** - Best practices and patterns
+- **[Testing](https://migration-script-runner.github.io/msr-core/testing/)** - Testing your migrations
 
 ---
 
@@ -143,7 +143,7 @@ await executor.migrate();
 Customize MSR behavior through the `Config` class:
 
 ```typescript
-import { Config, BackupConfig } from 'migration-script-runner';
+import { Config, BackupConfig } from '@msr/core';
 
 const config = new Config();
 
@@ -160,7 +160,7 @@ config.backup.deleteBackup = true;
 config.backup.timestamp = true;
 ```
 
-See the [Configuration Guide](https://vlavrynovych.github.io/msr/configuration) for all options.
+See the [Configuration Guide](https://migration-script-runner.github.io/msr-core/configuration) for all options.
 
 ---
 
@@ -266,7 +266,7 @@ We welcome contributions! Please follow these steps:
 - Update documentation for user-facing changes
 - Write descriptive commit messages
 
-See our [GitHub Issues](https://github.com/vlavrynovych/msr/issues) for tasks that need help.
+See our [GitHub Issues](https://github.com/migration-script-runner/msr-core/issues) for tasks that need help.
 
 ---
 
@@ -324,7 +324,7 @@ async restore(data: string): Promise<void> {
 }
 ```
 
-For more help, check our [GitHub Issues](https://github.com/vlavrynovych/msr/issues) or create a new one.
+For more help, check our [GitHub Issues](https://github.com/migration-script-runner/msr-core/issues) or create a new one.
 
 ---
 
@@ -368,9 +368,9 @@ Created in Ukraine 🇺🇦
 
 ## 📞 Support
 
-- **Documentation:** https://vlavrynovych.github.io/msr/
-- **Issues:** https://github.com/vlavrynovych/msr/issues
-- **npm:** https://www.npmjs.com/package/migration-script-runner
+- **Documentation:** https://migration-script-runner.github.io/msr-core/
+- **Issues:** https://github.com/migration-script-runner/msr-core/issues
+- **npm:** https://www.npmjs.com/package/@msr/core
 
 ---
 
