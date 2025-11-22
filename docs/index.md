@@ -25,6 +25,7 @@ An abstract implementation of script runner which can be extended with your own 
 - **Migration Tracking**: Keeps track of executed migrations in your database
 - **Flexible Configuration**: Customize paths, patterns, and backup behavior
 - **Console Rendering**: Beautiful console output with tables and status information
+- **Custom Logging**: Pluggable logger interface for console, file, or cloud logging
 
 ---
 

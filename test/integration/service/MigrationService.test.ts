@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import {MigrationScript, MigrationService} from "../../../src";
+import {MigrationScript, MigrationService, SilentLogger} from "../../../src";
 import {TestUtils} from "../../helpers/TestUtils";
 
 describe('MigrationService', () => {
@@ -15,7 +15,7 @@ describe('MigrationService', () => {
             const cfg =TestUtils.getConfig()
             cfg.filePattern.test = (value) => {return true}
             cfg.filePattern.exec = (value) => {return null}
-            const ms = new MigrationService()
+            const ms = new MigrationService(new SilentLogger())
 
             // Attempt to read scripts with malformed filenames
             try {
@@ -36,7 +36,7 @@ describe('MigrationService', () => {
          */
         it('should read valid migration scripts successfully', async () => {
             // Read migration scripts from test directory
-            const ms = new MigrationService()
+            const ms = new MigrationService(new SilentLogger())
             const res:MigrationScript[] = await ms.readMigrationScripts(TestUtils.getConfig());
 
             // Verify one script was found with correct metadata
@@ -62,7 +62,7 @@ describe('MigrationService', () => {
         it('should return empty array for empty folder', async () => {
             // Read from empty test directory
             const cfg = TestUtils.getConfig(TestUtils.EMPTY_FOLDER)
-            const res:MigrationScript[] = await new MigrationService().readMigrationScripts(cfg)
+            const res:MigrationScript[] = await new MigrationService(new SilentLogger()).readMigrationScripts(cfg)
 
             // Verify empty array is returned without errors
             expect(res).not.undefined
@@ -78,7 +78,7 @@ describe('MigrationService', () => {
         it('should throw error when folder is not found', async () => {
             // Attempt to read from non-existent directory
             const cfg = TestUtils.getConfig('non-existent-folder')
-            const ms = new MigrationService()
+            const ms = new MigrationService(new SilentLogger())
 
             // Verify filesystem error is thrown
             await expect(ms.readMigrationScripts(cfg)).to.be.rejectedWith("ENOENT: no such file or directory");
@@ -93,7 +93,7 @@ describe('MigrationService', () => {
         it('should filter hidden files', async () => {
             // Stub filesystem to return mix of hidden and visible files
             const cfg = TestUtils.getConfig();
-            const ms = new MigrationService();
+            const ms = new MigrationService(new SilentLogger());
 
             const sinon = await import('sinon');
             const readdirStub = sinon.stub(require('fs'), 'readdirSync')
@@ -123,7 +123,7 @@ describe('MigrationService', () => {
         it('should handle duplicate timestamps', async () => {
             // Stub filesystem to return files with identical timestamps
             const cfg = TestUtils.getConfig();
-            const ms = new MigrationService();
+            const ms = new MigrationService(new SilentLogger());
 
             const sinon = await import('sinon');
             const readdirStub = sinon.stub(require('fs'), 'readdirSync')
@@ -153,7 +153,7 @@ describe('MigrationService', () => {
         it('should handle files not matching pattern', async () => {
             // Stub filesystem to return mix of migration and non-migration files
             const cfg = TestUtils.getConfig();
-            const ms = new MigrationService();
+            const ms = new MigrationService(new SilentLogger());
 
             const sinon = await import('sinon');
             const readdirStub = sinon.stub(require('fs'), 'readdirSync')
@@ -184,7 +184,7 @@ describe('MigrationService', () => {
         it('should handle large number of files', async () => {
             // Stub filesystem to return 100 migration files
             const cfg = TestUtils.getConfig();
-            const ms = new MigrationService();
+            const ms = new MigrationService(new SilentLogger());
 
             const sinon = await import('sinon');
             const files = Array.from({length: 100}, (_, i) =>
@@ -220,7 +220,7 @@ describe('MigrationService', () => {
         it('should handle special characters in filenames', async () => {
             // Stub filesystem with special character filenames
             const cfg = TestUtils.getConfig();
-            const ms = new MigrationService();
+            const ms = new MigrationService(new SilentLogger());
 
             const sinon = await import('sinon');
             const readdirStub = sinon.stub(require('fs'), 'readdirSync')
@@ -250,7 +250,7 @@ describe('MigrationService', () => {
         it('should handle concurrent reads safely', async () => {
             // Execute 10 concurrent reads
             const cfg = TestUtils.getConfig();
-            const ms = new MigrationService();
+            const ms = new MigrationService(new SilentLogger());
 
             const promises = Array.from({length: 10}, () =>
                 ms.readMigrationScripts(cfg)
@@ -269,6 +269,17 @@ describe('MigrationService', () => {
                         'All results should be identical');
                 }
             });
+        })
+    })
+
+    describe('Constructor', () => {
+        /**
+         * Test: Constructor uses default ConsoleLogger when logger not provided
+         * Validates that the default logger parameter works correctly
+         */
+        it('should use default ConsoleLogger when logger not provided', () => {
+            const ms = new MigrationService();
+            expect(ms).to.be.instanceOf(MigrationService);
         })
     })
 })

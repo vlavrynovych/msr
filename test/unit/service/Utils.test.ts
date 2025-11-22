@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import {IMigrationInfo, IDatabaseMigrationHandler, Utils} from "../../../src";
+import {IMigrationInfo, IDatabaseMigrationHandler, Utils, SilentLogger} from "../../../src";
 import {TestUtils} from "../../helpers/TestUtils";
 
 describe('Utils', () => {
@@ -165,7 +165,7 @@ describe('Utils', () => {
          */
         it('should successfully parse valid migration scripts', async () => {
             // Parse a migration script with a single valid export
-            const res = await Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_valid.ts'));
+            const res = await Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_valid.ts'), new SilentLogger());
 
             // Verify the parsed script has the required up() function and can be executed
             expect(res).not.undefined
@@ -173,7 +173,7 @@ describe('Utils', () => {
             expect(await res.up({}, {} as IMigrationInfo, {} as IDatabaseMigrationHandler)).eq('result string')
 
             // Parse a migration script with multiple exports (should still find the valid one)
-            const res2 = await Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_valid-multiple-exports.ts'));
+            const res2 = await Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_valid-multiple-exports.ts'), new SilentLogger());
 
             // Verify the parsed script works correctly even with multiple exports
             expect(res2).not.undefined
@@ -190,7 +190,7 @@ describe('Utils', () => {
         it('should throw error for scripts with no executable content', async () => {
             // Attempt to parse a script with no executable class
             try {
-                await Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_invalid.ts'));
+                await Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_invalid.ts'), new SilentLogger());
                 expect.fail('Should have thrown');
             } catch (e: any) {
                 // Verify the error provides a clear, actionable message
@@ -207,7 +207,7 @@ describe('Utils', () => {
         it('should throw error for scripts with multiple executable instances', async () => {
             // Attempt to parse a script with multiple executable classes
             try {
-                await Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_invalid-multiple-exports.ts'));
+                await Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_invalid-multiple-exports.ts'), new SilentLogger());
                 expect.fail('Should have thrown');
             } catch (e: any) {
                 // Verify the error indicates the ambiguity problem
@@ -225,7 +225,7 @@ describe('Utils', () => {
         it('should throw error for scripts with parse errors', async () => {
             // Attempt to parse a script with syntax errors
             try {
-                await Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_invalid-parse-error.ts'));
+                await Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_invalid-parse-error.ts'), new SilentLogger());
                 expect.fail('Should have thrown');
             } catch (e: any) {
                 // Verify the error includes parse error details

@@ -26,9 +26,17 @@ MSR provides a lightweight, flexible framework for managing database migrations.
 - [Features](#-features)
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
+  - [1. Implement Database Handler](#1-implement-database-handler)
+  - [2. Create Migration Script](#2-create-migration-script)
+  - [3. Run Migrations](#3-run-migrations)
 - [Documentation](#-documentation)
 - [Configuration](#-configuration)
 - [Usage Examples](#-usage-examples)
+  - [Library Usage](#library-usage)
+  - [CLI Usage](#cli-usage)
+  - [List All Migrations](#list-all-migrations)
+  - [Custom Migration Example](#custom-migration-example)
+  - [Custom Logger](#custom-logger)
 - [Why MSR?](#-why-msr)
 - [Development](#-development)
 - [Contributing](#-contributing)
@@ -48,7 +56,8 @@ MSR provides a lightweight, flexible framework for managing database migrations.
 - **📊 Migration Tracking** - Keeps history of executed migrations in your database
 - **⚙️ Flexible Configuration** - Customize paths, patterns, and backup behavior
 - **🎨 Beautiful Output** - Color-coded console tables and status information
-- **✅ Well Tested** - 132 tests with 100% code coverage and mutation testing
+- **📝 Custom Logging** - Pluggable logger interface for console, file, or cloud logging
+- **✅ Well Tested** - 133 tests with 100% code coverage and mutation testing
 
 ---
 
@@ -142,6 +151,7 @@ process.exit(result.success ? 0 : 1);
 - **[Configuration](https://migration-script-runner.github.io/msr-core/configuration)** - All configuration options
 - **[API Reference](https://migration-script-runner.github.io/msr-core/api/)** - Complete API documentation
 - **[Writing Migrations](https://migration-script-runner.github.io/msr-core/guides/writing-migrations)** - Best practices and patterns
+- **[Custom Logging](https://migration-script-runner.github.io/msr-core/guides/custom-logging)** - Customize logging behavior
 - **[Testing](https://migration-script-runner.github.io/msr-core/testing/)** - Testing your migrations
 
 ---
@@ -237,6 +247,35 @@ export default class AddPostsTable implements IMigrationScript {
   }
 }
 ```
+
+### Custom Logger
+
+MSR provides flexible logging through the `ILogger` interface with three built-in implementations:
+
+**Built-in Loggers:**
+- **[ConsoleLogger](https://migration-script-runner.github.io/msr-core/loggers/console-logger)** (default) - Output to console for development
+- **[SilentLogger](https://migration-script-runner.github.io/msr-core/loggers/silent-logger)** - Suppress all output for testing
+- **[FileLogger](https://migration-script-runner.github.io/msr-core/loggers/file-logger)** - Write to files with automatic rotation for production
+
+**Quick Example:**
+
+```typescript
+import { MigrationService, FileLogger } from '@migration-script-runner/core';
+
+// Production logging with file rotation
+const logger = new FileLogger({
+    logPath: '/var/log/migrations.log',
+    maxFileSize: 10 * 1024 * 1024,  // 10MB
+    maxFiles: 10
+});
+
+const service = new MigrationService(logger);
+await service.executeMigrations(config);
+```
+
+📖 **Documentation:**
+- [Logger Implementations](https://migration-script-runner.github.io/msr-core/loggers) - Detailed guides for each logger
+- [Custom Logging Guide](https://migration-script-runner.github.io/msr-core/guides/custom-logging) - Create your own loggers for cloud services, custom formatting, etc.
 
 ---
 
