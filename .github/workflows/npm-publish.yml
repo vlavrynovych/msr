@@ -29,9 +29,9 @@ jobs:
         if: steps.check.outputs.changed == 'true'
         run: 'echo "Version change found in commit ${{ steps.check.outputs.commit }}! New version: ${{ steps.check.outputs.version }} (${{ steps.check.outputs.type }})"'
   publish:
-    # needs:
-    #   - check
-    # if: needs.check.outputs.changed == 'true'
+    needs:
+      - check
+    if: needs.check.outputs.changed == 'true'
     name: Publish
     runs-on: ubuntu-latest
     permissions:
@@ -39,22 +39,22 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      # - name: Setup Node
-      #   uses: actions/setup-node@v3
-      #   with:
-      #     node-version: "16"
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16"
 
-      # - run: npm install
-      # - run: mkdir backups
+      - run: npm install
+      - run: mkdir backups
 
-      # - run: npm run test:mocha
-      # - run: npm run build
+      - run: npm run test:mocha
+      - run: npm run build
 
-      # - uses: JS-DevTools/npm-publish@v3
-      #   with:
-      #     token: ${{ secrets.NPM_AUTH_TOKEN }}
-      #     access: public
+      - uses: JS-DevTools/npm-publish@v3
+        with:
+          token: ${{ secrets.NPM_AUTH_TOKEN }}
+          access: public
 
       - uses: thejeff77/action-push-tag@v1.0.0
         with:
-          tag: 'v0.2.1'
+          tag: 'v${{ needs.check.outputs.version }}'
