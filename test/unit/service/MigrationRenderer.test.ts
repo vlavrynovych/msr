@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import {Config, ConsoleRenderer, IDatabaseMigrationHandler, IScripts, MigrationScript, IMigrationInfo} from "../../../src";
+import {Config, MigrationRenderer, IDatabaseMigrationHandler, IScripts, MigrationScript, IMigrationInfo} from "../../../src";
 
-describe('ConsoleRenderer', () => {
+describe('MigrationRenderer', () => {
 
     describe('drawMigrated()', () => {
 
@@ -16,14 +16,14 @@ describe('ConsoleRenderer', () => {
                 {timestamp: 2, name: 'Test<>&"', finishedAt: Date.now(), username: 'user'} as MigrationScript,
             ]
             const scripts = {migrated: list, all: list} as IScripts
-            const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+            const renderer = new MigrationRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
 
             // when: capture console output
             const sinon = require('sinon');
             const consoleLogSpy = sinon.spy(console, 'log');
 
             // then: should render without errors and include migration names
-            cr.drawMigrated(scripts)
+            renderer.drawMigrated(scripts)
 
             expect(consoleLogSpy.called).to.be.true;
             const output = consoleLogSpy.firstCall.args[0];
@@ -44,14 +44,14 @@ describe('ConsoleRenderer', () => {
                 {timestamp: 1, name: longName, finishedAt: Date.now(), username: 'user'} as MigrationScript,
             ]
             const scripts = {migrated: list, all: list} as IScripts
-            const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+            const renderer = new MigrationRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
 
             // when: capture console output
             const sinon = require('sinon');
             const consoleLogSpy = sinon.spy(console, 'log');
 
             // then: should render and truncate or wrap long name appropriately
-            cr.drawMigrated(scripts)
+            renderer.drawMigrated(scripts)
 
             expect(consoleLogSpy.called).to.be.true;
             const output = consoleLogSpy.firstCall.args[0];
@@ -75,11 +75,11 @@ describe('ConsoleRenderer', () => {
             } as MigrationScript))
 
             const scripts = {migrated: list, all: list} as IScripts
-            const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+            const renderer = new MigrationRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
 
             // when: render with display limit
             const start = Date.now()
-            cr.drawMigrated(scripts, 10)
+            renderer.drawMigrated(scripts, 10)
             const duration = Date.now() - start
 
             // then: should be fast
@@ -103,13 +103,13 @@ describe('ConsoleRenderer', () => {
                 {timestamp: 1, name: 'Migration1'} as MigrationScript,
             ]
             const scripts = {migrated: list, all: all} as IScripts
-            const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+            const renderer = new MigrationRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
 
             // when: capture output
             const sinon = require('sinon');
             const consoleLogSpy = sinon.spy(console, 'log');
 
-            cr.drawMigrated(scripts)
+            renderer.drawMigrated(scripts)
 
             // then: should show Y for locally found, N for missing
             const output = consoleLogSpy.firstCall.args[0];
@@ -133,13 +133,13 @@ describe('ConsoleRenderer', () => {
             ]
             // all array is undefined
             const scripts = {migrated: list, all: undefined} as unknown as IScripts
-            const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+            const renderer = new MigrationRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
 
             // when: capture output
             const sinon = require('sinon');
             const consoleLogSpy = sinon.spy(console, 'log');
 
-            cr.drawMigrated(scripts)
+            renderer.drawMigrated(scripts)
 
             // then: should show N for all migrations since all is undefined
             const output = consoleLogSpy.firstCall.args[0];
@@ -161,14 +161,14 @@ describe('ConsoleRenderer', () => {
                 {timestamp: 1, name: 'Test1', startedAt: 0, finishedAt: 1000, result: undefined} as IMigrationInfo,
                 {timestamp: 2, name: 'Test2', startedAt: 0, finishedAt: 1000, result: null} as any,
             ]
-            const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+            const renderer = new MigrationRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
 
             // when: capture console output
             const sinon = require('sinon');
             const consoleLogSpy = sinon.spy(console, 'log');
 
             // then: should render table with undefined/null values
-            cr.drawExecutedTable(list)
+            renderer.drawExecutedTable(list)
 
             expect(consoleLogSpy.called).to.be.true;
             const output = consoleLogSpy.firstCall.args[0];
@@ -193,13 +193,13 @@ describe('ConsoleRenderer', () => {
                 getName: () => 'Test Implementation'
             } as IDatabaseMigrationHandler;
 
-            const cr = new ConsoleRenderer(handler);
+            const renderer = new MigrationRenderer(handler);
 
             // when: capture output
             const sinon = require('sinon');
             const consoleLogSpy = sinon.spy(console, 'log');
 
-            cr.drawFiglet();
+            renderer.drawFiglet();
 
             // then: should include version and handler name
             const output = consoleLogSpy.firstCall.args[0];
@@ -222,13 +222,13 @@ describe('ConsoleRenderer', () => {
                 {timestamp: 1, name: 'Ignored1', filepath: '/path/to/ignored1.ts'} as MigrationScript,
                 {timestamp: 2, name: 'Ignored2', filepath: '/path/to/ignored2.ts'} as MigrationScript,
             ]
-            const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+            const renderer = new MigrationRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
 
             // when: capture console.warn output
             const sinon = require('sinon');
             const consoleWarnSpy = sinon.spy(console, 'warn');
 
-            cr.drawIgnoredTable(list);
+            renderer.drawIgnoredTable(list);
 
             // then: should warn about ignored scripts
             expect(consoleWarnSpy.called).to.be.true;
@@ -258,11 +258,11 @@ describe('ConsoleRenderer', () => {
             ]
 
             // Create renderer
-            const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+            const renderer = new MigrationRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
 
             // Test with displayLimit of 2 and 0 (should not throw)
-            cr.drawMigrated({migrated: list} as IScripts, 2)
-            cr.drawMigrated({migrated: [...list]} as IScripts, 0)
+            renderer.drawMigrated({migrated: list} as IScripts, 2)
+            renderer.drawMigrated({migrated: [...list]} as IScripts, 0)
         })
 
         /**
@@ -279,10 +279,10 @@ describe('ConsoleRenderer', () => {
                 {timestamp: 3, name: '3'} as MigrationScript,
             ]
             const scripts = {migrated: list} as IScripts
-            const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+            const renderer = new MigrationRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
 
             // Render with displayLimit=0
-            cr.drawMigrated(scripts, 0)
+            renderer.drawMigrated(scripts, 0)
 
             // Verify all 3 are shown
             expect(scripts.migrated.length).eq(3, 'Should show all 3 when displayLimit is 0')
@@ -302,10 +302,10 @@ describe('ConsoleRenderer', () => {
                 {timestamp: 3, name: '3'} as MigrationScript,
             ]
             const scripts = {migrated: [...list]} as IScripts
-            const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+            const renderer = new MigrationRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
 
             // Render with displayLimit=2
-            cr.drawMigrated(scripts, 2)
+            renderer.drawMigrated(scripts, 2)
 
             // Verify the original array is not mutated
             expect(scripts.migrated.length).eq(3, 'Original array should remain unchanged')
@@ -324,10 +324,10 @@ describe('ConsoleRenderer', () => {
                 {timestamp: 2, name: 'Recent'} as MigrationScript,
             ]
             const scripts = {migrated: [...list]} as IScripts
-            const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+            const renderer = new MigrationRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
 
             // Render with displayLimit=1
-            cr.drawMigrated(scripts, 1)
+            renderer.drawMigrated(scripts, 1)
 
             // Verify the original array is not mutated
             expect(scripts.migrated.length).eq(2, 'Original array should remain unchanged')
@@ -346,10 +346,10 @@ describe('ConsoleRenderer', () => {
                 {timestamp: 2, name: '2'} as MigrationScript,
             ]
             const scripts = {migrated: [...list]} as IScripts
-            const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+            const renderer = new MigrationRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
 
             // Render with displayLimit=10 (more than available)
-            cr.drawMigrated(scripts, 10)
+            renderer.drawMigrated(scripts, 10)
 
             // Verify all 2 are shown
             expect(scripts.migrated.length).eq(2, 'Should show all 2 when limit is 10')
@@ -364,10 +364,10 @@ describe('ConsoleRenderer', () => {
             // Prepare empty migration list
             const list: MigrationScript[] = []
             const scripts = {migrated: list} as IScripts
-            const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+            const renderer = new MigrationRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
 
             // Render with displayLimit=5
-            cr.drawMigrated(scripts, 5)
+            renderer.drawMigrated(scripts, 5)
 
             // Verify empty list is handled gracefully
             expect(scripts.migrated.length).eq(0, 'Should handle empty list')
@@ -397,18 +397,18 @@ describe('ConsoleRenderer', () => {
             ]
 
             // Create renderer
-            const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+            const renderer = new MigrationRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
 
             // Call all rendering methods (should not throw)
-            cr.drawExecutedTable(list)
-            cr.drawTodoTable(list)
-            cr.drawIgnoredTable(list)
-            cr.drawMigrated({
+            renderer.drawExecutedTable(list)
+            renderer.drawTodoTable(list)
+            renderer.drawIgnoredTable(list)
+            renderer.drawMigrated({
                 migrated: list2,
                 all: list
             } as IScripts)
 
-            cr.drawMigrated({
+            renderer.drawMigrated({
                 migrated: list2,
             } as IScripts)
         })
@@ -419,12 +419,12 @@ describe('ConsoleRenderer', () => {
          * by returning early without attempting to render tables.
          */
         it('should handle empty arrays without rendering', () => {
-            const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+            const renderer = new MigrationRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
 
             // These should all return early without rendering (and not throw)
-            cr.drawExecutedTable([])
-            cr.drawTodoTable([])
-            cr.drawIgnoredTable([])
+            renderer.drawExecutedTable([])
+            renderer.drawTodoTable([])
+            renderer.drawIgnoredTable([])
         })
 
     })

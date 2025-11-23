@@ -1,6 +1,6 @@
 import {IBackupService} from "./service/IBackupService";
 import {ISchemaVersionService} from "./service/ISchemaVersionService";
-import {IConsoleRenderer} from "./service/IConsoleRenderer";
+import {IMigrationRenderer} from "./service/IMigrationRenderer";
 import {IRenderStrategy} from "./service/IRenderStrategy";
 import {IMigrationService} from "./service/IMigrationService";
 import {ILogger} from "./ILogger";
@@ -33,7 +33,7 @@ import {IMigrationHooks} from "./IMigrationHooks";
  * const executor = new MigrationScriptExecutor(handler, {
  *     backupService: mockBackupService,
  *     schemaVersionService: mockSchemaVersionService,
- *     consoleRenderer: mockRenderer,
+ *     migrationRenderer: mockRenderer,
  *     migrationService: mockMigrationService
  * });
  *
@@ -57,17 +57,17 @@ export interface IMigrationExecutorDependencies {
     schemaVersionService?: ISchemaVersionService;
 
     /**
-     * Custom console renderer implementation.
-     * If not provided, uses ConsoleRenderer with default configuration.
+     * Custom migration renderer implementation.
+     * If not provided, uses MigrationRenderer with default configuration.
      */
-    consoleRenderer?: IConsoleRenderer;
+    migrationRenderer?: IMigrationRenderer;
 
     /**
      * Custom render strategy for migration output.
      * Determines the format of migration output (ASCII tables, JSON, silent, etc.).
-     * If not provided, uses AsciiTableRenderStrategy (default console tables).
+     * If not provided, uses AsciiTableRenderStrategy (default ASCII tables).
      *
-     * Note: This is ignored if consoleRenderer is provided.
+     * Note: This is ignored if migrationRenderer is provided.
      *
      * @example
      * ```typescript

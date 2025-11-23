@@ -55,9 +55,9 @@ MSR provides a lightweight, flexible framework for managing database migrations.
 - **💾 Automatic Backups** - Built-in backup and restore on failure
 - **📊 Migration Tracking** - Keeps history of executed migrations in your database
 - **⚙️ Flexible Configuration** - Customize paths, patterns, and backup behavior
-- **🎨 Beautiful Output** - Color-coded console tables and status information
+- **🎨 Multiple Output Formats** - ASCII tables, JSON, or silent output via Strategy Pattern
 - **📝 Custom Logging** - Pluggable logger interface for console, file, or cloud logging
-- **✅ Well Tested** - 133 tests with 100% code coverage and mutation testing
+- **✅ Well Tested** - 330 tests with 100% code coverage and mutation testing
 
 ---
 
@@ -293,6 +293,64 @@ await service.executeMigrations(config);
 📖 **Documentation:**
 - [Logger Implementations](https://migration-script-runner.github.io/msr-core/loggers) - Detailed guides for each logger
 - [Custom Logging Guide](https://migration-script-runner.github.io/msr-core/guides/custom-logging) - Create your own loggers for cloud services, custom formatting, etc.
+
+### Custom Output Formats
+
+MSR uses the Strategy Pattern to support multiple output formats through render strategies:
+
+**Built-in Render Strategies:**
+- **[AsciiTableRenderStrategy](https://migration-script-runner.github.io/msr-core/rendering/ascii-table-strategy)** (default) - Beautiful ASCII tables for terminal output
+- **[JsonRenderStrategy](https://migration-script-runner.github.io/msr-core/rendering/json-strategy)** - Structured JSON for CI/CD integration and log aggregation
+- **[SilentRenderStrategy](https://migration-script-runner.github.io/msr-core/rendering/silent-strategy)** - No output for testing and library usage
+
+**Quick Examples:**
+
+```typescript
+import {
+    MigrationScriptExecutor,
+    JsonRenderStrategy,
+    SilentRenderStrategy
+} from '@migration-script-runner/core';
+
+// JSON output for CI/CD pipelines
+const executor = new MigrationScriptExecutor(handler, {
+    renderStrategy: new JsonRenderStrategy(true)  // pretty: true
+});
+
+// Compact JSON for log aggregation
+const executor = new MigrationScriptExecutor(handler, {
+    renderStrategy: new JsonRenderStrategy(false)  // pretty: false
+});
+
+// Silent output for testing
+const executor = new MigrationScriptExecutor(handler, {
+    renderStrategy: new SilentRenderStrategy()
+});
+
+// Default ASCII tables (no configuration needed)
+const executor = new MigrationScriptExecutor(handler);
+```
+
+**JSON Output Example:**
+```json
+{
+  "migrated": [
+    {
+      "timestamp": 202501220100,
+      "name": "add_users_table",
+      "executed": "2025-01-22T01:00:00.000Z",
+      "executedAgo": "2 hours ago",
+      "duration": 2.5,
+      "username": "admin",
+      "foundLocally": true
+    }
+  ]
+}
+```
+
+📖 **Documentation:**
+- [Render Strategies Guide](https://migration-script-runner.github.io/msr-core/rendering) - Detailed guide for each strategy
+- [Custom Render Strategy](https://migration-script-runner.github.io/msr-core/guides/custom-rendering) - Create your own output formats
 
 ---
 

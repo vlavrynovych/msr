@@ -100,10 +100,10 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
         })
 
         /**
-         * Test: Constructor accepts custom consoleRenderer through dependencies
-         * Validates that custom consoleRenderer is used instead of default
+         * Test: Constructor accepts custom migrationRenderer through dependencies
+         * Validates that custom migrationRenderer is used instead of default
          */
-        it('should use custom consoleRenderer when provided', () => {
+        it('should use custom migrationRenderer when provided', () => {
             const mockRenderer = {
                 drawFiglet: sinon.stub(),
                 drawMigrated: sinon.stub(),
@@ -112,9 +112,9 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 drawExecutedTable: sinon.stub()
             };
             const executorWithCustomRenderer = new MigrationScriptExecutor(handler, {
-                consoleRenderer: mockRenderer
+                migrationRenderer: mockRenderer
             });
-            expect(executorWithCustomRenderer.consoleRenderer).to.equal(mockRenderer);
+            expect(executorWithCustomRenderer.migrationRenderer).to.equal(mockRenderer);
             expect(mockRenderer.drawFiglet.calledOnce).to.be.true;
         })
 
@@ -163,14 +163,14 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 logger: customLogger,
                 backupService: mockBackupService,
                 schemaVersionService: mockSchemaVersionService,
-                consoleRenderer: mockRenderer,
+                migrationRenderer: mockRenderer,
                 migrationService: mockMigrationService
             });
 
             expect(executorWithAllCustom.logger).to.equal(customLogger);
             expect(executorWithAllCustom.backupService).to.equal(mockBackupService);
             expect(executorWithAllCustom.schemaVersionService).to.equal(mockSchemaVersionService);
-            expect(executorWithAllCustom.consoleRenderer).to.equal(mockRenderer);
+            expect(executorWithAllCustom.migrationRenderer).to.equal(mockRenderer);
             expect(executorWithAllCustom.migrationService).to.equal(mockMigrationService);
         })
 

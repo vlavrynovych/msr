@@ -5,7 +5,7 @@ import {AsciiTableRenderStrategy, IScripts, MigrationScript, IDatabaseMigrationH
 /**
  * Unit tests for AsciiTableRenderStrategy.
  * Tests ASCII table output formatting for render methods and duration calculations.
- * Note: Most rendering functionality is tested via ConsoleRenderer tests.
+ * Note: Most rendering functionality is tested via MigrationRenderer tests.
  * These tests cover specific edge cases like default logger initialization and getDuration.
  */
 describe('AsciiTableRenderStrategy', () => {

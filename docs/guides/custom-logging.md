@@ -338,7 +338,9 @@ The following services accept an optional `ILogger` parameter:
 - **MigrationScriptExecutor** - Main migration executor
 - **BackupService** - Backup creation and restoration
 - **MigrationService** - Migration script discovery
-- **ConsoleRenderer** - Table and status rendering
+- **MigrationRenderer** - Migration output rendering (delegates to render strategies)
+- **AsciiTableRenderStrategy** - ASCII table rendering
+- **JsonRenderStrategy** - JSON output rendering
 - **Utils.parseRunnable()** - Migration script parsing
 
 **Example:**

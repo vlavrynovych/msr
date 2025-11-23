@@ -50,8 +50,9 @@ constructor(
   - `logger?`: Custom logger implementation (defaults to `ConsoleLogger`)
   - `backupService?`: Custom backup service (defaults to `BackupService`)
   - `schemaVersionService?`: Custom schema version service (defaults to `SchemaVersionService`)
-  - `consoleRenderer?`: Custom console renderer (defaults to `ConsoleRenderer`)
+  - `migrationRenderer?`: Custom migration renderer (defaults to `MigrationRenderer`)
   - `migrationService?`: Custom migration service (defaults to `MigrationService`)
+  - `renderStrategy?`: Custom render strategy (defaults to `AsciiTableRenderStrategy`)
 
 #### Methods
 

@@ -22,14 +22,14 @@ import {IDatabaseMigrationHandler} from "../IDatabaseMigrationHandler";
  * ```typescript
  * // Use JSON output for CI/CD
  * const strategy = new JsonRenderStrategy(true);
- * const renderer = new ConsoleRenderer(handler, logger, strategy);
+ * const renderer = new MigrationRenderer(handler, logger, strategy);
  *
  * // Use silent output for testing
  * const strategy = new SilentRenderStrategy();
- * const renderer = new ConsoleRenderer(handler, logger, strategy);
+ * const renderer = new MigrationRenderer(handler, logger, strategy);
  *
- * // Use default console output
- * const renderer = new ConsoleRenderer(handler); // Uses ConsoleRenderStrategy
+ * // Use default ASCII table output
+ * const renderer = new MigrationRenderer(handler); // Uses AsciiTableRenderStrategy
  * ```
  */
 export interface IRenderStrategy {
