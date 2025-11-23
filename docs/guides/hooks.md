@@ -56,7 +56,7 @@ class NotificationHooks implements IMigrationHooks {
 }
 
 // Use the hooks
-const executor = new MigrationScriptExecutor(handler, {
+const executor = new MigrationScriptExecutor(handler, config, {
     hooks: new NotificationHooks()
 });
 
@@ -142,7 +142,7 @@ class SlackHooks implements IMigrationHooks {
 
 // Usage
 const hooks = new SlackHooks(process.env.SLACK_WEBHOOK_URL!);
-const executor = new MigrationScriptExecutor(handler, { hooks });
+const executor = new MigrationScriptExecutor(handler, config, { hooks });
 ```
 
 ---
@@ -289,7 +289,7 @@ class DryRunHooks implements IMigrationHooks {
 
 // Usage
 const hooks = new DryRunHooks();
-const executor = new MigrationScriptExecutor(handler, { hooks });
+const executor = new MigrationScriptExecutor(handler, config, { hooks });
 
 try {
     await executor.migrate();
@@ -354,7 +354,7 @@ const hooks = new CompositeHooks([
     new ValidationHooks()
 ]);
 
-const executor = new MigrationScriptExecutor(handler, { hooks });
+const executor = new MigrationScriptExecutor(handler, config, { hooks });
 await executor.migrate();
 ```
 
@@ -377,7 +377,7 @@ if (process.env.ENABLE_DETAILED_LOGGING === 'true') {
     hooks.addHook(new DetailedFileLoggerHooks('/var/log/migrations.log'));
 }
 
-const executor = new MigrationScriptExecutor(handler, { hooks });
+const executor = new MigrationScriptExecutor(handler, config, { hooks });
 ```
 
 ---
@@ -463,7 +463,7 @@ const allHooks = new CompositeHooks([
     loggingHooks
 ]);
 
-const executor = new MigrationScriptExecutor(handler, { hooks: allHooks });
+const executor = new MigrationScriptExecutor(handler, config, { hooks: allHooks });
 ```
 
 ---
@@ -583,7 +583,7 @@ describe('SlackHooks', () => {
 **Solutions:**
 1. Verify hook is passed to MigrationScriptExecutor:
    ```typescript
-   const executor = new MigrationScriptExecutor(handler, { hooks: myHooks });
+   const executor = new MigrationScriptExecutor(handler, config, { hooks: myHooks });
    ```
 
 2. Check method names match IMigrationHooks interface exactly
@@ -661,7 +661,7 @@ function createHooks(env: string): IMigrationHooks {
 
 // Use in your application
 const hooks = createHooks(process.env.NODE_ENV || 'development');
-const executor = new MigrationScriptExecutor(handler, { hooks });
+const executor = new MigrationScriptExecutor(handler, config, { hooks });
 
 const result = await executor.migrate();
 

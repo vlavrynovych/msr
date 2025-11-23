@@ -3,8 +3,8 @@ import figlet from "figlet";
 import {AsciiTable3, AlignmentEnum} from 'ascii-table3';
 import _ from "lodash";
 
-import {IRenderStrategy, IScripts, IMigrationInfo, ILogger, IDatabaseMigrationHandler} from "../../interface";
-import {MigrationScript} from "../../model";
+import {IRenderStrategy, IScripts, IMigrationInfo, ILogger} from "../../interface";
+import {MigrationScript, Config} from "../../model";
 import {ConsoleLogger} from "../../logger";
 
 /**
@@ -45,14 +45,16 @@ export class AsciiTableRenderStrategy implements IRenderStrategy {
      * - Username
      * - Whether the migration file still exists locally
      *
+     * Uses config.displayLimit to determine how many migrations to show.
+     *
      * @param scripts - Collection of migration scripts with execution history
-     * @param handler - Database handler for accessing configuration
-     * @param limit - Optional limit on number of migrations to display (0 = all)
+     * @param config - Configuration for accessing file pattern and display limit
      */
-    renderMigrated(scripts: IScripts, handler: IDatabaseMigrationHandler, limit = 0): void {
+    renderMigrated(scripts: IScripts, config: Config): void {
         if (!scripts.migrated.length) return;
 
         let migrated = scripts.migrated;
+        const limit = config.displayLimit;
         if (limit > 0) {
             migrated = _
                 .chain(migrated)
@@ -69,7 +71,7 @@ export class AsciiTableRenderStrategy implements IRenderStrategy {
             const finished = moment(m.finishedAt);
             const date = finished.format('YYYY/MM/DD HH:mm');
             const ago = finished.fromNow();
-            const name = m.name.replace(handler.cfg.filePattern, '');
+            const name = m.name.replace(config.filePattern, '');
             const found = (scripts.all || []).find(s => s.timestamp === m.timestamp) ? 'Y' : 'N';
             table.addRow(m.timestamp, name, `${date} (${ago})`, AsciiTableRenderStrategy.getDuration(m), m.username, found);
         });

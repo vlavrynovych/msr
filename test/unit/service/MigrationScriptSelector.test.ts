@@ -128,7 +128,7 @@ describe('MigrationScriptSelector', () => {
          * Test: getIgnored returns empty array when no migrations executed
          * Validates that when starting with an empty database, getIgnored
          * returns an empty array since there are no migrations to ignore yet.
-         * All scripts would be in the todo list instead.
+         * All scripts would be in the pending list instead.
          */
         it('should return empty array when no migrations have been executed', () => {
             const allScripts = [
@@ -248,25 +248,25 @@ describe('MigrationScriptSelector', () => {
                 createScript(1, 'migration1'), // ignored
                 createScript(2, 'migration2'), // ignored
                 createScript(5, 'migration5'), // migrated
-                createScript(7, 'migration7'), // todo
-                createScript(9, 'migration9')  // todo
+                createScript(7, 'migration7'), // pending
+                createScript(9, 'migration9')  // pending
             ];
 
-            const todo = selector.getPending(migratedScripts, allScripts);
+            const pending = selector.getPending(migratedScripts, allScripts);
             const ignored = selector.getIgnored(migratedScripts, allScripts);
 
-            // Verify todo
-            expect(todo).to.have.lengthOf(2);
-            expect(todo.map(s => s.timestamp)).to.deep.equal([7, 9]);
+            // Verify pending
+            expect(pending).to.have.lengthOf(2);
+            expect(pending.map(s => s.timestamp)).to.deep.equal([7, 9]);
 
             // Verify ignored
             expect(ignored).to.have.lengthOf(2);
             expect(ignored.map(s => s.timestamp)).to.deep.equal([1, 2]);
 
             // Verify no overlap
-            const todoTimestamps = new Set(todo.map(s => s.timestamp));
+            const pendingTimestamps = new Set(pending.map(s => s.timestamp));
             const ignoredTimestamps = new Set(ignored.map(s => s.timestamp));
-            const intersection = [...todoTimestamps].filter(t => ignoredTimestamps.has(t));
+            const intersection = [...pendingTimestamps].filter(t => ignoredTimestamps.has(t));
             expect(intersection).to.be.empty;
         });
     });

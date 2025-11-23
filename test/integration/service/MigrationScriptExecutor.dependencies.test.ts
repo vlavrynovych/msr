@@ -18,9 +18,10 @@ import {TestUtils} from "../../helpers/TestUtils";
 describe('MigrationScriptExecutor - Dependency Injection', () => {
 
     let handler: IDatabaseMigrationHandler;
+    let cfg: Config;
 
     before(() => {
-        const cfg = TestUtils.getConfig();
+        cfg = TestUtils.getConfig();
         const db: IDB = new class implements IDB {
             [key: string]: unknown;
             test() { throw new Error('Not implemented') }
@@ -39,7 +40,6 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
             };
-            cfg: Config = cfg;
             db: IDB = db;
             getName(): string { return "Test Implementation" }
         }
@@ -51,7 +51,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
          * Validates that the default logger parameter works correctly
          */
         it('should use default ConsoleLogger when logger not provided', () => {
-            const executorWithDefaultLogger = new MigrationScriptExecutor(handler);
+            const executorWithDefaultLogger = new MigrationScriptExecutor(handler, cfg);
             expect(executorWithDefaultLogger).to.be.instanceOf(MigrationScriptExecutor);
         })
 
@@ -61,7 +61,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
          */
         it('should use custom logger when provided', () => {
             const customLogger = new SilentLogger();
-            const executorWithCustomLogger = new MigrationScriptExecutor(handler, {
+            const executorWithCustomLogger = new MigrationScriptExecutor(handler, cfg, {
                 logger: customLogger
             });
             expect(executorWithCustomLogger.logger).to.equal(customLogger);
@@ -77,7 +77,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 restore: sinon.stub().resolves(),
                 deleteBackup: sinon.stub()
             };
-            const executorWithCustomBackup = new MigrationScriptExecutor(handler, {
+            const executorWithCustomBackup = new MigrationScriptExecutor(handler, cfg, {
                 backupService: mockBackupService
             });
             expect(executorWithCustomBackup.backupService).to.equal(mockBackupService);
@@ -93,7 +93,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 save: sinon.stub().resolves(),
                 getAllMigratedScripts: sinon.stub().resolves([])
             };
-            const executorWithCustomSchema = new MigrationScriptExecutor(handler, {
+            const executorWithCustomSchema = new MigrationScriptExecutor(handler, cfg, {
                 schemaVersionService: mockSchemaVersionService
             });
             expect(executorWithCustomSchema.schemaVersionService).to.equal(mockSchemaVersionService);
@@ -111,7 +111,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 drawIgnored: sinon.stub(),
                 drawExecuted: sinon.stub()
             };
-            const executorWithCustomRenderer = new MigrationScriptExecutor(handler, {
+            const executorWithCustomRenderer = new MigrationScriptExecutor(handler, cfg, {
                 migrationRenderer: mockRenderer
             });
             expect(executorWithCustomRenderer.migrationRenderer).to.equal(mockRenderer);
@@ -126,7 +126,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             const mockMigrationService = {
                 readMigrationScripts: sinon.stub().resolves([])
             };
-            const executorWithCustomMigration = new MigrationScriptExecutor(handler, {
+            const executorWithCustomMigration = new MigrationScriptExecutor(handler, cfg, {
                 migrationService: mockMigrationService
             });
             expect(executorWithCustomMigration.migrationService).to.equal(mockMigrationService);
@@ -146,7 +146,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                     executed: []
                 })
             };
-            const executorWithCustomScanner = new MigrationScriptExecutor(handler, {
+            const executorWithCustomScanner = new MigrationScriptExecutor(handler, cfg, {
                 migrationScanner: mockMigrationScanner
             });
             expect(executorWithCustomScanner.migrationScanner).to.equal(mockMigrationScanner);
@@ -179,7 +179,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 readMigrationScripts: sinon.stub().resolves([])
             };
 
-            const executorWithAllCustom = new MigrationScriptExecutor(handler, {
+            const executorWithAllCustom = new MigrationScriptExecutor(handler, cfg, {
                 logger: customLogger,
                 backupService: mockBackupService,
                 schemaVersionService: mockSchemaVersionService,

@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { MigrationRunner, MigrationScript, SilentLogger, ConsoleLogger, Config } from "../../../src";
+import { IRunnableScript, MigrationRunner, MigrationScript, SilentLogger, ConsoleLogger, Config } from "../../../src";
 
 describe('MigrationRunner', () => {
     let runner: MigrationRunner;
@@ -145,7 +145,7 @@ describe('MigrationRunner', () => {
             const upStub = sinon.stub().resolves(expectedResult);
             script.script = {
                 up: upStub
-            } as any;
+            } as IRunnableScript;
 
             const result = await runner.execute([script]);
 
@@ -177,19 +177,19 @@ describe('MigrationRunner', () => {
             const upStub1 = sinon.stub().resolves('success');
             script1.script = {
                 up: upStub1
-            } as any;
+            } as IRunnableScript;
 
             const script2 = createScript(2, 'migration2');
             const upStub2 = sinon.stub().rejects(new Error('Migration failed'));
             script2.script = {
                 up: upStub2
-            } as any;
+            } as IRunnableScript;
 
             const script3 = createScript(3, 'migration3');
             const upStub3 = sinon.stub().resolves('success');
             script3.script = {
                 up: upStub3
-            } as any;
+            } as IRunnableScript;
 
             await expect(runner.execute([script1, script2, script3]))
                 .to.be.rejectedWith('Migration failed');
@@ -251,7 +251,7 @@ describe('MigrationRunner', () => {
             const upStub = sinon.stub().resolves('success');
             script.script = {
                 up: upStub
-            } as any;
+            } as IRunnableScript;
 
             await runner.executeOne(script);
 
@@ -320,7 +320,7 @@ describe('MigrationRunner', () => {
             const script = createScript(1, 'migration1');
             script.script = {
                 up: sinon.stub().rejects(new Error('Script error'))
-            } as any;
+            } as IRunnableScript;
 
             await expect(runner.executeOne(script))
                 .to.be.rejectedWith('Script error');
@@ -347,13 +347,13 @@ describe('MigrationRunner', () => {
  * @example
  * // Override the up() method for custom behavior
  * const script = createScript(123, 'test');
- * script.script = { up: sinon.stub().rejects(new Error('test error')) } as any;
+ * script.script = { up: sinon.stub().rejects(new Error('test error')) } as IRunnableScript;
  */
 function createScript(timestamp: number, name: string): MigrationScript {
     const filename = `V${timestamp}_${name}.ts`;
     const script = new MigrationScript(filename, `/fake/path/${filename}`, timestamp);
     script.script = {
         up: async () => 'success'
-    } as any;
+    } as IRunnableScript;
     return script;
 }

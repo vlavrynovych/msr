@@ -1,4 +1,3 @@
-import {Config} from "../model";
 import {IBackup, IDB, ISchemaVersion} from "./dao";
 
 /**
@@ -7,16 +6,16 @@ import {IBackup, IDB, ISchemaVersion} from "./dao";
  * This interface must be implemented for each database system you want to use with MSR.
  * It provides database connection, schema version tracking, and backup/restore functionality.
  *
+ * Note: Configuration is now passed separately to the MigrationScriptExecutor constructor.
+ *
  * @example
  * ```typescript
  * export class MyDatabaseHandler implements IDatabaseMigrationHandler {
- *   cfg: Config;
  *   db: IDB;
  *   schemaVersion: ISchemaVersion;
  *   backup: IBackup;
  *
- *   constructor(config: Config) {
- *     this.cfg = config;
+ *   constructor() {
  *     this.db = new MyDBConnection();
  *     this.schemaVersion = new MySchemaVersion(this.db);
  *     this.backup = new MyBackup(this.db);
@@ -43,12 +42,6 @@ export interface IDatabaseMigrationHandler {
      * ```
      */
     getName(): string
-
-    /**
-     * Configuration for the migration system.
-     * Contains migration folder, file pattern, table name, backup settings, etc.
-     */
-    cfg: Config
 
     /**
      * Database connection/client interface.

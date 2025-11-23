@@ -23,11 +23,11 @@ export interface IMigrationRenderer {
      *
      * Shows all migrations that have been previously applied to the database,
      * including their execution time, duration, and status.
+     * Uses config.displayLimit to determine how many migrations to show.
      *
      * @param scripts - Collection of migration scripts with execution history
-     * @param number - Optional limit on number of migrations to display (0 = all)
      */
-    drawMigrated(scripts: IScripts, number?: number): void;
+    drawMigrated(scripts: IScripts): void;
 
     /**
      * Draw pending migrations to be executed.

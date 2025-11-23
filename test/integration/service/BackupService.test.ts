@@ -119,13 +119,12 @@ describe('BackupService', () => {
             cfg.backup.timestamp = false;
             cfg.backup.suffix = `-backup-file-overwrite-${Date.now()}`;
             const bs = new BackupService({
-                cfg: cfg,
                 backup: {
                     async backup(): Promise<string> {
                         return 'data'
                     }
                 }
-            } as IDatabaseMigrationHandler, new SilentLogger());
+            } as IDatabaseMigrationHandler, cfg, new SilentLogger());
 
             // Stub filesystem to simulate existing file
             const existsStub = sinon.stub(fs, 'existsSync').returns(true);
@@ -161,13 +160,12 @@ describe('BackupService', () => {
             cfg.backup.timestamp = false;
             cfg.backup.suffix = `-test-${Date.now()}`;
             const bs = new BackupService({
-                cfg: cfg,
                 backup: {
                     async backup(): Promise<string> {
                         return 'data'
                     }
                 }
-            } as IDatabaseMigrationHandler, new SilentLogger());
+            } as IDatabaseMigrationHandler, cfg, new SilentLogger());
 
             // Stub filesystem to simulate permission error
             const writeStub = sinon.stub(fs, 'writeFileSync')
@@ -191,13 +189,12 @@ describe('BackupService', () => {
             cfg.backup.timestamp = false;
             cfg.backup.suffix = `-test-${Date.now()}`;
             const bs = new BackupService({
-                cfg: cfg,
                 backup: {
                     async backup(): Promise<string> {
                         return 'data'
                     }
                 }
-            } as IDatabaseMigrationHandler, new SilentLogger());
+            } as IDatabaseMigrationHandler, cfg, new SilentLogger());
 
             // Stub filesystem to simulate disk full error
             const writeStub = sinon.stub(fs, 'writeFileSync')
@@ -219,13 +216,12 @@ describe('BackupService', () => {
             // Configure backup with failing database handler
             const cfg = new Config();
             const bs = new BackupService({
-                cfg: cfg,
                 backup: {
                     async backup(): Promise<string> {
                         throw new Error('Database connection failed')
                     }
                 }
-            } as IDatabaseMigrationHandler);
+            } as IDatabaseMigrationHandler, cfg);
 
             // Verify the database error is propagated
             await expect(bs.backup()).to.be.rejectedWith('Database connection failed');
@@ -244,13 +240,12 @@ describe('BackupService', () => {
             cfg.backup.suffix = `-large-${Date.now()}`;
             const largeData = 'x'.repeat(10 * 1024 * 1024); // 10MB string
             const bs = new BackupService({
-                cfg: cfg,
                 backup: {
                     async backup(): Promise<string> {
                         return largeData
                     }
                 }
-            } as IDatabaseMigrationHandler);
+            } as IDatabaseMigrationHandler, cfg);
 
             // Create and write large backup (should not throw or timeout)
             await bs.backup();
@@ -267,13 +262,12 @@ describe('BackupService', () => {
         it('should throw error if backupFile is undefined after _backup()', async () => {
             const cfg = new Config();
             const bs = new BackupService({
-                cfg: cfg,
                 backup: {
                     async backup(): Promise<string> {
                         return 'test data'
                     }
                 }
-            } as IDatabaseMigrationHandler);
+            } as IDatabaseMigrationHandler, cfg);
 
             // Spy on _backup to make it not set backupFile
             const originalBackup = (bs as any)._backup.bind(bs);
@@ -297,13 +291,12 @@ describe('BackupService', () => {
             cfg.backup.timestamp = false;
             cfg.backup.suffix = `-log-test-${Date.now()}`;
             const bs = new BackupService({
-                cfg: cfg,
                 backup: {
                     async backup(): Promise<string> {
                         return 'test data'
                     }
                 }
-            } as IDatabaseMigrationHandler);
+            } as IDatabaseMigrationHandler, cfg);
 
             // and: spy on console
             const consoleInfoSpy = sinon.spy(console, 'info');
@@ -332,7 +325,7 @@ describe('BackupService', () => {
             // Create backup service without creating a backup file
             const cfg = new Config();
             cfg.backup.deleteBackup = false;
-            const bs = new BackupService({cfg: cfg} as IDatabaseMigrationHandler);
+            const bs = new BackupService({} as IDatabaseMigrationHandler, cfg);
 
             // Attempt to restore (should fail with clear error)
             await expect(bs.restore()).to.be.rejectedWith("Cannot open undefined");
@@ -351,7 +344,6 @@ describe('BackupService', () => {
             cfg.backup.suffix = `-corrupted-${Date.now()}`;
             let restoredData: string | undefined;
             const bs = new BackupService({
-                cfg: cfg,
                 backup: {
                     async backup(): Promise<string> {
                         return 'valid data'
@@ -364,7 +356,7 @@ describe('BackupService', () => {
                         return Promise.resolve('restored')
                     }
                 }
-            } as IDatabaseMigrationHandler);
+            } as IDatabaseMigrationHandler, cfg);
 
             // Create backup and then stub file read to return corrupted data
             await bs.backup();
@@ -389,7 +381,6 @@ describe('BackupService', () => {
             cfg.backup.timestamp = false;
             cfg.backup.suffix = `-perm-test-${Date.now()}`;
             const bs = new BackupService({
-                cfg: cfg,
                 backup: {
                     async backup(): Promise<string> {
                         return 'data'
@@ -398,7 +389,7 @@ describe('BackupService', () => {
                         return Promise.resolve('restored')
                     }
                 }
-            } as IDatabaseMigrationHandler);
+            } as IDatabaseMigrationHandler, cfg);
 
             // Create backup successfully
             await bs.backup();
@@ -423,7 +414,6 @@ describe('BackupService', () => {
             cfg.backup.timestamp = false;
             cfg.backup.suffix = `-restore-log-${Date.now()}`;
             const bs = new BackupService({
-                cfg: cfg,
                 backup: {
                     async backup(): Promise<string> {
                         return 'test data'
@@ -432,7 +422,7 @@ describe('BackupService', () => {
                         return Promise.resolve('restored')
                     }
                 }
-            } as IDatabaseMigrationHandler);
+            } as IDatabaseMigrationHandler, cfg);
 
             // and: create backup first
             await bs.backup();
@@ -464,7 +454,7 @@ describe('BackupService', () => {
             // Configure to disable backup deletion
             const cfg = new Config();
             cfg.backup.deleteBackup = false;
-            const bs = new BackupService({cfg: cfg} as IDatabaseMigrationHandler);
+            const bs = new BackupService({} as IDatabaseMigrationHandler, cfg);
 
             // Call deleteBackup (should be no-op, not throw)
             bs.deleteBackup()
@@ -483,13 +473,12 @@ describe('BackupService', () => {
             cfg.backup.timestamp = false;
             cfg.backup.suffix = `-delete-test-${Date.now()}`;
             const bs = new BackupService({
-                cfg: cfg,
                 backup: {
                     async backup(): Promise<string> {
                         return 'data'
                     }
                 }
-            } as IDatabaseMigrationHandler, new SilentLogger());
+            } as IDatabaseMigrationHandler, cfg, new SilentLogger());
 
             // Create backup successfully
             await bs.backup();
@@ -515,13 +504,12 @@ describe('BackupService', () => {
             const cfg = new Config();
             cfg.backup.deleteBackup = true;
             const bs = new BackupService({
-                cfg: cfg,
                 backup: {
                     async backup(): Promise<string> {
                         return 'data'
                     }
                 }
-            } as IDatabaseMigrationHandler, new SilentLogger());
+            } as IDatabaseMigrationHandler, cfg, new SilentLogger());
 
             // Call deleteBackup without creating a backup first
             bs.deleteBackup();

@@ -166,10 +166,11 @@ MSR can be used either as a library (recommended) or as a CLI tool.
 Use MSR as a library to integrate migrations into your application without terminating the process:
 
 ```typescript
-import { MigrationScriptExecutor, IMigrationResult } from '@migration-script-runner/core';
+import { MigrationScriptExecutor, IMigrationResult, Config } from '@migration-script-runner/core';
 
+const config = new Config();
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor(handler);
+const executor = new MigrationScriptExecutor(handler, config);
 
 // Run migrations and get structured results
 const result: IMigrationResult = await executor.migrate();
@@ -199,10 +200,11 @@ if (result.success) {
 For standalone migration scripts, control the process exit based on results:
 
 ```typescript
-import { MigrationScriptExecutor } from '@migration-script-runner/core';
+import { MigrationScriptExecutor, Config } from '@migration-script-runner/core';
 
+const config = new Config();
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor(handler);
+const executor = new MigrationScriptExecutor(handler, config);
 
 const result = await executor.migrate();
 process.exit(result.success ? 0 : 1);

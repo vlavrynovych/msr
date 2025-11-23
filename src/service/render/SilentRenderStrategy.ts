@@ -1,5 +1,5 @@
-import {IRenderStrategy, IScripts, IMigrationInfo, IDatabaseMigrationHandler} from "../../interface";
-import {MigrationScript} from "../../model";
+import {IRenderStrategy, IScripts, IMigrationInfo} from "../../interface";
+import {MigrationScript, Config} from "../../model";
 
 /**
  * Silent rendering strategy that produces no output.
@@ -29,7 +29,7 @@ export class SilentRenderStrategy implements IRenderStrategy {
      * No-op: Produces no output for migrated scripts.
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    renderMigrated(scripts: IScripts, handler: IDatabaseMigrationHandler, limit?: number): void {
+    renderMigrated(scripts: IScripts, config: Config): void {
         // Intentionally empty - silent strategy
     }
 

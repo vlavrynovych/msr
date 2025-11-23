@@ -1,7 +1,7 @@
 import fs from "fs";
 import moment from "moment";
 
-import {BackupConfig} from "../model";
+import {BackupConfig, Config} from "../model";
 import {IBackupService, IDatabaseMigrationHandler, ILogger} from "../interface";
 import {ConsoleLogger} from "../logger";
 
@@ -31,11 +31,13 @@ export class BackupService implements IBackupService {
     /**
      * Creates a new BackupService.
      *
-     * @param handler - Database migration handler with backup configuration
+     * @param handler - Database migration handler for backup operations
+     * @param config - Configuration including backup settings
      * @param logger - Logger instance for output (defaults to ConsoleLogger)
      */
     public constructor(
         private handler: IDatabaseMigrationHandler,
+        private config: Config,
         private logger: ILogger = new ConsoleLogger()
     ) {}
 
@@ -104,7 +106,7 @@ export class BackupService implements IBackupService {
      * ```
      */
     public deleteBackup() {
-        if(!this.handler.cfg.backup.deleteBackup || !this.backupFile) return;
+        if(!this.config.backup.deleteBackup || !this.backupFile) return;
         this.logger.log("Deleting backup file...")
         fs.rmSync(this.backupFile);
         this.backupFile = undefined;
@@ -139,7 +141,7 @@ export class BackupService implements IBackupService {
      * @private
      */
     private getFileName():string {
-        const path:string = BackupService.prepareFilePath(this.handler.cfg.backup);
+        const path:string = BackupService.prepareFilePath(this.config.backup);
 
         // Archive existing backup file to prevent overwriting
         if (fs.existsSync(path)) {

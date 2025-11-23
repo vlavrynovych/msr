@@ -6,6 +6,7 @@ import {
     IDB,
     IMigrationInfo,
     IDatabaseMigrationHandler,
+    IRunnableScript,
     MigrationScript,
     MigrationScriptExecutor,
     IBackup, ISchemaVersion, IMigrationScript,
@@ -20,12 +21,13 @@ describe('MigrationScriptExecutor', () => {
     let created = true
     let valid = true
     let scripts:MigrationScript[] = []
+    let cfg: Config
 
     let handler:IDatabaseMigrationHandler
     let executor:MigrationScriptExecutor
 
     before(() => {
-        let cfg = TestUtils.getConfig()
+        cfg = TestUtils.getConfig()
         const db:IDB = new class implements IDB {
             [key: string]: unknown;
             test(){throw new Error('Not implemented')}
@@ -57,16 +59,13 @@ describe('MigrationScriptExecutor', () => {
                     return Promise.resolve(valid);
                 }
             };
-            cfg:Config = cfg;
             db: IDB = db;
             getName(): string { return "Test Implementation" }
         }
-
-        executor = new MigrationScriptExecutor(handler, { logger: new SilentLogger() });
     })
 
     beforeEach(() => {
-        handler.cfg = TestUtils.getConfig() // reset config before each test
+        executor = new MigrationScriptExecutor(handler, cfg, { logger: new SilentLogger() });
         initialized = true
         created = true
         valid = true
@@ -133,7 +132,8 @@ describe('MigrationScriptExecutor', () => {
          */
         it('should handle case when no new scripts exist', async () => {
             // Configure to use empty migrations directory
-            handler.cfg = TestUtils.getConfig(TestUtils.EMPTY_FOLDER)
+            const emptyConfig = TestUtils.getConfig(TestUtils.EMPTY_FOLDER);
+            cfg.folder = emptyConfig.folder;
 
             // Execute migration with no scripts to run
             const result: IMigrationResult = await executor.migrate()
@@ -219,15 +219,13 @@ describe('MigrationScriptExecutor', () => {
          */
         it('should call restore on migration failure', async () => {
             // Create a migration script that will throw an error
-            handler.cfg = TestUtils.getConfig();
-
             // Stub the migration service to return a failing script
             const failingScript = TestUtils.prepareMigration('V202311020036_fail.ts');
             failingScript.script = {
                 async up() {
                     throw new Error('Migration execution failed');
                 }
-            } as any;
+            } as IRunnableScript;
 
             const readStub = sinon.stub(executor.migrationService, 'readMigrationScripts');
             readStub.resolves([failingScript]);
@@ -263,7 +261,7 @@ describe('MigrationScriptExecutor', () => {
                 async up() {
                     throw new Error('Migration execution failed');
                 }
-            } as any;
+            } as IRunnableScript;
 
             // Verify the error is propagated correctly
             await expect(executor.execute([errorScript])).to.be.rejectedWith('Migration execution failed');
@@ -283,7 +281,7 @@ describe('MigrationScriptExecutor', () => {
                 async up() {
                     throw new Error('First migration failed');
                 }
-            } as any;
+            } as IRunnableScript;
 
             // Create second migration with execution tracking
             const script2 = TestUtils.prepareMigration('V202311020036_test.ts');
@@ -294,7 +292,7 @@ describe('MigrationScriptExecutor', () => {
                     script2Executed = true;
                     return 'success';
                 }
-            } as any;
+            } as IRunnableScript;
 
             // Attempt to execute both migrations
             try {
@@ -360,7 +358,6 @@ describe('MigrationScriptExecutor', () => {
          */
         it('E2E: should execute full backup → migrate → cleanup cycle', async () => {
             // This tests the full happy path with real file I/O
-            handler.cfg = TestUtils.getConfig();
             initialized = true;
             valid = true;
 
@@ -417,7 +414,6 @@ describe('MigrationScriptExecutor', () => {
          */
         it('E2E: should handle multiple sequential migrations', async () => {
             // having: setup for multiple migration execution
-            handler.cfg = TestUtils.getConfig();
             scripts = []; // start with no migrations
 
             // and: stub to return multiple scripts
@@ -426,21 +422,21 @@ describe('MigrationScriptExecutor', () => {
             script1.name = 'Migration1';
             script1.script = {
                 async up() { return 'result1'; }
-            } as any;
+            } as IRunnableScript;
 
             const script2 = TestUtils.prepareMigration('V202311020036_test.ts');
             script2.timestamp = 2;
             script2.name = 'Migration2';
             script2.script = {
                 async up() { return 'result2'; }
-            } as any;
+            } as IRunnableScript;
 
             const script3 = TestUtils.prepareMigration('V202311020036_test.ts');
             script3.timestamp = 3;
             script3.name = 'Migration3';
             script3.script = {
                 async up() { return 'result3'; }
-            } as any;
+            } as IRunnableScript;
 
             // when: execute multiple migrations
             const executed = await executor.execute([script1, script2, script3]);
@@ -473,19 +469,19 @@ describe('MigrationScriptExecutor', () => {
             script1.timestamp = 1;
             script1.script = {
                 async up() { return 'success1'; }
-            } as any;
+            } as IRunnableScript;
 
             const script2 = TestUtils.prepareMigration('V202311020036_test.ts');
             script2.timestamp = 2;
             script2.script = {
                 async up() { throw new Error('Migration 2 failed'); }
-            } as any;
+            } as IRunnableScript;
 
             const script3 = TestUtils.prepareMigration('V202311020036_test.ts');
             script3.timestamp = 3;
             script3.script = {
                 async up() { return 'success3'; }
-            } as any;
+            } as IRunnableScript;
 
             // when: execute with failure in middle
             try {
@@ -508,7 +504,6 @@ describe('MigrationScriptExecutor', () => {
          */
         it('E2E: should handle empty migration list gracefully', async () => {
             // having: no migrations to run
-            handler.cfg = TestUtils.getConfig(TestUtils.EMPTY_FOLDER);
             initialized = true;
             valid = true;
 

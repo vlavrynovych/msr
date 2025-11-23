@@ -18,6 +18,7 @@ import {MigrationScriptSelector} from "./MigrationScriptSelector";
 import {MigrationRunner} from "./MigrationRunner";
 import {MigrationScanner} from "./MigrationScanner";
 import {IMigrationScanner} from "../interface/service/IMigrationScanner";
+import {Config} from "../model";
 
 /**
  * Main executor class for running database migrations.
@@ -34,8 +35,8 @@ import {IMigrationScanner} from "../interface/service/IMigrationScanner";
  * import { MigrationScriptExecutor, Config } from 'migration-script-runner';
  *
  * const config = new Config();
- * const handler = new MyDatabaseHandler(config);
- * const executor = new MigrationScriptExecutor(handler);
+ * const handler = new MyDatabaseHandler();
+ * const executor = new MigrationScriptExecutor(handler, config);
  *
  * // Run all pending migrations
  * await executor.migrate();
@@ -45,6 +46,9 @@ import {IMigrationScanner} from "../interface/service/IMigrationScanner";
  * ```
  */
 export class MigrationScriptExecutor {
+
+    /** Configuration for the migration system */
+    private readonly config: Config;
 
     /** Service for creating and managing database backups */
     public readonly backupService: IBackupService;
@@ -80,30 +84,32 @@ export class MigrationScriptExecutor {
      * migration discovery) and displays the application banner.
      *
      * @param handler - Database migration handler implementing database-specific operations
+     * @param config - Configuration for migrations (folder, pattern, table name, backup settings)
      * @param dependencies - Optional service dependencies for dependency injection
      *
      * @example
      * ```typescript
-     * // Default behavior (backward compatible)
-     * const executor = new MigrationScriptExecutor(handler);
+     * // Basic usage
+     * const config = new Config();
+     * const executor = new MigrationScriptExecutor(handler, config);
      *
      * // With JSON output for CI/CD
-     * const executor = new MigrationScriptExecutor(handler, {
+     * const executor = new MigrationScriptExecutor(handler, config, {
      *     renderStrategy: new JsonRenderStrategy()
      * });
      *
      * // With silent output for testing
-     * const executor = new MigrationScriptExecutor(handler, {
+     * const executor = new MigrationScriptExecutor(handler, config, {
      *     renderStrategy: new SilentRenderStrategy()
      * });
      *
      * // With custom logger
-     * const executor = new MigrationScriptExecutor(handler, {
+     * const executor = new MigrationScriptExecutor(handler, config, {
      *     logger: new SilentLogger()
      * });
      *
      * // With mock services for testing
-     * const executor = new MigrationScriptExecutor(handler, {
+     * const executor = new MigrationScriptExecutor(handler, config, {
      *     backupService: mockBackupService,
      *     migrationService: mockMigrationService
      * });
@@ -111,8 +117,10 @@ export class MigrationScriptExecutor {
      */
     constructor(
         private handler: IDatabaseMigrationHandler,
+        config: Config,
         dependencies?: IMigrationExecutorDependencies
     ) {
+        this.config = config;
         // Use provided logger or default to ConsoleLogger
         this.logger = dependencies?.logger ?? new ConsoleLogger();
 
@@ -121,13 +129,13 @@ export class MigrationScriptExecutor {
 
         // Use provided dependencies or create defaults
         this.backupService = dependencies?.backupService
-            ?? new BackupService(handler, this.logger);
+            ?? new BackupService(handler, this.config, this.logger);
 
         this.schemaVersionService = dependencies?.schemaVersionService
             ?? new SchemaVersionService(handler.schemaVersion);
 
         this.migrationRenderer = dependencies?.migrationRenderer
-            ?? new MigrationRenderer(handler, this.logger, dependencies?.renderStrategy);
+            ?? new MigrationRenderer(handler, this.config, this.logger, dependencies?.renderStrategy);
 
         this.migrationService = dependencies?.migrationService
             ?? new MigrationService(this.logger);
@@ -139,7 +147,7 @@ export class MigrationScriptExecutor {
                 this.migrationService,
                 this.schemaVersionService,
                 this.selector,
-                handler
+                this.config
             );
 
         this.runner = new MigrationRunner(handler, this.schemaVersionService, this.logger);
@@ -204,11 +212,11 @@ export class MigrationScriptExecutor {
                 await this.hooks?.onAfterBackup?.(backupPath);
             }
 
-            await this.schemaVersionService.init(this.handler.cfg.tableName);
+            await this.schemaVersionService.init(this.config.tableName);
 
             // Scan and gather complete migration state
             scripts = await this.migrationScanner.scan();
-            this.migrationRenderer.drawMigrated(scripts, this.handler.cfg.displayLimit);
+            this.migrationRenderer.drawMigrated(scripts);
             this.migrationRenderer.drawIgnored(scripts.ignored);
             await Promise.all(scripts.pending.map(s => s.init()));
 
@@ -303,8 +311,17 @@ export class MigrationScriptExecutor {
      * ```
      */
     public async list(number = 0) {
+        // Temporarily override displayLimit if number is specified
+        const originalLimit = this.config.displayLimit;
+        if (number > 0) {
+            this.config.displayLimit = number;
+        }
+
         const scripts = await this.migrationScanner.scan();
-        this.migrationRenderer.drawMigrated(scripts, number)
+        this.migrationRenderer.drawMigrated(scripts);
+
+        // Restore original limit
+        this.config.displayLimit = originalLimit;
     }
 
     /**

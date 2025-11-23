@@ -59,8 +59,9 @@ class MyDatabaseHandler implements IDatabaseMigrationHandler {
 }
 
 // Configure and run
+const config = new Config();
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor(handler);
+const executor = new MigrationScriptExecutor(handler, config);
 
 await executor.migrate();
 ```

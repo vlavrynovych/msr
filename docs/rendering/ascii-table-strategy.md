@@ -41,7 +41,8 @@ Since AsciiTableRenderStrategy is the default, you don't need to configure anyth
 import { MigrationScriptExecutor } from '@migration-script-runner/core';
 
 // Automatically uses AsciiTableRenderStrategy
-const executor = new MigrationScriptExecutor(handler);
+const config = new Config();
+const executor = new MigrationScriptExecutor(handler, config);
 await executor.migrate();
 ```
 
@@ -59,7 +60,7 @@ import {
 const logger = new ConsoleLogger();
 const strategy = new AsciiTableRenderStrategy(logger);
 
-const executor = new MigrationScriptExecutor(handler, {
+const executor = new MigrationScriptExecutor(handler, config, {
     logger,
     renderStrategy: strategy
 });
@@ -80,7 +81,7 @@ import {
 const logger = new FileLogger({ logPath: './migrations.log' });
 const strategy = new AsciiTableRenderStrategy(logger);
 
-const executor = new MigrationScriptExecutor(handler, {
+const executor = new MigrationScriptExecutor(handler, config, {
     logger,
     renderStrategy: strategy
 });
@@ -199,7 +200,8 @@ Perfect for interactive development with immediate visual feedback:
 ```typescript
 import { MigrationScriptExecutor } from '@migration-script-runner/core';
 
-const executor = new MigrationScriptExecutor(handler);
+const config = new Config();
+const executor = new MigrationScriptExecutor(handler, config);
 
 // Beautiful table output for quick review
 await executor.list();
@@ -240,7 +242,8 @@ Great for scripts that require user review:
 ```typescript
 import { AsciiTableRenderStrategy } from '@migration-script-runner/core';
 
-const executor = new MigrationScriptExecutor(handler);
+const config = new Config();
+const executor = new MigrationScriptExecutor(handler, config);
 
 console.log('Current migration status:');
 await executor.list();
@@ -257,7 +260,8 @@ if (answer === 'y') {
 
 ```typescript
 // Good: Local development
-const executor = new MigrationScriptExecutor(handler);
+const config = new Config();
+const executor = new MigrationScriptExecutor(handler, config);
 await executor.migrate();
 
 // Avoid for CI/CD: Use JsonRenderStrategy instead

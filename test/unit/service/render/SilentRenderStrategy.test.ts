@@ -1,6 +1,6 @@
 import {expect} from 'chai';
 import sinon from 'sinon';
-import {SilentRenderStrategy, IScripts, MigrationScript, IDatabaseMigrationHandler, Config} from "../../../../src";
+import {SilentRenderStrategy, IScripts, MigrationScript, Config} from "../../../../src";
 
 /**
  * Unit tests for SilentRenderStrategy.
@@ -28,9 +28,9 @@ describe('SilentRenderStrategy', () => {
         it('should produce no output for empty migrations', () => {
             const strategy = new SilentRenderStrategy();
             const scripts = {migrated: [], all: []} as unknown as IScripts;
-            const handler = {cfg: new Config()} as IDatabaseMigrationHandler;
+            const config = new Config();
 
-            strategy.renderMigrated(scripts, handler);
+            strategy.renderMigrated(scripts, config);
 
             expect(logStub.called).to.be.false;
             expect(warnStub.called).to.be.false;
@@ -52,9 +52,9 @@ describe('SilentRenderStrategy', () => {
                 ],
                 all: []
             } as unknown as IScripts;
-            const handler = {cfg: new Config()} as IDatabaseMigrationHandler;
+            const config = new Config();
 
-            strategy.renderMigrated(scripts, handler);
+            strategy.renderMigrated(scripts, config);
 
             expect(logStub.called).to.be.false;
             expect(warnStub.called).to.be.false;
@@ -71,9 +71,9 @@ describe('SilentRenderStrategy', () => {
                 ],
                 all: []
             } as unknown as IScripts;
-            const handler = {cfg: new Config()} as IDatabaseMigrationHandler;
+            const config = new Config();
 
-            strategy.renderMigrated(scripts, handler, 1);
+            strategy.renderMigrated(scripts, config);
 
             expect(logStub.called).to.be.false;
         });
@@ -178,7 +178,7 @@ describe('SilentRenderStrategy', () => {
         it('should remain silent for all operations', () => {
             const strategy = new SilentRenderStrategy();
             const now = Date.now();
-            const handler = {cfg: new Config()} as IDatabaseMigrationHandler;
+            const config = new Config();
 
             // Call all methods
             strategy.renderBanner('1.0.0', 'Handler');
@@ -187,7 +187,7 @@ describe('SilentRenderStrategy', () => {
                 migrated: [{timestamp: 1, name: 'M', startedAt: now, finishedAt: now, username: 'u'} as MigrationScript],
                 all: []
             } as unknown as IScripts;
-            strategy.renderMigrated(scripts, handler);
+            strategy.renderMigrated(scripts, config);
 
             strategy.renderPending([{timestamp: 1, name: 'M', filepath: '/p'} as MigrationScript]);
             strategy.renderExecuted([{timestamp: 1, name: 'M', startedAt: now, finishedAt: now, result: 'R', username: 'u'}]);

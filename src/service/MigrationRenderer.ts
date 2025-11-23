@@ -1,6 +1,6 @@
 import {version} from '../../package.json'
 
-import {IMigrationInfo, IDatabaseMigrationHandler, IScripts, MigrationScript, ILogger, IMigrationRenderer, IRenderStrategy} from "../index";
+import {IMigrationInfo, IDatabaseMigrationHandler, IScripts, MigrationScript, ILogger, IMigrationRenderer, IRenderStrategy, Config} from "../index";
 import {ConsoleLogger} from "../logger";
 import {AsciiTableRenderStrategy} from "./render/AsciiTableRenderStrategy";
 
@@ -36,11 +36,13 @@ export class MigrationRenderer implements IMigrationRenderer {
      * Creates a new MigrationRenderer.
      *
      * @param handler - Database migration handler
+     * @param config - Configuration for migrations
      * @param logger - Logger instance (defaults to ConsoleLogger)
      * @param strategy - Rendering strategy (defaults to AsciiTableRenderStrategy)
      */
     constructor(
         private handler: IDatabaseMigrationHandler,
+        private config: Config,
         private logger: ILogger = new ConsoleLogger(),
         private strategy: IRenderStrategy = new AsciiTableRenderStrategy(logger)
     ) {}
@@ -58,12 +60,12 @@ export class MigrationRenderer implements IMigrationRenderer {
      * Draw table of already executed migrations.
      *
      * Delegates to the rendering strategy.
+     * Uses config.displayLimit to determine how many migrations to show.
      *
      * @param scripts - Collection of migration scripts with execution history
-     * @param number - Optional limit on number of migrations to display (0 = all)
      */
-    public drawMigrated(scripts: IScripts, number = 0): void {
-        this.strategy.renderMigrated(scripts, this.handler, number);
+    public drawMigrated(scripts: IScripts): void {
+        this.strategy.renderMigrated(scripts, this.config);
     }
 
     /**
