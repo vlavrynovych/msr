@@ -97,7 +97,8 @@ MSR (Migration Script Runner) follows a layered architecture with clear separati
 
 ```typescript
 // Example usage
-const executor = new MigrationScriptExecutor(handler, {
+const config = new Config();
+const executor = new MigrationScriptExecutor(handler, config, {
     logger: new SilentLogger(),  // Optional DI
     backupService: customBackup  // Optional DI
 });
@@ -449,12 +450,13 @@ MSR supports optional dependency injection for all services, enabling:
 ### Default vs Custom Dependencies
 
 ```typescript
-// Default (backward compatible)
-const executor = new MigrationScriptExecutor(handler);
+// Default (uses built-in dependencies)
+const config = new Config();
+const executor = new MigrationScriptExecutor(handler, config);
 // Uses: ConsoleLogger, BackupService, SchemaVersionService, etc.
 
 // Custom dependencies
-const executor = new MigrationScriptExecutor(handler, {
+const executor2 = new MigrationScriptExecutor(handler, config, {
     logger: new SilentLogger(),          // Custom logger
     backupService: new S3BackupService(), // Custom backup
     renderStrategy: new JsonRenderStrategy()  // Custom render strategy
@@ -688,7 +690,7 @@ class CloudLogger implements ILogger {
     // ... implement other methods
 }
 
-const executor = new MigrationScriptExecutor(handler, {
+const executor = new MigrationScriptExecutor(handler, config, {
     logger: new CloudLogger()
 });
 ```
@@ -706,7 +708,7 @@ class S3BackupService implements IBackupService {
     // ... implement restore, deleteBackup
 }
 
-const executor = new MigrationScriptExecutor(handler, {
+const executor = new MigrationScriptExecutor(handler, config, {
     backupService: new S3BackupService()
 });
 ```
@@ -717,7 +719,7 @@ const executor = new MigrationScriptExecutor(handler, {
 import { IRenderStrategy, JsonRenderStrategy } from '@migration-script-runner/core';
 
 // Use built-in JSON render strategy
-const executor = new MigrationScriptExecutor(handler, {
+const executor = new MigrationScriptExecutor(handler, config, {
     renderStrategy: new JsonRenderStrategy(true)  // pretty-printed JSON
 });
 
@@ -729,7 +731,7 @@ class CustomRenderStrategy implements IRenderStrategy {
     // ... implement other methods
 }
 
-const executor = new MigrationScriptExecutor(handler, {
+const executor = new MigrationScriptExecutor(handler, config, {
     renderStrategy: new CustomRenderStrategy()
 });
 ```
@@ -781,7 +783,7 @@ for (const script of scripts) {
 
 ✅ **Good:** Use dependency injection for testability
 ```typescript
-new MigrationScriptExecutor(handler, {
+new MigrationScriptExecutor(handler, config, {
     logger: mockLogger,
     backupService: mockBackup
 });

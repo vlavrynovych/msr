@@ -25,7 +25,7 @@ describe('JsonRenderStrategy', () => {
         it('should default to pretty printing', () => {
             const strategy = new JsonRenderStrategy();
             const scripts = {migrated: []} as unknown as IScripts;
-            const handler = {cfg: new Config()} as IDatabaseMigrationHandler;
+            const config = new Config();
 
             strategy.renderBanner('1.0.0', 'Test Handler');
 
@@ -51,9 +51,9 @@ describe('JsonRenderStrategy', () => {
         it('should render empty array when no migrations', () => {
             const strategy = new JsonRenderStrategy();
             const scripts = {migrated: [], all: []} as unknown as IScripts;
-            const handler = {cfg: new Config()} as IDatabaseMigrationHandler;
+            const config = new Config();
 
-            strategy.renderMigrated(scripts, handler);
+            strategy.renderMigrated(scripts, config);
 
             expect(logStub.called).to.be.false;
         });
@@ -75,9 +75,9 @@ describe('JsonRenderStrategy', () => {
                     {timestamp: 202501220100, name: 'V202501220100_test.ts'} as MigrationScript
                 ]
             } as unknown as IScripts;
-            const handler = {cfg: new Config()} as IDatabaseMigrationHandler;
+            const config = new Config();
 
-            strategy.renderMigrated(scripts, handler);
+            strategy.renderMigrated(scripts, config);
 
             const output = logStub.firstCall.args[0];
             const parsed = JSON.parse(output);
@@ -108,9 +108,9 @@ describe('JsonRenderStrategy', () => {
                 ],
                 all: [] // Migration not found locally
             } as unknown as IScripts;
-            const handler = {cfg: new Config()} as IDatabaseMigrationHandler;
+            const config = new Config();
 
-            strategy.renderMigrated(scripts, handler);
+            strategy.renderMigrated(scripts, config);
 
             const output = logStub.firstCall.args[0];
             const parsed = JSON.parse(output);
@@ -129,9 +129,10 @@ describe('JsonRenderStrategy', () => {
                 ],
                 all: []
             } as unknown as IScripts;
-            const handler = {cfg: new Config()} as IDatabaseMigrationHandler;
+            const config = new Config();
+            config.displayLimit = 2;
 
-            strategy.renderMigrated(scripts, handler, 2);
+            strategy.renderMigrated(scripts, config);
 
             const output = logStub.firstCall.args[0];
             const parsed = JSON.parse(output);
@@ -152,9 +153,10 @@ describe('JsonRenderStrategy', () => {
                 ],
                 all: []
             } as unknown as IScripts;
-            const handler = {cfg: new Config()} as IDatabaseMigrationHandler;
+            const config = new Config();
+            config.displayLimit = 0;
 
-            strategy.renderMigrated(scripts, handler, 0);
+            strategy.renderMigrated(scripts, config);
 
             const output = logStub.firstCall.args[0];
             const parsed = JSON.parse(output);
@@ -171,9 +173,9 @@ describe('JsonRenderStrategy', () => {
                 ],
                 all: undefined // No all array
             } as unknown as IScripts;
-            const handler = {cfg: new Config()} as IDatabaseMigrationHandler;
+            const config = new Config();
 
-            strategy.renderMigrated(scripts, handler);
+            strategy.renderMigrated(scripts, config);
 
             const output = logStub.firstCall.args[0];
             const parsed = JSON.parse(output);
@@ -197,9 +199,9 @@ describe('JsonRenderStrategy', () => {
                 ],
                 all: []
             } as unknown as IScripts;
-            const handler = {cfg: new Config()} as IDatabaseMigrationHandler;
+            const config = new Config();
 
-            strategy.renderMigrated(scripts, handler);
+            strategy.renderMigrated(scripts, config);
 
             const output = logStub.firstCall.args[0];
             // Compact JSON should not have newlines (except possibly trailing)
@@ -385,7 +387,7 @@ describe('JsonRenderStrategy', () => {
         it('should produce valid JSON for all methods', () => {
             const strategy = new JsonRenderStrategy(true);
             const now = Date.now();
-            const handler = {cfg: new Config()} as IDatabaseMigrationHandler;
+            const config = new Config();
 
             // Test each method produces valid JSON
             strategy.renderBanner('1.0.0', 'Handler');
@@ -395,7 +397,7 @@ describe('JsonRenderStrategy', () => {
                 migrated: [{timestamp: 1, name: 'M', startedAt: now, finishedAt: now, username: 'u'} as MigrationScript],
                 all: []
             } as unknown as IScripts;
-            strategy.renderMigrated(scripts, handler);
+            strategy.renderMigrated(scripts, config);
             expect(() => JSON.parse(logStub.lastCall.args[0])).to.not.throw();
 
             strategy.renderPending([{timestamp: 1, name: 'M', filepath: '/p'} as MigrationScript]);

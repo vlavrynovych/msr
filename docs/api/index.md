@@ -29,10 +29,11 @@ Complete API documentation for Migration Script Runner.
 The main class for executing database migrations.
 
 ```typescript
-import { MigrationScriptExecutor, IDatabaseMigrationHandler } from '@migration-script-runner/core';
+import { MigrationScriptExecutor, IDatabaseMigrationHandler, Config } from '@migration-script-runner/core';
 
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor(handler);
+const config = new Config();
+const executor = new MigrationScriptExecutor(handler, config);
 ```
 
 #### Constructor
@@ -40,12 +41,14 @@ const executor = new MigrationScriptExecutor(handler);
 ```typescript
 constructor(
     handler: IDatabaseMigrationHandler,
+    config: Config,
     dependencies?: IMigrationExecutorDependencies
 )
 ```
 
 **Parameters:**
-- `handler`: Database migration handler (which contains the config via `handler.cfg`)
+- `handler`: Database migration handler that implements `IDatabaseMigrationHandler`
+- `config`: Configuration object (formerly accessed via `handler.cfg`)
 - `dependencies` (optional): Custom service implementations for dependency injection
   - `logger?`: Custom logger implementation (defaults to `ConsoleLogger`)
   - `backupService?`: Custom backup service (defaults to `BackupService`)
@@ -53,6 +56,10 @@ constructor(
   - `migrationRenderer?`: Custom migration renderer (defaults to `MigrationRenderer`)
   - `migrationService?`: Custom migration service (defaults to `MigrationService`)
   - `renderStrategy?`: Custom render strategy (defaults to `AsciiTableRenderStrategy`)
+  - `hooks?`: Lifecycle hooks for migration events (defaults to `undefined`)
+
+{: .important }
+> **Breaking Change (v0.3.0):** Config is now passed as a separate second parameter instead of being accessed from `handler.cfg`. This follows the Single Responsibility Principle and improves testability.
 
 #### Methods
 
@@ -194,62 +201,72 @@ Interface that must be implemented for your specific database.
 
 ```typescript
 interface IDatabaseMigrationHandler {
-  init(): Promise<void>;
-  save(info: IMigrationInfo): Promise<void>;
-  getAllMigratedScripts(): Promise<IMigrationInfo[]>;
-  backup(): Promise<string>;
-  restore(data: string): Promise<void>;
+  getName(): string;
+  db: IDB;
+  schemaVersion: ISchemaVersion;
+  backup: IBackup;
 }
 ```
 
-#### Methods
+{: .important }
+> **Breaking Change (v0.3.0):** The `cfg: Config` property has been removed from this interface. Config is now passed separately to service constructors. See the [migration guide](../migrations/v0.2-to-v0.3#step-6-update-service-constructors-config-separation) for details.
 
-##### init()
+#### Properties
 
-Initialize database connection and schema version table.
+##### getName()
+
+Returns the name of the database handler for logging and display purposes.
 
 ```typescript
-async init(): Promise<void>
+getName(): string
 ```
 
-Called once before migrations start. Should:
-- Establish database connection
-- Create schema version tracking table if it doesn't exist
-- Validate table structure
+**Example:**
+```typescript
+getName(): string {
+  return 'PostgreSQL Handler';
+}
+```
 
 ---
 
-##### save()
+##### db
 
-Save migration execution metadata.
+Database connection and query interface.
 
 ```typescript
-async save(info: IMigrationInfo): Promise<void>
+db: IDB
 ```
 
-**Parameters:**
-- `info`: Migration metadata object
-
-Called after each successful migration. Should store:
-- Migration timestamp and name
-- Execution time and duration
-- Username and result
+Provides methods for executing queries and managing transactions. See `IDB` interface for details.
 
 ---
 
-##### getAllMigratedScripts()
+##### schemaVersion
 
-Retrieve all previously executed migrations.
+Schema version tracking interface.
 
 ```typescript
-async getAllMigratedScripts(): Promise<IMigrationInfo[]>
+schemaVersion: ISchemaVersion
 ```
 
-**Returns:** Array of migration metadata for all executed migrations
+Manages the schema version tracking table. See `ISchemaVersion` interface for details.
 
 ---
 
-##### backup()
+##### backup
+
+Backup and restore interface.
+
+```typescript
+backup: IBackup
+```
+
+Handles database backup and restore operations. See `IBackup` interface for details.
+
+---
+
+### IDB
 
 Create a backup of current database state.
 

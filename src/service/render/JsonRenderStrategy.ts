@@ -1,7 +1,7 @@
 import moment from "moment";
 
-import {IRenderStrategy, IScripts, IMigrationInfo, ILogger, IDatabaseMigrationHandler} from "../../interface";
-import {MigrationScript} from "../../model";
+import {IRenderStrategy, IScripts, IMigrationInfo, ILogger} from "../../interface";
+import {MigrationScript, Config} from "../../model";
 import {ConsoleLogger} from "../../logger";
 
 /**
@@ -57,14 +57,16 @@ export class JsonRenderStrategy implements IRenderStrategy {
      * }
      * ```
      *
+     * Uses config.displayLimit to determine how many migrations to show.
+     *
      * @param scripts - Collection of migration scripts with execution history
-     * @param handler - Database handler for accessing configuration
-     * @param limit - Optional limit on number of migrations to display (0 = all)
+     * @param config - Configuration for accessing display limit
      */
-    renderMigrated(scripts: IScripts, handler: IDatabaseMigrationHandler, limit = 0): void {
+    renderMigrated(scripts: IScripts, config: Config): void {
         if (!scripts.migrated.length) return;
 
         let migrated = scripts.migrated;
+        const limit = config.displayLimit;
         if (limit > 0) {
             migrated = migrated
                 .sort((a, b) => b.timestamp - a.timestamp)

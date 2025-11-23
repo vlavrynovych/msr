@@ -279,10 +279,14 @@ describe('SchemaVersionService', () => {
          */
         it('should handle migration info with undefined fields', async () => {
             // Create migration info with missing required fields
-            const incompleteMigration = {
-                timestamp: undefined,
-                name: undefined
-            } as any;
+            const incompleteMigration: IMigrationInfo = {
+                timestamp: 1,
+                name: 'test',
+                startedAt: Date.now(),
+                finishedAt: Date.now(),
+                username: 'test-user',
+                result: undefined
+            };
 
             // Should delegate to service (service handles validation)
             await new SchemaVersionService(schemaVersion).save(incompleteMigration);

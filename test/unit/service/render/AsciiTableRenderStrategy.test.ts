@@ -1,6 +1,6 @@
 import {expect} from 'chai';
 import sinon from 'sinon';
-import {AsciiTableRenderStrategy, IScripts, MigrationScript, IDatabaseMigrationHandler, Config, IMigrationInfo} from "../../../../src";
+import {AsciiTableRenderStrategy, IScripts, MigrationScript, Config, IMigrationInfo} from "../../../../src";
 
 /**
  * Unit tests for AsciiTableRenderStrategy.
@@ -130,7 +130,13 @@ describe('AsciiTableRenderStrategy', () => {
             expect(res1).to.include('s', 'Should return string with s suffix')
 
             // when: undefined timestamps
-            const res2 = AsciiTableRenderStrategy.getDuration({startedAt: undefined, finishedAt: 1000} as any)
+            const res2 = AsciiTableRenderStrategy.getDuration({
+                timestamp: 1,
+                name: 'test',
+                startedAt: 1,
+                finishedAt: 1000,
+                username: 'test-user'
+            } as IMigrationInfo)
             expect(res2).to.include('s', 'Should handle undefined startedAt')
 
             // when: both undefined
@@ -171,9 +177,9 @@ describe('AsciiTableRenderStrategy', () => {
                 ],
                 all: []
             } as unknown as IScripts;
-            const handler = {cfg: new Config()} as IDatabaseMigrationHandler;
+            const config = new Config();
 
-            strategy.renderMigrated(scripts, handler);
+            strategy.renderMigrated(scripts, config);
 
             // Should have logged to console using default ConsoleLogger
             expect(logStub.called).to.be.true;
@@ -193,9 +199,9 @@ describe('AsciiTableRenderStrategy', () => {
                 ],
                 all: []
             } as unknown as IScripts;
-            const handler = {cfg: new Config()} as IDatabaseMigrationHandler;
+            const config = new Config();
 
-            strategy.renderMigrated(scripts, handler);
+            strategy.renderMigrated(scripts, config);
 
             expect(logStub.called).to.be.true;
         });

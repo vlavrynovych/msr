@@ -4,7 +4,7 @@ import {MigrationScanner} from '../../../src/service/MigrationScanner';
 import {MigrationScriptSelector} from '../../../src/service/MigrationScriptSelector';
 import {IMigrationService} from '../../../src/interface/service/IMigrationService';
 import {ISchemaVersionService} from '../../../src/interface/service/ISchemaVersionService';
-import {Config, MigrationScript, IDatabaseMigrationHandler} from '../../../src';
+import {Config, MigrationScript} from '../../../src';
 import {IMigrationInfo} from '../../../src/interface/IMigrationInfo';
 
 /**
@@ -23,7 +23,6 @@ describe('MigrationScanner', () => {
     let migrationService: sinon.SinonStubbedInstance<IMigrationService>;
     let schemaVersionService: sinon.SinonStubbedInstance<ISchemaVersionService>;
     let selector: MigrationScriptSelector;
-    let handler: IDatabaseMigrationHandler;
     let config: Config;
 
     beforeEach(() => {
@@ -41,15 +40,11 @@ describe('MigrationScanner', () => {
         selector = new MigrationScriptSelector();
         config = new Config();
 
-        handler = {
-            cfg: config
-        } as IDatabaseMigrationHandler;
-
         scanner = new MigrationScanner(
             migrationService,
             schemaVersionService,
             selector,
-            handler
+            config
         );
     });
 

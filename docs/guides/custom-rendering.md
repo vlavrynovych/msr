@@ -70,7 +70,7 @@ MSR provides three built-in render strategy implementations. For detailed docume
 ```typescript
 import { MigrationScriptExecutor, AsciiTableRenderStrategy } from '@migration-script-runner/core';
 
-const executor = new MigrationScriptExecutor(handler, {
+const executor = new MigrationScriptExecutor(handler, config, {
     renderStrategy: new AsciiTableRenderStrategy()
 });
 ```
@@ -83,12 +83,12 @@ const executor = new MigrationScriptExecutor(handler, {
 import { MigrationScriptExecutor, JsonRenderStrategy } from '@migration-script-runner/core';
 
 // Pretty-printed JSON
-const executor = new MigrationScriptExecutor(handler, {
+const executor = new MigrationScriptExecutor(handler, config, {
     renderStrategy: new JsonRenderStrategy(true)
 });
 
 // Compact JSON
-const executor = new MigrationScriptExecutor(handler, {
+const executor = new MigrationScriptExecutor(handler, config, {
     renderStrategy: new JsonRenderStrategy(false)
 });
 ```
@@ -100,7 +100,7 @@ const executor = new MigrationScriptExecutor(handler, {
 ```typescript
 import { MigrationScriptExecutor, SilentRenderStrategy } from '@migration-script-runner/core';
 
-const executor = new MigrationScriptExecutor(handler, {
+const executor = new MigrationScriptExecutor(handler, config, {
     renderStrategy: new SilentRenderStrategy()
 });
 ```
@@ -214,7 +214,7 @@ import { MigrationScriptExecutor, ConsoleLogger } from '@migration-script-runner
 import { XmlRenderStrategy } from './XmlRenderStrategy';
 
 const logger = new ConsoleLogger();
-const executor = new MigrationScriptExecutor(handler, {
+const executor = new MigrationScriptExecutor(handler, config, {
     logger,
     renderStrategy: new XmlRenderStrategy(logger)
 });
@@ -412,7 +412,7 @@ Render strategies work seamlessly with any logger implementation:
 import { MigrationScriptExecutor, JsonRenderStrategy, FileLogger } from '@migration-script-runner/core';
 
 const logger = new FileLogger({ logPath: './migrations.json' });
-const executor = new MigrationScriptExecutor(handler, {
+const executor = new MigrationScriptExecutor(handler, config, {
     logger,
     renderStrategy: new JsonRenderStrategy(false)  // Compact JSON
 });
@@ -433,7 +433,7 @@ const logger = new CloudWatchLogger({
     logStreamName: 'production'
 });
 
-const executor = new MigrationScriptExecutor(handler, {
+const executor = new MigrationScriptExecutor(handler, config, {
     logger,
     renderStrategy: new JsonRenderStrategy(false)
 });
@@ -483,7 +483,7 @@ function getRenderStrategy() {
     }
 }
 
-const executor = new MigrationScriptExecutor(handler, {
+const executor = new MigrationScriptExecutor(handler, config, {
     renderStrategy: getRenderStrategy()
 });
 ```

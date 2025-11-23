@@ -1,7 +1,6 @@
 import {IScripts} from "../IScripts";
-import {MigrationScript} from "../../model";
+import {MigrationScript, Config} from "../../model";
 import {IMigrationInfo} from "../IMigrationInfo";
-import {IDatabaseMigrationHandler} from "../IDatabaseMigrationHandler";
 
 /**
  * Strategy interface for rendering migration output.
@@ -22,30 +21,31 @@ import {IDatabaseMigrationHandler} from "../IDatabaseMigrationHandler";
  * ```typescript
  * // Use JSON output for CI/CD
  * const strategy = new JsonRenderStrategy(true);
- * const renderer = new MigrationRenderer(handler, logger, strategy);
+ * const renderer = new MigrationRenderer(config, logger, strategy);
  *
  * // Use silent output for testing
  * const strategy = new SilentRenderStrategy();
- * const renderer = new MigrationRenderer(handler, logger, strategy);
+ * const renderer = new MigrationRenderer(config, logger, strategy);
  *
  * // Use default ASCII table output
- * const renderer = new MigrationRenderer(handler); // Uses AsciiTableRenderStrategy
+ * const renderer = new MigrationRenderer(config, logger); // Uses AsciiTableRenderStrategy
  * ```
  */
 export interface IRenderStrategy {
     /**
      * Render the list of previously executed migrations.
      *
+     * Uses config.displayLimit to determine how many migrations to show.
+     *
      * @param scripts - Collection of migration scripts with execution history
-     * @param handler - Database handler for accessing configuration
-     * @param limit - Optional limit on number of migrations to display (0 = all)
+     * @param config - Configuration for accessing file patterns and display settings
      *
      * @example
      * ```typescript
-     * strategy.renderMigrated(scripts, handler, 10); // Show last 10 migrations
+     * strategy.renderMigrated(scripts, config); // Uses config.displayLimit
      * ```
      */
-    renderMigrated(scripts: IScripts, handler: IDatabaseMigrationHandler, limit?: number): void;
+    renderMigrated(scripts: IScripts, config: Config): void;
 
     /**
      * Render the list of migrations pending execution.

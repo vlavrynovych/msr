@@ -2,9 +2,9 @@ import {IMigrationScanner} from "../interface/service/IMigrationScanner";
 import {IScripts} from "../interface/IScripts";
 import {IMigrationService} from "../interface/service/IMigrationService";
 import {ISchemaVersionService} from "../interface/service/ISchemaVersionService";
-import {IDatabaseMigrationHandler} from "../interface/IDatabaseMigrationHandler";
 import {MigrationScriptSelector} from "./MigrationScriptSelector";
 import {Utils} from "./Utils";
+import {Config} from "../model";
 
 /**
  * Service for scanning and gathering the complete state of migrations.
@@ -38,13 +38,13 @@ export class MigrationScanner implements IMigrationScanner {
      * @param migrationService - Service for reading migration files from filesystem
      * @param schemaVersionService - Service for querying executed migrations from database
      * @param selector - Service for determining which migrations are pending/ignored
-     * @param handler - Database migration handler (provides access to dynamic config)
+     * @param config - Configuration for migrations (folder, pattern, etc.)
      */
     constructor(
         private readonly migrationService: IMigrationService,
         private readonly schemaVersionService: ISchemaVersionService,
         private readonly selector: MigrationScriptSelector,
-        private readonly handler: IDatabaseMigrationHandler
+        private readonly config: Config
     ) {}
 
     /**
@@ -77,7 +77,7 @@ export class MigrationScanner implements IMigrationScanner {
         // Gather information from database and filesystem in parallel
         const {migrated, all} = await Utils.promiseAll({
             migrated: this.schemaVersionService.getAllMigratedScripts(),
-            all: this.migrationService.readMigrationScripts(this.handler.cfg)
+            all: this.migrationService.readMigrationScripts(this.config)
         }) as IScripts;
 
         // Determine which migrations should be executed and which should be ignored
