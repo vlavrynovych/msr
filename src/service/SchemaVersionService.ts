@@ -66,8 +66,7 @@ export class SchemaVersionService<T extends ISchemaVersion> implements ISchemaVe
      * await service.save(info);
      * ```
      */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public async save(details:IMigrationInfo):Promise<any> {
+    public async save(details:IMigrationInfo):Promise<void> {
         return this.service.migrations.save(details);
     }
 

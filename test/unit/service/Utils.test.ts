@@ -20,12 +20,13 @@ describe('Utils', () => {
             }
 
             // Execute promiseAll to resolve all promises in parallel
-            const res:any = await Utils.promiseAll(map);
+            // TypeScript infers the type as { a: number; b: number }
+            const res = await Utils.promiseAll(map);
 
             // Verify the result object has the same keys with resolved values
             expect(res.a === 1, 'Should have key "a" with 1 as value').is.true
             expect(res.b === 2, 'Should have key "b" with 2 as value').is.true
-            expect(res.c, 'key "c" should be undefined').is.undefined
+            expect((res as Record<string, unknown>).c, 'key "c" should be undefined').is.undefined
         })
 
         /**

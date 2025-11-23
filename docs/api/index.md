@@ -335,13 +335,13 @@ interface IMigrationInfo {
 
 ---
 
-### IMigrationScript
+### IRunnableScript
 
 Interface for migration script classes.
 
 ```typescript
-interface IMigrationScript {
-  up(db: any, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<any>;
+interface IRunnableScript {
+  up(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string>;
 }
 ```
 
@@ -353,23 +353,30 @@ Execute the migration.
 
 ```typescript
 async up(
-  db: any,
+  db: IDB,
   info: IMigrationInfo,
   handler: IDatabaseMigrationHandler
-): Promise<any>
+): Promise<string>
 ```
 
 **Parameters:**
-- `db`: Your database connection/client object
+- `db`: Your database connection/client object (extend `IDB` for type safety)
 - `info`: Metadata about this migration
 - `handler`: The database handler (for advanced use cases)
 
-**Returns:** Any value (stored in migration tracking table)
+**Returns:** String describing the migration result (stored in migration tracking table)
 
 **Example:**
 ```typescript
-export default class AddUsersTable implements IMigrationScript {
-  async up(db: any, info: IMigrationInfo): Promise<any> {
+import { IRunnableScript, IMigrationInfo, IDB } from '@migration-script-runner/core';
+
+// Define your database type for type safety
+interface IMyDatabase extends IDB {
+  query(sql: string, params?: unknown[]): Promise<unknown[]>;
+}
+
+export default class AddUsersTable implements IRunnableScript {
+  async up(db: IMyDatabase, info: IMigrationInfo): Promise<string> {
     await db.query('CREATE TABLE users (id INT, name VARCHAR(255))');
     return 'Users table created';
   }

@@ -82,11 +82,17 @@ yarn add @migration-script-runner/core
 Create a handler for your specific database:
 
 ```typescript
-import { IDatabaseMigrationHandler, Config } from '@migration-script-runner/core';
+import { IDatabaseMigrationHandler, IDB, Config } from '@migration-script-runner/core';
+
+// Define your database type
+interface IMyDatabase extends IDB {
+  query(sql: string, params?: unknown[]): Promise<unknown[]>;
+  transaction(callback: (client: IMyDatabase) => Promise<void>): Promise<void>;
+}
 
 export class MyDatabaseHandler implements IDatabaseMigrationHandler {
   cfg: Config;
-  db: any; // Your database connection
+  db: IMyDatabase; // Your database connection
   schemaVersion: any; // Schema version tracker
   backup: any; // Backup handler
 
@@ -107,11 +113,16 @@ Create a migration file following the naming pattern: `V{timestamp}_{description
 
 ```typescript
 // migrations/V202501220100_initial_setup.ts
-import { IMigrationScript, IMigrationInfo, IDatabaseMigrationHandler } from '@migration-script-runner/core';
+import { IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB } from '@migration-script-runner/core';
 
-export default class InitialSetup implements IMigrationScript {
-  async up(db: any, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string> {
-    // Your migration logic
+// Define your database type (can be shared across migrations)
+interface IMyDatabase extends IDB {
+  query(sql: string, params?: unknown[]): Promise<unknown[]>;
+}
+
+export default class InitialSetup implements IRunnableScript {
+  async up(db: IMyDatabase, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string> {
+    // Your migration logic - now with type safety!
     await db.query('CREATE TABLE users (id INT, name VARCHAR(255))');
     return 'Users table created successfully';
   }
@@ -228,8 +239,14 @@ await executor.list(10);      // Show last 10 migrations
 
 ```typescript
 // V202501220200_add_posts_table.ts
-export default class AddPostsTable implements IMigrationScript {
-  async up(db: any): Promise<string> {
+import { IRunnableScript, IDB } from '@migration-script-runner/core';
+
+interface IMyDatabase extends IDB {
+  query(sql: string): Promise<unknown[]>;
+}
+
+export default class AddPostsTable implements IRunnableScript {
+  async up(db: IMyDatabase): Promise<string> {
     await db.query(`
       CREATE TABLE posts (
         id INT PRIMARY KEY AUTO_INCREMENT,

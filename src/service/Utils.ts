@@ -32,8 +32,7 @@ export class Utils {
      * // result = { users: [...], posts: [...], comments: [...] }
      * ```
      */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public static async promiseAll<T extends {[key: string]: Promise<any>}>(map:T):
+    public static async promiseAll<T extends {[key: string]: Promise<unknown>}>(map:T):
         Promise<{ [K in keyof T]: T[K] extends Promise<infer R> ? R : never }> {
         const keys = Object.keys(map);
         const result = {} as { [K in keyof T]: T[K] extends Promise<infer R> ? R : never };
