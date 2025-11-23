@@ -27,6 +27,7 @@ describe('MigrationScriptExecutor', () => {
     before(() => {
         let cfg = TestUtils.getConfig()
         const db:IDB = new class implements IDB {
+            [key: string]: unknown;
             test(){throw new Error('Not implemented')}
         }
         handler = new class implements IDatabaseMigrationHandler {

@@ -22,6 +22,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
     before(() => {
         const cfg = TestUtils.getConfig();
         const db: IDB = new class implements IDB {
+            [key: string]: unknown;
             test() { throw new Error('Not implemented') }
         }
         handler = new class implements IDatabaseMigrationHandler {

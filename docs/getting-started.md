@@ -100,21 +100,26 @@ Create a migration file following the naming convention: `V{timestamp}_{descript
 Example: `V202501220100_initial_setup.ts`
 
 ```typescript
-import { IMigrationScript, IMigrationInfo, IDatabaseMigrationHandler } from '@migration-script-runner/core';
+import { IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB } from '@migration-script-runner/core';
 
-export default class InitialSetup implements IMigrationScript {
+// Define your database type for type safety
+interface IMyDatabase extends IDB {
+  query(sql: string, params?: unknown[]): Promise<unknown[]>;
+}
+
+export default class InitialSetup implements IRunnableScript {
 
   async up(
-    db: any,
+    db: IMyDatabase,
     info: IMigrationInfo,
     handler: IDatabaseMigrationHandler
-  ): Promise<any> {
+  ): Promise<string> {
 
-    // Your migration logic here
+    // Your migration logic here with full type safety
     console.log('Running initial setup...');
 
     // Example: create tables, insert data, etc.
-    // await db.query('CREATE TABLE users ...');
+    await db.query('CREATE TABLE users (id INT, name VARCHAR(255))');
 
     return 'Migration completed successfully';
   }
