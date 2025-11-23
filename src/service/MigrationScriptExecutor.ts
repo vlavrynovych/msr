@@ -13,7 +13,9 @@ import {
     SchemaVersionService,
     Utils,
     IMigrationResult,
-    ILogger
+    ILogger,
+    IMigrationExecutorDependencies,
+    IConsoleRenderer
 } from "../index";
 import {ConsoleLogger} from "../logger";
 
@@ -45,16 +47,19 @@ import {ConsoleLogger} from "../logger";
 export class MigrationScriptExecutor {
 
     /** Service for creating and managing database backups */
-    backupService:IBackupService
+    public readonly backupService: IBackupService;
 
     /** Service for tracking executed migrations in the database */
-    schemaVersionService: ISchemaVersionService
+    public readonly schemaVersionService: ISchemaVersionService;
 
     /** Service for rendering console output (tables, status messages) */
-    consoleRenderer: ConsoleRenderer
+    public readonly consoleRenderer: IConsoleRenderer;
 
     /** Service for discovering and loading migration script files */
-    migrationService:IMigrationService
+    public readonly migrationService: IMigrationService;
+
+    /** Logger instance used across all services */
+    public readonly logger: ILogger;
 
     /**
      * Creates a new MigrationScriptExecutor instance.
@@ -63,22 +68,44 @@ export class MigrationScriptExecutor {
      * migration discovery) and displays the application banner.
      *
      * @param handler - Database migration handler implementing database-specific operations
-     * @param logger - Logger instance for output (defaults to ConsoleLogger)
+     * @param dependencies - Optional service dependencies for dependency injection
      *
      * @example
      * ```typescript
-     * const handler = new MyDatabaseHandler(config);
+     * // Default behavior (backward compatible)
      * const executor = new MigrationScriptExecutor(handler);
+     *
+     * // With custom logger
+     * const executor = new MigrationScriptExecutor(handler, {
+     *     logger: new SilentLogger()
+     * });
+     *
+     * // With mock services for testing
+     * const executor = new MigrationScriptExecutor(handler, {
+     *     backupService: mockBackupService,
+     *     migrationService: mockMigrationService
+     * });
      * ```
      */
     constructor(
-        private handler:IDatabaseMigrationHandler,
-        private logger: ILogger = new ConsoleLogger()
+        private handler: IDatabaseMigrationHandler,
+        dependencies?: IMigrationExecutorDependencies
     ) {
-        this.backupService = new BackupService(handler, logger);
-        this.schemaVersionService = new SchemaVersionService(handler.schemaVersion);
-        this.consoleRenderer = new ConsoleRenderer(handler, logger);
-        this.migrationService = new MigrationService(logger);
+        // Use provided logger or default to ConsoleLogger
+        this.logger = dependencies?.logger ?? new ConsoleLogger();
+
+        // Use provided dependencies or create defaults
+        this.backupService = dependencies?.backupService
+            ?? new BackupService(handler, this.logger);
+
+        this.schemaVersionService = dependencies?.schemaVersionService
+            ?? new SchemaVersionService(handler.schemaVersion);
+
+        this.consoleRenderer = dependencies?.consoleRenderer
+            ?? new ConsoleRenderer(handler, this.logger);
+
+        this.migrationService = dependencies?.migrationService
+            ?? new MigrationService(this.logger);
 
         this.consoleRenderer.drawFiglet();
     }

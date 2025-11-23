@@ -61,8 +61,9 @@ describe('Migration execution', () => {
 
     beforeEach(() => {
         // Silent logger prevents test output pollution
-        const logger = new SilentLogger();
-        executor = new MigrationScriptExecutor(handler, logger);
+        executor = new MigrationScriptExecutor(handler, {
+            logger: new SilentLogger()
+        });
     });
 
     it('should handle migration errors', async () => {
@@ -152,8 +153,9 @@ When processing many migrations where individual log messages are overwhelming:
 import { MigrationScriptExecutor, SilentLogger } from 'msr-core';
 
 async function batchExecute(scripts: MigrationScript[]) {
-    const logger = new SilentLogger();
-    const executor = new MigrationScriptExecutor(handler, logger);
+    const executor = new MigrationScriptExecutor(handler, {
+        logger: new SilentLogger()
+    });
 
     console.log(`Processing ${scripts.length} migrations...`);
 

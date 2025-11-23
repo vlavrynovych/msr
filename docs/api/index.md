@@ -38,11 +38,20 @@ const executor = new MigrationScriptExecutor(handler);
 #### Constructor
 
 ```typescript
-constructor(handler: IDatabaseMigrationHandler)
+constructor(
+    handler: IDatabaseMigrationHandler,
+    dependencies?: IMigrationExecutorDependencies
+)
 ```
 
 **Parameters:**
 - `handler`: Database migration handler (which contains the config via `handler.cfg`)
+- `dependencies` (optional): Custom service implementations for dependency injection
+  - `logger?`: Custom logger implementation (defaults to `ConsoleLogger`)
+  - `backupService?`: Custom backup service (defaults to `BackupService`)
+  - `schemaVersionService?`: Custom schema version service (defaults to `SchemaVersionService`)
+  - `consoleRenderer?`: Custom console renderer (defaults to `ConsoleRenderer`)
+  - `migrationService?`: Custom migration service (defaults to `MigrationService`)
 
 #### Methods
 
