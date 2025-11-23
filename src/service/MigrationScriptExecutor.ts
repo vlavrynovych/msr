@@ -1,5 +1,3 @@
-import _ from 'lodash';
-import * as os from 'os'
 import {
     BackupService,
     ConsoleRenderer,
@@ -19,6 +17,7 @@ import {
 } from "../index";
 import {ConsoleLogger} from "../logger";
 import {MigrationScriptSelector} from "./MigrationScriptSelector";
+import {MigrationRunner} from "./MigrationRunner";
 
 /**
  * Main executor class for running database migrations.
@@ -64,6 +63,9 @@ export class MigrationScriptExecutor {
 
     /** Service for selecting which migrations to execute */
     private readonly selector: MigrationScriptSelector;
+
+    /** Service for executing migration scripts */
+    private readonly runner: MigrationRunner;
 
     /**
      * Creates a new MigrationScriptExecutor instance.
@@ -112,6 +114,7 @@ export class MigrationScriptExecutor {
             ?? new MigrationService(this.logger);
 
         this.selector = new MigrationScriptSelector();
+        this.runner = new MigrationRunner(handler, this.schemaVersionService, this.logger);
 
         this.consoleRenderer.drawFiglet();
     }
@@ -283,9 +286,7 @@ export class MigrationScriptExecutor {
     /**
      * Execute migration scripts sequentially in chronological order.
      *
-     * Runs each migration one at a time, ensuring migrations execute in the correct order
-     * based on their timestamps. Records the current username and execution timestamps
-     * for each migration.
+     * Delegates to MigrationRunner to run each migration one at a time in the correct order.
      *
      * @param scripts - Array of migration scripts to execute
      * @returns Array of executed migrations with results and timing information
@@ -295,50 +296,6 @@ export class MigrationScriptExecutor {
      * @private
      */
     async execute(scripts: MigrationScript[]): Promise<MigrationScript[]> {
-        scripts = _.orderBy(scripts, ['timestamp'], ['asc'])
-        const executed: MigrationScript[] = [];
-        const username:string = os.userInfo().username;
-
-        // prepares queue of migration tasks
-        const tasks = _.orderBy(scripts, ['timestamp'], ['asc'])
-            .map((s: MigrationScript) => {
-                s.username = username;
-                return async () => {
-                    executed.push(await this.task(s))
-                }
-            });
-
-        // runs migrations
-        await tasks.reduce(async (promise, nextTask) => {
-                await promise
-                return nextTask()
-            }, Promise.resolve());
-
-        return executed;
-    }
-
-    /**
-     * Execute a single migration script and save its result.
-     *
-     * Runs the migration's `up()` method, records execution timing, saves the
-     * migration metadata to the schema version table, and returns the completed
-     * migration with all metadata populated.
-     *
-     * @param script - Migration script to execute
-     * @returns The executed migration with result and timing information
-     *
-     * @throws {Error} If the migration's up() method throws an error
-     *
-     * @private
-     */
-    async task(script:MigrationScript) {
-        this.logger.log(`${script.name}: processing...`);
-
-        script.startedAt = Date.now()
-        script.result = await script.script.up(this.handler.db, script, this.handler);
-        script.finishedAt = Date.now();
-
-        await this.schemaVersionService.save(script);
-        return script
+        return this.runner.execute(scripts);
     }
 }
