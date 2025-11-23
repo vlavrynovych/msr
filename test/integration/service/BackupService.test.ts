@@ -128,16 +128,25 @@ describe('BackupService', () => {
             } as IDatabaseMigrationHandler, new SilentLogger());
 
             // Stub filesystem to simulate existing file
-            const fn = sinon.stub(fs, 'existsSync')
-                .callsFake((v) => { return true })
-            const fn2 = sinon.stub(fs, 'renameSync')
-                .callsFake((v, v2) => {return true })
+            const existsStub = sinon.stub(fs, 'existsSync').returns(true);
+            const renameStub = sinon.stub(fs, 'renameSync');
 
             // Create backup (should handle existing file)
-            await bs.backup()
+            await bs.backup();
 
-            fn.restore()
-            fn2.restore()
+            // Verify renameSync was called to archive old backup
+            expect(renameStub.calledOnce).to.be.true;
+
+            const [oldPath, newPath] = renameStub.firstCall.args;
+
+            // Verify old file is renamed to archive path with timestamp
+            expect(oldPath).to.be.a('string');
+            expect(newPath).to.be.a('string');
+            expect(newPath).to.match(/\.old-\d+$/); // Should end with .old-<timestamp>
+            expect(newPath).to.not.equal(oldPath); // Should NOT rename to itself
+
+            existsStub.restore();
+            renameStub.restore();
         })
 
         /**
