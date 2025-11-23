@@ -3,6 +3,7 @@ import {ISchemaVersionService} from "./service/ISchemaVersionService";
 import {IConsoleRenderer} from "./service/IConsoleRenderer";
 import {IMigrationService} from "./service/IMigrationService";
 import {ILogger} from "./ILogger";
+import {IMigrationHooks} from "./IMigrationHooks";
 
 /**
  * Optional dependencies for MigrationScriptExecutor.
@@ -61,4 +62,18 @@ export interface IMigrationExecutorDependencies {
      * If not provided, uses ConsoleLogger.
      */
     logger?: ILogger;
+
+    /**
+     * Lifecycle hooks for extending migration behavior.
+     * If not provided, no hooks will be called during migration.
+     *
+     * @example
+     * ```typescript
+     * // Add Slack notifications
+     * const executor = new MigrationScriptExecutor(handler, {
+     *     hooks: new SlackNotificationHooks(webhookUrl)
+     * });
+     * ```
+     */
+    hooks?: IMigrationHooks;
 }

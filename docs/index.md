@@ -26,6 +26,7 @@ An abstract implementation of script runner which can be extended with your own 
 - **Flexible Configuration**: Customize paths, patterns, and backup behavior
 - **Console Rendering**: Beautiful console output with tables and status information
 - **Custom Logging**: Pluggable logger interface for console, file, or cloud logging
+- **Lifecycle Hooks**: Extend behavior with hooks for notifications, metrics, and validation
 
 ---
 

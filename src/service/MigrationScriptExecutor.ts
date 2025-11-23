@@ -1,20 +1,19 @@
-import {
-    BackupService,
-    ConsoleRenderer,
-    IBackupService,
-    MigrationService,
-    IMigrationService,
-    MigrationScript,
-    IDatabaseMigrationHandler,
-    ISchemaVersionService,
-    IScripts,
-    SchemaVersionService,
-    Utils,
-    IMigrationResult,
-    ILogger,
-    IMigrationExecutorDependencies,
-    IConsoleRenderer
-} from "../index";
+import {BackupService} from "./BackupService";
+import {ConsoleRenderer} from "./ConsoleRenderer";
+import {IBackupService} from "../interface/service/IBackupService";
+import {MigrationService} from "./MigrationService";
+import {IMigrationService} from "../interface/service/IMigrationService";
+import {MigrationScript} from "../model/MigrationScript";
+import {IDatabaseMigrationHandler} from "../interface/IDatabaseMigrationHandler";
+import {ISchemaVersionService} from "../interface/service/ISchemaVersionService";
+import {IScripts} from "../interface/IScripts";
+import {SchemaVersionService} from "./SchemaVersionService";
+import {Utils} from "./Utils";
+import {IMigrationResult} from "../interface/IMigrationResult";
+import {ILogger} from "../interface/ILogger";
+import {IMigrationExecutorDependencies} from "../interface/IMigrationExecutorDependencies";
+import {IConsoleRenderer} from "../interface/service/IConsoleRenderer";
+import {IMigrationHooks} from "../interface/IMigrationHooks";
 import {ConsoleLogger} from "../logger";
 import {MigrationScriptSelector} from "./MigrationScriptSelector";
 import {MigrationRunner} from "./MigrationRunner";
@@ -61,6 +60,9 @@ export class MigrationScriptExecutor {
     /** Logger instance used across all services */
     public readonly logger: ILogger;
 
+    /** Lifecycle hooks for extending migration behavior */
+    public readonly hooks?: IMigrationHooks;
+
     /** Service for selecting which migrations to execute */
     private readonly selector: MigrationScriptSelector;
 
@@ -99,6 +101,9 @@ export class MigrationScriptExecutor {
     ) {
         // Use provided logger or default to ConsoleLogger
         this.logger = dependencies?.logger ?? new ConsoleLogger();
+
+        // Use provided hooks if available
+        this.hooks = dependencies?.hooks;
 
         // Use provided dependencies or create defaults
         this.backupService = dependencies?.backupService
@@ -162,54 +167,92 @@ export class MigrationScriptExecutor {
         };
         let ignored: MigrationScript[] = [];
         const errors: Error[] = [];
+        let backupPath: string | undefined;
 
         try {
-            // inits
-            await this.backupService.backup()
-            await this.schemaVersionService.init(this.handler.cfg.tableName)
+            // Hook: Before backup
+            await this.hooks?.onBeforeBackup?.();
 
-            // collects information about migrations
+            // Create backup
+            backupPath = await this.backupService.backup();
+
+            // Hook: After backup
+            if (backupPath) {
+                await this.hooks?.onAfterBackup?.(backupPath);
+            }
+
+            await this.schemaVersionService.init(this.handler.cfg.tableName);
+
+            // Collect information about migrations
             scripts = await Utils.promiseAll({
                 migrated: this.schemaVersionService.getAllMigratedScripts(),
                 all: this.migrationService.readMigrationScripts(this.handler.cfg)
             }) as IScripts;
-            this.consoleRenderer.drawMigrated(scripts, this.handler.cfg.displayLimit)
+            this.consoleRenderer.drawMigrated(scripts, this.handler.cfg.displayLimit);
 
-            // defines scripts which should be executed
+            // Define scripts which should be executed
             scripts.todo = this.getTodo(scripts.migrated, scripts.all);
             ignored = this.getIgnored(scripts.migrated, scripts.all);
             this.consoleRenderer.drawIgnoredTable(ignored);
-            await Promise.all(scripts.todo.map(s => s.init()))
+            await Promise.all(scripts.todo.map(s => s.init()));
+
+            // Hook: Start (after we know what will be executed)
+            await this.hooks?.onStart?.(scripts.all.length, scripts.todo.length);
 
             if (!scripts.todo.length) {
                 this.logger.info('Nothing to do');
                 this.backupService.deleteBackup();
-                return {
+
+                const result: IMigrationResult = {
                     success: true,
                     executed: [],
                     migrated: scripts.migrated,
                     ignored
                 };
+
+                // Hook: Complete
+                await this.hooks?.onComplete?.(result);
+
+                return result;
             }
 
             this.logger.info('Processing...');
             this.consoleRenderer.drawTodoTable(scripts.todo);
-            scripts.executed = await this.execute(scripts.todo);
+
+            // Execute migrations with hooks
+            scripts.executed = await this.executeWithHooks(scripts.todo);
+
             this.consoleRenderer.drawExecutedTable(scripts.executed);
             this.logger.info('Migration finished successfully!');
             this.backupService.deleteBackup();
 
-            return {
+            const result: IMigrationResult = {
                 success: true,
                 executed: scripts.executed,
                 migrated: scripts.migrated,
                 ignored
             };
+
+            // Hook: Complete
+            await this.hooks?.onComplete?.(result);
+
+            return result;
         } catch (err) {
-            this.logger.error(err as string)
+            this.logger.error(err as string);
             errors.push(err as Error);
+
+            // Hook: Before restore
+            await this.hooks?.onBeforeRestore?.();
+
             await this.backupService.restore();
+
+            // Hook: After restore
+            await this.hooks?.onAfterRestore?.();
+
             this.backupService.deleteBackup();
+
+            // Hook: Error
+            await this.hooks?.onError?.(err as Error);
 
             return {
                 success: false,
@@ -281,6 +324,53 @@ export class MigrationScriptExecutor {
      */
     getIgnored(migrated:MigrationScript[], all:MigrationScript[]): MigrationScript[] {
         return this.selector.getIgnored(migrated, all);
+    }
+
+    /**
+     * Execute migration scripts sequentially with lifecycle hooks.
+     *
+     * Wraps each migration execution with onBeforeMigrate, onAfterMigrate, and
+     * onMigrationError hooks. If no migration hooks are registered, delegates
+     * to the regular execute() method for backward compatibility.
+     *
+     * @param scripts - Array of migration scripts to execute
+     * @returns Array of executed migrations with results and timing information
+     *
+     * @throws {Error} If any migration fails, execution stops and the error is propagated
+     *
+     * @private
+     */
+    private async executeWithHooks(scripts: MigrationScript[]): Promise<MigrationScript[]> {
+        const executed: MigrationScript[] = [];
+
+        for (const script of scripts) {
+            try {
+                // Hook: Before migration
+                if (this.hooks && this.hooks.onBeforeMigrate) {
+                    await this.hooks.onBeforeMigrate(script);
+                }
+
+                // Execute the migration
+                const result = await this.runner.executeOne(script);
+
+                // Hook: After migration
+                if (this.hooks && this.hooks.onAfterMigrate) {
+                    await this.hooks.onAfterMigrate(result, result.result || '');
+                }
+
+                executed.push(result);
+            } catch (err) {
+                // Hook: Migration error
+                if (this.hooks && this.hooks.onMigrationError) {
+                    await this.hooks.onMigrationError(script, err as Error);
+                }
+
+                // Re-throw to trigger rollback
+                throw err;
+            }
+        }
+
+        return executed;
     }
 
     /**
