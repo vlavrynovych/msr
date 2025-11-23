@@ -92,7 +92,7 @@ export class JsonRenderStrategy implements IRenderStrategy {
      * Output format:
      * ```json
      * {
-     *   "todo": [
+     *   "pending": [
      *     {
      *       "timestamp": 202501220100,
      *       "name": "V202501220100_initial.ts",
@@ -104,11 +104,11 @@ export class JsonRenderStrategy implements IRenderStrategy {
      *
      * @param scripts - Array of pending migration scripts
      */
-    renderTodo(scripts: MigrationScript[]): void {
+    renderPending(scripts: MigrationScript[]): void {
         if (!scripts.length) return;
 
         const output = {
-            todo: scripts.map(s => ({
+            pending: scripts.map(s => ({
                 timestamp: s.timestamp,
                 name: s.name,
                 path: s.filepath
@@ -205,7 +205,7 @@ export class JsonRenderStrategy implements IRenderStrategy {
         const output = {
             banner: {
                 application: "Migration Script Runner",
-                version: `v.${version}`,
+                version: `v${version}`,
                 handler: handlerName
             }
         };

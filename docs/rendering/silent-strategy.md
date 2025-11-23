@@ -100,7 +100,7 @@ const strategy = new SilentRenderStrategy();
 
 strategy.renderBanner('0.3.0', 'PostgreSQL');     // No output
 strategy.renderMigrated(scripts, handler);         // No output
-strategy.renderTodo(todoScripts);                  // No output
+strategy.renderPending(pendingScripts);            // No output
 strategy.renderExecuted(executedScripts);          // No output
 strategy.renderIgnored(ignoredScripts);            // No output
 ```
@@ -400,7 +400,7 @@ All methods are no-ops (produce no output):
 
 No-op: Produces no output for migrated scripts.
 
-#### `renderTodo(scripts: MigrationScript[]): void`
+#### `renderPending(scripts: MigrationScript[]): void`
 
 No-op: Produces no output for pending migrations.
 

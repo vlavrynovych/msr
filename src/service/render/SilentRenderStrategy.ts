@@ -21,7 +21,7 @@ import {MigrationScript} from "../../model";
  *
  * // No output will be produced
  * renderer.drawMigrated(scripts);
- * renderer.drawTodoTable(todo);
+ * renderer.drawPending(pending);
  * ```
  */
 export class SilentRenderStrategy implements IRenderStrategy {
@@ -37,7 +37,7 @@ export class SilentRenderStrategy implements IRenderStrategy {
      * No-op: Produces no output for pending migrations.
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    renderTodo(scripts: MigrationScript[]): void {
+    renderPending(scripts: MigrationScript[]): void {
         // Intentionally empty - silent strategy
     }
 

@@ -67,35 +67,35 @@ export class MigrationRenderer implements IMigrationRenderer {
     }
 
     /**
-     * Draw table of pending migrations to be executed.
+     * Draw pending migrations to be executed.
      *
      * Delegates to the rendering strategy.
      *
      * @param scripts - Array of pending migration scripts
      */
-    public drawTodoTable(scripts: MigrationScript[]): void {
-        this.strategy.renderTodo(scripts);
+    public drawPending(scripts: MigrationScript[]): void {
+        this.strategy.renderPending(scripts);
     }
 
     /**
-     * Draw table of ignored migrations.
+     * Draw ignored migrations.
      *
      * Delegates to the rendering strategy.
      *
      * @param scripts - Array of ignored migration scripts
      */
-    public drawIgnoredTable(scripts: MigrationScript[]): void {
+    public drawIgnored(scripts: MigrationScript[]): void {
         this.strategy.renderIgnored(scripts);
     }
 
     /**
-     * Draw table of migrations that were executed in the current run.
+     * Draw migrations that were executed in the current run.
      *
      * Delegates to the rendering strategy.
      *
      * @param scripts - Array of executed migration information
      */
-    public drawExecutedTable(scripts: IMigrationInfo[]): void {
+    public drawExecuted(scripts: IMigrationInfo[]): void {
         this.strategy.renderExecuted(scripts);
     }
 }

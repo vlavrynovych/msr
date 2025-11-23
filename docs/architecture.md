@@ -47,20 +47,20 @@ MSR (Migration Script Runner) follows a layered architecture with clear separati
 │  • Coordinates entire migration workflow                         │
 │  • Manages service lifecycle                                     │
 │  • Handles errors and recovery                                   │
-└──┬──────────┬──────────┬──────────┬──────────┬──────────────────┘
-   │          │          │          │          │
-   ▼          ▼          ▼          ▼          ▼
-┌────────┐ ┌────────┐ ┌────────┐ ┌──────────┐ ┌──────────────────┐
-│Backup  │ │Schema  │ │Migration│ │Migration │ │Migration         │
-│Service │ │Version │ │Service  │ │Renderer  │ │ScriptSelector    │
-│        │ │Service │ │         │ │          │ │                  │
-└────────┘ └────────┘ └────────┘ └──────────┘ └──────────────────┘
-     │          │          │          │          │
-     │          │          │          │          ▼
-     │          │          │          │      ┌──────────────────┐
-     │          │          │          │      │MigrationRunner   │
-     │          │          │          │      │                  │
-     │          │          │          │      └──────────────────┘
+└──┬──────────┬──────────┬──────────┬──────────┬─────────┬────────┘
+   │          │          │          │          │         │
+   ▼          ▼          ▼          ▼          ▼         ▼
+┌────────┐ ┌────────┐ ┌────────┐ ┌──────────┐ ┌───────┐ ┌────────┐
+│Backup  │ │Schema  │ │Migration│ │Migration │ │Migr.  │ │Migr.   │
+│Service │ │Version │ │Service  │ │Renderer  │ │Scanner│ │Selector│
+│        │ │Service │ │         │ │          │ │       │ │        │
+└────────┘ └────────┘ └────────┘ └──────────┘ └───────┘ └────────┘
+     │          │          │          │            │          │
+     │          │          │          │            │          ▼
+     │          │          │          │            │      ┌──────────────────┐
+     │          │          │          │            │      │MigrationRunner   │
+     │          │          │          │            │      │                  │
+     │          │          │          │            │      └──────────────────┘
      │          │          │          │
      ▼          ▼          ▼          ▼
 ┌─────────────────────────────────────────────────────────────────┐
@@ -88,6 +88,7 @@ MSR (Migration Script Runner) follows a layered architecture with clear separati
 - `IBackupService` - Database backup/restore
 - `ISchemaVersionService` - Track executed migrations
 - `IMigrationService` - Discover migration files
+- `IMigrationScanner` - Gather complete migration state
 - `IMigrationRenderer` - Display output
 - `MigrationScriptSelector` - Filter migrations
 - `MigrationRunner` - Execute migrations
@@ -114,10 +115,10 @@ const result = await executor.migrate();
 - Compare discovered scripts with executed migrations
 - Filter out already-executed migrations
 - Identify out-of-order migrations (ignored)
-- Return only pending migrations (todo)
+- Return only pending migrations
 
 **Key Methods:**
-- `getTodo(migrated, all)` - Returns scripts to execute
+- `getPending(migrated, all)` - Returns scripts to execute
 - `getIgnored(migrated, all)` - Returns outdated scripts
 
 **Algorithm:**
@@ -136,11 +137,67 @@ const selector = new MigrationScriptSelector();
 
 // migrated = [V1, V2, V5]
 // all = [V1, V2, V3, V5, V6]
-const todo = selector.getTodo(migrated, all);
+const pending = selector.getPending(migrated, all);
 // → [V6]  (V3 ignored because < V5)
 
 const ignored = selector.getIgnored(migrated, all);
 // → [V3]  (older than last executed V5)
+```
+
+---
+
+### MigrationScanner
+
+**Purpose:** Gathers complete migration state from multiple sources
+
+**Responsibilities:**
+- Query database for executed migrations (parallel)
+- Scan filesystem for migration scripts (parallel)
+- Coordinate selector to identify pending migrations
+- Coordinate selector to identify ignored migrations
+- Return complete IScripts object with all migration states
+
+**Key Methods:**
+- `scan()` - Returns complete migration state: `{ all, migrated, pending, ignored, executed }`
+
+**Architecture Benefits:**
+- **Single Responsibility** - Separates state gathering from execution logic
+- **Parallel Execution** - Database and filesystem queries run concurrently for performance
+- **Testability** - Easy to test scanning logic independently from execution
+- **Reusability** - Can use scanner in other contexts (reporting, analytics, dry-runs)
+
+**Location:** `src/service/MigrationScanner.ts`
+
+**Example:**
+```typescript
+const scanner = new MigrationScanner(
+    migrationService,
+    schemaVersionService,
+    selector,
+    handler
+);
+
+const scripts = await scanner.scan();
+// Returns: {
+//   all: MigrationScript[],       // All scripts found on filesystem
+//   migrated: MigrationScript[],  // Scripts already executed in DB
+//   pending: MigrationScript[],   // Scripts to execute (newer than last)
+//   ignored: MigrationScript[],   // Scripts skipped (older than last)
+//   executed: MigrationScript[]   // Scripts executed in current run
+// }
+```
+
+**Dynamic Configuration:**
+The scanner accepts `handler` instead of `config` to ensure it always uses the current configuration. This is critical for integration tests that modify config dynamically.
+
+```typescript
+// Good: Dynamic config access
+constructor(private readonly handler: IDatabaseMigrationHandler) {}
+all: this.migrationService.readMigrationScripts(this.handler.cfg)
+
+// Bad: Config snapshot (would break dynamic tests)
+constructor(private readonly config: Config) {}
+all: this.migrationService.readMigrationScripts(this.config)
 ```
 
 ---
@@ -291,14 +348,26 @@ Example: V202311020036_create_users_table.ts
    ├─▶ 3. SchemaVersionService.init()
    │      └─▶ Creates/validates schema_version table
    │
-   ├─▶ 4. MigrationService.readMigrationScripts()
-   │      └─▶ Discovers all .ts/.js files in migrations/
+   ├─▶ 4. MigrationScanner.scan()
+   │      └─▶ Parallel execution:
+   │          ├─▶ MigrationService.readMigrationScripts()
+   │          │   └─▶ Discovers all .ts/.js files in migrations/
+   │          │
+   │          └─▶ SchemaVersionService.getAllMigratedScripts()
+   │              └─▶ Queries schema_version table
    │
-   ├─▶ 5. SchemaVersionService.getAllMigratedScripts()
-   │      └─▶ Queries schema_version table
+   │      └─▶ Sequential filtering:
+   │          ├─▶ MigrationScriptSelector.getPending()
+   │          │   └─▶ Filters: new scripts > last executed
+   │          │
+   │          └─▶ MigrationScriptSelector.getIgnored()
+   │              └─▶ Filters: old scripts < last executed
    │
-   ├─▶ 6. MigrationScriptSelector.getTodo()
-   │      └─▶ Filters: new scripts > last executed
+   ├─▶ 5. MigrationRenderer.drawMigrated()
+   │      └─▶ Display already-executed migrations
+   │
+   ├─▶ 6. MigrationRenderer.drawIgnored()
+   │      └─▶ Display skipped migrations
    │
    ├─▶ 7. MigrationRunner.execute()
    │      └─▶ For each script:
@@ -331,32 +400,31 @@ If error at any step:
 │ - schemaVersionService: ISchemaVersionService                   │
 │ - migrationService: IMigrationService                           │
 │ - migrationRenderer: IMigrationRenderer                         │
+│ - migrationScanner: IMigrationScanner                           │
 │ - selector: MigrationScriptSelector                             │
 │ - runner: MigrationRunner                                       │
 │ - logger: ILogger                                               │
 ├─────────────────────────────────────────────────────────────────┤
 │ + migrate(): Promise<IMigrationResult>                          │
 │ + list(number?: number): Promise<void>                          │
-│ + getTodo(migrated, all): MigrationScript[]                     │
-│ + getIgnored(migrated, all): MigrationScript[]                  │
-│ + execute(scripts): Promise<MigrationScript[]>                  │
 └─────────────────────────────────────────────────────────────────┘
                              │
                              │ delegates to
                              │
-        ┌────────────────────┴────────────────────┐
-        │                                         │
-        ▼                                         ▼
-┌──────────────────────────┐         ┌──────────────────────────┐
-│ MigrationScriptSelector  │         │    MigrationRunner       │
-├──────────────────────────┤         ├──────────────────────────┤
-│ (no state)               │         │ - handler                │
-├──────────────────────────┤         │ - schemaVersionService   │
-│ + getTodo()              │         │ - logger                 │
-│ + getIgnored()           │         ├──────────────────────────┤
-└──────────────────────────┘         │ + execute()              │
-                                     │ + executeOne()           │
-                                     └──────────────────────────┘
+        ┌────────────────────┼────────────────────┐
+        │                    │                    │
+        ▼                    ▼                    ▼
+┌──────────────────┐  ┌──────────────┐  ┌──────────────────────┐
+│ MigrationScanner │  │ MigrationScrip│  │  MigrationRunner     │
+├──────────────────┤  │ tSelector     │  ├──────────────────────┤
+│ - migrationService│ ├──────────────┤  │ - handler            │
+│ - schemaVersion   │  │ (stateless)  │  │ - schemaVersionService│
+│   Service         │  ├──────────────┤  │ - logger             │
+│ - selector        │  │ + getPending()│  ├──────────────────────┤
+│ - handler         │  │ + getIgnored()│  │ + execute()          │
+├──────────────────┤  └──────────────┘  │ + executeOne()       │
+│ + scan()         │                     └──────────────────────┘
+└──────────────────┘
 
 ┌──────────────────────────────────────────────────────────────┐
 │                     Supporting Services                       │
@@ -413,6 +481,12 @@ MigrationScriptExecutor
   │     └─▶ IRenderStrategy (injected or default: AsciiTableRenderStrategy)
   │           └─▶ ILogger
   │
+  ├─▶ IMigrationScanner (injected or default: MigrationScanner)
+  │     ├─▶ IMigrationService
+  │     ├─▶ ISchemaVersionService
+  │     ├─▶ MigrationScriptSelector
+  │     └─▶ IDatabaseMigrationHandler
+  │
   ├─▶ MigrationScriptSelector (always created)
   │     └─▶ (stateless, no dependencies)
   │
@@ -463,7 +537,7 @@ MigrationScriptExecutor
        │
        ▼
 ┌─────────────┐
-│  Filtered   │  ← MigrationScriptSelector: todo/ignored/migrated
+│  Filtered   │  ← MigrationScriptSelector: pending/ignored/migrated
 └──────┬──────┘
        │
        ▼
@@ -575,6 +649,7 @@ try {
 ```
 test/unit/service/
   ├── MigrationScriptSelector.test.ts  (11 tests)
+  ├── MigrationScanner.test.ts         (11 tests)
   ├── MigrationRunner.test.ts          (16 tests)
   ├── BackupService.test.ts
   ├── SchemaVersionService.test.ts
@@ -668,10 +743,10 @@ const executor = new MigrationScriptExecutor(handler, {
 MSR uses `Promise.all()` for parallel operations where safe:
 
 ```typescript
-// Parallel: Independent operations
+// Parallel: Independent operations (in MigrationScanner)
 const { migrated, all } = await Utils.promiseAll({
     migrated: schemaVersionService.getAllMigratedScripts(),
-    all: migrationService.readMigrationScripts(config)
+    all: migrationService.readMigrationScripts(handler.cfg)
 });
 
 // Sequential: Dependent operations
@@ -679,6 +754,10 @@ await script.init();           // Must load first
 const result = await script.up();  // Then execute
 await schema.save(script);     // Then save
 ```
+
+**Performance Benefit:** The MigrationScanner executes database and filesystem queries in parallel, significantly reducing startup time for large projects with many migrations. For example:
+- Sequential: 500ms (DB query) + 300ms (FS scan) = 800ms
+- Parallel: max(500ms, 300ms) = 500ms (38% faster)
 
 ### Script Initialization
 
@@ -742,7 +821,7 @@ async executeOne(script) {
 ✅ **Good:** Stateless services (pure functions)
 ```typescript
 class MigrationScriptSelector {
-    getTodo(migrated, all) {
+    getPending(migrated, all) {
         // No instance variables, pure logic
         return all.filter(...);
     }
@@ -754,7 +833,7 @@ class MigrationScriptSelector {
 class BadSelector {
     private cache = [];  // Shared mutable state
 
-    getTodo(migrated, all) {
+    getPending(migrated, all) {
         this.cache.push(...all);  // Side effects
     }
 }

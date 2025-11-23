@@ -209,11 +209,11 @@ describe('JsonRenderStrategy', () => {
         });
     });
 
-    describe('renderTodo', () => {
+    describe('renderPending', () => {
         it('should not render when no pending migrations', () => {
             const strategy = new JsonRenderStrategy();
 
-            strategy.renderTodo([]);
+            strategy.renderPending([]);
 
             expect(logStub.called).to.be.false;
         });
@@ -225,16 +225,16 @@ describe('JsonRenderStrategy', () => {
                 {timestamp: 202501220200, name: 'V202501220200_another.ts', filepath: '/path/to/another.ts'} as MigrationScript,
             ];
 
-            strategy.renderTodo(scripts);
+            strategy.renderPending(scripts);
 
             const output = logStub.firstCall.args[0];
             const parsed = JSON.parse(output);
 
-            expect(parsed.todo).to.be.an('array');
-            expect(parsed.todo).to.have.lengthOf(2);
-            expect(parsed.todo[0].timestamp).to.equal(202501220100);
-            expect(parsed.todo[0].name).to.equal('V202501220100_test.ts');
-            expect(parsed.todo[0].path).to.equal('/path/to/migration.ts');
+            expect(parsed.pending).to.be.an('array');
+            expect(parsed.pending).to.have.lengthOf(2);
+            expect(parsed.pending[0].timestamp).to.equal(202501220100);
+            expect(parsed.pending[0].name).to.equal('V202501220100_test.ts');
+            expect(parsed.pending[0].path).to.equal('/path/to/migration.ts');
         });
 
         it('should support compact mode', () => {
@@ -243,13 +243,13 @@ describe('JsonRenderStrategy', () => {
                 {timestamp: 202501220100, name: 'V202501220100_test.ts', filepath: '/path/to/migration.ts'} as MigrationScript,
             ];
 
-            strategy.renderTodo(scripts);
+            strategy.renderPending(scripts);
 
             const output = logStub.firstCall.args[0];
             // Compact JSON should not have newlines (except possibly trailing)
             expect(output.trim()).to.not.include('\n');
             const parsed = JSON.parse(output);
-            expect(parsed.todo).to.have.lengthOf(1);
+            expect(parsed.pending).to.have.lengthOf(1);
         });
     });
 
@@ -376,7 +376,7 @@ describe('JsonRenderStrategy', () => {
 
             expect(parsed.banner).to.exist;
             expect(parsed.banner.application).to.equal('Migration Script Runner');
-            expect(parsed.banner.version).to.equal('v.0.3.0');
+            expect(parsed.banner.version).to.equal('v0.3.0');
             expect(parsed.banner.handler).to.equal('PostgreSQL Handler');
         });
     });
@@ -398,7 +398,7 @@ describe('JsonRenderStrategy', () => {
             strategy.renderMigrated(scripts, handler);
             expect(() => JSON.parse(logStub.lastCall.args[0])).to.not.throw();
 
-            strategy.renderTodo([{timestamp: 1, name: 'M', filepath: '/p'} as MigrationScript]);
+            strategy.renderPending([{timestamp: 1, name: 'M', filepath: '/p'} as MigrationScript]);
             expect(() => JSON.parse(logStub.lastCall.args[0])).to.not.throw();
 
             strategy.renderExecuted([{timestamp: 1, name: 'M', startedAt: now, finishedAt: now, result: 'R', username: 'u'}]);

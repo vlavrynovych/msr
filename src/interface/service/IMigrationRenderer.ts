@@ -19,7 +19,7 @@ export interface IMigrationRenderer {
     drawFiglet(): void;
 
     /**
-     * Draw table of already executed migrations.
+     * Draw already executed migrations.
      *
      * Shows all migrations that have been previously applied to the database,
      * including their execution time, duration, and status.
@@ -30,31 +30,31 @@ export interface IMigrationRenderer {
     drawMigrated(scripts: IScripts, number?: number): void;
 
     /**
-     * Draw table of pending migrations to be executed.
+     * Draw pending migrations to be executed.
      *
      * Shows migrations that haven't been applied yet and are queued for execution.
      *
      * @param scripts - Array of pending migration scripts
      */
-    drawTodoTable(scripts: MigrationScript[]): void;
+    drawPending(scripts: MigrationScript[]): void;
 
     /**
-     * Draw table of ignored migrations.
+     * Draw ignored migrations.
      *
      * Shows migrations that were skipped because they are older than
      * the last executed migration or don't match the execution criteria.
      *
      * @param scripts - Array of ignored migration scripts
      */
-    drawIgnoredTable(scripts: MigrationScript[]): void;
+    drawIgnored(scripts: MigrationScript[]): void;
 
     /**
-     * Draw table of migrations that were executed in the current run.
+     * Draw migrations that were executed in the current run.
      *
      * Shows summary of migrations that were just executed, including
      * their duration and result status.
      *
      * @param scripts - Array of executed migration information
      */
-    drawExecutedTable(scripts: IMigrationInfo[]): void;
+    drawExecuted(scripts: IMigrationInfo[]): void;
 }

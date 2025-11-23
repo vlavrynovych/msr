@@ -8,12 +8,12 @@ describe('MigrationScriptSelector', () => {
         selector = new MigrationScriptSelector();
     });
 
-    describe('getTodo()', () => {
+    describe('getPending()', () => {
 
         /**
-         * Test: getTodo returns all scripts when database is empty
+         * Test: getPending returns all scripts when database is empty
          * Validates that when no migrations have been executed yet,
-         * getTodo returns all available migration scripts for execution.
+         * getPending returns all available migration scripts for execution.
          * This represents the initial migration scenario where everything
          * needs to be executed.
          */
@@ -25,15 +25,15 @@ describe('MigrationScriptSelector', () => {
             ];
             const migratedScripts: MigrationScript[] = [];
 
-            const result = selector.getTodo(migratedScripts, allScripts);
+            const result = selector.getPending(migratedScripts, allScripts);
 
             expect(result).to.have.lengthOf(3);
             expect(result).to.deep.equal(allScripts);
         });
 
         /**
-         * Test: getTodo returns only scripts newer than last executed migration
-         * Validates that getTodo correctly filters out already-executed migrations
+         * Test: getPending returns only scripts newer than last executed migration
+         * Validates that getPending correctly filters out already-executed migrations
          * and returns only new scripts that should be executed. This ensures
          * incremental migrations work correctly.
          */
@@ -49,7 +49,7 @@ describe('MigrationScriptSelector', () => {
                 createScript(4, 'migration4')
             ];
 
-            const result = selector.getTodo(migratedScripts, allScripts);
+            const result = selector.getPending(migratedScripts, allScripts);
 
             expect(result).to.have.lengthOf(2);
             expect(result[0].timestamp).to.equal(3);
@@ -57,7 +57,7 @@ describe('MigrationScriptSelector', () => {
         });
 
         /**
-         * Test: getTodo excludes scripts older than last executed migration
+         * Test: getPending excludes scripts older than last executed migration
          * Validates that scripts with timestamps older than the most recent
          * executed migration are ignored. This prevents out-of-order migrations
          * from being executed after newer migrations have already run.
@@ -74,7 +74,7 @@ describe('MigrationScriptSelector', () => {
                 createScript(9, 'migration9')  // newer - should be included
             ];
 
-            const result = selector.getTodo(migratedScripts, allScripts);
+            const result = selector.getPending(migratedScripts, allScripts);
 
             expect(result).to.have.lengthOf(2);
             expect(result[0].timestamp).to.equal(7);
@@ -82,9 +82,9 @@ describe('MigrationScriptSelector', () => {
         });
 
         /**
-         * Test: getTodo returns empty array when all migrations executed
+         * Test: getPending returns empty array when all migrations executed
          * Validates that when all available migration scripts have already
-         * been executed, getTodo returns an empty array. This indicates
+         * been executed, getPending returns an empty array. This indicates
          * the database is up to date.
          */
         it('should return empty array when all scripts are already migrated', () => {
@@ -99,15 +99,15 @@ describe('MigrationScriptSelector', () => {
                 createScript(3, 'migration3')
             ];
 
-            const result = selector.getTodo(migratedScripts, allScripts);
+            const result = selector.getPending(migratedScripts, allScripts);
 
             expect(result).to.be.an('array').that.is.empty;
         });
 
         /**
-         * Test: getTodo handles empty scripts array gracefully
+         * Test: getPending handles empty scripts array gracefully
          * Validates that when no migration scripts exist in the migrations
-         * folder, getTodo returns an empty array without errors. This handles
+         * folder, getPending returns an empty array without errors. This handles
          * the edge case of an empty migrations directory.
          */
         it('should handle empty all scripts array', () => {
@@ -116,7 +116,7 @@ describe('MigrationScriptSelector', () => {
             ];
             const allScripts: MigrationScript[] = [];
 
-            const result = selector.getTodo(migratedScripts, allScripts);
+            const result = selector.getPending(migratedScripts, allScripts);
 
             expect(result).to.be.an('array').that.is.empty;
         });
@@ -231,11 +231,11 @@ describe('MigrationScriptSelector', () => {
         });
     });
 
-    describe('getTodo() and getIgnored() together', () => {
+    describe('getPending() and getIgnored() together', () => {
 
         /**
-         * Test: getTodo and getIgnored partition scripts correctly without overlap
-         * Validates that getTodo and getIgnored work together to partition all
+         * Test: getPending and getIgnored partition scripts correctly without overlap
+         * Validates that getPending and getIgnored work together to partition all
          * migration scripts into two non-overlapping sets: scripts to execute
          * and scripts to ignore. This ensures the migration system correctly
          * categorizes every script.
@@ -252,7 +252,7 @@ describe('MigrationScriptSelector', () => {
                 createScript(9, 'migration9')  // todo
             ];
 
-            const todo = selector.getTodo(migratedScripts, allScripts);
+            const todo = selector.getPending(migratedScripts, allScripts);
             const ignored = selector.getIgnored(migratedScripts, allScripts);
 
             // Verify todo

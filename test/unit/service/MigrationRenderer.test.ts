@@ -150,10 +150,10 @@ describe('MigrationRenderer', () => {
 
     })
 
-    describe('drawExecutedTable()', () => {
+    describe('drawExecuted()', () => {
 
         /**
-         * Test: drawExecutedTable should handle migrations with undefined results
+         * Test: drawExecuted should handle migrations with undefined results
          * Validates rendering with undefined and null result values
          */
         it('should handle migrations with undefined results', () => {
@@ -168,7 +168,7 @@ describe('MigrationRenderer', () => {
             const consoleLogSpy = sinon.spy(console, 'log');
 
             // then: should render table with undefined/null values
-            renderer.drawExecutedTable(list)
+            renderer.drawExecuted(list)
 
             expect(consoleLogSpy.called).to.be.true;
             const output = consoleLogSpy.firstCall.args[0];
@@ -211,10 +211,10 @@ describe('MigrationRenderer', () => {
 
     })
 
-    describe('drawIgnoredTable()', () => {
+    describe('drawIgnored()', () => {
 
         /**
-         * Test: drawIgnoredTable should render ignored scripts with warning
+         * Test: drawIgnored should render ignored scripts with warning
          * Validates that ignored scripts are displayed with proper warning
          */
         it('should render ignored scripts with warning', () => {
@@ -228,7 +228,7 @@ describe('MigrationRenderer', () => {
             const sinon = require('sinon');
             const consoleWarnSpy = sinon.spy(console, 'warn');
 
-            renderer.drawIgnoredTable(list);
+            renderer.drawIgnored(list);
 
             // then: should warn about ignored scripts
             expect(consoleWarnSpy.called).to.be.true;
@@ -380,8 +380,8 @@ describe('MigrationRenderer', () => {
         /**
          * Test: All table rendering methods work without errors
          * Smoke test validating that all console rendering methods can be called
-         * without throwing errors. Tests drawExecutedTable, drawTodoTable,
-         * drawIgnoredTable, and drawMigrated with various input combinations.
+         * without throwing errors. Tests drawExecuted, drawPending,
+         * drawIgnored, and drawMigrated with various input combinations.
          */
         it('should render all table types without errors', () => {
             // Prepare test data: 2 migrations and 3 migrations
@@ -400,9 +400,9 @@ describe('MigrationRenderer', () => {
             const renderer = new MigrationRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
 
             // Call all rendering methods (should not throw)
-            renderer.drawExecutedTable(list)
-            renderer.drawTodoTable(list)
-            renderer.drawIgnoredTable(list)
+            renderer.drawExecuted(list)
+            renderer.drawPending(list)
+            renderer.drawIgnored(list)
             renderer.drawMigrated({
                 migrated: list2,
                 all: list
@@ -422,9 +422,9 @@ describe('MigrationRenderer', () => {
             const renderer = new MigrationRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
 
             // These should all return early without rendering (and not throw)
-            renderer.drawExecutedTable([])
-            renderer.drawTodoTable([])
-            renderer.drawIgnoredTable([])
+            renderer.drawExecuted([])
+            renderer.drawPending([])
+            renderer.drawIgnored([])
         })
 
     })

@@ -87,10 +87,10 @@ export class AsciiTableRenderStrategy implements IRenderStrategy {
      *
      * @param scripts - Array of pending migration scripts
      */
-    renderTodo(scripts: MigrationScript[]): void {
+    renderPending(scripts: MigrationScript[]): void {
         if (!scripts.length) return;
 
-        const table = new AsciiTable3('TODO');
+        const table = new AsciiTable3('Pending');
         table.setHeading('Timestamp', 'Name', 'Path');
         scripts.forEach(m => table.addRow(m.timestamp, m.name, m.filepath));
         this.logger.log(table.toString());
@@ -149,7 +149,7 @@ export class AsciiTableRenderStrategy implements IRenderStrategy {
      * | |\/| | |/ _` | '__/ _` | __| |/ _ \| '_ \  \___ \ / __| '__| | '_ \| __|
      * | |  | | | (_| | | | (_| | |_| | (_) | | | |  ___) | (__| |  | | |_) | |_
      * |_|  |_|_|\__, |_|  \__,_|\__|_|\___/|_| |_| |____/ \___|_|  |_| .__/ \__|
-     *           |___/                                                |_| MSR v.0.3.0: Handler Name
+     *           |___/                                                |_| MSR v0.3.0: Handler Name
      * ```
      *
      * @param version - Application version string
@@ -158,7 +158,7 @@ export class AsciiTableRenderStrategy implements IRenderStrategy {
     renderBanner(version: string, handlerName: string): void {
         let text = figlet.textSync("Migration Script Runner");
         text = text.replace('|_|                                     ',
-            `|_| MSR v.${version}: ${handlerName}`);
+            `|_| MSR v${version}: ${handlerName}`);
         this.logger.log(text);
     }
 

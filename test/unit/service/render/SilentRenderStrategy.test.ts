@@ -79,11 +79,11 @@ describe('SilentRenderStrategy', () => {
         });
     });
 
-    describe('renderTodo', () => {
+    describe('renderPending', () => {
         it('should produce no output for empty todo', () => {
             const strategy = new SilentRenderStrategy();
 
-            strategy.renderTodo([]);
+            strategy.renderPending([]);
 
             expect(logStub.called).to.be.false;
             expect(warnStub.called).to.be.false;
@@ -96,7 +96,7 @@ describe('SilentRenderStrategy', () => {
                 {timestamp: 202501220100, name: 'V202501220100_test.ts', filepath: '/path'} as MigrationScript,
             ];
 
-            strategy.renderTodo(scripts);
+            strategy.renderPending(scripts);
 
             expect(logStub.called).to.be.false;
             expect(warnStub.called).to.be.false;
@@ -189,7 +189,7 @@ describe('SilentRenderStrategy', () => {
             } as unknown as IScripts;
             strategy.renderMigrated(scripts, handler);
 
-            strategy.renderTodo([{timestamp: 1, name: 'M', filepath: '/p'} as MigrationScript]);
+            strategy.renderPending([{timestamp: 1, name: 'M', filepath: '/p'} as MigrationScript]);
             strategy.renderExecuted([{timestamp: 1, name: 'M', startedAt: now, finishedAt: now, result: 'R', username: 'u'}]);
             strategy.renderIgnored([{timestamp: 1, name: 'M', filepath: '/p'} as MigrationScript]);
 
