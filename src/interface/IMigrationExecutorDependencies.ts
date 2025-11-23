@@ -1,6 +1,7 @@
 import {IBackupService} from "./service/IBackupService";
 import {ISchemaVersionService} from "./service/ISchemaVersionService";
 import {IConsoleRenderer} from "./service/IConsoleRenderer";
+import {IRenderStrategy} from "./service/IRenderStrategy";
 import {IMigrationService} from "./service/IMigrationService";
 import {ILogger} from "./ILogger";
 import {IMigrationHooks} from "./IMigrationHooks";
@@ -16,6 +17,16 @@ import {IMigrationHooks} from "./IMigrationHooks";
  * // Use custom logger across all services
  * const executor = new MigrationScriptExecutor(handler, {
  *     logger: new FileLogger('./migrations.log')
+ * });
+ *
+ * // Use JSON output for CI/CD
+ * const executor = new MigrationScriptExecutor(handler, {
+ *     renderStrategy: new JsonRenderStrategy()
+ * });
+ *
+ * // Use silent output for testing
+ * const executor = new MigrationScriptExecutor(handler, {
+ *     renderStrategy: new SilentRenderStrategy()
  * });
  *
  * // Inject mock services for testing
@@ -50,6 +61,24 @@ export interface IMigrationExecutorDependencies {
      * If not provided, uses ConsoleRenderer with default configuration.
      */
     consoleRenderer?: IConsoleRenderer;
+
+    /**
+     * Custom render strategy for migration output.
+     * Determines the format of migration output (ASCII tables, JSON, silent, etc.).
+     * If not provided, uses AsciiTableRenderStrategy (default console tables).
+     *
+     * Note: This is ignored if consoleRenderer is provided.
+     *
+     * @example
+     * ```typescript
+     * // JSON output
+     * renderStrategy: new JsonRenderStrategy()
+     *
+     * // Silent output
+     * renderStrategy: new SilentRenderStrategy()
+     * ```
+     */
+    renderStrategy?: IRenderStrategy;
 
     /**
      * Custom migration service implementation.

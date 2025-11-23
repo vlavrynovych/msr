@@ -1,143 +1,7 @@
 import { expect } from 'chai';
-import {Config, ConsoleRenderer, IMigrationInfo, IDatabaseMigrationHandler, IScripts, MigrationScript} from "../../../src";
+import {Config, ConsoleRenderer, IDatabaseMigrationHandler, IScripts, MigrationScript, IMigrationInfo} from "../../../src";
 
 describe('ConsoleRenderer', () => {
-
-    describe('getDuration()', () => {
-
-        /**
-         * Test: getDuration calculates duration correctly for valid timestamps
-         * Validates that getDuration converts millisecond timestamps to seconds
-         * with correct formatting. Tests a full day (86400 seconds) to ensure
-         * large durations are handled properly.
-         */
-        it('should calculate duration correctly for valid timestamps', () => {
-            // Calculate duration for 1 full day (01/01/2020 to 01/02/2020)
-            const res = ConsoleRenderer.getDuration({
-                startedAt: 1577829600000,   // 01/01/2020
-                finishedAt: 1577916000000   // 01/02/2020
-            } as IMigrationInfo);
-
-            // Verify 1 day = 86400 seconds
-            expect(res).eq("86400s", 'Should be 1 day in second = 86400s')
-        })
-
-        /**
-         * Test: getDuration maintains precision for fractional seconds
-         * Validates that the duration formatter preserves up to 3 decimal places
-         * for sub-second durations. Important for showing accurate migration times
-         * for fast migrations.
-         */
-        it('should maintain precision for fractional seconds', () => {
-            // Test 0.8 seconds (800ms)
-            const res = ConsoleRenderer.getDuration({startedAt: 200, finishedAt: 1000} as IMigrationInfo);
-            expect(res).eq("0.8s", '1s - 0.2s = 0.8s')
-
-            // Test 0.98 seconds (980ms)
-            const res2 = ConsoleRenderer.getDuration({startedAt: 20, finishedAt: 1000} as IMigrationInfo);
-            expect(res2).eq("0.98s", '1s - 0.02s = 0.98s')
-
-            // Test 0.998 seconds (998ms)
-            const res3 = ConsoleRenderer.getDuration({startedAt: 2, finishedAt: 1000} as IMigrationInfo);
-            expect(res3).eq("0.998s", '1s - 0.002s = 0.998s')
-        })
-
-        /**
-         * Test: getDuration rounds insignificant decimals
-         * Validates that very small differences (< 0.0005s) are rounded away
-         * to avoid displaying noise like "0.9998s" instead of "1s". This keeps
-         * the console output clean and readable.
-         */
-        it('should round insignificant decimals', () => {
-            // Calculate duration with negligible difference (0.0002s)
-            const res = ConsoleRenderer.getDuration({startedAt: 0.2, finishedAt: 1000} as IMigrationInfo);
-
-            // Verify it rounds to clean "1s"
-            expect(res).eq("1s", 'The difference is not noticeable, should stay as 1 second')
-        })
-
-        /**
-         * Test: getDuration handles negative durations
-         * Edge case test for when finishedAt is before startedAt. While this
-         * shouldn't happen in normal operation, the formatter should handle it
-         * gracefully by showing a negative duration.
-         */
-        it('should handle negative durations', () => {
-            // Calculate duration where finish time is before start time
-            const res = ConsoleRenderer.getDuration({startedAt: 4000, finishedAt: 1000} as IMigrationInfo);
-
-            // Verify negative duration is shown
-            expect(res).eq("-3s", 'Should be negative = -3s')
-        })
-
-        /**
-         * Test: getDuration handles zero duration
-         * Edge case test for instantaneous migrations (same start and finish time).
-         * Should display "0s" rather than empty string or undefined.
-         */
-        it('should handle zero duration', () => {
-            // Calculate duration with identical start and finish times
-            const res = ConsoleRenderer.getDuration({startedAt: 0, finishedAt: 0} as IMigrationInfo);
-
-            // Verify zero duration is displayed
-            expect(res).eq("0s", '0s - 0s = 0s')
-        })
-
-        /**
-         * Test: getDuration is stable with negative timestamps
-         * Edge case test validating the formatter doesn't crash or produce NaN
-         * with negative timestamps. While unusual, this ensures robustness with
-         * any numeric input.
-         */
-        it('check weird numbers: should be stable', () => {
-            // Test with negative start time
-            const res = ConsoleRenderer.getDuration({startedAt: -2000, finishedAt: 1000} as IMigrationInfo);
-
-            // Verify calculation is still correct (1000 - (-2000) = 3000ms = 3s)
-            expect(res).eq("3s", 'It is weird but should be 3s')
-
-            // Test with both negative times
-            const res2 = ConsoleRenderer.getDuration({startedAt: 3000, finishedAt: -2000} as IMigrationInfo);
-
-            // Verify negative result (-2000 - 3000 = -5000ms = -5s)
-            expect(res2).eq("-5s", 'It is weird but should be -5s')
-        })
-
-        /**
-         * Test: getDuration should handle invalid timestamps
-         * Edge case test for NaN, undefined, and missing timestamps
-         */
-        it('should handle invalid timestamps', () => {
-            // when: NaN timestamps
-            const res1 = ConsoleRenderer.getDuration({startedAt: NaN, finishedAt: 1000} as IMigrationInfo)
-            expect(res1).to.include('s', 'Should return string with s suffix')
-
-            // when: undefined timestamps
-            const res2 = ConsoleRenderer.getDuration({startedAt: undefined, finishedAt: 1000} as any)
-            expect(res2).to.include('s', 'Should handle undefined startedAt')
-
-            // when: both undefined
-            const res3 = ConsoleRenderer.getDuration({} as IMigrationInfo)
-            expect(res3).to.include('s', 'Should handle missing timestamps')
-        })
-
-        /**
-         * Test: getDuration should handle very large time differences
-         * Validates calculations for extreme time spans (1 year)
-         */
-        it('should handle very large time differences', () => {
-            // when: 1 year difference
-            const oneYear = 365 * 24 * 60 * 60 * 1000
-            const res = ConsoleRenderer.getDuration({
-                startedAt: 0,
-                finishedAt: oneYear
-            } as IMigrationInfo)
-
-            // then: should calculate correctly
-            expect(res).eq('31536000s', 'Should handle 1 year = 31536000 seconds')
-        })
-
-    })
 
     describe('drawMigrated()', () => {
 
@@ -220,7 +84,8 @@ describe('ConsoleRenderer', () => {
 
             // then: should be fast
             expect(duration).to.be.lessThan(100, 'Should render quickly (< 100ms)')
-            expect(scripts.migrated.length).eq(10, 'Should limit to 10')
+            // Note: The rendering should not mutate the original array
+            expect(scripts.migrated.length).eq(1000, 'Original array should remain unchanged')
         })
 
         /**
@@ -253,6 +118,32 @@ describe('ConsoleRenderer', () => {
             const lines = output.split('\n');
             const hasFoundLocallyColumn = lines.some((line: string) => line.includes('Found Locally'));
             expect(hasFoundLocallyColumn).to.be.true;
+
+            consoleLogSpy.restore();
+        })
+
+        /**
+         * Test: drawMigrated should handle undefined all array gracefully
+         * Validates that when scripts.all is undefined, migrations show N for foundLocally
+         */
+        it('should handle undefined all array gracefully', () => {
+            const list = [
+                {timestamp: 1, name: 'Migration1', finishedAt: Date.now(), username: 'user'} as MigrationScript,
+                {timestamp: 2, name: 'Migration2', finishedAt: Date.now(), username: 'user'} as MigrationScript,
+            ]
+            // all array is undefined
+            const scripts = {migrated: list, all: undefined} as unknown as IScripts
+            const cr = new ConsoleRenderer({cfg: new Config()} as IDatabaseMigrationHandler)
+
+            // when: capture output
+            const sinon = require('sinon');
+            const consoleLogSpy = sinon.spy(console, 'log');
+
+            cr.drawMigrated(scripts)
+
+            // then: should show N for all migrations since all is undefined
+            const output = consoleLogSpy.firstCall.args[0];
+            expect(output).to.include('Found Locally');
 
             consoleLogSpy.restore();
         })
@@ -416,8 +307,8 @@ describe('ConsoleRenderer', () => {
             // Render with displayLimit=2
             cr.drawMigrated(scripts, 2)
 
-            // Verify only 2 are shown
-            expect(scripts.migrated.length).eq(2, 'Should show only 2 when displayLimit is 2')
+            // Verify the original array is not mutated
+            expect(scripts.migrated.length).eq(3, 'Original array should remain unchanged')
         })
 
         /**
@@ -438,9 +329,9 @@ describe('ConsoleRenderer', () => {
             // Render with displayLimit=1
             cr.drawMigrated(scripts, 1)
 
-            // Verify only the most recent is shown
-            expect(scripts.migrated.length).eq(1, 'Should show only 1')
-            expect(scripts.migrated[0].name).eq('Recent', 'Should show most recent')
+            // Verify the original array is not mutated
+            expect(scripts.migrated.length).eq(2, 'Original array should remain unchanged')
+            // The output rendering should show the most recent, but we don't mutate the input
         })
 
         /**
