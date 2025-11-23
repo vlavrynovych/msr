@@ -83,6 +83,16 @@ export class MigrationScriptExecutor {
      * // Default behavior (backward compatible)
      * const executor = new MigrationScriptExecutor(handler);
      *
+     * // With JSON output for CI/CD
+     * const executor = new MigrationScriptExecutor(handler, {
+     *     renderStrategy: new JsonRenderStrategy()
+     * });
+     *
+     * // With silent output for testing
+     * const executor = new MigrationScriptExecutor(handler, {
+     *     renderStrategy: new SilentRenderStrategy()
+     * });
+     *
      * // With custom logger
      * const executor = new MigrationScriptExecutor(handler, {
      *     logger: new SilentLogger()
@@ -113,7 +123,7 @@ export class MigrationScriptExecutor {
             ?? new SchemaVersionService(handler.schemaVersion);
 
         this.consoleRenderer = dependencies?.consoleRenderer
-            ?? new ConsoleRenderer(handler, this.logger);
+            ?? new ConsoleRenderer(handler, this.logger, dependencies?.renderStrategy);
 
         this.migrationService = dependencies?.migrationService
             ?? new MigrationService(this.logger);

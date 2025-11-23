@@ -1,80 +1,101 @@
-import moment from "moment";
-import figlet from "figlet";
-import {AsciiTable3, AlignmentEnum} from 'ascii-table3';
 import {version} from '../../package.json'
 
-import {IMigrationInfo, IDatabaseMigrationHandler, IScripts, MigrationScript, ILogger, IConsoleRenderer} from "../index";
-import _ from "lodash";
+import {IMigrationInfo, IDatabaseMigrationHandler, IScripts, MigrationScript, ILogger, IConsoleRenderer, IRenderStrategy} from "../index";
 import {ConsoleLogger} from "../logger";
+import {AsciiTableRenderStrategy} from "./render/AsciiTableRenderStrategy";
 
+/**
+ * Console renderer that delegates rendering to a pluggable strategy.
+ *
+ * Uses the Strategy Pattern to support multiple output formats:
+ * - ASCII tables (default via {@link AsciiTableRenderStrategy})
+ * - JSON ({@link JsonRenderStrategy})
+ * - Silent ({@link SilentRenderStrategy})
+ * - Custom strategies
+ *
+ * This design allows:
+ * - Easy testing with silent/mock strategies
+ * - Multiple output formats without modifying core logic
+ * - Library-friendly usage (suppress output)
+ * - CI/CD integration (structured output)
+ *
+ * @example
+ * ```typescript
+ * // Default ASCII table output
+ * const renderer = new ConsoleRenderer(handler);
+ *
+ * // JSON output for CI/CD
+ * const renderer = new ConsoleRenderer(handler, logger, new JsonRenderStrategy());
+ *
+ * // Silent output for testing
+ * const renderer = new ConsoleRenderer(handler, logger, new SilentRenderStrategy());
+ * ```
+ */
 export class ConsoleRenderer implements IConsoleRenderer {
+    /**
+     * Creates a new ConsoleRenderer.
+     *
+     * @param handler - Database migration handler
+     * @param logger - Logger instance (defaults to ConsoleLogger)
+     * @param strategy - Rendering strategy (defaults to AsciiTableRenderStrategy)
+     */
     constructor(
         private handler: IDatabaseMigrationHandler,
-        private logger: ILogger = new ConsoleLogger()
+        private logger: ILogger = new ConsoleLogger(),
+        private strategy: IRenderStrategy = new AsciiTableRenderStrategy(logger)
     ) {}
 
-    public drawFiglet() {
-        let text = figlet.textSync("Migration Script Runner");
-        text = text.replace('|_|                                     ',
-            `|_| MSR v.${version}: ${this.handler.getName()}`);
-        this.logger.log(text);
+    /**
+     * Draw ASCII art banner with application name and version.
+     *
+     * Delegates to the rendering strategy.
+     */
+    public drawFiglet(): void {
+        this.strategy.renderBanner(version, this.handler.getName());
     }
 
-    public drawMigrated(scripts:IScripts, number = 0) {
-        if (!scripts.migrated.length) return
-
-        if(number > 0) {
-            scripts.migrated = _
-                .chain(scripts.migrated)
-                .orderBy(['timestamp'], ['desc'])
-                .splice(0, number)
-                .value()
-        }
-
-        const table = new AsciiTable3('Migrated');
-        table.setHeading('Timestamp', 'Name', 'Executed', 'Duration', 'Username', 'Found Locally');
-        table.setAlign(4, AlignmentEnum.CENTER);
-        scripts.migrated.forEach(m => {
-            const finished = moment(m.finishedAt);
-            const date = finished.format('YYYY/MM/DD HH:mm');
-            const ago = finished.fromNow();
-            const name = m.name.replace(this.handler.cfg.filePattern, '');
-            const found = (scripts.all || []).find(s => s.timestamp === m.timestamp) ? 'Y' : 'N';
-            table.addRow(m.timestamp, name, `${date} (${ago})`, ConsoleRenderer.getDuration(m), m.username, found)
-        });
-        this.logger.log(table.toString());
+    /**
+     * Draw table of already executed migrations.
+     *
+     * Delegates to the rendering strategy.
+     *
+     * @param scripts - Collection of migration scripts with execution history
+     * @param number - Optional limit on number of migrations to display (0 = all)
+     */
+    public drawMigrated(scripts: IScripts, number = 0): void {
+        this.strategy.renderMigrated(scripts, this.handler, number);
     }
 
-    public drawTodoTable(scripts:MigrationScript[]) {
-        if(!scripts.length) return;
-
-        const table = new AsciiTable3('TODO');
-        table.setHeading('Timestamp', 'Name', 'Path');
-        scripts.forEach(m => table.addRow(m.timestamp, m.name, m.filepath));
-        this.logger.log(table.toString());
+    /**
+     * Draw table of pending migrations to be executed.
+     *
+     * Delegates to the rendering strategy.
+     *
+     * @param scripts - Array of pending migration scripts
+     */
+    public drawTodoTable(scripts: MigrationScript[]): void {
+        this.strategy.renderTodo(scripts);
     }
 
-    public drawIgnoredTable(scripts:MigrationScript[]) {
-        if(!scripts.length) return;
-
-        const table = new AsciiTable3('Ignored Scripts');
-        table.setHeading('Timestamp', 'Name', 'Path');
-        scripts.forEach(m => table.addRow(m.timestamp, m.name, m.filepath));
-        this.logger.warn(table.toString());
+    /**
+     * Draw table of ignored migrations.
+     *
+     * Delegates to the rendering strategy.
+     *
+     * @param scripts - Array of ignored migration scripts
+     */
+    public drawIgnoredTable(scripts: MigrationScript[]): void {
+        this.strategy.renderIgnored(scripts);
     }
 
-    public drawExecutedTable(scripts: IMigrationInfo[]) {
-        if(!scripts.length) return;
-
-        const table = new AsciiTable3('Executed');
-        table.setHeading('Timestamp', 'Name', 'Duration', 'Result');
-        scripts.forEach(m => table.addRow(m.timestamp, m.name, ConsoleRenderer.getDuration(m), m.result));
-        this.logger.log(table.toString());
+    /**
+     * Draw table of migrations that were executed in the current run.
+     *
+     * Delegates to the rendering strategy.
+     *
+     * @param scripts - Array of executed migration information
+     */
+    public drawExecutedTable(scripts: IMigrationInfo[]): void {
+        this.strategy.renderExecuted(scripts);
     }
-
-    public static getDuration(m:IMigrationInfo) {
-        const duration = moment.duration(moment(m.finishedAt).diff(moment(m.startedAt))).asSeconds()
-        return `${duration}s`
-    }
-
 }
