@@ -32,6 +32,13 @@ Writes logs to files with automatic rotation based on file size. Includes timest
 
 ---
 
+### [CompositeLogger](composite-logger.md)
+Forwards log messages to multiple logger implementations simultaneously. Enables logging to multiple destinations (console + file, file + cloud, etc.) with dynamic logger management.
+
+**Best for:** Multi-destination logging, production environments, flexible logging strategies
+
+---
+
 ### [Cloud Logger Guide](cloud-logger-guide.md)
 Guide for implementing cloud logging services (AWS CloudWatch, Google Cloud Logging, Azure, Datadog, etc.).
 
@@ -43,14 +50,14 @@ Guide for implementing cloud logging services (AWS CloudWatch, Google Cloud Logg
 
 ## Quick Comparison
 
-| Feature | ConsoleLogger | SilentLogger | FileLogger |
-|---------|---------------|--------------|------------|
-| Output Location | Console | None | File system |
-| Rotation | N/A | N/A | ✅ Size-based |
-| Timestamps | ❌ | N/A | ✅ Configurable |
-| Configuration | None | None | Extensive |
-| Performance | Fast | Fastest | Moderate |
-| Best Use Case | Development | Testing | Production |
+| Feature | ConsoleLogger | SilentLogger | FileLogger | CompositeLogger |
+|---------|---------------|--------------|------------|-----------------|
+| Output Location | Console | None | File system | Multiple destinations |
+| Rotation | N/A | N/A | ✅ Size-based | Depends on child loggers |
+| Timestamps | ❌ | N/A | ✅ Configurable | Depends on child loggers |
+| Configuration | None | None | Extensive | Dynamic (add/remove loggers) |
+| Performance | Fast | Fastest | Moderate | Depends on number of loggers |
+| Best Use Case | Development | Testing | Production | Multi-destination logging |
 
 ## Creating Custom Loggers
 
