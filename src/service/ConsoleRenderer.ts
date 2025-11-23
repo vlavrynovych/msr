@@ -3,11 +3,11 @@ import figlet from "figlet";
 import {AsciiTable3, AlignmentEnum} from 'ascii-table3';
 import {version} from '../../package.json'
 
-import {IMigrationInfo, IDatabaseMigrationHandler, IScripts, MigrationScript, ILogger} from "../index";
+import {IMigrationInfo, IDatabaseMigrationHandler, IScripts, MigrationScript, ILogger, IConsoleRenderer} from "../index";
 import _ from "lodash";
 import {ConsoleLogger} from "../logger";
 
-export class ConsoleRenderer {
+export class ConsoleRenderer implements IConsoleRenderer {
     constructor(
         private handler: IDatabaseMigrationHandler,
         private logger: ILogger = new ConsoleLogger()
