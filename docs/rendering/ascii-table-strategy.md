@@ -113,11 +113,11 @@ const executor = new MigrationScriptExecutor(handler, {
 +-----------+--------------+--------------------------------------+----------+----------+---------------+
 ```
 
-### TODO Table
+### Pending Table
 
 ```
 +----------------------------------------------------------------------------------------------+
-|                                             TODO                                             |
+|                                            Pending                                           |
 +-----------+------------------+----------------------------------------------------------+
 | Timestamp |       Name       |                           Path                           |
 +-----------+------------------+----------------------------------------------------------+
@@ -324,7 +324,7 @@ All methods are called internally by `MigrationRenderer`:
 
 Renders the table of previously executed migrations.
 
-#### `renderTodo(scripts: MigrationScript[]): void`
+#### `renderPending(scripts: MigrationScript[]): void`
 
 Renders the table of pending migrations.
 

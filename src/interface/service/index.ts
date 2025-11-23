@@ -1,5 +1,6 @@
 export * from './IBackupService'
 export * from './IMigrationService'
+export * from './IMigrationScanner'
 export * from './ISchemaVersionService'
 export * from './IMigrationRenderer'
 export * from './IRenderStrategy'

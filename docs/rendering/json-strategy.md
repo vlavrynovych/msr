@@ -121,10 +121,10 @@ const executor = new MigrationScriptExecutor(handler, {
 }
 ```
 
-### TODO (Compact)
+### Pending (Compact)
 
 ```json
-{"todo":[{"timestamp":202501220300,"name":"add_indexes","path":"/app/migrations/V202501220300_add_indexes.ts"},{"timestamp":202501220400,"name":"optimize_queries","path":"/app/migrations/V202501220400_optimize_queries.ts"}]}
+{"pending":[{"timestamp":202501220300,"name":"add_indexes","path":"/app/migrations/V202501220300_add_indexes.ts"},{"timestamp":202501220400,"name":"optimize_queries","path":"/app/migrations/V202501220400_optimize_queries.ts"}]}
 ```
 
 ### Executed (Pretty)
@@ -180,11 +180,11 @@ interface MigratedOutput {
 }
 ```
 
-### TODO Object
+### Pending Object
 
 ```typescript
-interface TodoOutput {
-  todo: Array<{
+interface PendingOutput {
+  pending: Array<{
     timestamp: number;          // Migration timestamp
     name: string;               // Migration name
     path: string;               // Full file path
@@ -352,7 +352,7 @@ app.get('/api/migrations/status', async (req, res) => {
     res.json({
         total: migrations.migrated.length,
         latest: migrations.migrated[0],
-        pending: migrations.todo?.length || 0
+        pending: migrations.pending?.length || 0
     });
 });
 ```
@@ -485,7 +485,7 @@ All methods are called internally by `MigrationRenderer`:
 
 Renders migrated scripts as JSON.
 
-#### `renderTodo(scripts: MigrationScript[]): void`
+#### `renderPending(scripts: MigrationScript[]): void`
 
 Renders pending migrations as JSON.
 

@@ -8,7 +8,6 @@ import {IDatabaseMigrationHandler} from "../interface/IDatabaseMigrationHandler"
 import {ISchemaVersionService} from "../interface/service/ISchemaVersionService";
 import {IScripts} from "../interface/IScripts";
 import {SchemaVersionService} from "./SchemaVersionService";
-import {Utils} from "./Utils";
 import {IMigrationResult} from "../interface/IMigrationResult";
 import {ILogger} from "../interface/ILogger";
 import {IMigrationExecutorDependencies} from "../interface/IMigrationExecutorDependencies";
@@ -17,6 +16,8 @@ import {IMigrationHooks} from "../interface/IMigrationHooks";
 import {ConsoleLogger} from "../logger";
 import {MigrationScriptSelector} from "./MigrationScriptSelector";
 import {MigrationRunner} from "./MigrationRunner";
+import {MigrationScanner} from "./MigrationScanner";
+import {IMigrationScanner} from "../interface/service/IMigrationScanner";
 
 /**
  * Main executor class for running database migrations.
@@ -56,6 +57,9 @@ export class MigrationScriptExecutor {
 
     /** Service for discovering and loading migration script files */
     public readonly migrationService: IMigrationService;
+
+    /** Service for scanning and gathering complete migration state */
+    public readonly migrationScanner: IMigrationScanner;
 
     /** Logger instance used across all services */
     public readonly logger: ILogger;
@@ -129,6 +133,15 @@ export class MigrationScriptExecutor {
             ?? new MigrationService(this.logger);
 
         this.selector = new MigrationScriptSelector();
+
+        this.migrationScanner = dependencies?.migrationScanner
+            ?? new MigrationScanner(
+                this.migrationService,
+                this.schemaVersionService,
+                this.selector,
+                handler
+            );
+
         this.runner = new MigrationRunner(handler, this.schemaVersionService, this.logger);
 
         this.migrationRenderer.drawFiglet();
@@ -172,10 +185,10 @@ export class MigrationScriptExecutor {
         let scripts: IScripts = {
             all: [],
             migrated: [],
-            todo: [],
+            pending: [],
+            ignored: [],
             executed: []
         };
-        let ignored: MigrationScript[] = [];
         const errors: Error[] = [];
         let backupPath: string | undefined;
 
@@ -193,23 +206,16 @@ export class MigrationScriptExecutor {
 
             await this.schemaVersionService.init(this.handler.cfg.tableName);
 
-            // Collect information about migrations
-            scripts = await Utils.promiseAll({
-                migrated: this.schemaVersionService.getAllMigratedScripts(),
-                all: this.migrationService.readMigrationScripts(this.handler.cfg)
-            }) as IScripts;
+            // Scan and gather complete migration state
+            scripts = await this.migrationScanner.scan();
             this.migrationRenderer.drawMigrated(scripts, this.handler.cfg.displayLimit);
-
-            // Define scripts which should be executed
-            scripts.todo = this.getTodo(scripts.migrated, scripts.all);
-            ignored = this.getIgnored(scripts.migrated, scripts.all);
-            this.migrationRenderer.drawIgnoredTable(ignored);
-            await Promise.all(scripts.todo.map(s => s.init()));
+            this.migrationRenderer.drawIgnored(scripts.ignored);
+            await Promise.all(scripts.pending.map(s => s.init()));
 
             // Hook: Start (after we know what will be executed)
-            await this.hooks?.onStart?.(scripts.all.length, scripts.todo.length);
+            await this.hooks?.onStart?.(scripts.all.length, scripts.pending.length);
 
-            if (!scripts.todo.length) {
+            if (!scripts.pending.length) {
                 this.logger.info('Nothing to do');
                 this.backupService.deleteBackup();
 
@@ -217,7 +223,7 @@ export class MigrationScriptExecutor {
                     success: true,
                     executed: [],
                     migrated: scripts.migrated,
-                    ignored
+                    ignored: scripts.ignored
                 };
 
                 // Hook: Complete
@@ -227,12 +233,12 @@ export class MigrationScriptExecutor {
             }
 
             this.logger.info('Processing...');
-            this.migrationRenderer.drawTodoTable(scripts.todo);
+            this.migrationRenderer.drawPending(scripts.pending);
 
             // Execute migrations with hooks
-            scripts.executed = await this.executeWithHooks(scripts.todo);
+            scripts.executed = await this.executeWithHooks(scripts.pending);
 
-            this.migrationRenderer.drawExecutedTable(scripts.executed);
+            this.migrationRenderer.drawExecuted(scripts.executed);
             this.logger.info('Migration finished successfully!');
             this.backupService.deleteBackup();
 
@@ -240,7 +246,7 @@ export class MigrationScriptExecutor {
                 success: true,
                 executed: scripts.executed,
                 migrated: scripts.migrated,
-                ignored
+                ignored: scripts.ignored
             };
 
             // Hook: Complete
@@ -268,7 +274,7 @@ export class MigrationScriptExecutor {
                 success: false,
                 executed: scripts.executed,
                 migrated: scripts.migrated,
-                ignored,
+                ignored: scripts.ignored,
                 errors
             };
         }
@@ -297,43 +303,8 @@ export class MigrationScriptExecutor {
      * ```
      */
     public async list(number = 0) {
-        const scripts = await Utils.promiseAll({
-            migrated: this.schemaVersionService.getAllMigratedScripts(),
-            all: this.migrationService.readMigrationScripts(this.handler.cfg)
-        }) as IScripts;
-
+        const scripts = await this.migrationScanner.scan();
         this.migrationRenderer.drawMigrated(scripts, number)
-    }
-
-    /**
-     * Determine which migration scripts need to be executed.
-     *
-     * Delegates to MigrationScriptSelector to compare all discovered migration files
-     * against already-executed migrations.
-     *
-     * @param migrated - Array of previously executed migrations from the database
-     * @param all - Array of all migration script files discovered in the migrations folder
-     * @returns Array of migration scripts that need to be executed
-     *
-     * @private
-     */
-    getTodo(migrated:MigrationScript[], all:MigrationScript[]): MigrationScript[] {
-        return this.selector.getTodo(migrated, all);
-    }
-
-    /**
-     * Get scripts that were ignored due to being older than the last migration.
-     *
-     * Delegates to MigrationScriptSelector to identify out-of-order migrations.
-     *
-     * @param migrated - Array of previously executed migrations from the database
-     * @param all - Array of all migration script files discovered in the migrations folder
-     * @returns Array of ignored migration scripts
-     *
-     * @private
-     */
-    getIgnored(migrated:MigrationScript[], all:MigrationScript[]): MigrationScript[] {
-        return this.selector.getIgnored(migrated, all);
     }
 
     /**

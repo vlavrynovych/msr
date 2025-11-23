@@ -107,9 +107,9 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             const mockRenderer = {
                 drawFiglet: sinon.stub(),
                 drawMigrated: sinon.stub(),
-                drawTodoTable: sinon.stub(),
-                drawIgnoredTable: sinon.stub(),
-                drawExecutedTable: sinon.stub()
+                drawPending: sinon.stub(),
+                drawIgnored: sinon.stub(),
+                drawExecuted: sinon.stub()
             };
             const executorWithCustomRenderer = new MigrationScriptExecutor(handler, {
                 migrationRenderer: mockRenderer
@@ -133,6 +133,26 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
         })
 
         /**
+         * Test: Constructor accepts custom migrationScanner through dependencies
+         * Validates that custom migrationScanner is used instead of default
+         */
+        it('should use custom migrationScanner when provided', () => {
+            const mockMigrationScanner = {
+                scan: sinon.stub().resolves({
+                    all: [],
+                    migrated: [],
+                    pending: [],
+                    ignored: [],
+                    executed: []
+                })
+            };
+            const executorWithCustomScanner = new MigrationScriptExecutor(handler, {
+                migrationScanner: mockMigrationScanner
+            });
+            expect(executorWithCustomScanner.migrationScanner).to.equal(mockMigrationScanner);
+        })
+
+        /**
          * Test: Constructor accepts all custom dependencies at once
          * Validates that all custom dependencies can be injected together
          */
@@ -151,9 +171,9 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             const mockRenderer = {
                 drawFiglet: sinon.stub(),
                 drawMigrated: sinon.stub(),
-                drawTodoTable: sinon.stub(),
-                drawIgnoredTable: sinon.stub(),
-                drawExecutedTable: sinon.stub()
+                drawPending: sinon.stub(),
+                drawIgnored: sinon.stub(),
+                drawExecuted: sinon.stub()
             };
             const mockMigrationService = {
                 readMigrationScripts: sinon.stub().resolves([])

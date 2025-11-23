@@ -54,10 +54,10 @@ export interface IRenderStrategy {
      *
      * @example
      * ```typescript
-     * strategy.renderTodo([script1, script2, script3]);
+     * strategy.renderPending([script1, script2, script3]);
      * ```
      */
-    renderTodo(scripts: MigrationScript[]): void;
+    renderPending(scripts: MigrationScript[]): void;
 
     /**
      * Render the list of migrations that were executed in the current run.

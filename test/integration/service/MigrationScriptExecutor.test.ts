@@ -73,13 +73,14 @@ describe('MigrationScriptExecutor', () => {
         spy.on(handler.schemaVersion, ['isInitialized', 'createTable', 'validateTable']);
         spy.on(handler.schemaVersion.migrations, ['save', 'getAll']);
 
-        spy.on(executor, ['migrate', 'getTodo', 'execute']);
+        spy.on(executor, ['migrate', 'execute']);
         spy.on(executor.backupService, ['restore', 'deleteBackup', 'backup']);
         spy.on(executor.migrationService, ['readMigrationScripts']);
     })
 
     afterEach(() => {
         spy.restore()
+        scripts = []  // Reset shared state between tests
     })
 
     describe('migrate()', () => {
@@ -120,9 +121,8 @@ describe('MigrationScriptExecutor', () => {
             expect(executor.backupService.restore).have.not.been.called
             expect(executor.backupService.deleteBackup).have.been.called.once
 
-            // Verify all migration workflow methods were called
+            // Verify migration workflow method was called
             expect(executor.migrate).have.been.called.once
-            expect(executor.getTodo).have.been.called.once
         })
 
         /**
@@ -163,7 +163,6 @@ describe('MigrationScriptExecutor', () => {
 
             // Verify workflow ran but no individual migration tasks executed
             expect(executor.migrate).have.been.called.once
-            expect(executor.getTodo).have.been.called.once
             expect(executor.execute).have.not.been.called.once
         })
 
@@ -209,7 +208,6 @@ describe('MigrationScriptExecutor', () => {
 
             // Verify workflow stopped early due to validation failure
             expect(executor.migrate).have.been.called.once
-            expect(executor.getTodo).have.not.been.called.once
             expect(executor.execute).have.not.been.called.once
         })
 
@@ -307,84 +305,6 @@ describe('MigrationScriptExecutor', () => {
                 expect(script2Executed).to.be.false;
                 expect(e.message).to.include('First migration failed');
             }
-        })
-    })
-
-    describe('getTodo()', () => {
-        /**
-         * Test: getTodo identifies new migrations to execute
-         * Validates that getTodo() correctly filters migrations by comparing
-         * already-executed migrations against all available migrations. Only
-         * migrations with timestamps newer than the last executed should be returned.
-         */
-        it('should filter out migrated scripts from todo list', async () => {
-            // Define already-executed migrations (timestamps 1 and 2)
-            const migrated = [
-                {timestamp: 1} as MigrationScript,
-                {timestamp: 2} as MigrationScript,
-            ]
-
-            // Define all available migrations (includes new one with timestamp 3)
-            const all = [
-                {timestamp: 1} as MigrationScript,
-                {timestamp: 2} as MigrationScript,
-                {timestamp: 3} as MigrationScript,
-            ]
-
-            // Get list of pending migrations
-            const todo = executor.getTodo(migrated, all);
-
-            // Verify only the new migration is returned
-            expect(todo.length).eq(1, "Should be one new script")
-            expect(todo[0].timestamp).eq(3, "New script has timestamp = 3")
-        })
-
-        /**
-         * Test: getTodo with no previous migrations returns all scripts
-         * Edge case test for first-time migration execution. When no migrations
-         * have been run yet (empty migrated list), all available migrations
-         * should be returned as pending.
-         */
-        it('should handle empty migrated list', () => {
-            // Simulate no migrations have been executed yet
-            const migrated: MigrationScript[] = [];
-            const all = [
-                {timestamp: 1} as MigrationScript,
-                {timestamp: 2} as MigrationScript,
-            ];
-
-            // Get pending migrations
-            const todo = executor.getTodo(migrated, all);
-
-            // Verify all migrations are returned as pending
-            expect(todo.length).eq(2, 'Should return all scripts when no migrations done');
-        })
-
-        /**
-         * Test: getTodo ignores scripts older than last executed migration
-         * Validates that migrations with timestamps older than the most recent
-         * executed migration are filtered out. This prevents running "missing"
-         * old migrations that were skipped or added after newer ones executed.
-         */
-        it('should ignore scripts older than last migration', () => {
-            // Last executed migration has timestamp 5
-            const migrated = [
-                {timestamp: 5} as MigrationScript,
-            ];
-
-            // Available migrations include older, current, and newer
-            const all = [
-                {timestamp: 3} as MigrationScript,  // older - should be ignored
-                {timestamp: 5} as MigrationScript,  // already migrated
-                {timestamp: 7} as MigrationScript,  // newer - should be todo
-            ];
-
-            // Get pending migrations
-            const todo = executor.getTodo(migrated, all);
-
-            // Verify only the newer migration is returned
-            expect(todo.length).eq(1, 'Should only return scripts newer than last migration');
-            expect(todo[0].timestamp).eq(7);
         })
     })
 

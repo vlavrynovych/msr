@@ -3,6 +3,7 @@ import {ISchemaVersionService} from "./service/ISchemaVersionService";
 import {IMigrationRenderer} from "./service/IMigrationRenderer";
 import {IRenderStrategy} from "./service/IRenderStrategy";
 import {IMigrationService} from "./service/IMigrationService";
+import {IMigrationScanner} from "./service/IMigrationScanner";
 import {ILogger} from "./ILogger";
 import {IMigrationHooks} from "./IMigrationHooks";
 
@@ -85,6 +86,23 @@ export interface IMigrationExecutorDependencies {
      * If not provided, uses MigrationService with default configuration.
      */
     migrationService?: IMigrationService;
+
+    /**
+     * Custom migration scanner implementation.
+     * If not provided, uses MigrationScanner with default configuration.
+     *
+     * The scanner is responsible for gathering the complete state of migrations by:
+     * - Querying the database for executed migrations
+     * - Reading migration files from the filesystem
+     * - Determining which migrations are pending, ignored, or already executed
+     *
+     * @example
+     * ```typescript
+     * // Use custom scanner
+     * migrationScanner: new CustomMigrationScanner()
+     * ```
+     */
+    migrationScanner?: IMigrationScanner;
 
     /**
      * Logger instance to use across all services.

@@ -12,14 +12,14 @@ import {MigrationScript} from "../model/MigrationScript";
  * ```typescript
  * const selector = new MigrationScriptSelector();
  *
- * const todo = selector.getTodo(migratedScripts, allScripts);
+ * const pending = selector.getPending(migratedScripts, allScripts);
  * const ignored = selector.getIgnored(migratedScripts, allScripts);
  * ```
  */
 export class MigrationScriptSelector {
 
     /**
-     * Determine which migration scripts need to be executed.
+     * Determine which migration scripts are pending execution.
      *
      * Compares all discovered migration files against already-executed migrations
      * and returns only those that:
@@ -31,7 +31,7 @@ export class MigrationScriptSelector {
      *
      * @param migrated - Array of previously executed migrations from the database
      * @param all - Array of all migration script files discovered in the migrations folder
-     * @returns Array of migration scripts that need to be executed
+     * @returns Array of migration scripts pending execution
      *
      * @example
      * ```typescript
@@ -39,18 +39,18 @@ export class MigrationScriptSelector {
      * const migratedScripts = await schemaVersionService.getAllMigratedScripts();
      * const allScripts = await migrationService.readMigrationScripts(config);
      *
-     * const todoScripts = selector.getTodo(migratedScripts, allScripts);
-     * console.log(`${todoScripts.length} migrations to execute`);
+     * const pendingScripts = selector.getPending(migratedScripts, allScripts);
+     * console.log(`${pendingScripts.length} migrations pending execution`);
      * ```
      */
-    getTodo(migrated: MigrationScript[], all: MigrationScript[]): MigrationScript[] {
+    getPending(migrated: MigrationScript[], all: MigrationScript[]): MigrationScript[] {
         if (!migrated.length) return all;
 
         const lastMigrated: number = Math.max(...migrated.map(s => s.timestamp));
         const newScripts: MigrationScript[] = _.differenceBy(all, migrated, 'timestamp');
-        const todo: MigrationScript[] = newScripts.filter(s => s.timestamp > lastMigrated);
+        const pending: MigrationScript[] = newScripts.filter(s => s.timestamp > lastMigrated);
 
-        return todo;
+        return pending;
     }
 
     /**
@@ -78,8 +78,8 @@ export class MigrationScriptSelector {
 
         const lastMigrated: number = Math.max(...migrated.map(s => s.timestamp));
         const newScripts: MigrationScript[] = _.differenceBy(all, migrated, 'timestamp');
-        const todo: MigrationScript[] = newScripts.filter(s => s.timestamp > lastMigrated);
+        const pending: MigrationScript[] = newScripts.filter(s => s.timestamp > lastMigrated);
 
-        return _.differenceBy(newScripts, todo, 'timestamp');
+        return _.differenceBy(newScripts, pending, 'timestamp');
     }
 }

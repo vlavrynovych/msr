@@ -43,7 +43,7 @@ interface IRenderStrategy {
     limit?: number
   ): void;
 
-  renderTodo(scripts: MigrationScript[]): void;
+  renderPending(scripts: MigrationScript[]): void;
 
   renderExecuted(scripts: IMigrationInfo[]): void;
 
@@ -144,17 +144,17 @@ ${migrated.map(m => `  <migration>
         this.logger.log(xml);
     }
 
-    renderTodo(scripts: MigrationScript[]): void {
+    renderPending(scripts: MigrationScript[]): void {
         if (!scripts.length) return;
 
         const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<todo>
+<pending>
 ${scripts.map(s => `  <migration>
     <timestamp>${s.timestamp}</timestamp>
     <name>${s.name}</name>
     <path>${s.filepath}</path>
   </migration>`).join('\n')}
-</todo>`;
+</pending>`;
 
         this.logger.log(xml);
     }
@@ -259,7 +259,7 @@ export class CsvRenderStrategy implements IRenderStrategy {
         this.logger.log(csv);
     }
 
-    renderTodo(scripts: MigrationScript[]): void {
+    renderPending(scripts: MigrationScript[]): void {
         if (!scripts.length) return;
 
         const csv = [
@@ -343,7 +343,7 @@ export class MarkdownRenderStrategy implements IRenderStrategy {
         this.logger.log(markdown);
     }
 
-    renderTodo(scripts: MigrationScript[]): void {
+    renderPending(scripts: MigrationScript[]): void {
         if (!scripts.length) return;
 
         const markdown = [
@@ -500,7 +500,7 @@ Even if you don't need all methods, implement them all to satisfy the interface:
 // Good: All methods implemented
 export class MyStrategy implements IRenderStrategy {
     renderMigrated(...) { /* implementation */ }
-    renderTodo(...) { /* implementation */ }
+    renderPending(...) { /* implementation */ }
     renderExecuted(...) { /* implementation */ }
     renderIgnored(...) { /* implementation */ }
     renderBanner(...) { /* implementation */ }
