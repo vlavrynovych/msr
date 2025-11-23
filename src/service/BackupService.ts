@@ -119,9 +119,25 @@ export class BackupService implements IBackupService {
         return filePath
     }
 
+    /**
+     * Get backup file name, archiving any existing file.
+     *
+     * If a backup file already exists at the target path, it is renamed
+     * with a timestamp suffix to prevent data loss. This ensures that
+     * previous backups are preserved rather than overwritten.
+     *
+     * @returns The path to use for the new backup file
+     * @private
+     */
     private getFileName():string {
         const path:string = BackupService.prepareFilePath(this.handler.cfg.backup);
-        if (fs.existsSync(path)) fs.renameSync(path, BackupService.prepareFilePath(this.handler.cfg.backup))
+
+        // Archive existing backup file to prevent overwriting
+        if (fs.existsSync(path)) {
+            const archivePath = `${path}.old-${Date.now()}`;
+            fs.renameSync(path, archivePath);
+        }
+
         return path;
     }
 
