@@ -18,6 +18,7 @@ import {
     IConsoleRenderer
 } from "../index";
 import {ConsoleLogger} from "../logger";
+import {MigrationScriptSelector} from "./MigrationScriptSelector";
 
 /**
  * Main executor class for running database migrations.
@@ -60,6 +61,9 @@ export class MigrationScriptExecutor {
 
     /** Logger instance used across all services */
     public readonly logger: ILogger;
+
+    /** Service for selecting which migrations to execute */
+    private readonly selector: MigrationScriptSelector;
 
     /**
      * Creates a new MigrationScriptExecutor instance.
@@ -106,6 +110,8 @@ export class MigrationScriptExecutor {
 
         this.migrationService = dependencies?.migrationService
             ?? new MigrationService(this.logger);
+
+        this.selector = new MigrationScriptSelector();
 
         this.consoleRenderer.drawFiglet();
     }
@@ -169,6 +175,7 @@ export class MigrationScriptExecutor {
             // defines scripts which should be executed
             scripts.todo = this.getTodo(scripts.migrated, scripts.all);
             ignored = this.getIgnored(scripts.migrated, scripts.all);
+            this.consoleRenderer.drawIgnoredTable(ignored);
             await Promise.all(scripts.todo.map(s => s.init()))
 
             if (!scripts.todo.length) {
@@ -245,13 +252,8 @@ export class MigrationScriptExecutor {
     /**
      * Determine which migration scripts need to be executed.
      *
-     * Compares all discovered migration files against already-executed migrations
-     * and returns only those that:
-     * 1. Haven't been executed yet
-     * 2. Have a timestamp newer than the last executed migration
-     *
-     * Scripts with timestamps older than the last migration are ignored and displayed
-     * as warnings (these represent out-of-order migrations that won't be run).
+     * Delegates to MigrationScriptSelector to compare all discovered migration files
+     * against already-executed migrations.
      *
      * @param migrated - Array of previously executed migrations from the database
      * @param all - Array of all migration script files discovered in the migrations folder
@@ -259,23 +261,14 @@ export class MigrationScriptExecutor {
      *
      * @private
      */
-    getTodo(migrated:MigrationScript[], all:MigrationScript[]) {
-        if(!migrated.length) return all;
-        const lastMigrated:number = Math.max(...migrated.map(s => s.timestamp))
-
-        const newScripts:MigrationScript[] = _.differenceBy(all, migrated, 'timestamp')
-        const todo:MigrationScript[] = newScripts.filter(s => s.timestamp > lastMigrated)
-        const ignored:MigrationScript[] = _.differenceBy(newScripts, todo, 'timestamp')
-        this.consoleRenderer.drawIgnoredTable(ignored);
-
-        return todo;
+    getTodo(migrated:MigrationScript[], all:MigrationScript[]): MigrationScript[] {
+        return this.selector.getTodo(migrated, all);
     }
 
     /**
      * Get scripts that were ignored due to being older than the last migration.
      *
-     * Returns migration scripts that have timestamps older than the last executed
-     * migration. These represent out-of-order migrations that won't be executed.
+     * Delegates to MigrationScriptSelector to identify out-of-order migrations.
      *
      * @param migrated - Array of previously executed migrations from the database
      * @param all - Array of all migration script files discovered in the migrations folder
@@ -284,12 +277,7 @@ export class MigrationScriptExecutor {
      * @private
      */
     getIgnored(migrated:MigrationScript[], all:MigrationScript[]): MigrationScript[] {
-        if(!migrated.length) return [];
-        const lastMigrated:number = Math.max(...migrated.map(s => s.timestamp))
-
-        const newScripts:MigrationScript[] = _.differenceBy(all, migrated, 'timestamp')
-        const todo:MigrationScript[] = newScripts.filter(s => s.timestamp > lastMigrated)
-        return _.differenceBy(newScripts, todo, 'timestamp')
+        return this.selector.getIgnored(migrated, all);
     }
 
     /**
