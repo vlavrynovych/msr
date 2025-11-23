@@ -1,5 +1,5 @@
 import {IMigrationInfo, IRunnableScript} from "../interface";
-import {Utils} from "../service";
+import {Utils} from "../service/Utils";
 
 /**
  * Represents a migration script file discovered in the migrations directory.

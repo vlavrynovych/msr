@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import {MigrationScript} from "../index";
+import {MigrationScript} from "../model/MigrationScript";
 
 /**
  * Service for determining which migration scripts should be executed.

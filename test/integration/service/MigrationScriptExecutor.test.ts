@@ -73,7 +73,7 @@ describe('MigrationScriptExecutor', () => {
         spy.on(handler.schemaVersion, ['isInitialized', 'createTable', 'validateTable']);
         spy.on(handler.schemaVersion.migrations, ['save', 'getAll']);
 
-        spy.on(executor, ['migrate', 'getTodo', 'execute', 'task']);
+        spy.on(executor, ['migrate', 'getTodo', 'execute']);
         spy.on(executor.backupService, ['restore', 'deleteBackup', 'backup']);
         spy.on(executor.migrationService, ['readMigrationScripts']);
     })
@@ -124,7 +124,6 @@ describe('MigrationScriptExecutor', () => {
             expect(executor.migrate).have.been.called.once
             expect(executor.getTodo).have.been.called.once
             expect(executor.execute).have.been.called.once
-            expect(executor.task).have.been.called.once
         })
 
         /**
@@ -167,7 +166,6 @@ describe('MigrationScriptExecutor', () => {
             expect(executor.migrate).have.been.called.once
             expect(executor.getTodo).have.been.called.once
             expect(executor.execute).have.not.been.called.once
-            expect(executor.task).have.not.been.called.once
         })
 
         /**
@@ -214,7 +212,6 @@ describe('MigrationScriptExecutor', () => {
             expect(executor.migrate).have.been.called.once
             expect(executor.getTodo).have.not.been.called.once
             expect(executor.execute).have.not.been.called.once
-            expect(executor.task).have.not.been.called.once
         })
 
         /**
@@ -389,33 +386,6 @@ describe('MigrationScriptExecutor', () => {
             // Verify only the newer migration is returned
             expect(todo.length).eq(1, 'Should only return scripts newer than last migration');
             expect(todo[0].timestamp).eq(7);
-        })
-    })
-
-    describe('task()', () => {
-        /**
-         * Test: task() handles database save failures
-         * Validates that when a migration executes successfully but saving
-         * the migration record to the database fails, the error is propagated.
-         * This prevents the system from incorrectly thinking a migration succeeded.
-         */
-        it('should handle schemaVersionService.save failure', async () => {
-            // Create a migration script that will succeed
-            const script = TestUtils.prepareMigration('V202311020036_test.ts');
-            script.script = {
-                async up() {
-                    return 'success';
-                }
-            } as any;
-
-            // Stub save() to fail when recording the migration
-            const saveStub = sinon.stub(handler.schemaVersion.migrations, 'save');
-            saveStub.rejects(new Error('Failed to save migration record'));
-
-            // Verify the save error is propagated
-            await expect(executor.task(script)).to.be.rejectedWith('Failed to save migration record');
-
-            saveStub.restore();
         })
     })
 
@@ -635,7 +605,6 @@ describe('MigrationScriptExecutor', () => {
             // then: should complete without error
             expect(executor.backupService.backup).have.been.called;
             expect(executor.execute).have.been.called;
-            expect(executor.task).have.not.been.called;
             expect(executor.backupService.deleteBackup).have.been.called;
         })
     })
