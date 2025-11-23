@@ -346,7 +346,7 @@ config.backup.ext = '.json';
 
 // Initialize executor
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor(config, handler);
+const executor = new MigrationScriptExecutor(handler);
 
 // Run migrations
 await executor.migrate();
