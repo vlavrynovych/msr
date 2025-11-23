@@ -260,6 +260,34 @@ describe('BackupService', () => {
         })
 
         /**
+         * Test: backup throws error if backupFile is undefined after _backup()
+         * Defensive check that ensures backupFile is set after backup operation.
+         * This scenario is impossible with normal code flow but tests the safety check.
+         */
+        it('should throw error if backupFile is undefined after _backup()', async () => {
+            const cfg = new Config();
+            const bs = new BackupService({
+                cfg: cfg,
+                backup: {
+                    async backup(): Promise<string> {
+                        return 'test data'
+                    }
+                }
+            } as IDatabaseMigrationHandler);
+
+            // Spy on _backup to make it not set backupFile
+            const originalBackup = (bs as any)._backup.bind(bs);
+            sinon.stub(bs as any, '_backup').callsFake(async () => {
+                await originalBackup();
+                // Clear backupFile after _backup sets it (simulates edge case)
+                (bs as any).backupFile = undefined;
+            });
+
+            // Should throw error about undefined backupFile
+            await expect(bs.backup()).to.be.rejectedWith('Backup file path is undefined after backup operation');
+        });
+
+        /**
          * Test: backup logs success message with file path
          * Validates that backup completion is logged with the file path information.
          */

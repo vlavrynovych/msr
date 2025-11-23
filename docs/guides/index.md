@@ -13,3 +13,4 @@ Comprehensive guides for using Migration Script Runner effectively.
 
 - [Writing Migrations](writing-migrations) - Best practices for creating migration scripts
 - [Custom Logging](custom-logging) - Customize logging behavior with custom loggers
+- [Migration Hooks](hooks) - Extend migration behavior with lifecycle hooks

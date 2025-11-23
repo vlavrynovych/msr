@@ -1,5 +1,5 @@
 export interface IBackupService {
-    backup(): Promise<void>
+    backup(): Promise<string>
     restore(): Promise<void>
     deleteBackup():void
 }

@@ -46,16 +46,25 @@ export class BackupService implements IBackupService {
      * generates a filename based on the backup configuration, and writes the backup
      * data to disk.
      *
+     * @returns The absolute path to the created backup file
+     *
      * @example
      * ```typescript
-     * await service.backup();
+     * const backupPath = await service.backup();
+     * console.log(`Backup created: ${backupPath}`);
      * // Backup file created: ./backups/backup-2025-01-22-01-30-45.bkp
      * ```
      */
-    public async backup(): Promise<void> {
+    public async backup(): Promise<string> {
         this.logger.info('Preparing backup...')
         await this._backup();
         this.logger.info('Backup prepared successfully:\r\n', this.backupFile);
+
+        if (!this.backupFile) {
+            throw new Error('Backup file path is undefined after backup operation');
+        }
+
+        return this.backupFile;
     }
 
     /**
