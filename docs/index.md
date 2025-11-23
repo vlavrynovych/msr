@@ -29,6 +29,16 @@ An abstract implementation of script runner which can be extended with your own 
 
 ---
 
+## Documentation
+
+- **[Getting Started](getting-started)** - Quick start guide and basic usage
+- **[Architecture](architecture)** - System design, components, and data flow
+- **[Configuration](configuration)** - Configuration options and examples
+- **[API Reference](api/)** - Complete API documentation
+- **[Migration Guides](migrations/)** - Version upgrade guides
+
+---
+
 ## Quick Start
 
 ### Installation
