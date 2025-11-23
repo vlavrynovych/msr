@@ -17,7 +17,7 @@ import {MigrationScript} from "../../model";
  * ```typescript
  * // Use in tests
  * const strategy = new SilentRenderStrategy();
- * const renderer = new ConsoleRenderer(handler, logger, strategy);
+ * const renderer = new MigrationRenderer(handler, logger, strategy);
  *
  * // No output will be produced
  * renderer.drawMigrated(scripts);

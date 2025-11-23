@@ -3,13 +3,14 @@ import {MigrationScript} from "../../model";
 import {IMigrationInfo} from "../IMigrationInfo";
 
 /**
- * Interface for rendering migration information to the console.
+ * Interface for rendering migration information.
  *
  * Provides methods for displaying migration status, executed migrations,
- * pending migrations, and other migration-related information in a
- * formatted, user-friendly way.
+ * pending migrations, and other migration-related information in various
+ * output formats (ASCII tables, JSON, silent, etc.) depending on the
+ * configured rendering strategy.
  */
-export interface IConsoleRenderer {
+export interface IMigrationRenderer {
     /**
      * Draw ASCII art banner with application name and version.
      *

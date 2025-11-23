@@ -1,11 +1,11 @@
 import {version} from '../../package.json'
 
-import {IMigrationInfo, IDatabaseMigrationHandler, IScripts, MigrationScript, ILogger, IConsoleRenderer, IRenderStrategy} from "../index";
+import {IMigrationInfo, IDatabaseMigrationHandler, IScripts, MigrationScript, ILogger, IMigrationRenderer, IRenderStrategy} from "../index";
 import {ConsoleLogger} from "../logger";
 import {AsciiTableRenderStrategy} from "./render/AsciiTableRenderStrategy";
 
 /**
- * Console renderer that delegates rendering to a pluggable strategy.
+ * Migration renderer that delegates rendering to a pluggable strategy.
  *
  * Uses the Strategy Pattern to support multiple output formats:
  * - ASCII tables (default via {@link AsciiTableRenderStrategy})
@@ -22,18 +22,18 @@ import {AsciiTableRenderStrategy} from "./render/AsciiTableRenderStrategy";
  * @example
  * ```typescript
  * // Default ASCII table output
- * const renderer = new ConsoleRenderer(handler);
+ * const renderer = new MigrationRenderer(handler);
  *
  * // JSON output for CI/CD
- * const renderer = new ConsoleRenderer(handler, logger, new JsonRenderStrategy());
+ * const renderer = new MigrationRenderer(handler, logger, new JsonRenderStrategy());
  *
  * // Silent output for testing
- * const renderer = new ConsoleRenderer(handler, logger, new SilentRenderStrategy());
+ * const renderer = new MigrationRenderer(handler, logger, new SilentRenderStrategy());
  * ```
  */
-export class ConsoleRenderer implements IConsoleRenderer {
+export class MigrationRenderer implements IMigrationRenderer {
     /**
-     * Creates a new ConsoleRenderer.
+     * Creates a new MigrationRenderer.
      *
      * @param handler - Database migration handler
      * @param logger - Logger instance (defaults to ConsoleLogger)

@@ -1,5 +1,5 @@
 import {BackupService} from "./BackupService";
-import {ConsoleRenderer} from "./ConsoleRenderer";
+import {MigrationRenderer} from "./MigrationRenderer";
 import {IBackupService} from "../interface/service/IBackupService";
 import {MigrationService} from "./MigrationService";
 import {IMigrationService} from "../interface/service/IMigrationService";
@@ -12,7 +12,7 @@ import {Utils} from "./Utils";
 import {IMigrationResult} from "../interface/IMigrationResult";
 import {ILogger} from "../interface/ILogger";
 import {IMigrationExecutorDependencies} from "../interface/IMigrationExecutorDependencies";
-import {IConsoleRenderer} from "../interface/service/IConsoleRenderer";
+import {IMigrationRenderer} from "../interface/service/IMigrationRenderer";
 import {IMigrationHooks} from "../interface/IMigrationHooks";
 import {ConsoleLogger} from "../logger";
 import {MigrationScriptSelector} from "./MigrationScriptSelector";
@@ -51,8 +51,8 @@ export class MigrationScriptExecutor {
     /** Service for tracking executed migrations in the database */
     public readonly schemaVersionService: ISchemaVersionService;
 
-    /** Service for rendering console output (tables, status messages) */
-    public readonly consoleRenderer: IConsoleRenderer;
+    /** Service for rendering migration output (tables, status messages) */
+    public readonly migrationRenderer: IMigrationRenderer;
 
     /** Service for discovering and loading migration script files */
     public readonly migrationService: IMigrationService;
@@ -122,8 +122,8 @@ export class MigrationScriptExecutor {
         this.schemaVersionService = dependencies?.schemaVersionService
             ?? new SchemaVersionService(handler.schemaVersion);
 
-        this.consoleRenderer = dependencies?.consoleRenderer
-            ?? new ConsoleRenderer(handler, this.logger, dependencies?.renderStrategy);
+        this.migrationRenderer = dependencies?.migrationRenderer
+            ?? new MigrationRenderer(handler, this.logger, dependencies?.renderStrategy);
 
         this.migrationService = dependencies?.migrationService
             ?? new MigrationService(this.logger);
@@ -131,7 +131,7 @@ export class MigrationScriptExecutor {
         this.selector = new MigrationScriptSelector();
         this.runner = new MigrationRunner(handler, this.schemaVersionService, this.logger);
 
-        this.consoleRenderer.drawFiglet();
+        this.migrationRenderer.drawFiglet();
     }
 
     /**
@@ -198,12 +198,12 @@ export class MigrationScriptExecutor {
                 migrated: this.schemaVersionService.getAllMigratedScripts(),
                 all: this.migrationService.readMigrationScripts(this.handler.cfg)
             }) as IScripts;
-            this.consoleRenderer.drawMigrated(scripts, this.handler.cfg.displayLimit);
+            this.migrationRenderer.drawMigrated(scripts, this.handler.cfg.displayLimit);
 
             // Define scripts which should be executed
             scripts.todo = this.getTodo(scripts.migrated, scripts.all);
             ignored = this.getIgnored(scripts.migrated, scripts.all);
-            this.consoleRenderer.drawIgnoredTable(ignored);
+            this.migrationRenderer.drawIgnoredTable(ignored);
             await Promise.all(scripts.todo.map(s => s.init()));
 
             // Hook: Start (after we know what will be executed)
@@ -227,12 +227,12 @@ export class MigrationScriptExecutor {
             }
 
             this.logger.info('Processing...');
-            this.consoleRenderer.drawTodoTable(scripts.todo);
+            this.migrationRenderer.drawTodoTable(scripts.todo);
 
             // Execute migrations with hooks
             scripts.executed = await this.executeWithHooks(scripts.todo);
 
-            this.consoleRenderer.drawExecutedTable(scripts.executed);
+            this.migrationRenderer.drawExecutedTable(scripts.executed);
             this.logger.info('Migration finished successfully!');
             this.backupService.deleteBackup();
 
@@ -302,7 +302,7 @@ export class MigrationScriptExecutor {
             all: this.migrationService.readMigrationScripts(this.handler.cfg)
         }) as IScripts;
 
-        this.consoleRenderer.drawMigrated(scripts, number)
+        this.migrationRenderer.drawMigrated(scripts, number)
     }
 
     /**

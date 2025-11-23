@@ -50,11 +50,11 @@ MSR (Migration Script Runner) follows a layered architecture with clear separati
 └──┬──────────┬──────────┬──────────┬──────────┬──────────────────┘
    │          │          │          │          │
    ▼          ▼          ▼          ▼          ▼
-┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌──────────────────┐
-│Backup  │ │Schema  │ │Migration│ │Console │ │Migration         │
-│Service │ │Version │ │Service  │ │Renderer│ │ScriptSelector    │
-│        │ │Service │ │         │ │        │ │                  │
-└────────┘ └────────┘ └────────┘ └────────┘ └──────────────────┘
+┌────────┐ ┌────────┐ ┌────────┐ ┌──────────┐ ┌──────────────────┐
+│Backup  │ │Schema  │ │Migration│ │Migration │ │Migration         │
+│Service │ │Version │ │Service  │ │Renderer  │ │ScriptSelector    │
+│        │ │Service │ │         │ │          │ │                  │
+└────────┘ └────────┘ └────────┘ └──────────┘ └──────────────────┘
      │          │          │          │          │
      │          │          │          │          ▼
      │          │          │          │      ┌──────────────────┐
@@ -88,7 +88,7 @@ MSR (Migration Script Runner) follows a layered architecture with clear separati
 - `IBackupService` - Database backup/restore
 - `ISchemaVersionService` - Track executed migrations
 - `IMigrationService` - Discover migration files
-- `IConsoleRenderer` - Display output
+- `IMigrationRenderer` - Display output
 - `MigrationScriptSelector` - Filter migrations
 - `MigrationRunner` - Execute migrations
 
@@ -258,17 +258,23 @@ Example: V202311020036_create_users_table.ts
 
 ---
 
-### ConsoleRenderer
+### MigrationRenderer
 
-**Purpose:** Display migration information to console
+**Purpose:** Render migration information using pluggable strategies
 
 **Responsibilities:**
-- Draw ASCII tables for migrations
-- Display figlet banner
-- Format timestamps and durations
-- Show execution status
+- Delegate rendering to configured strategy (ASCII tables, JSON, silent)
+- Display figlet banner via strategy
+- Coordinate output formatting across different formats
+- Show execution status in various output formats
 
-**Location:** `src/service/ConsoleRenderer.ts`
+**Location:** `src/service/MigrationRenderer.ts`
+
+**Supported Strategies:**
+- `AsciiTableRenderStrategy` - ASCII tables with formatted timestamps and durations
+- `JsonRenderStrategy` - Structured JSON output (pretty or compact)
+- `SilentRenderStrategy` - No output (for testing and library usage)
+- Custom strategies via `IRenderStrategy` interface
 
 ---
 
@@ -324,7 +330,7 @@ If error at any step:
 │ - backupService: IBackupService                                 │
 │ - schemaVersionService: ISchemaVersionService                   │
 │ - migrationService: IMigrationService                           │
-│ - consoleRenderer: IConsoleRenderer                             │
+│ - migrationRenderer: IMigrationRenderer                         │
 │ - selector: MigrationScriptSelector                             │
 │ - runner: MigrationRunner                                       │
 │ - logger: ILogger                                               │
@@ -383,7 +389,7 @@ const executor = new MigrationScriptExecutor(handler);
 const executor = new MigrationScriptExecutor(handler, {
     logger: new SilentLogger(),          // Custom logger
     backupService: new S3BackupService(), // Custom backup
-    consoleRenderer: new JSONRenderer()   // Custom renderer
+    renderStrategy: new JsonRenderStrategy()  // Custom render strategy
 });
 ```
 
@@ -403,8 +409,9 @@ MigrationScriptExecutor
   ├─▶ IMigrationService (injected or default: MigrationService)
   │     └─▶ ILogger
   │
-  ├─▶ IConsoleRenderer (injected or default: ConsoleRenderer)
-  │     └─▶ ILogger
+  ├─▶ IMigrationRenderer (injected or default: MigrationRenderer)
+  │     └─▶ IRenderStrategy (injected or default: AsciiTableRenderStrategy)
+  │           └─▶ ILogger
   │
   ├─▶ MigrationScriptSelector (always created)
   │     └─▶ (stateless, no dependencies)
@@ -428,7 +435,7 @@ MigrationScriptExecutor
 **Role:** Core migration logic - filtering and execution
 
 ### Layer 3: Services
-**Classes:** `BackupService`, `SchemaVersionService`, `MigrationService`, `ConsoleRenderer`
+**Classes:** `BackupService`, `SchemaVersionService`, `MigrationService`, `MigrationRenderer`
 **Role:** Specialized operations - backup, tracking, discovery, display
 
 ### Layer 4: Models
@@ -629,20 +636,26 @@ const executor = new MigrationScriptExecutor(handler, {
 });
 ```
 
-### Custom Renderer
+### Custom Render Strategy
 
 ```typescript
-import { IConsoleRenderer } from '@migration-script-runner/core';
+import { IRenderStrategy, JsonRenderStrategy } from '@migration-script-runner/core';
 
-class JSONRenderer implements IConsoleRenderer {
-    drawMigrated(scripts) {
-        console.log(JSON.stringify(scripts, null, 2));
+// Use built-in JSON render strategy
+const executor = new MigrationScriptExecutor(handler, {
+    renderStrategy: new JsonRenderStrategy(true)  // pretty-printed JSON
+});
+
+// Or create a custom render strategy
+class CustomRenderStrategy implements IRenderStrategy {
+    renderMigrated(scripts, handler, limit) {
+        console.log('Custom output:', scripts);
     }
     // ... implement other methods
 }
 
 const executor = new MigrationScriptExecutor(handler, {
-    consoleRenderer: new JSONRenderer()
+    renderStrategy: new CustomRenderStrategy()
 });
 ```
 

@@ -12,7 +12,7 @@ import {ConsoleLogger} from "../../logger";
  *
  * Renders migration information as formatted ASCII tables, providing a rich,
  * visual output suitable for terminal/CLI usage. This is the default rendering
- * strategy when using ConsoleRenderer.
+ * strategy when using MigrationRenderer.
  *
  * Features:
  * - ASCII art banner with application name
@@ -23,7 +23,7 @@ import {ConsoleLogger} from "../../logger";
  * @example
  * ```typescript
  * const strategy = new AsciiTableRenderStrategy(logger);
- * const renderer = new ConsoleRenderer(handler, logger, strategy);
+ * const renderer = new MigrationRenderer(handler, logger, strategy);
  * ```
  */
 export class AsciiTableRenderStrategy implements IRenderStrategy {
