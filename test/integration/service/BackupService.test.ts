@@ -327,8 +327,8 @@ describe('BackupService', () => {
             cfg.backup.deleteBackup = false;
             const bs = new BackupService({} as IDatabaseMigrationHandler, cfg);
 
-            // Attempt to restore (should fail with clear error)
-            await expect(bs.restore()).to.be.rejectedWith("Cannot open undefined");
+            // Attempt to restore (should fail with clear error about no backup interface)
+            await expect(bs.restore()).to.be.rejectedWith("No backup interface provided");
         })
 
         /**

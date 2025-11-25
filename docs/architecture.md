@@ -85,7 +85,7 @@ MSR (Migration Script Runner) follows a layered architecture with clear separati
 - Displays progress and results
 
 **Key Dependencies:**
-- `IBackupService` - Database backup/restore
+- `IBackupService` - Database backup/restore (optional, based on rollback strategy)
 - `ISchemaVersionService` - Track executed migrations
 - `IMigrationService` - Discover migration files
 - `IMigrationScanner` - Gather complete migration state
@@ -247,14 +247,17 @@ const executed = await runner.execute(scripts);
 **Purpose:** Create and manage database backups
 
 **Responsibilities:**
-- Create backup before migrations
-- Restore backup on failure
-- Delete backup after success
+- Create backup before migrations (if BACKUP or BOTH strategy)
+- Restore backup on failure (if BACKUP strategy)
+- Fallback restore if down() fails (if BOTH strategy)
+- Delete backup after success or failure
 - Handle backup lifecycle
 
 **Location:** `src/service/BackupService.ts`
 
-**Workflow:**
+**Note:** Only used when `rollbackStrategy` is BACKUP or BOTH. Not required for DOWN or NONE strategies.
+
+**Workflow (BACKUP strategy):**
 ```
 migrate() {
   backup()           // ← BackupService
@@ -264,6 +267,37 @@ migrate() {
   } catch (err) {
     restore()        // ← Failure: restore from backup
     deleteBackup()   // ← Cleanup
+  }
+}
+```
+
+**Workflow (DOWN strategy):**
+```
+migrate() {
+  // No backup created
+  try {
+    run migrations
+  } catch (err) {
+    rollbackWithDown()  // ← Call down() on all attempted migrations
+  }
+}
+```
+
+**Workflow (BOTH strategy):**
+```
+migrate() {
+  backup()           // ← BackupService
+  try {
+    run migrations
+    deleteBackup()   // ← Success: remove backup
+  } catch (err) {
+    try {
+      rollbackWithDown()  // ← Try down() first
+      deleteBackup()
+    } catch (downErr) {
+      restore()        // ← Fallback to backup
+      deleteBackup()
+    }
   }
 }
 ```
@@ -610,18 +644,51 @@ Script 5: ⊗ Not executed (stopped)
 Action: Restore from backup, rollback all changes
 ```
 
-### Error Flow
+### Error Flow (with Rollback Strategies)
 
 ```
 try {
-  await backup.create()
+  // Conditional backup based on strategy
+  if (strategy === BACKUP || strategy === BOTH) {
+    await backup.create()
+  }
+
   await schema.init()
   await runner.execute(scripts)  // ← Error here
-  backup.delete()
+
+  if (backupPath) {
+    backup.delete()
+  }
   return { success: true }
+
 } catch (error) {
-  await backup.restore()  // ← Rollback
-  backup.delete()         // ← Cleanup
+  // Handle rollback based on configured strategy
+  switch (strategy) {
+    case BACKUP:
+      await backup.restore()
+      break
+
+    case DOWN:
+      await rollbackWithDown(executedScripts)
+      break
+
+    case BOTH:
+      try {
+        await rollbackWithDown(executedScripts)
+      } catch (downError) {
+        await backup.restore()  // Fallback
+      }
+      break
+
+    case NONE:
+      logger.warn('No rollback configured')
+      break
+  }
+
+  if (backupPath) {
+    backup.delete()  // Cleanup
+  }
+
   return {
     success: false,
     errors: [error]
@@ -631,11 +698,32 @@ try {
 
 ### Recovery Process
 
+#### BACKUP Strategy
 1. **Error Occurs** - Migration script throws exception
 2. **Stop Execution** - Remaining scripts not executed
 3. **Restore Backup** - Database rolled back to pre-migration state
 4. **Delete Backup** - Cleanup temporary backup file
 5. **Return Result** - Report failure with error details
+
+#### DOWN Strategy
+1. **Error Occurs** - Migration script throws exception
+2. **Stop Execution** - Remaining scripts not executed
+3. **Call down() Methods** - Execute down() on all attempted migrations in reverse order
+4. **Return Result** - Report failure with error details
+
+#### BOTH Strategy
+1. **Error Occurs** - Migration script throws exception
+2. **Stop Execution** - Remaining scripts not executed
+3. **Try down() First** - Attempt to rollback using down() methods
+4. **Fallback to Backup** - If down() fails, restore from backup
+5. **Delete Backup** - Cleanup temporary backup file
+6. **Return Result** - Report failure with error details
+
+#### NONE Strategy
+1. **Error Occurs** - Migration script throws exception
+2. **Stop Execution** - Remaining scripts not executed
+3. **Log Warning** - No rollback performed, database may be inconsistent
+4. **Return Result** - Report failure with error details
 
 ---
 

@@ -77,9 +77,10 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
             });
 
             // Access private method via any cast
-            const result = await (executor as any).executeWithHooks([script1, script2]);
+            const executedArray: MigrationScript[] = [];
+            await (executor as any).executeWithHooks([script1, script2], executedArray);
 
-            expect(result).to.have.lengthOf(2);
+            expect(executedArray).to.have.lengthOf(2);
             expect((mockHooks.onBeforeMigrate as sinon.SinonStub).callCount).to.equal(2);
             expect((mockHooks.onBeforeMigrate as sinon.SinonStub).firstCall.args[0]).to.equal(script1);
             expect((mockHooks.onBeforeMigrate as sinon.SinonStub).secondCall.args[0]).to.equal(script2);
@@ -95,9 +96,10 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
                 logger: new SilentLogger()
             });
 
-            const result = await (executor as any).executeWithHooks([script1, script2]);
+            const executedArray: MigrationScript[] = [];
+            await (executor as any).executeWithHooks([script1, script2], executedArray);
 
-            expect(result).to.have.lengthOf(2);
+            expect(executedArray).to.have.lengthOf(2);
             expect((mockHooks.onAfterMigrate as sinon.SinonStub).callCount).to.equal(2);
 
             // Check first call
@@ -125,7 +127,8 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
             });
 
             try {
-                await (executor as any).executeWithHooks([script1, script2]);
+                const executedArray: MigrationScript[] = [];
+                await (executor as any).executeWithHooks([script1, script2], executedArray);
                 expect.fail('Should have thrown error');
             } catch (error) {
                 expect(error).to.equal(testError);
@@ -154,7 +157,8 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
             });
 
             try {
-                await (executor as any).executeWithHooks([script1, script2]);
+                const executedArray: MigrationScript[] = [];
+                await (executor as any).executeWithHooks([script1, script2], executedArray);
                 expect.fail('Should have thrown error');
             } catch (error) {
                 // Expected
@@ -180,7 +184,8 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
                 logger: new SilentLogger()
             });
 
-            await (executor as any).executeWithHooks([script1]);
+            const executedArray: MigrationScript[] = [];
+            await (executor as any).executeWithHooks([script1], executedArray);
 
             expect((mockHooks.onAfterMigrate as sinon.SinonStub).calledOnce).to.be.true;
             const [, result] = (mockHooks.onAfterMigrate as sinon.SinonStub).firstCall.args;
@@ -199,7 +204,8 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
                 logger: new SilentLogger()
             });
 
-            await (executor as any).executeWithHooks([script1]);
+            const executedArray: MigrationScript[] = [];
+            await (executor as any).executeWithHooks([script1], executedArray);
 
             expect((mockHooks.onAfterMigrate as sinon.SinonStub).calledOnce).to.be.true;
             const [, result] = (mockHooks.onAfterMigrate as sinon.SinonStub).firstCall.args;
@@ -226,7 +232,8 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
                 logger: new SilentLogger()
             });
 
-            const result = await (executor as any).executeWithHooks([script1, script2]);
+            const result: MigrationScript[] = [];
+            await (executor as any).executeWithHooks([script1, script2], result);
 
             // Verify both scripts were executed
             expect(result).to.have.lengthOf(2);
@@ -250,7 +257,8 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
                 logger: new SilentLogger()
             });
 
-            const result = await (executor as any).executeWithHooks([script1]);
+            const result: MigrationScript[] = [];
+            await (executor as any).executeWithHooks([script1], result);
 
             // Verify script was executed and onBeforeMigrate was called
             expect(result).to.have.lengthOf(1);
@@ -276,7 +284,8 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
             });
 
             try {
-                await (executor as any).executeWithHooks([script1]);
+                const executedArray: MigrationScript[] = [];
+            await (executor as any).executeWithHooks([script1], executedArray);
                 expect.fail('Should have thrown error');
             } catch (err) {
                 // Expected
@@ -300,7 +309,8 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
                 logger: new SilentLogger()
             });
 
-            const result = await (executor as any).executeWithHooks([]);
+            const result: MigrationScript[] = [];
+            await (executor as any).executeWithHooks([], result);
 
             expect(result).to.be.an('array').that.is.empty;
             expect((mockHooks.onBeforeMigrate as sinon.SinonStub).called).to.be.false;
@@ -337,7 +347,8 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
                 logger: new SilentLogger()
             });
 
-            await (executor as any).executeWithHooks([script1]);
+            const executedArray: MigrationScript[] = [];
+            await (executor as any).executeWithHooks([script1], executedArray);
 
             expect(callOrder).to.deep.equal(['before', 'execute', 'after']);
         });
@@ -372,7 +383,8 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
             });
 
             try {
-                await (executor as any).executeWithHooks([script1]);
+                const executedArray: MigrationScript[] = [];
+            await (executor as any).executeWithHooks([script1], executedArray);
             } catch (error) {
                 // Expected
             }

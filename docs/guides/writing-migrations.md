@@ -306,7 +306,7 @@ export default class UpdateUserEmails implements IRunnableScript {
 ```
 
 {: .warning }
-If a migration throws an error, MSR will automatically restore the database from backup.
+If a migration throws an error, MSR will automatically rollback using your configured strategy (backup restore, down() methods, or both).
 
 ### 5. Use Transactions (If Supported)
 
@@ -421,6 +421,498 @@ export default class RemoveDeprecatedTable implements IRunnableScript {
   }
 }
 ```
+
+---
+
+## Writing Reversible Migrations
+
+MSR supports optional `down()` methods for migration rollback without requiring database backups. This is particularly useful for:
+
+- **Development environments**: Fast rollback without backup overhead
+- **Large databases**: Avoid expensive backup/restore operations
+- **Cloud databases**: Reduce I/O costs and time
+- **Rapid iteration**: Quickly test migration changes
+
+### Rollback Strategies
+
+MSR offers four rollback strategies configured via `config.rollbackStrategy`:
+
+| Strategy | Description | Requires Backup | Requires down() |
+|----------|-------------|-----------------|-----------------|
+| `BACKUP` | Traditional backup/restore (default) | ✅ Yes | ❌ No |
+| `DOWN` | Call down() methods in reverse order | ❌ No | ✅ Yes |
+| `BOTH` | Try down() first, fallback to backup | ✅ Yes | ⚠️  Recommended |
+| `NONE` | No rollback, logs warning | ❌ No | ❌ No |
+
+```typescript
+import { Config, RollbackStrategy } from '@migration-script-runner/core';
+
+const config = new Config();
+
+// Use down() methods for rollback (no backup needed)
+config.rollbackStrategy = RollbackStrategy.DOWN;
+
+// Use both strategies (down first, backup as fallback)
+config.rollbackStrategy = RollbackStrategy.BOTH;
+```
+
+### Basic down() Method
+
+The `down()` method should reverse the changes made by `up()`:
+
+```typescript
+import { IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB } from '@migration-script-runner/core';
+
+export default class CreateUsersTable implements IRunnableScript {
+  async up(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string> {
+    await (db as any).query(`
+      CREATE TABLE users (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE
+      )
+    `);
+    return 'Users table created';
+  }
+
+  // Reverse the up() operation
+  async down(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string> {
+    await (db as any).query('DROP TABLE IF EXISTS users');
+    return 'Users table dropped';
+  }
+}
+```
+
+### down() Method Best Practices
+
+#### 1. Always Use IF EXISTS / IF NOT EXISTS
+
+Make down() methods idempotent:
+
+```typescript
+export default class AddEmailIndex implements IRunnableScript {
+  async up(db: any): Promise<string> {
+    await db.query('CREATE INDEX idx_users_email ON users(email)');
+    return 'Email index created';
+  }
+
+  async down(db: any): Promise<string> {
+    // Safe to run multiple times
+    await db.query('DROP INDEX IF EXISTS idx_users_email ON users');
+    return 'Email index dropped';
+  }
+}
+```
+
+#### 2. Preserve Data When Possible
+
+For destructive operations, consider preserving data:
+
+```typescript
+export default class RemovePhoneColumn implements IRunnableScript {
+  async up(db: any): Promise<string> {
+    // Archive data before dropping
+    await db.query(`
+      CREATE TABLE users_phone_archive AS
+      SELECT id, phone FROM users WHERE phone IS NOT NULL
+    `);
+
+    await db.query('ALTER TABLE users DROP COLUMN phone');
+    return 'Phone column removed (data archived)';
+  }
+
+  async down(db: any): Promise<string> {
+    // Restore column
+    await db.query('ALTER TABLE users ADD COLUMN phone VARCHAR(20)');
+
+    // Restore data from archive
+    await db.query(`
+      UPDATE users u
+      JOIN users_phone_archive a ON u.id = a.id
+      SET u.phone = a.phone
+    `);
+
+    await db.query('DROP TABLE IF EXISTS users_phone_archive');
+    return 'Phone column restored with archived data';
+  }
+}
+```
+
+#### 3. Reverse Data Transformations
+
+For data migrations, down() should reverse transformations:
+
+```typescript
+export default class NormalizeEmails implements IRunnableScript {
+  async up(db: any): Promise<string> {
+    // Store original values for rollback
+    await db.query(`
+      CREATE TABLE email_backup AS
+      SELECT id, email FROM users
+    `);
+
+    // Normalize emails to lowercase
+    await db.query('UPDATE users SET email = LOWER(email)');
+
+    return 'Emails normalized to lowercase';
+  }
+
+  async down(db: any): Promise<string> {
+    // Restore original email values
+    await db.query(`
+      UPDATE users u
+      JOIN email_backup b ON u.id = b.id
+      SET u.email = b.email
+    `);
+
+    await db.query('DROP TABLE IF EXISTS email_backup');
+    return 'Original email values restored';
+  }
+}
+```
+
+#### 4. Handle Complex Multi-Step Migrations
+
+Reverse operations in opposite order:
+
+```typescript
+export default class AddUserRoles implements IRunnableScript {
+  async up(db: any): Promise<string> {
+    // Step 1: Create roles table
+    await db.query('CREATE TABLE roles (id INT PRIMARY KEY, name VARCHAR(50))');
+
+    // Step 2: Add foreign key to users
+    await db.query('ALTER TABLE users ADD COLUMN role_id INT');
+
+    // Step 3: Create foreign key constraint
+    await db.query(`
+      ALTER TABLE users
+      ADD CONSTRAINT fk_user_role
+      FOREIGN KEY (role_id) REFERENCES roles(id)
+    `);
+
+    // Step 4: Insert default roles
+    await db.query("INSERT INTO roles (id, name) VALUES (1, 'user'), (2, 'admin')");
+
+    return 'User roles system created';
+  }
+
+  async down(db: any): Promise<string> {
+    // Reverse in opposite order!
+
+    // Step 4: Remove role data (not strictly necessary, but clean)
+    await db.query('TRUNCATE TABLE roles');
+
+    // Step 3: Drop foreign key constraint
+    await db.query('ALTER TABLE users DROP FOREIGN KEY IF EXISTS fk_user_role');
+
+    // Step 2: Remove column
+    await db.query('ALTER TABLE users DROP COLUMN IF EXISTS role_id');
+
+    // Step 1: Drop roles table
+    await db.query('DROP TABLE IF EXISTS roles');
+
+    return 'User roles system removed';
+  }
+}
+```
+
+### Common down() Patterns
+
+#### Table Operations
+
+```typescript
+// Creating a table
+export default class CreatePostsTable implements IRunnableScript {
+  async up(db: any): Promise<string> {
+    await db.query('CREATE TABLE posts (id INT, title VARCHAR(255))');
+    return 'Posts table created';
+  }
+
+  async down(db: any): Promise<string> {
+    await db.query('DROP TABLE IF EXISTS posts');
+    return 'Posts table dropped';
+  }
+}
+```
+
+#### Column Operations
+
+```typescript
+// Adding a column
+export default class AddAvatarColumn implements IRunnableScript {
+  async up(db: any): Promise<string> {
+    await db.query('ALTER TABLE users ADD COLUMN avatar_url VARCHAR(512)');
+    return 'Avatar column added';
+  }
+
+  async down(db: any): Promise<string> {
+    await db.query('ALTER TABLE users DROP COLUMN IF EXISTS avatar_url');
+    return 'Avatar column removed';
+  }
+}
+
+// Renaming a column
+export default class RenameEmailColumn implements IRunnableScript {
+  async up(db: any): Promise<string> {
+    await db.query('ALTER TABLE users RENAME COLUMN email TO email_address');
+    return 'Email column renamed';
+  }
+
+  async down(db: any): Promise<string> {
+    await db.query('ALTER TABLE users RENAME COLUMN email_address TO email');
+    return 'Email column name restored';
+  }
+}
+```
+
+#### Index Operations
+
+```typescript
+// Creating an index
+export default class AddUserEmailIndex implements IRunnableScript {
+  async up(db: any): Promise<string> {
+    await db.query('CREATE INDEX idx_users_email ON users(email)');
+    return 'Email index created';
+  }
+
+  async down(db: any): Promise<string> {
+    await db.query('DROP INDEX IF EXISTS idx_users_email ON users');
+    return 'Email index dropped';
+  }
+}
+
+// Creating a unique constraint
+export default class AddUniqueEmailConstraint implements IRunnableScript {
+  async up(db: any): Promise<string> {
+    await db.query('ALTER TABLE users ADD CONSTRAINT uk_email UNIQUE (email)');
+    return 'Email unique constraint added';
+  }
+
+  async down(db: any): Promise<string> {
+    await db.query('ALTER TABLE users DROP CONSTRAINT IF EXISTS uk_email');
+    return 'Email unique constraint removed';
+  }
+}
+```
+
+#### Data Operations
+
+```typescript
+// Inserting seed data
+export default class AddDefaultRoles implements IRunnableScript {
+  async up(db: any): Promise<string> {
+    await db.query(`
+      INSERT INTO roles (id, name) VALUES
+      (1, 'user'),
+      (2, 'admin'),
+      (3, 'moderator')
+    `);
+    return 'Default roles inserted';
+  }
+
+  async down(db: any): Promise<string> {
+    await db.query('DELETE FROM roles WHERE id IN (1, 2, 3)');
+    return 'Default roles removed';
+  }
+}
+```
+
+### When down() Is Not Recommended
+
+Some migrations are difficult or impossible to reverse safely:
+
+#### ❌ Large Data Deletions
+
+```typescript
+// Risky: Hard to restore deleted data
+export default class CleanupOldData implements IRunnableScript {
+  async up(db: any): Promise<string> {
+    await db.query("DELETE FROM logs WHERE created_at < '2024-01-01'");
+    return 'Old logs deleted';
+  }
+
+  // ⚠️  Can't restore deleted data without backup!
+  async down(db: any): Promise<string> {
+    throw new Error('Cannot restore deleted logs - use backup strategy');
+  }
+}
+```
+
+**Recommendation:** Use `RollbackStrategy.BACKUP` or `BOTH` for destructive operations.
+
+#### ❌ External System Integration
+
+```typescript
+// Complex: Involves external APIs
+export default class SyncToExternalSystem implements IRunnableScript {
+  async up(db: any): Promise<string> {
+    const users = await db.query('SELECT * FROM users');
+    await externalAPI.bulkCreate(users);  // External system updated
+    return 'Users synced to external system';
+  }
+
+  // ⚠️  External state is hard to reverse
+  async down(db: any): Promise<string> {
+    // Would need to call external API again
+    throw new Error('External sync cannot be automatically reversed');
+  }
+}
+```
+
+#### ❌ Schema Changes With Data Loss
+
+```typescript
+// Dangerous: Type changes can lose data
+export default class ChangeColumnType implements IRunnableScript {
+  async up(db: any): Promise<string> {
+    // Converting string to integer loses data
+    await db.query('ALTER TABLE users MODIFY COLUMN age INT');
+    return 'Age column converted to INT';
+  }
+
+  // ⚠️  Original string values are lost!
+  async down(db: any): Promise<string> {
+    await db.query('ALTER TABLE users MODIFY COLUMN age VARCHAR(50)');
+    return 'Age column reverted to VARCHAR';
+    // But original data like "twenty-five" is gone forever!
+  }
+}
+```
+
+### Testing down() Methods
+
+Always test your down() methods:
+
+```typescript
+import { expect } from 'chai';
+
+describe('CreateUsersTable Migration', () => {
+  let migration: CreateUsersTable;
+
+  beforeEach(() => {
+    migration = new CreateUsersTable();
+  });
+
+  it('should create users table in up()', async () => {
+    await migration.up(mockDb, mockInfo, mockHandler);
+
+    const tables = await mockDb.query('SHOW TABLES LIKE "users"');
+    expect(tables).to.have.lengthOf(1);
+  });
+
+  it('should drop users table in down()', async () => {
+    // Setup: create table
+    await migration.up(mockDb, mockInfo, mockHandler);
+
+    // Test: rollback
+    await migration.down(mockDb, mockInfo, mockHandler);
+
+    const tables = await mockDb.query('SHOW TABLES LIKE "users"');
+    expect(tables).to.have.lengthOf(0);
+  });
+
+  it('should be idempotent - down() can run multiple times', async () => {
+    await migration.up(mockDb, mockInfo, mockHandler);
+
+    // Run down() twice
+    await migration.down(mockDb, mockInfo, mockHandler);
+    await migration.down(mockDb, mockInfo, mockHandler);  // Should not throw
+
+    const tables = await mockDb.query('SHOW TABLES LIKE "users"');
+    expect(tables).to.have.lengthOf(0);
+  });
+});
+```
+
+### Rollback Behavior
+
+When a migration fails, MSR automatically rolls back based on your configured strategy:
+
+#### DOWN Strategy
+```typescript
+config.rollbackStrategy = RollbackStrategy.DOWN;
+
+// If migration 3 fails:
+// 1. Call down() on migration 3 (the failed one)
+// 2. Call down() on migration 2 (in reverse order)
+// 3. Call down() on migration 1 (in reverse order)
+// Result: Database reverted to state before migrations started
+```
+
+#### BOTH Strategy
+```typescript
+config.rollbackStrategy = RollbackStrategy.BOTH;
+
+// If migration 3 fails:
+// 1. Try calling down() methods in reverse order
+// 2. If down() fails, restore from backup
+// Result: Fast rollback with backup safety net
+```
+
+#### Missing down() Warning
+```
+⚠️  No down() method for V202501220100_add_users - skipping rollback
+```
+
+If using `DOWN` or `BOTH` strategies, MSR warns when migrations lack down() methods.
+
+### Migration With down() Example
+
+Complete example with proper error handling:
+
+```typescript
+import { IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB } from '@migration-script-runner/core';
+
+export default class CreateUserActivityLog implements IRunnableScript {
+  async up(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string> {
+    try {
+      // Create table
+      await (db as any).query(`
+        CREATE TABLE user_activity_log (
+          id BIGINT PRIMARY KEY AUTO_INCREMENT,
+          user_id INT NOT NULL,
+          action VARCHAR(100) NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Create index for performance
+      await (db as any).query('CREATE INDEX idx_user_activity_user_id ON user_activity_log(user_id)');
+      await (db as any).query('CREATE INDEX idx_user_activity_created_at ON user_activity_log(created_at)');
+
+      console.log('✅ User activity log table and indexes created');
+      return 'User activity log system initialized';
+
+    } catch (error) {
+      console.error('❌ Failed to create user activity log:', error);
+      throw error;
+    }
+  }
+
+  async down(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string> {
+    try {
+      // Drop indexes first (best practice)
+      await (db as any).query('DROP INDEX IF EXISTS idx_user_activity_created_at ON user_activity_log');
+      await (db as any).query('DROP INDEX IF EXISTS idx_user_activity_user_id ON user_activity_log');
+
+      // Drop table
+      await (db as any).query('DROP TABLE IF EXISTS user_activity_log');
+
+      console.log('✅ User activity log table and indexes removed');
+      return 'User activity log system removed';
+
+    } catch (error) {
+      console.error('❌ Failed to rollback user activity log:', error);
+      throw error;
+    }
+  }
+}
+```
+
+{: .note }
+**Pro Tip:** For `BOTH` strategy, implement down() methods for fast rollback in development, while keeping backup protection for production.
 
 ---
 

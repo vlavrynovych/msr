@@ -244,12 +244,55 @@ Hidden files and folders (starting with `.`) are automatically excluded from sca
 
 ---
 
+### rollbackStrategy
+
+**Type:** `RollbackStrategy`
+**Default:** `RollbackStrategy.BACKUP`
+
+Determines how MSR handles rollback when a migration fails. Choose the strategy that best fits your deployment needs.
+
+```typescript
+import { RollbackStrategy } from '@migration-script-runner/core';
+
+// Use backup/restore (default, backward compatible)
+config.rollbackStrategy = RollbackStrategy.BACKUP;
+
+// Use down() methods (no backup required)
+config.rollbackStrategy = RollbackStrategy.DOWN;
+
+// Try down() first, fallback to backup
+config.rollbackStrategy = RollbackStrategy.BOTH;
+
+// No rollback (dangerous - use only in development)
+config.rollbackStrategy = RollbackStrategy.NONE;
+```
+
+#### Strategy Details
+
+| Strategy | Description | Requires Backup | Requires down() |
+|----------|-------------|-----------------|-----------------|
+| `BACKUP` | Traditional backup/restore on failure | ✅ Yes | ❌ No |
+| `DOWN` | Call down() methods in reverse order | ❌ No | ✅ Yes |
+| `BOTH` | Try down() first, fallback to backup | ✅ Yes | ⚠️  Recommended |
+| `NONE` | No rollback, logs warning | ❌ No | ❌ No |
+
+**When to use each strategy:**
+
+- **BACKUP**: Production environments where you have reliable backups and want guaranteed rollback
+- **DOWN**: Development or when backups are expensive/slow (e.g., large databases, cloud databases)
+- **BOTH**: Best of both worlds - fast down() rollback with backup safety net
+- **NONE**: Local development only when you want to debug failed migrations without rollback
+
+---
+
 ### backup
 
 **Type:** `BackupConfig`
 **Default:** `new BackupConfig()`
 
 Configuration for the backup system. See [Backup Configuration](#backup-configuration) below.
+
+**Note:** Only required for `BACKUP` or `BOTH` rollback strategies. Can be omitted when using `DOWN` or `NONE` strategies.
 
 ```typescript
 import { BackupConfig } from '@migration-script-runner/core';
@@ -431,7 +474,7 @@ The extension can be specified with or without the leading dot (`.bkp` or `bkp`)
 Here's a complete configuration example with all options:
 
 ```typescript
-import { Config, BackupConfig, MigrationScriptExecutor } from '@migration-script-runner/core';
+import { Config, BackupConfig, RollbackStrategy, MigrationScriptExecutor } from '@migration-script-runner/core';
 import { MyDatabaseHandler } from './database-handler';
 
 // Create configuration
@@ -445,7 +488,10 @@ config.displayLimit = 20;
 config.beforeMigrateName = 'beforeMigrate';  // Default: looks for beforeMigrate.ts/js
 config.recursive = true;  // Scan sub-folders (default)
 
-// Backup settings
+// Rollback strategy
+config.rollbackStrategy = RollbackStrategy.BOTH;  // Try down() first, fallback to backup
+
+// Backup settings (required for BACKUP or BOTH strategies)
 config.backup = new BackupConfig();
 config.backup.folder = './database/backups';
 config.backup.deleteBackup = true;

@@ -18,7 +18,7 @@ import {MigrationScriptSelector} from "./MigrationScriptSelector";
 import {MigrationRunner} from "./MigrationRunner";
 import {MigrationScanner} from "./MigrationScanner";
 import {IMigrationScanner} from "../interface/service/IMigrationScanner";
-import {Config} from "../model";
+import {Config, RollbackStrategy} from "../model";
 
 /**
  * Main executor class for running database migrations.
@@ -201,15 +201,18 @@ export class MigrationScriptExecutor {
         let backupPath: string | undefined;
 
         try {
-            // Hook: Before backup
-            await this.hooks?.onBeforeBackup?.();
+            // Conditionally create backup based on rollback strategy
+            if (this.shouldCreateBackup()) {
+                // Hook: Before backup
+                await this.hooks?.onBeforeBackup?.();
 
-            // Create backup
-            backupPath = await this.backupService.backup();
+                // Create backup
+                backupPath = await this.backupService.backup();
 
-            // Hook: After backup
-            if (backupPath) {
-                await this.hooks?.onAfterBackup?.(backupPath);
+                // Hook: After backup
+                if (backupPath) {
+                    await this.hooks?.onAfterBackup?.(backupPath);
+                }
             }
 
             await this.schemaVersionService.init(this.config.tableName);
@@ -248,7 +251,8 @@ export class MigrationScriptExecutor {
             this.migrationRenderer.drawPending(scripts.pending);
 
             // Execute migrations with hooks
-            scripts.executed = await this.executeWithHooks(scripts.pending);
+            // Note: executeWithHooks modifies scripts.executed directly for rollback tracking
+            await this.executeWithHooks(scripts.pending, scripts.executed);
 
             this.migrationRenderer.drawExecuted(scripts.executed);
             this.logger.info('Migration finished successfully!');
@@ -269,15 +273,9 @@ export class MigrationScriptExecutor {
             this.logger.error(err as string);
             errors.push(err as Error);
 
-            // Hook: Before restore
-            await this.hooks?.onBeforeRestore?.();
-
-            await this.backupService.restore();
-
-            // Hook: After restore
-            await this.hooks?.onAfterRestore?.();
-
-            this.backupService.deleteBackup();
+            // Handle rollback based on configured strategy
+            // scripts.executed contains ALL attempted migrations (including the failed one)
+            await this.handleRollback(scripts.executed, backupPath);
 
             // Hook: Error
             await this.hooks?.onError?.(err as Error);
@@ -351,6 +349,125 @@ export class MigrationScriptExecutor {
      * }
      * ```
      */
+    /**
+     * Determine if backup should be created based on rollback strategy and handler configuration.
+     *
+     * @returns true if backup should be created, false otherwise
+     * @private
+     */
+    private shouldCreateBackup(): boolean {
+        const strategy = this.config.rollbackStrategy;
+        const hasBackup = !!this.handler.backup;
+
+        // Need backup interface for BACKUP or BOTH strategies
+        return hasBackup && (strategy === RollbackStrategy.BACKUP || strategy === RollbackStrategy.BOTH);
+    }
+
+    /**
+     * Handle rollback after migration failure based on configured strategy.
+     *
+     * @param executedScripts - Scripts that were attempted (including the failed one)
+     * @param backupPath - Path to backup file (if created)
+     * @private
+     */
+    private async handleRollback(executedScripts: MigrationScript[], backupPath: string | undefined): Promise<void> {
+        const strategy = this.config.rollbackStrategy;
+
+        switch (strategy) {
+            case RollbackStrategy.BACKUP:
+                await this.rollbackWithBackup(backupPath);
+                break;
+
+            case RollbackStrategy.DOWN:
+                await this.rollbackWithDown(executedScripts);
+                break;
+
+            case RollbackStrategy.BOTH:
+                await this.rollbackWithBoth(executedScripts, backupPath);
+                break;
+
+            case RollbackStrategy.NONE:
+                this.logger.warn('⚠️  No rollback configured - database may be in inconsistent state');
+                break;
+        }
+    }
+
+    /**
+     * Rollback using backup/restore strategy.
+     *
+     * @param backupPath - Path to backup file
+     * @private
+     */
+    private async rollbackWithBackup(backupPath: string | undefined): Promise<void> {
+        if (!backupPath) {
+            this.logger.warn('No backup available for restore');
+            return;
+        }
+
+        // Hook: Before restore
+        await this.hooks?.onBeforeRestore?.();
+
+        this.logger.info('Restoring from backup...');
+        await this.backupService.restore();
+
+        // Hook: After restore
+        await this.hooks?.onAfterRestore?.();
+
+        this.backupService.deleteBackup();
+        this.logger.info('✓ Database restored from backup');
+    }
+
+    /**
+     * Rollback using down() methods strategy.
+     *
+     * Calls down() on all attempted migrations in reverse order.
+     * This includes the failed migration (last in array) to clean up partial changes.
+     *
+     * @param attemptedScripts - All scripts that were attempted (including the failed one)
+     * @private
+     */
+    private async rollbackWithDown(attemptedScripts: MigrationScript[]): Promise<void> {
+        if (attemptedScripts.length === 0) {
+            this.logger.info('No migrations to rollback');
+            return;
+        }
+
+        this.logger.info(`Rolling back ${attemptedScripts.length} migration(s) using down() methods...`);
+
+        // Roll back all attempted migrations in reverse order
+        // The failed migration is last in the array, so it will be rolled back first
+        for (const script of attemptedScripts.reverse()) {
+            if (script.script.down) {
+                this.logger.info(`Rolling back: ${script.name}`);
+                await script.script.down(this.handler.db, script, this.handler);
+            } else {
+                this.logger.warn(`⚠️  No down() method for ${script.name} - skipping rollback`);
+            }
+        }
+
+        this.logger.info('✓ Rollback completed using down() methods');
+    }
+
+    /**
+     * Rollback using both strategies (down first, backup as fallback).
+     *
+     * @param attemptedScripts - All scripts that were attempted (including the failed one)
+     * @param backupPath - Path to backup file
+     * @private
+     */
+    private async rollbackWithBoth(attemptedScripts: MigrationScript[], backupPath: string | undefined): Promise<void> {
+        try {
+            // Try down() methods first (includes failed migration cleanup)
+            await this.rollbackWithDown(attemptedScripts);
+        } catch (downError) {
+            this.logger.error(`down() rollback failed: ${downError}`);
+            this.logger.info('Falling back to backup restore...');
+
+            // Fallback to backup if down() fails
+            await this.rollbackWithBackup(backupPath);
+        }
+    }
+
     private async executeBeforeMigrate(): Promise<void> {
         this.logger.info('Checking for beforeMigrate setup script...');
 
@@ -387,20 +504,25 @@ export class MigrationScriptExecutor {
      * Execute migration scripts sequentially with lifecycle hooks.
      *
      * Wraps each migration execution with onBeforeMigrate, onAfterMigrate, and
-     * onMigrationError hooks. If no migration hooks are registered, delegates
-     * to the regular execute() method for backward compatibility.
+     * onMigrationError hooks. Updates the executedArray parameter directly as scripts
+     * are executed, ensuring that executed migrations are available for rollback even
+     * if a later migration fails.
      *
      * @param scripts - Array of migration scripts to execute
-     * @returns Array of executed migrations with results and timing information
+     * @param executedArray - Array to populate with executed migrations (modified in-place)
      *
-     * @throws {Error} If any migration fails, execution stops and the error is propagated
+     * @throws {Error} If any migration fails, execution stops and the error is propagated.
+     *                 The executedArray will contain all migrations that were attempted
+     *                 (including the failed one), making them available for rollback.
      *
      * @private
      */
-    private async executeWithHooks(scripts: MigrationScript[]): Promise<MigrationScript[]> {
-        const executed: MigrationScript[] = [];
-
+    private async executeWithHooks(scripts: MigrationScript[], executedArray: MigrationScript[]): Promise<void> {
         for (const script of scripts) {
+            // Add script to executed array BEFORE execution
+            // This ensures it's available for rollback cleanup if it fails
+            executedArray.push(script);
+
             try {
                 // Hook: Before migration
                 if (this.hooks && this.hooks.onBeforeMigrate) {
@@ -415,7 +537,8 @@ export class MigrationScriptExecutor {
                     await this.hooks.onAfterMigrate(result, result.result || '');
                 }
 
-                executed.push(result);
+                // Migration succeeded - result is returned by executeOne
+                // Note: script is already in executedArray
             } catch (err) {
                 // Hook: Migration error
                 if (this.hooks && this.hooks.onMigrationError) {
@@ -423,11 +546,10 @@ export class MigrationScriptExecutor {
                 }
 
                 // Re-throw to trigger rollback
+                // Note: executedArray contains ALL attempted migrations including the failed one
                 throw err;
             }
         }
-
-        return executed;
     }
 
     /**

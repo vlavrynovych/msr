@@ -1,4 +1,4 @@
-import {BackupConfig} from "./index";
+import {BackupConfig, RollbackStrategy} from "./index";
 
 /**
  * Configuration for the migration system.
@@ -159,4 +159,42 @@ export class Config {
      * ```
      */
     recursive:boolean = true
+
+    /**
+     * Rollback strategy for handling migration failures.
+     *
+     * Determines how MSR responds when a migration fails:
+     * - `BACKUP` (default): Create database backup before migrations, restore on failure
+     * - `DOWN`: Call down() methods on failed migrations for rollback
+     * - `BOTH`: Create backup AND use down() methods (safest - tries down() first, backup on down() failure)
+     * - `NONE`: No automatic rollback (not recommended - database may be left in inconsistent state)
+     *
+     * @default RollbackStrategy.BACKUP
+     *
+     * @example
+     * ```typescript
+     * import { RollbackStrategy } from '@migration-script-runner/core';
+     *
+     * // Use backup/restore (default, recommended for production)
+     * config.rollbackStrategy = RollbackStrategy.BACKUP;
+     * // Requires: handler.backup implementation
+     *
+     * // Use down() migrations for rollback
+     * config.rollbackStrategy = RollbackStrategy.DOWN;
+     * // Requires: down() methods in migration scripts
+     *
+     * // Use both strategies for maximum safety
+     * config.rollbackStrategy = RollbackStrategy.BOTH;
+     * // Tries down() first, falls back to backup if down() fails
+     *
+     * // No rollback (dangerous - use with caution)
+     * config.rollbackStrategy = RollbackStrategy.NONE;
+     * // Database will be left in potentially inconsistent state on failure
+     * ```
+     *
+     * @see IDatabaseMigrationHandler.backup for backup implementation
+     * @see IRunnableScript.down for down() method implementation
+     * @see RollbackStrategy enum for all available options
+     */
+    rollbackStrategy: RollbackStrategy = RollbackStrategy.BACKUP
 }
