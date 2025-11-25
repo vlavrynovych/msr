@@ -135,6 +135,59 @@ This only affects display output. All migrations are still tracked internally.
 
 ---
 
+### recursive
+
+**Type:** `boolean`
+**Default:** `true`
+
+Enable recursive scanning of sub-folders for migration scripts. When enabled, MSR searches all sub-directories within the configured folder, allowing you to organize migrations by feature, module, version, or any logical grouping.
+
+**Migrations always execute in timestamp order regardless of folder structure.**
+
+```typescript
+// Recursive mode - scan all sub-folders (default)
+config.recursive = true;
+
+// Single-folder mode - scan only the root folder
+config.recursive = false;
+```
+
+#### Use Cases
+
+**By Feature/Module:**
+```
+migrations/
+├── users/
+│   ├── V202501220100_create_users_table.ts
+│   └── V202501230200_add_user_roles.ts
+├── auth/
+│   └── V202501220150_create_sessions_table.ts
+└── products/
+    └── V202501240100_create_products_table.ts
+```
+
+**By Version:**
+```
+migrations/
+├── v1.0/
+│   └── V202501010000_initial_schema.ts
+├── v1.1/
+│   └── V202501150000_add_features.ts
+└── v2.0/
+    └── V202502010000_major_refactor.ts
+```
+
+**Execution Order:** Always by timestamp
+1. `V202501220100_create_users_table.ts` (users/)
+2. `V202501220150_create_sessions_table.ts` (auth/)
+3. `V202501230200_add_user_roles.ts` (users/)
+4. `V202501240100_create_products_table.ts` (products/)
+
+{: .note }
+Hidden files and folders (starting with `.`) are automatically excluded from scanning.
+
+---
+
 ### backup
 
 **Type:** `BackupConfig`
@@ -333,6 +386,7 @@ config.folder = './database/migrations';
 config.filePattern = /^V(\d+)_(.+)\.ts$/;
 config.tableName = 'migration_history';
 config.displayLimit = 20;
+config.recursive = true;  // Scan sub-folders (default)
 
 // Backup settings
 config.backup = new BackupConfig();

@@ -224,7 +224,7 @@ await executor.list(10);
 
 ## Project Structure
 
-Recommended project structure:
+### Flat Structure (Traditional)
 
 ```
 my-project/
@@ -237,6 +237,37 @@ my-project/
 │   ├── database-handler.ts     # Your DB implementation
 │   └── run-migrations.ts       # Migration runner
 └── package.json
+```
+
+### Organized by Sub-folders (Recommended)
+
+MSR supports organizing migrations into sub-folders by feature, module, or version:
+
+```
+my-project/
+├── migrations/
+│   ├── users/                   # User-related migrations
+│   │   ├── V202501220100_create_users_table.ts
+│   │   └── V202501230200_add_user_roles.ts
+│   ├── auth/                    # Authentication migrations
+│   │   └── V202501220150_create_sessions_table.ts
+│   └── products/                # Product migrations
+│       └── V202501240100_create_products_table.ts
+├── backups/
+└── src/
+    ├── database-handler.ts
+    └── run-migrations.ts
+```
+
+**Note:** Migrations execute in timestamp order regardless of folder structure:
+1. `V202501220100_create_users_table.ts` (users/)
+2. `V202501220150_create_sessions_table.ts` (auth/)
+3. `V202501230200_add_user_roles.ts` (users/)
+4. `V202501240100_create_products_table.ts` (products/)
+
+Sub-folder scanning is enabled by default. To disable:
+```typescript
+config.recursive = false;
 ```
 
 ---

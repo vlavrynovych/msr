@@ -93,6 +93,7 @@ describe('MigrationService', () => {
         it('should filter hidden files', async () => {
             // Stub filesystem to return mix of hidden and visible files
             const cfg = TestUtils.getConfig();
+            cfg.recursive = false; // Use single-folder mode for this test
             const ms = new MigrationService(new SilentLogger());
 
             const sinon = await import('sinon');
@@ -123,6 +124,7 @@ describe('MigrationService', () => {
         it('should handle duplicate timestamps', async () => {
             // Stub filesystem to return files with identical timestamps
             const cfg = TestUtils.getConfig();
+            cfg.recursive = false; // Use single-folder mode for this test
             const ms = new MigrationService(new SilentLogger());
 
             const sinon = await import('sinon');
@@ -153,6 +155,7 @@ describe('MigrationService', () => {
         it('should handle files not matching pattern', async () => {
             // Stub filesystem to return mix of migration and non-migration files
             const cfg = TestUtils.getConfig();
+            cfg.recursive = false; // Use single-folder mode for this test
             const ms = new MigrationService(new SilentLogger());
 
             const sinon = await import('sinon');
@@ -184,6 +187,7 @@ describe('MigrationService', () => {
         it('should handle large number of files', async () => {
             // Stub filesystem to return 100 migration files
             const cfg = TestUtils.getConfig();
+            cfg.recursive = false; // Use single-folder mode for this test
             const ms = new MigrationService(new SilentLogger());
 
             const sinon = await import('sinon');
@@ -220,6 +224,7 @@ describe('MigrationService', () => {
         it('should handle special characters in filenames', async () => {
             // Stub filesystem with special character filenames
             const cfg = TestUtils.getConfig();
+            cfg.recursive = false; // Use single-folder mode for this test
             const ms = new MigrationService(new SilentLogger());
 
             const sinon = await import('sinon');
@@ -269,6 +274,312 @@ describe('MigrationService', () => {
                         'All results should be identical');
                 }
             });
+        })
+    })
+
+    describe('readMigrationScripts() - Recursive Mode', () => {
+        /**
+         * Test: Successfully reads migration scripts from sub-folders recursively
+         * Validates that when recursive mode is enabled, the scanner finds all
+         * migration files across multiple nested directories and organizes them
+         * by timestamp regardless of their folder location.
+         */
+        it('should read migration scripts from sub-folders recursively', async () => {
+            const cfg = TestUtils.getConfig(TestUtils.RECURSIVE_FOLDER);
+            cfg.recursive = true;
+            const ms = new MigrationService(new SilentLogger());
+
+            const res: MigrationScript[] = await ms.readMigrationScripts(cfg);
+
+            // Verify all 4 migrations from different sub-folders are found
+            expect(res).not.undefined;
+            expect(res.length).eq(4, 'Should find 4 migration scripts in sub-folders');
+
+            // Verify scripts have correct timestamps
+            const timestamps = res.map(s => s.timestamp);
+            expect(timestamps).to.include.members([
+                202311010001, // users/V202311010001_create_users_table.ts
+                202311015001, // auth/V202311015001_create_sessions_table.ts
+                202311020002, // users/V202311020002_add_user_roles.ts
+                202311030001  // products/V202311030001_create_products_table.ts
+            ]);
+
+            // Verify file paths are correct (contain sub-folder names)
+            expect(res.some(s => s.filepath.includes('users'))).to.be.true;
+            expect(res.some(s => s.filepath.includes('auth'))).to.be.true;
+            expect(res.some(s => s.filepath.includes('products'))).to.be.true;
+        })
+
+        /**
+         * Test: Recursive mode respects timestamp ordering across folders
+         * Validates that migrations from different sub-folders are correctly
+         * ordered by their timestamps, not by folder hierarchy or file location.
+         */
+        it('should maintain timestamp order across sub-folders', async () => {
+            const cfg = TestUtils.getConfig(TestUtils.RECURSIVE_FOLDER);
+            cfg.recursive = true;
+            const ms = new MigrationService(new SilentLogger());
+
+            const res: MigrationScript[] = await ms.readMigrationScripts(cfg);
+
+            // Expected execution order by timestamp:
+            // 1. V202311010001 (users)
+            // 2. V202311015001 (auth)
+            // 3. V202311020002 (users)
+            // 4. V202311030001 (products)
+
+            expect(res.length).eq(4);
+
+            // Verify timestamps can be sorted correctly
+            const sortedTimestamps = res.map(s => s.timestamp).sort((a, b) => a - b);
+            expect(sortedTimestamps).to.deep.equal([
+                202311010001,
+                202311015001,
+                202311020002,
+                202311030001
+            ]);
+        })
+
+        /**
+         * Test: Hidden folders are filtered out in recursive mode
+         * Validates that hidden directories (starting with .) like .git, .DS_Store
+         * folders are excluded when scanning recursively. Prevents system folders
+         * from being traversed unnecessarily.
+         */
+        it('should filter hidden folders in recursive mode', async () => {
+            const cfg = TestUtils.getConfig();
+            cfg.recursive = true;
+            const ms = new MigrationService(new SilentLogger());
+
+            const sinon = await import('sinon');
+            const readdirStub = sinon.stub(require('fs'), 'readdirSync');
+
+            // First call: root directory with hidden folder
+            readdirStub.onFirstCall().callsFake((dir: string, options?: any) => {
+                if (options?.withFileTypes) {
+                    return [
+                        { name: '.hidden', isDirectory: () => true, isFile: () => false },
+                        { name: 'visible', isDirectory: () => true, isFile: () => false }
+                    ];
+                }
+                return [];
+            });
+
+            // Second call: visible folder with valid migration
+            readdirStub.onSecondCall().callsFake((dir: string, options?: any) => {
+                if (options?.withFileTypes) {
+                    return [
+                        { name: 'V202311010001_test.ts', isDirectory: () => false, isFile: () => true }
+                    ];
+                }
+                return [];
+            });
+
+            const res = await ms.readMigrationScripts(cfg);
+
+            // Verify only the visible folder was scanned
+            expect(readdirStub.callCount).eq(2, 'Should only scan visible folders');
+            expect(res.length).eq(1, 'Should find migration in visible folder only');
+
+            readdirStub.restore();
+        })
+
+        /**
+         * Test: Recursive mode disabled - only scans root folder
+         * Validates backward compatibility: when recursive is false, only the
+         * root migration folder is scanned, ignoring any sub-directories.
+         */
+        it('should only scan root folder when recursive is disabled', async () => {
+            const cfg = TestUtils.getConfig(TestUtils.RECURSIVE_FOLDER);
+            cfg.recursive = false;
+            const ms = new MigrationService(new SilentLogger());
+
+            const res: MigrationScript[] = await ms.readMigrationScripts(cfg);
+
+            // Should find 0 migrations because all are in sub-folders
+            expect(res).not.undefined;
+            expect(res.length).eq(0, 'Should not find migrations in sub-folders when recursive is false');
+        })
+
+        /**
+         * Test: Empty sub-folders don't cause errors
+         * Edge case test validating that empty sub-directories are handled
+         * gracefully without throwing errors during recursive scanning.
+         */
+        it('should handle empty sub-folders gracefully', async () => {
+            const cfg = TestUtils.getConfig();
+            cfg.recursive = true;
+            const ms = new MigrationService(new SilentLogger());
+
+            const sinon = await import('sinon');
+            const readdirStub = sinon.stub(require('fs'), 'readdirSync');
+
+            // Root directory with empty sub-folder
+            readdirStub.onFirstCall().callsFake((dir: string, options?: any) => {
+                if (options?.withFileTypes) {
+                    return [
+                        { name: 'empty-folder', isDirectory: () => true, isFile: () => false }
+                    ];
+                }
+                return [];
+            });
+
+            // Empty sub-folder
+            readdirStub.onSecondCall().callsFake((dir: string, options?: any) => {
+                if (options?.withFileTypes) {
+                    return [];
+                }
+                return [];
+            });
+
+            const res = await ms.readMigrationScripts(cfg);
+
+            // Should return empty array without errors
+            expect(res).not.undefined;
+            expect(res.length).eq(0, 'Should handle empty sub-folders');
+
+            readdirStub.restore();
+        })
+
+        /**
+         * Test: Deep nesting is supported
+         * Validates that recursive scanning works with multiple levels of
+         * nested directories (e.g., migrations/v1/users/auth/...)
+         */
+        it('should handle deeply nested sub-folders', async () => {
+            const cfg = TestUtils.getConfig();
+            cfg.recursive = true;
+            const ms = new MigrationService(new SilentLogger());
+
+            const sinon = await import('sinon');
+            const readdirStub = sinon.stub(require('fs'), 'readdirSync');
+
+            // Level 1: root
+            readdirStub.onCall(0).callsFake((dir: string, options?: any) => {
+                if (options?.withFileTypes) {
+                    return [
+                        { name: 'level1', isDirectory: () => true, isFile: () => false }
+                    ];
+                }
+                return [];
+            });
+
+            // Level 2
+            readdirStub.onCall(1).callsFake((dir: string, options?: any) => {
+                if (options?.withFileTypes) {
+                    return [
+                        { name: 'level2', isDirectory: () => true, isFile: () => false }
+                    ];
+                }
+                return [];
+            });
+
+            // Level 3: contains migration file
+            readdirStub.onCall(2).callsFake((dir: string, options?: any) => {
+                if (options?.withFileTypes) {
+                    return [
+                        { name: 'V202311010001_deep.ts', isDirectory: () => false, isFile: () => true }
+                    ];
+                }
+                return [];
+            });
+
+            const res = await ms.readMigrationScripts(cfg);
+
+            // Should find the deeply nested migration
+            expect(res.length).eq(1, 'Should find migration in deeply nested folder');
+            expect(res[0].name).eq('V202311010001_deep.ts');
+
+            readdirStub.restore();
+        })
+
+        /**
+         * Test: Mixed files and folders in recursive mode
+         * Validates that when the root folder contains both migration files
+         * and sub-folders with more migrations, all are discovered correctly.
+         */
+        it('should handle mixed files and folders in root directory', async () => {
+            const cfg = TestUtils.getConfig();
+            cfg.recursive = true;
+            const ms = new MigrationService(new SilentLogger());
+
+            const sinon = await import('sinon');
+            const readdirStub = sinon.stub(require('fs'), 'readdirSync');
+
+            // Root: has both file and folder
+            readdirStub.onFirstCall().callsFake((dir: string, options?: any) => {
+                if (options?.withFileTypes) {
+                    return [
+                        { name: 'V202311010001_root.ts', isDirectory: () => false, isFile: () => true },
+                        { name: 'subfolder', isDirectory: () => true, isFile: () => false }
+                    ];
+                }
+                return [];
+            });
+
+            // Subfolder: has another file
+            readdirStub.onSecondCall().callsFake((dir: string, options?: any) => {
+                if (options?.withFileTypes) {
+                    return [
+                        { name: 'V202311020001_nested.ts', isDirectory: () => false, isFile: () => true }
+                    ];
+                }
+                return [];
+            });
+
+            const res = await ms.readMigrationScripts(cfg);
+
+            // Should find both migrations
+            expect(res.length).eq(2, 'Should find migrations in both root and subfolder');
+            expect(res.some(s => s.name === 'V202311010001_root.ts')).to.be.true;
+            expect(res.some(s => s.name === 'V202311020001_nested.ts')).to.be.true;
+
+            readdirStub.restore();
+        })
+
+        /**
+         * Test: Non-migration files in sub-folders are filtered
+         * Validates that only files matching the migration pattern are included,
+         * even when they're in sub-folders. README files, configs, etc. should
+         * be excluded regardless of location.
+         */
+        it('should filter non-migration files in sub-folders', async () => {
+            const cfg = TestUtils.getConfig();
+            cfg.recursive = true;
+            const ms = new MigrationService(new SilentLogger());
+
+            const sinon = await import('sinon');
+            const readdirStub = sinon.stub(require('fs'), 'readdirSync');
+
+            // Root with subfolder
+            readdirStub.onFirstCall().callsFake((dir: string, options?: any) => {
+                if (options?.withFileTypes) {
+                    return [
+                        { name: 'users', isDirectory: () => true, isFile: () => false }
+                    ];
+                }
+                return [];
+            });
+
+            // Subfolder with mix of files
+            readdirStub.onSecondCall().callsFake((dir: string, options?: any) => {
+                if (options?.withFileTypes) {
+                    return [
+                        { name: 'V202311010001_valid.ts', isDirectory: () => false, isFile: () => true },
+                        { name: 'README.md', isDirectory: () => false, isFile: () => true },
+                        { name: 'config.json', isDirectory: () => false, isFile: () => true }
+                    ];
+                }
+                return [];
+            });
+
+            const res = await ms.readMigrationScripts(cfg);
+
+            // Should only find the valid migration file
+            expect(res.length).eq(1, 'Should only include valid migration files');
+            expect(res[0].name).eq('V202311010001_valid.ts');
+
+            readdirStub.restore();
         })
     })
 

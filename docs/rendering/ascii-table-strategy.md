@@ -97,7 +97,7 @@ const executor = new MigrationScriptExecutor(handler, config, {
  | |\/| | |/ _` | '__/ _` | __| |/ _ \| '_ \  \___ \ / __| '__| | '_ \| __|
  | |  | | | (_| | | | (_| | |_| | (_) | | | |  ___) | (__| |  | | |_) | |_
  |_|  |_|_|\__, |_|  \__,_|\__|_|\___/|_| |_| |____/ \___|_|  |_| .__/ \__|
-           |___/                                                |_| MSR v.0.3.0: PostgreSQL Handler
+           |___/                                                |_| MSR v0.3.0: PostgreSQL Handler
 ```
 
 ### Migrated Table

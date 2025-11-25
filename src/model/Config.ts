@@ -99,4 +99,37 @@ export class Config {
      * ```
      */
     displayLimit:number = 0
+
+    /**
+     * Enable recursive scanning of sub-folders for migration scripts.
+     * When enabled, the migration scanner will search all sub-directories within
+     * the configured folder, allowing you to organize migrations by feature, module,
+     * version, or any other logical grouping.
+     *
+     * Migrations are always executed in timestamp order regardless of folder structure.
+     *
+     * @default true
+     *
+     * @example
+     * ```typescript
+     * // Recursive sub-folder support (default)
+     * config.recursive = true;
+     *
+     * // Directory structure:
+     * // migrations/
+     * // ├── users/
+     * // │   ├── V202311010001_create_users_table.ts
+     * // │   └── V202311020002_add_user_roles.ts
+     * // ├── auth/
+     * // │   └── V202311015001_create_sessions_table.ts
+     * // └── products/
+     * //     └── V202311030001_create_products_table.ts
+     * //
+     * // Execution order: V202311010001 → V202311015001 → V202311020002 → V202311030001
+     *
+     * // Disable for single-folder mode
+     * config.recursive = false;
+     * ```
+     */
+    recursive:boolean = true
 }
