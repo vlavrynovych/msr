@@ -114,6 +114,10 @@ export class BackupService implements IBackupService {
     }
 
     private async _restore(): Promise<void> {
+        if (!this.handler.backup) {
+            return Promise.reject('No backup interface provided - cannot restore');
+        }
+
         if (this.backupFile && fs.existsSync(this.backupFile)) {
             const data:string = fs.readFileSync(this.backupFile, 'utf8');
             return this.handler.backup.restore(data);
@@ -123,6 +127,10 @@ export class BackupService implements IBackupService {
     }
 
     private async _backup(): Promise<string> {
+        if (!this.handler.backup) {
+            throw new Error('No backup interface provided - cannot create backup');
+        }
+
         const data = await this.handler.backup.backup();
         const filePath = this.getFileName();
         fs.writeFileSync(filePath, data);

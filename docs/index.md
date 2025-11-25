@@ -21,9 +21,11 @@ An abstract implementation of script runner which can be extended with your own 
 
 - **Database Agnostic**: Works with any database by implementing a simple interface
 - **TypeScript First**: Written in TypeScript with full type safety
-- **Automatic Backups**: Built-in backup and restore functionality
+- **Flexible Rollback Strategies**: Choose from backup/restore, down() migrations, both, or none
+- **Reversible Migrations**: Optional down() methods for rollback without backups
+- **Optional Backup**: Built-in backup and restore functionality when you need it
 - **Migration Tracking**: Keeps track of executed migrations in your database
-- **Flexible Configuration**: Customize paths, patterns, and backup behavior
+- **Flexible Configuration**: Customize paths, patterns, and rollback behavior
 - **Console Rendering**: Beautiful console output with tables and status information
 - **Custom Logging**: Pluggable logger interface for console, file, or cloud logging
 - **Lifecycle Hooks**: Extend behavior with hooks for notifications, metrics, and validation

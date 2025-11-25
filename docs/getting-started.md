@@ -47,50 +47,27 @@ yarn add migration-script-runner
 MSR is database-agnostic. You need to implement the `IDatabaseMigrationHandler` interface for your specific database:
 
 ```typescript
-import { IDatabaseMigrationHandler, IMigrationInfo } from '@migration-script-runner/core';
+import { IDatabaseMigrationHandler, IMigrationInfo, IBackup, IDB, ISchemaVersion } from '@migration-script-runner/core';
 
 export class MyDatabaseHandler implements IDatabaseMigrationHandler {
 
-  /**
-   * Initialize database connection and schema version table
-   */
-  async init(): Promise<void> {
-    // Connect to your database
-    // Create schema version tracking table if needed
-  }
+  // Your database connection
+  db: IDB;
 
-  /**
-   * Save migration info after successful execution
-   */
-  async save(info: IMigrationInfo): Promise<void> {
-    // Save migration metadata to your tracking table
-  }
+  // Schema version tracking (required)
+  schemaVersion: ISchemaVersion;
 
-  /**
-   * Get all previously executed migrations
-   */
-  async getAllMigratedScripts(): Promise<IMigrationInfo[]> {
-    // Query your tracking table
-    return [];
-  }
+  // Backup interface (optional - only needed for BACKUP or BOTH rollback strategies)
+  backup?: IBackup;
 
-  /**
-   * Create a backup of current database state
-   */
-  async backup(): Promise<string> {
-    // Create backup and return serialized state
-    return JSON.stringify({ /* your backup data */ });
-  }
-
-  /**
-   * Restore database from backup
-   */
-  async restore(data: string): Promise<void> {
-    // Restore database from serialized backup
+  getName(): string {
+    return 'MyDatabaseHandler';
   }
 
 }
 ```
+
+**Note:** The backup interface is now **optional**. You only need to implement it if using BACKUP or BOTH rollback strategies. For DOWN or NONE strategies, you can omit the backup implementation entirely.
 
 ---
 
@@ -124,8 +101,25 @@ export default class InitialSetup implements IRunnableScript {
 
     return 'Migration completed successfully';
   }
+
+  // Optional: Implement down() for rollback without backups
+  async down(
+    db: IMyDatabase,
+    info: IMigrationInfo,
+    handler: IDatabaseMigrationHandler
+  ): Promise<string> {
+
+    // Reverse the changes made in up()
+    console.log('Rolling back initial setup...');
+
+    await db.query('DROP TABLE IF EXISTS users');
+
+    return 'Rollback completed successfully';
+  }
 }
 ```
+
+**Tip:** The `down()` method is optional but recommended for the DOWN rollback strategy. It allows you to rollback migrations without requiring database backups.
 
 ---
 
@@ -134,7 +128,7 @@ export default class InitialSetup implements IRunnableScript {
 Create a configuration object to customize MSR behavior:
 
 ```typescript
-import { Config, BackupConfig } from '@migration-script-runner/core';
+import { Config, BackupConfig, RollbackStrategy } from '@migration-script-runner/core';
 
 const config = new Config();
 
@@ -147,11 +141,35 @@ config.filePattern = /^V(\d+)_(.+)\.ts$/;
 // Set schema version table name
 config.tableName = 'schema_version';
 
-// Configure backups
+// Configure rollback strategy (defaults to BACKUP for backward compatibility)
+config.rollbackStrategy = RollbackStrategy.DOWN;  // Use down() methods
+
+// Configure backups (only needed for BACKUP or BOTH strategies)
 config.backup = new BackupConfig();
 config.backup.folder = './backups';
 config.backup.deleteBackup = true;
 config.backup.timestamp = true;
+```
+
+### Rollback Strategies
+
+MSR supports four rollback strategies:
+
+- **`RollbackStrategy.BACKUP`** (default): Traditional backup/restore. Creates a backup before migrations and restores on failure.
+- **`RollbackStrategy.DOWN`**: Calls `down()` methods on migrations in reverse order. No backup required.
+- **`RollbackStrategy.BOTH`**: Tries `down()` first, falls back to backup if `down()` fails. Requires backup interface.
+- **`RollbackStrategy.NONE`**: No rollback. Logs a warning and leaves database in current state.
+
+**Example:**
+```typescript
+// Use down() methods for rollback (no backup needed)
+config.rollbackStrategy = RollbackStrategy.DOWN;
+
+// Use both strategies (down first, backup as fallback)
+config.rollbackStrategy = RollbackStrategy.BOTH;
+
+// No rollback (dangerous - use only in development)
+config.rollbackStrategy = RollbackStrategy.NONE;
 ```
 
 ---

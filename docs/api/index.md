@@ -164,7 +164,8 @@ const config = new Config();
 | `displayLimit` | `number` | `0` | Max migrations to display (0 = all) |
 | `beforeMigrateName` | `string \| null` | `'beforeMigrate'` | Name of setup script that runs before migrations (set to `null` to disable) |
 | `recursive` | `boolean` | `true` | Enable recursive scanning of sub-folders |
-| `backup` | `BackupConfig` | `new BackupConfig()` | Backup configuration |
+| `rollbackStrategy` | `RollbackStrategy` | `RollbackStrategy.BACKUP` | Rollback strategy on migration failure |
+| `backup` | `BackupConfig` | `new BackupConfig()` | Backup configuration (required for BACKUP/BOTH strategies) |
 
 See [Configuration Guide](../configuration) for detailed examples.
 
@@ -195,6 +196,39 @@ const backupConfig = new BackupConfig();
 
 ---
 
+### RollbackStrategy
+
+Enum that defines rollback behavior when a migration fails.
+
+```typescript
+enum RollbackStrategy {
+  BACKUP = 'BACKUP',
+  DOWN = 'DOWN',
+  BOTH = 'BOTH',
+  NONE = 'NONE'
+}
+```
+
+#### Values
+
+| Value | Description | Requires Backup | Requires down() |
+|-------|-------------|-----------------|-----------------|
+| `BACKUP` | Traditional backup/restore (default) | ✅ Yes | ❌ No |
+| `DOWN` | Call down() methods in reverse order | ❌ No | ✅ Yes |
+| `BOTH` | Try down() first, fallback to backup | ✅ Yes | ⚠️  Recommended |
+| `NONE` | No rollback, logs warning | ❌ No | ❌ No |
+
+**Usage:**
+```typescript
+import { RollbackStrategy } from '@migration-script-runner/core';
+
+config.rollbackStrategy = RollbackStrategy.DOWN;
+```
+
+See [Configuration Guide](../configuration#rollbackstrategy) for detailed usage.
+
+---
+
 ## Interfaces
 
 ### IDatabaseMigrationHandler
@@ -206,12 +240,16 @@ interface IDatabaseMigrationHandler {
   getName(): string;
   db: IDB;
   schemaVersion: ISchemaVersion;
-  backup: IBackup;
+  backup?: IBackup;  // Optional - only needed for BACKUP or BOTH strategies
 }
 ```
 
 {: .important }
-> **Breaking Change (v0.3.0):** The `cfg: Config` property has been removed from this interface. Config is now passed separately to service constructors. See the [migration guide](../migrations/v0.2-to-v0.3#step-6-update-service-constructors-config-separation) for details.
+> **Breaking Changes (v0.3.0):**
+> - The `cfg: Config` property has been removed from this interface. Config is now passed separately to service constructors.
+> - The `backup` property is now **optional**. Only implement it if using BACKUP or BOTH rollback strategies.
+>
+> See the [migration guide](../migrations/v0.2-to-v0.3) for details.
 
 #### Properties
 
@@ -258,11 +296,13 @@ Manages the schema version tracking table. See `ISchemaVersion` interface for de
 
 ##### backup
 
-Backup and restore interface.
+Backup and restore interface (optional).
 
 ```typescript
-backup: IBackup
+backup?: IBackup
 ```
+
+**Optional:** Only required for BACKUP or BOTH rollback strategies. Can be omitted when using DOWN or NONE strategies.
 
 Handles database backup and restore operations. See `IBackup` interface for details.
 
@@ -362,6 +402,7 @@ Interface for migration script classes. Used by both regular migrations and the 
 ```typescript
 interface IRunnableScript {
   up(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string>;
+  down?(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string>;
 }
 ```
 
@@ -369,7 +410,7 @@ interface IRunnableScript {
 
 ##### up()
 
-Execute the migration.
+Execute the migration (forward).
 
 ```typescript
 async up(
@@ -386,7 +427,7 @@ async up(
 
 **Returns:** String describing the migration result (stored in migration tracking table for regular migrations, not stored for beforeMigrate)
 
-**Example (Regular Migration):**
+**Example:**
 ```typescript
 import { IRunnableScript, IMigrationInfo, IDB } from '@migration-script-runner/core';
 
@@ -402,6 +443,58 @@ export default class AddUsersTable implements IRunnableScript {
   }
 }
 ```
+
+---
+
+##### down()
+
+Rollback the migration (optional).
+
+```typescript
+async down(
+  db: IDB,
+  info: IMigrationInfo,
+  handler: IDatabaseMigrationHandler
+): Promise<string>
+```
+
+**Optional:** Only required for DOWN or BOTH rollback strategies. Allows migrations to be rolled back without database backups.
+
+**Parameters:**
+- `db`: Your database connection/client object (extend `IDB` for type safety)
+- `info`: Metadata about this migration
+- `handler`: The database handler (for advanced use cases)
+
+**Returns:** String describing the rollback result
+
+**Example:**
+```typescript
+import { IRunnableScript, IMigrationInfo, IDB } from '@migration-script-runner/core';
+
+interface IMyDatabase extends IDB {
+  query(sql: string, params?: unknown[]): Promise<unknown[]>;
+}
+
+export default class AddUsersTable implements IRunnableScript {
+  async up(db: IMyDatabase, info: IMigrationInfo): Promise<string> {
+    await db.query('CREATE TABLE users (id INT, name VARCHAR(255))');
+    return 'Users table created';
+  }
+
+  // Optional: Reverse the changes made in up()
+  async down(db: IMyDatabase, info: IMigrationInfo): Promise<string> {
+    await db.query('DROP TABLE IF EXISTS users');
+    return 'Users table dropped';
+  }
+}
+```
+
+{: .warning }
+> The `down()` method is called when a migration fails, **including the failed migration itself**. This allows cleanup of partial changes. Ensure your down() method is idempotent and can handle being called on partially-executed migrations.
+
+See [Writing Migrations Guide](../guides/writing-migrations#reversible-migrations) for best practices.
+
+---
 
 **Example (beforeMigrate Setup Script):**
 ```typescript

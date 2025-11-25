@@ -10,15 +10,32 @@ import {IBackup, IDB, ISchemaVersion} from "./dao";
  *
  * @example
  * ```typescript
+ * // With backup (recommended for production)
  * export class MyDatabaseHandler implements IDatabaseMigrationHandler {
  *   db: IDB;
  *   schemaVersion: ISchemaVersion;
- *   backup: IBackup;
+ *   backup?: IBackup;
  *
  *   constructor() {
  *     this.db = new MyDBConnection();
  *     this.schemaVersion = new MySchemaVersion(this.db);
- *     this.backup = new MyBackup(this.db);
+ *     this.backup = new MyBackup(this.db); // Optional
+ *   }
+ *
+ *   getName(): string {
+ *     return 'My Database Handler v1.0';
+ *   }
+ * }
+ *
+ * // Without backup (using down() migrations instead)
+ * export class MyDatabaseHandler implements IDatabaseMigrationHandler {
+ *   db: IDB;
+ *   schemaVersion: ISchemaVersion;
+ *   // No backup property - will use down() methods for rollback
+ *
+ *   constructor() {
+ *     this.db = new MyDBConnection();
+ *     this.schemaVersion = new MySchemaVersion(this.db);
  *   }
  *
  *   getName(): string {
@@ -56,8 +73,13 @@ export interface IDatabaseMigrationHandler {
     schemaVersion: ISchemaVersion
 
     /**
-     * Backup and restore interface.
-     * Handles creating database backups before migrations and restoring on failure.
+     * Backup and restore interface (optional).
+     *
+     * If provided, MSR will create backups before migrations and restore on failure.
+     * If not provided, you can use down() methods for rollback or configure a
+     * different rollback strategy via config.rollbackStrategy.
+     *
+     * @see Config.rollbackStrategy for available rollback strategies
      */
-    backup: IBackup
+    backup?: IBackup
 }
