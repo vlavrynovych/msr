@@ -162,6 +162,8 @@ const config = new Config();
 | `filePattern` | `RegExp` | `/^V(\d+)_(.+)\.ts$/` | Filename pattern for migrations |
 | `tableName` | `string` | `schema_version` | Database table for tracking migrations |
 | `displayLimit` | `number` | `0` | Max migrations to display (0 = all) |
+| `beforeMigrateName` | `string \| null` | `'beforeMigrate'` | Name of setup script that runs before migrations (set to `null` to disable) |
+| `recursive` | `boolean` | `true` | Enable recursive scanning of sub-folders |
 | `backup` | `BackupConfig` | `new BackupConfig()` | Backup configuration |
 
 See [Configuration Guide](../configuration) for detailed examples.
@@ -355,7 +357,7 @@ interface IMigrationInfo {
 
 ### IRunnableScript
 
-Interface for migration script classes.
+Interface for migration script classes. Used by both regular migrations and the special `beforeMigrate` setup script.
 
 ```typescript
 interface IRunnableScript {
@@ -382,9 +384,9 @@ async up(
 - `info`: Metadata about this migration
 - `handler`: The database handler (for advanced use cases)
 
-**Returns:** String describing the migration result (stored in migration tracking table)
+**Returns:** String describing the migration result (stored in migration tracking table for regular migrations, not stored for beforeMigrate)
 
-**Example:**
+**Example (Regular Migration):**
 ```typescript
 import { IRunnableScript, IMigrationInfo, IDB } from '@migration-script-runner/core';
 
@@ -400,6 +402,31 @@ export default class AddUsersTable implements IRunnableScript {
   }
 }
 ```
+
+**Example (beforeMigrate Setup Script):**
+```typescript
+// migrations/beforeMigrate.ts
+import { IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB } from '@migration-script-runner/core';
+
+export default class BeforeMigrate implements IRunnableScript {
+  async up(
+    db: IDB,
+    info: IMigrationInfo,
+    handler: IDatabaseMigrationHandler
+  ): Promise<string> {
+    // This runs BEFORE migration scanning
+    // Perfect for loading snapshots, creating extensions, etc.
+    console.log('Running beforeMigrate setup...');
+
+    // Your setup logic here
+
+    return 'Setup completed';
+  }
+}
+```
+
+{: .note }
+The `beforeMigrate` script uses the same `IRunnableScript` interface but is NOT saved to the schema version table. It executes before MSR scans for pending migrations.
 
 ---
 
@@ -513,6 +540,44 @@ async readMigrationScripts(config: Config): Promise<MigrationScript[]>
 - `config`: Configuration object
 
 **Returns:** Array of `MigrationScript` objects sorted by timestamp
+
+{: .note }
+The `beforeMigrate` file (if it exists) is NOT included in the results. It's handled separately via `getBeforeMigrateScript()`.
+
+---
+
+##### getBeforeMigrateScript()
+
+Check if a `beforeMigrate` setup script exists.
+
+```typescript
+async getBeforeMigrateScript(config: Config): Promise<string | undefined>
+```
+
+**Parameters:**
+- `config`: Configuration object containing `beforeMigrateName` property
+
+**Returns:** Path to beforeMigrate script if found, `undefined` otherwise
+
+**Behavior:**
+- Returns `undefined` if `config.beforeMigrateName` is `null` (feature disabled)
+- Looks for files with configured name + `.ts` or `.js` extension
+- Only searches in root of migrations folder (not recursive)
+
+**Example:**
+```typescript
+const config = new Config();
+config.beforeMigrateName = 'beforeMigrate';  // default
+config.folder = './migrations';
+
+const service = new MigrationService();
+const path = await service.getBeforeMigrateScript(config);
+
+if (path) {
+  console.log(`Found beforeMigrate script: ${path}`);
+  // migrations/beforeMigrate.ts
+}
+```
 
 ---
 

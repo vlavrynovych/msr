@@ -9,7 +9,7 @@ import {
     ISchemaVersion,
     SilentLogger
 } from "../../../src";
-import {TestUtils} from "../../helpers/TestUtils";
+import {TestUtils} from "../../helpers";
 
 /**
  * Integration tests for MigrationScriptExecutor dependency injection.
@@ -124,7 +124,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
          */
         it('should use custom migrationService when provided', () => {
             const mockMigrationService = {
-                readMigrationScripts: sinon.stub().resolves([])
+                readMigrationScripts: sinon.stub().resolves([]),
+                getBeforeMigrateScript: sinon.stub().resolves(undefined)
             };
             const executorWithCustomMigration = new MigrationScriptExecutor(handler, cfg, {
                 migrationService: mockMigrationService
@@ -176,7 +177,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 drawExecuted: sinon.stub()
             };
             const mockMigrationService = {
-                readMigrationScripts: sinon.stub().resolves([])
+                readMigrationScripts: sinon.stub().resolves([]),
+                getBeforeMigrateScript: sinon.stub().resolves(undefined)
             };
 
             const executorWithAllCustom = new MigrationScriptExecutor(handler, cfg, {

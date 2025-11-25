@@ -65,11 +65,73 @@ export class MigrationService implements IMigrationService {
     }
 
     /**
+     * Check if a beforeMigrate script exists in the migrations folder.
+     *
+     * Looks for a file with the configured name (default: `beforeMigrate`) with
+     * `.ts` or `.js` extension in the root of the migrations folder. This special
+     * script executes once before any migrations run, similar to Flyway's beforeMigrate.sql.
+     *
+     * Perfect for:
+     * - Loading production snapshots or test data
+     * - Creating database extensions on fresh setups
+     * - Environment-specific setup
+     * - Pre-migration validation or cleanup
+     *
+     * @param cfg - Configuration containing folder path and beforeMigrateName
+     *
+     * @returns Path to beforeMigrate script if it exists, undefined otherwise
+     *
+     * @example
+     * ```typescript
+     * const config = new Config();
+     * config.folder = './migrations';
+     * config.beforeMigrateName = 'beforeMigrate'; // default
+     *
+     * const beforeMigratePath = await service.getBeforeMigrateScript(config);
+     * if (beforeMigratePath) {
+     *   console.log(`Found beforeMigrate script: ${beforeMigratePath}`);
+     * }
+     * ```
+     *
+     * @example
+     * ```typescript
+     * // Using custom name
+     * const config = new Config();
+     * config.beforeMigrateName = 'setup';
+     * // Will look for setup.ts or setup.js
+     *
+     * // Disable beforeMigrate
+     * config.beforeMigrateName = null;
+     * ```
+     */
+    public async getBeforeMigrateScript(cfg: Config): Promise<string | undefined> {
+        // If beforeMigrateName is null, the feature is disabled
+        if (cfg.beforeMigrateName === null) {
+            return undefined;
+        }
+
+        const folder = cfg.folder;
+        const possibleNames = [`${cfg.beforeMigrateName}.ts`, `${cfg.beforeMigrateName}.js`];
+
+        for (const name of possibleNames) {
+            const filePath = path.join(folder, name);
+            if (fs.existsSync(filePath)) {
+                return filePath;
+            }
+        }
+
+        return undefined;
+    }
+
+    /**
      * Scan the migrations directory and load all valid migration scripts.
      *
      * Reads the directory specified in the config, filters files by the configured
      * pattern, and creates MigrationScript objects with parsed timestamps and paths.
      * Hidden files (starting with '.') are automatically ignored.
+     *
+     * The special beforeMigrate file (configured via `config.beforeMigrateName`) is not
+     * included in the results - it's handled separately via getBeforeMigrateScript().
      *
      * When config.recursive is enabled, scans all sub-directories recursively,
      * allowing you to organize migrations by feature, module, or version while
@@ -77,7 +139,7 @@ export class MigrationService implements IMigrationService {
      *
      * @param cfg - Configuration containing folder path, filename pattern, and recursive flag
      *
-     * @returns Array of MigrationScript objects, unsorted
+     * @returns Array of MigrationScript objects, unsorted (excludes beforeMigrate.ts)
      *
      * @throws {Error} If a filename matches the pattern but cannot be parsed
      * @throws {Error} If the migrations folder does not exist or cannot be read
@@ -94,6 +156,7 @@ export class MigrationService implements IMigrationService {
      * //   MigrationScript { name: 'V202501220100_initial.ts', timestamp: 202501220100, ... },
      * //   MigrationScript { name: 'V202501220200_add_users.ts', timestamp: 202501220200, ... }
      * // ]
+     * // Note: beforeMigrate.ts is excluded
      * ```
      *
      * @example

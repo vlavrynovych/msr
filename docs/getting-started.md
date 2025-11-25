@@ -88,6 +88,7 @@ export class MyDatabaseHandler implements IDatabaseMigrationHandler {
   async restore(data: string): Promise<void> {
     // Restore database from serialized backup
   }
+
 }
 ```
 
@@ -269,6 +270,170 @@ Sub-folder scanning is enabled by default. To disable:
 ```typescript
 config.recursive = false;
 ```
+
+---
+
+## Using beforeMigrate for Data Seeding
+
+MSR supports a special `beforeMigrate.ts` (or `.js`) file that executes once before any migrations run, similar to Flyway's `beforeMigrate.sql`. Simply place a file named `beforeMigrate.ts` in your migrations folder - MSR will automatically detect and execute it **before** scanning for migrations.
+
+**Important**: The beforeMigrate script runs **before migration scanning**, allowing it to completely reset or erase the database (e.g., loading a production snapshot) and then apply all migrations to that fresh state.
+
+This special file is perfect for:
+
+- **Data seeding**: Loading production snapshots or test data before migrations
+- **Fresh database setup**: Creating database extensions, schemas, or initial structure
+- **Environment-specific configuration**: Setting connection parameters, timeouts, or modes
+- **Validation checks**: Ensuring database version compatibility or required prerequisites
+
+### Example: beforeMigrate.ts for Seeding Production Snapshot
+
+Create a file named `beforeMigrate.ts` in your migrations folder:
+
+```typescript
+// migrations/beforeMigrate.ts
+import fs from 'fs';
+import {IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB} from 'migration-script-runner';
+
+export default class BeforeMigrate implements IRunnableScript {
+  async up(
+    db: IDB,
+    info: IMigrationInfo,
+    handler: IDatabaseMigrationHandler
+  ): Promise<string> {
+    // Load production snapshot for testing/development
+    if (process.env.NODE_ENV === 'development') {
+      const snapshot = fs.readFileSync('./snapshots/prod_snapshot.sql', 'utf8');
+      console.log('Loading production snapshot...');
+
+      // Execute snapshot SQL (example for PostgreSQL)
+      await (db as any).query(snapshot);
+      console.log('✅ Production snapshot loaded');
+    }
+
+    return 'beforeMigrate setup completed';
+  }
+}
+```
+
+### Example: beforeMigrate.ts for PostgreSQL Extensions
+
+```typescript
+// migrations/beforeMigrate.ts
+import {IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB} from 'migration-script-runner';
+
+export default class BeforeMigrate implements IRunnableScript {
+  async up(
+    db: IDB,
+    info: IMigrationInfo,
+    handler: IDatabaseMigrationHandler
+  ): Promise<string> {
+    // Check if this is a fresh database
+    const tables = await (db as any).query(`
+      SELECT COUNT(*) as count
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+    `);
+
+    if (tables[0].count === 0) {
+      // Fresh database - create required extensions
+      await (db as any).query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
+      await (db as any).query('CREATE EXTENSION IF NOT EXISTS "pg_trgm"');
+      console.log('✅ Database extensions created');
+    }
+
+    return 'beforeMigrate setup completed';
+  }
+}
+```
+
+### Example: beforeMigrate.ts for Environment-Specific Setup
+
+```typescript
+// migrations/beforeMigrate.ts
+import {IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB} from 'migration-script-runner';
+
+export default class BeforeMigrate implements IRunnableScript {
+  async up(
+    db: IDB,
+    info: IMigrationInfo,
+    handler: IDatabaseMigrationHandler
+  ): Promise<string> {
+    if (process.env.NODE_ENV === 'test') {
+      // Disable query timeouts for tests
+      await (db as any).query('SET statement_timeout = 0');
+    } else if (process.env.NODE_ENV === 'production') {
+      // Enable strict mode for production
+      await (db as any).query('SET sql_mode = STRICT_ALL_TABLES');
+    }
+
+    return 'Environment setup completed';
+  }
+}
+```
+
+### Example: beforeMigrate.ts for Version Validation
+
+```typescript
+// migrations/beforeMigrate.ts
+import {IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB} from 'migration-script-runner';
+
+export default class BeforeMigrate implements IRunnableScript {
+  async up(
+    db: IDB,
+    info: IMigrationInfo,
+    handler: IDatabaseMigrationHandler
+  ): Promise<string> {
+    const result = await (db as any).query('SELECT version()');
+    const version = result[0].version;
+
+    const minVersion = '13.0';
+    if (!this.isVersionCompatible(version, minVersion)) {
+      throw new Error(
+        `Database version ${version} is not compatible. ` +
+        `Minimum required: ${minVersion}`
+      );
+    }
+
+    return 'Version validation passed';
+  }
+
+  private isVersionCompatible(current: string, required: string): boolean {
+    // Version comparison logic
+    return true; // Simplified for example
+  }
+}
+```
+
+### Configuration
+
+The beforeMigrate filename is configurable:
+
+```typescript
+import { Config } from 'migration-script-runner';
+
+const config = new Config();
+
+// Default: looks for beforeMigrate.ts or beforeMigrate.js
+config.beforeMigrateName = 'beforeMigrate';
+
+// Custom name: looks for setup.ts or setup.js
+config.beforeMigrateName = 'setup';
+
+// Disable feature entirely
+config.beforeMigrateName = null;
+```
+
+### Important Notes
+
+- `beforeMigrate.ts` is **optional** - migrations work fine without it
+- It executes **once** before migration scanning (allowing it to reset the database)
+- It runs **before** MSR scans for pending migrations
+- Errors thrown here will **fail the migration** and trigger backup restoration
+- The file follows the same structure as regular migration scripts (implements `IRunnableScript`)
+- Both `.ts` and `.js` extensions are supported
+- Filename is configurable via `config.beforeMigrateName`
+- Can be completely disabled by setting `config.beforeMigrateName = null`
 
 ---
 

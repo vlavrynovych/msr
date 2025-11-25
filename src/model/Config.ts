@@ -101,6 +101,33 @@ export class Config {
     displayLimit:number = 0
 
     /**
+     * Name of the special setup script that executes before any migrations.
+     * This file should be placed in the migrations folder and will be executed
+     * before MSR scans for pending migrations.
+     *
+     * The script executes with the same interface as regular migrations (IRunnableScript),
+     * but is NOT saved to the schema version table.
+     *
+     * Set to `null` to disable beforeMigrate functionality entirely.
+     *
+     * @default 'beforeMigrate'
+     *
+     * @example
+     * ```typescript
+     * // Use default name (beforeMigrate.ts or beforeMigrate.js)
+     * config.beforeMigrateName = 'beforeMigrate';
+     *
+     * // Use custom name
+     * config.beforeMigrateName = 'setup';
+     * // Will look for setup.ts or setup.js
+     *
+     * // Disable beforeMigrate entirely
+     * config.beforeMigrateName = null;
+     * ```
+     */
+    beforeMigrateName: string | null = 'beforeMigrate'
+
+    /**
      * Enable recursive scanning of sub-folders for migration scripts.
      * When enabled, the migration scanner will search all sub-directories within
      * the configured folder, allowing you to organize migrations by feature, module,

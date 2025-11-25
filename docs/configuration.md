@@ -135,6 +135,62 @@ This only affects display output. All migrations are still tracked internally.
 
 ---
 
+### beforeMigrateName
+
+**Type:** `string | null`
+**Default:** `'beforeMigrate'`
+
+Name of the special setup script that executes before any migrations. This file should be placed in the migrations folder and will be executed before MSR scans for pending migrations.
+
+The script uses the same `IRunnableScript` interface as regular migrations but is NOT saved to the schema version table.
+
+Set to `null` to disable beforeMigrate functionality entirely.
+
+```typescript
+// Default: looks for beforeMigrate.ts or beforeMigrate.js
+config.beforeMigrateName = 'beforeMigrate';
+
+// Custom name: looks for setup.ts or setup.js
+config.beforeMigrateName = 'setup';
+
+// Disable beforeMigrate entirely
+config.beforeMigrateName = null;
+```
+
+#### Example: beforeMigrate.ts
+
+```typescript
+// migrations/beforeMigrate.ts
+import {IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB} from 'migration-script-runner';
+
+export default class BeforeMigrate implements IRunnableScript {
+  async up(
+    db: IDB,
+    info: IMigrationInfo,
+    handler: IDatabaseMigrationHandler
+  ): Promise<string> {
+    // Load production snapshot, create extensions, etc.
+    console.log('Running beforeMigrate setup...');
+    return 'Setup completed';
+  }
+}
+```
+
+#### When to Use
+
+- **Data seeding**: Loading production snapshots or test data
+- **Fresh database setup**: Creating extensions on new databases
+- **Environment-specific setup**: Setting timeouts, modes, parameters
+- **Validation**: Checking database version or prerequisites
+
+{: .note }
+The beforeMigrate script executes **before** MSR scans for migrations, allowing it to completely reset/erase the database.
+
+{: .warning }
+beforeMigrate can erase your database. Only use in development/testing or with proper safeguards.
+
+---
+
 ### recursive
 
 **Type:** `boolean`
@@ -386,6 +442,7 @@ config.folder = './database/migrations';
 config.filePattern = /^V(\d+)_(.+)\.ts$/;
 config.tableName = 'migration_history';
 config.displayLimit = 20;
+config.beforeMigrateName = 'beforeMigrate';  // Default: looks for beforeMigrate.ts/js
 config.recursive = true;  // Scan sub-folders (default)
 
 // Backup settings
