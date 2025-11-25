@@ -214,7 +214,11 @@ export class MigrationScriptExecutor {
 
             await this.schemaVersionService.init(this.config.tableName);
 
-            // Scan and gather complete migration state
+            // Execute beforeMigrate script if it exists - BEFORE scanning migrations
+            // This allows beforeMigrate to erase/reset the database (e.g., load prod snapshot)
+            await this.executeBeforeMigrate();
+
+            // Scan and gather complete migration state - AFTER beforeMigrate
             scripts = await this.migrationScanner.scan();
             this.migrationRenderer.drawMigrated(scripts);
             this.migrationRenderer.drawIgnored(scripts.ignored);
@@ -322,6 +326,61 @@ export class MigrationScriptExecutor {
 
         // Restore original limit
         this.config.displayLimit = originalLimit;
+    }
+
+    /**
+     * Execute the beforeMigrate script if it exists.
+     *
+     * Looks for a beforeMigrate.ts or beforeMigrate.js file in the migrations folder
+     * and executes it before scanning for migrations. This allows the beforeMigrate
+     * script to completely reset or erase the database (e.g., load a prod snapshot).
+     *
+     * The beforeMigrate script is NOT saved to the schema version table.
+     *
+     * @private
+     *
+     * @example
+     * ```typescript
+     * // migrations/beforeMigrate.ts
+     * export default class BeforeMigrate implements IRunnableScript {
+     *   async up(db, info, handler) {
+     *     await db.query('DROP SCHEMA public CASCADE');
+     *     await db.query('CREATE SCHEMA public');
+     *     return 'Database reset complete';
+     *   }
+     * }
+     * ```
+     */
+    private async executeBeforeMigrate(): Promise<void> {
+        this.logger.info('Checking for beforeMigrate setup script...');
+
+        const beforeMigratePath = await this.migrationService.getBeforeMigrateScript(this.config);
+        if (!beforeMigratePath) {
+            this.logger.info('No beforeMigrate script found, skipping setup phase');
+            return;
+        }
+
+        this.logger.info(`Found beforeMigrate script: ${beforeMigratePath}`);
+        this.logger.info('Executing beforeMigrate setup...');
+
+        const startTime = Date.now();
+
+        // Create a temporary MigrationScript for the beforeMigrate file
+        const beforeMigrateScript = new MigrationScript(
+            'beforeMigrate',
+            beforeMigratePath,
+            0 // No timestamp for beforeMigrate
+        );
+
+        // Initialize and execute directly (don't save to schema version table)
+        await beforeMigrateScript.init();
+        const result = await beforeMigrateScript.script.up(this.handler.db, beforeMigrateScript, this.handler);
+
+        const duration = Date.now() - startTime;
+        this.logger.info(`✓ beforeMigrate completed successfully in ${duration}ms`);
+        if (result) {
+            this.logger.info(`Result: ${result}`);
+        }
     }
 
     /**

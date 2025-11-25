@@ -1,11 +1,12 @@
-import {MigrationInterface} from "../../../../src";
+import {IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB} from "../../../../src";
 
-export default class implements MigrationInterface {
-    async up(db: any): Promise<void> {
+export default class implements IRunnableScript {
+    async up(
+        db: IDB,
+        info: IMigrationInfo,
+        handler: IDatabaseMigrationHandler
+    ): Promise<string> {
         // Add user roles
-    }
-
-    async down(db: any): Promise<void> {
-        // Remove user roles
+        return 'User roles added';
     }
 }

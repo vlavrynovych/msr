@@ -121,6 +121,90 @@ export default class AddEmailIndex implements IRunnableScript {
 
 ---
 
+## Special: beforeMigrate Setup Script
+
+MSR supports a special `beforeMigrate.ts` (or `.js`) file that executes **before** MSR scans for pending migrations. This is perfect for one-time setup tasks.
+
+### When to Use beforeMigrate
+
+Use `beforeMigrate` for setup tasks that need to run before migrations:
+
+- **Data Seeding**: Load production snapshots or test data
+- **Fresh Database Setup**: Create extensions, schemas, or initial structure
+- **Environment Configuration**: Set database parameters, timeouts, modes
+- **Validation**: Check database version or prerequisites
+
+### Creating a beforeMigrate Script
+
+Create a file named `beforeMigrate.ts` in your migrations folder:
+
+```typescript
+// migrations/beforeMigrate.ts
+import fs from 'fs';
+import {IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB} from 'migration-script-runner';
+
+export default class BeforeMigrate implements IRunnableScript {
+  async up(
+    db: IDB,
+    info: IMigrationInfo,
+    handler: IDatabaseMigrationHandler
+  ): Promise<string> {
+    // Load production snapshot for development/testing
+    if (process.env.NODE_ENV === 'development') {
+      const snapshot = fs.readFileSync('./snapshots/prod.sql', 'utf8');
+      await (db as any).query(snapshot);
+      console.log('✅ Production snapshot loaded');
+    }
+
+    // Create PostgreSQL extensions on fresh database
+    await (db as any).query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
+
+    return 'beforeMigrate setup completed';
+  }
+}
+```
+
+### Important Notes
+
+{: .warning }
+**beforeMigrate runs BEFORE migration scanning**, allowing it to completely reset/erase your database. Use with caution!
+
+- ✅ Uses the same `IRunnableScript` interface as regular migrations
+- ✅ NOT saved to schema version table
+- ✅ Filename configurable via `config.beforeMigrateName`
+- ✅ Can be disabled with `config.beforeMigrateName = null`
+- ✅ Supports both `.ts` and `.js` extensions
+
+### Configuration
+
+```typescript
+import { Config } from 'migration-script-runner';
+
+const config = new Config();
+
+// Default: looks for beforeMigrate.ts or beforeMigrate.js
+config.beforeMigrateName = 'beforeMigrate';
+
+// Custom name: looks for setup.ts or setup.js
+config.beforeMigrateName = 'setup';
+
+// Disable entirely
+config.beforeMigrateName = null;
+```
+
+### Execution Order
+
+```
+1. Create backup
+2. Initialize schema version table
+3. Execute beforeMigrate.ts  ← Runs BEFORE scan (can erase DB)
+4. Scan for pending migrations
+5. Execute pending migrations
+6. Delete backup on success
+```
+
+---
+
 ## Migration Best Practices
 
 ### 1. Keep Migrations Small and Focused
