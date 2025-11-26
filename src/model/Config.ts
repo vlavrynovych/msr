@@ -1,4 +1,5 @@
-import {BackupConfig, RollbackStrategy} from "./index";
+import {BackupConfig, RollbackStrategy, DownMethodPolicy} from "./index";
+import {IMigrationValidator} from "../interface/validation/IMigrationValidator";
 
 /**
  * Configuration for the migration system.
@@ -197,4 +198,181 @@ export class Config {
      * @see RollbackStrategy enum for all available options
      */
     rollbackStrategy: RollbackStrategy = RollbackStrategy.BACKUP
+
+    /**
+     * Enable validation of migration scripts before execution.
+     *
+     * When enabled, MSR validates all pending migrations before running them:
+     * - Structural validation (exports, instantiation, methods)
+     * - Interface validation (up/down signatures)
+     * - Custom validation (if customValidators are provided)
+     *
+     * Validation runs BEFORE database initialization and backup creation,
+     * allowing fast failure if scripts have issues.
+     *
+     * @default true (enabled for safety)
+     *
+     * @example
+     * ```typescript
+     * // Enable validation (default)
+     * config.validateBeforeRun = true;
+     *
+     * // Disable validation (not recommended)
+     * config.validateBeforeRun = false;
+     * ```
+     */
+    validateBeforeRun: boolean = true
+
+    /**
+     * Treat validation warnings as errors (strict mode).
+     *
+     * When enabled, migrations with warnings will fail validation and won't execute.
+     * When disabled, warnings are logged but don't prevent execution.
+     *
+     * @default false (warnings don't block execution)
+     *
+     * @example
+     * ```typescript
+     * // Allow execution with warnings (default)
+     * config.strictValidation = false;
+     *
+     * // Block execution if any warnings (strict mode)
+     * config.strictValidation = true;
+     * ```
+     */
+    strictValidation: boolean = false
+
+    /**
+     * Policy for handling missing down() methods during validation.
+     *
+     * Controls whether missing down() methods are treated as errors, warnings, or ignored:
+     * - `AUTO` (default): Based on rollbackStrategy (error for DOWN, warning for BOTH, silent for BACKUP/NONE)
+     * - `REQUIRED`: Always error if down() is missing
+     * - `RECOMMENDED`: Always warn if down() is missing
+     * - `OPTIONAL`: Never check for down() method
+     *
+     * @default DownMethodPolicy.AUTO
+     *
+     * @example
+     * ```typescript
+     * import { DownMethodPolicy } from '@migration-script-runner/core';
+     *
+     * // Auto-detect based on rollback strategy (default)
+     * config.downMethodPolicy = DownMethodPolicy.AUTO;
+     *
+     * // Require all migrations to have down() methods
+     * config.downMethodPolicy = DownMethodPolicy.REQUIRED;
+     *
+     * // Recommend but don't enforce down() methods
+     * config.downMethodPolicy = DownMethodPolicy.RECOMMENDED;
+     *
+     * // Don't check for down() methods
+     * config.downMethodPolicy = DownMethodPolicy.OPTIONAL;
+     * ```
+     */
+    downMethodPolicy: DownMethodPolicy = DownMethodPolicy.AUTO
+
+    /**
+     * Custom validators to run in addition to built-in validation.
+     *
+     * Implement IMigrationValidator to add project-specific validation rules
+     * such as naming conventions, required documentation, database-specific patterns, etc.
+     *
+     * Custom validators run after built-in validation passes.
+     *
+     * @default []
+     *
+     * @example
+     * ```typescript
+     * import { IMigrationValidator, ValidationIssueType } from '@migration-script-runner/core';
+     *
+     * class NamingValidator implements IMigrationValidator {
+     *   async validate(script, config) {
+     *     const className = script.script.constructor.name;
+     *     const expectedName = this.toClassName(script.name);
+     *
+     *     if (className !== expectedName) {
+     *       return {
+     *         valid: false,
+     *         issues: [{
+     *           type: ValidationIssueType.ERROR,
+     *           code: 'INVALID_CLASS_NAME',
+     *           message: `Expected class name '${expectedName}', got '${className}'`
+     *         }],
+     *         script
+     *       };
+     *     }
+     *
+     *     return { valid: true, issues: [], script };
+     *   }
+     * }
+     *
+     * config.customValidators = [new NamingValidator()];
+     * ```
+     */
+    customValidators: IMigrationValidator[] = []
+
+    /**
+     * Enable validation of already-executed migration files.
+     *
+     * When enabled, MSR will:
+     * - Calculate and store checksums when migrations are executed
+     * - Validate checksums of previously-executed migrations on subsequent runs
+     * - Detect if migration files have been modified after execution
+     *
+     * This helps prevent accidental or malicious modifications to executed migrations.
+     *
+     * @default false
+     *
+     * @example
+     * ```typescript
+     * // Enable integrity checking (recommended for production)
+     * config.validateMigratedFiles = true;
+     * config.checksumAlgorithm = 'sha256';
+     *
+     * // Disable for development
+     * config.validateMigratedFiles = false;
+     * ```
+     */
+    validateMigratedFiles: boolean = false
+
+    /**
+     * Validate that already-executed migration files still exist at their original paths.
+     *
+     * When true: Migration files that were executed must still exist
+     * When false: Missing files are allowed (only checksum is validated if file exists)
+     *
+     * Set to false if you delete old migration files after deployment.
+     *
+     * @default true
+     *
+     * @example
+     * ```typescript
+     * // Require all migration files to exist (strict)
+     * config.validateMigratedFilesLocation = true;
+     *
+     * // Allow missing files (e.g., if you clean up old migrations)
+     * config.validateMigratedFilesLocation = false;
+     * ```
+     */
+    validateMigratedFilesLocation: boolean = true
+
+    /**
+     * Algorithm used for calculating migration file checksums.
+     *
+     * - 'md5': Faster, smaller checksums (32 characters)
+     * - 'sha256': More secure, longer checksums (64 characters)
+     *
+     * @default 'sha256'
+     *
+     * @example
+     * ```typescript
+     * // Use SHA256 for better security (recommended)
+     * config.checksumAlgorithm = 'sha256';
+     *
+     * // Use MD5 for faster calculation
+     * config.checksumAlgorithm = 'md5';
+     * ```
+     */
+    checksumAlgorithm: 'md5' | 'sha256' = 'sha256'
 }

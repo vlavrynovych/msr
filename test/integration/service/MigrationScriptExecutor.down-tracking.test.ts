@@ -100,6 +100,7 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
         const config = new Config();
         config.folder = testDir;
         config.rollbackStrategy = RollbackStrategy.DOWN;
+        config.validateBeforeRun = false; // Disable validation for this rollback-specific test
 
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
@@ -184,6 +185,7 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
         const config = new Config();
         config.folder = testDir;
         config.rollbackStrategy = RollbackStrategy.DOWN;
+        config.validateBeforeRun = false; // Disable validation for this rollback-specific test
 
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
@@ -246,6 +248,7 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
         const config = new Config();
         config.folder = testDir;
         config.rollbackStrategy = RollbackStrategy.DOWN;
+        config.validateBeforeRun = false; // Disable validation for this rollback-specific test
 
         const infoMessages: string[] = [];
         const testLogger = {

@@ -208,8 +208,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
         }
 
         // Verify error hooks were called
-        expect((mockHooks.onBeforeRestore as sinon.SinonStub).called).to.be.true;
-        expect((mockHooks.onAfterRestore as sinon.SinonStub).called).to.be.true;
+        // Note: onBeforeRestore/onAfterRestore are NOT called because error happens during scan (before backup)
         expect((mockHooks.onError as sinon.SinonStub).called).to.be.true;
 
         // Verify success hooks onComplete was NOT called

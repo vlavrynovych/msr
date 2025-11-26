@@ -110,10 +110,12 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
     });
 
     /**
-     * Test: beforeMigrate.ts error causes migration failure and restoration
-     * Validates that errors in beforeMigrate trigger rollback
+     * Test: beforeMigrate.ts error causes early migration failure (fail-fast)
+     * Validates that errors in beforeMigrate cause migration to abort BEFORE
+     * backup is created. This tests the fail-fast behavior where beforeMigrate
+     * errors prevent any database operations.
      */
-    it('should fail migration and restore backup if beforeMigrate.ts throws error', async () => {
+    it('should fail migration early if beforeMigrate.ts throws error (no backup)', async () => {
         // Create a temporary migrations folder with a failing beforeMigrate.ts
         const tempFolder = path.join(process.cwd(), 'test', 'fixtures', 'migrations-temp-fail');
         if (!fs.existsSync(tempFolder)) {
@@ -164,13 +166,86 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
         expect(result.errors).to.not.be.undefined;
         expect(result.errors?.length).to.be.greaterThan(0);
 
-        // Verify restore was called
-        expect(restoreStub.calledOnce).to.be.true;
+        // Note: restore is NOT called because beforeMigrate fails BEFORE backup is created
+        // beforeMigrate runs first, then scan, then validation, THEN backup
+        expect(restoreStub.called).to.be.false;
 
         // Cleanup
         fs.unlinkSync(path.join(tempFolder, 'beforeMigrate.ts'));
         fs.unlinkSync(path.join(tempFolder, 'V202501010001_test.ts'));
         fs.rmdirSync(tempFolder);
+    });
+
+    /**
+     * Test: beforeMigrate.ts succeeds but migration fails → triggers backup/restore
+     * Validates that when beforeMigrate succeeds but a migration fails during execution,
+     * the backup/restore mechanism works correctly. This tests the restoration path
+     * in the context of beforeMigrate functionality.
+     */
+    it('should restore backup when beforeMigrate succeeds but migration fails', async () => {
+        const tempFolder = path.join(process.cwd(), 'test', 'fixtures', 'migrations-temp-restore');
+        if (!fs.existsSync(tempFolder)) {
+            fs.mkdirSync(tempFolder, { recursive: true });
+        }
+
+        // Create a beforeMigrate.ts that succeeds
+        const beforeMigrateContent = [
+            'export default class BeforeMigrate {',
+            '    async up() {',
+            '        return \'Setup complete\';',
+            '    }',
+            '}'
+        ].join('\n');
+        fs.writeFileSync(path.join(tempFolder, 'beforeMigrate.ts'), beforeMigrateContent);
+
+        // Create a migration that will fail
+        const failingMigrationContent = [
+            'export default class TestMigration {',
+            '    async up() {',
+            '        throw new Error(\'Migration failed\');',
+            '    }',
+            '}'
+        ].join('\n');
+        fs.writeFileSync(path.join(tempFolder, 'V202501010001_failing.ts'), failingMigrationContent);
+
+        const restoreStub = sinon.stub().resolves('restored');
+        const backupStub = sinon.stub().resolves('backup-path');
+        const tempCfg = new Config();
+        tempCfg.folder = tempFolder;
+        tempCfg.recursive = false;
+        tempCfg.validateBeforeRun = false; // Disable validation so migration execution is attempted
+
+        const handler: IDatabaseMigrationHandler = {
+            backup: {
+                backup: backupStub,
+                restore: restoreStub
+            } as IBackup,
+            schemaVersion: {
+                migrations: {
+                    getAll(): Promise<any> { return Promise.resolve([]) },
+                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() }
+                },
+                isInitialized: sinon.stub().resolves(true),
+                createTable: sinon.stub().resolves(),
+                validateTable: sinon.stub().resolves(true)
+            } as ISchemaVersion,
+            db,
+            getName(): string { return "Test Handler" }
+        };
+
+        const executor = new MigrationScriptExecutor(handler, tempCfg, {logger: new SilentLogger()});
+        const result = await executor.migrate();
+
+        // Verify migration failed
+        expect(result.success).to.be.false;
+        expect(result.errors).to.not.be.undefined;
+
+        // Verify beforeMigrate succeeded (doesn't throw), backup was created, and restore was called
+        expect(backupStub.calledOnce).to.be.true;
+        expect(restoreStub.calledOnce).to.be.true;
+
+        // Cleanup
+        fs.rmSync(tempFolder, { recursive: true, force: true });
     });
 
     /**

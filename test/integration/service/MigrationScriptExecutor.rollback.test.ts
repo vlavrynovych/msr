@@ -41,6 +41,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         const config = new Config();
         config.folder = cfg.folder;
         config.rollbackStrategy = RollbackStrategy.BACKUP;
+        config.validateBeforeRun = false; // Disable validation for this rollback-specific test
 
         const handler: IDatabaseMigrationHandler = {
             backup: {
@@ -77,6 +78,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         const config = new Config();
         config.folder = cfg.folder;
         config.rollbackStrategy = RollbackStrategy.DOWN;
+        config.validateBeforeRun = false; // Disable validation for this rollback-specific test
 
         // Handler without backup (down() only)
         const handler: IDatabaseMigrationHandler = {
@@ -110,6 +112,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         const config = new Config();
         config.folder = cfg.folder;
         config.rollbackStrategy = RollbackStrategy.BOTH;
+        config.validateBeforeRun = false; // Disable validation for this rollback-specific test
 
         const handler: IDatabaseMigrationHandler = {
             backup: {
@@ -146,6 +149,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         const config = new Config();
         config.folder = cfg.folder;
         config.rollbackStrategy = RollbackStrategy.NONE;
+        config.validateBeforeRun = false; // Disable validation for this rollback-specific test
 
         const handler: IDatabaseMigrationHandler = {
             backup: {
@@ -180,6 +184,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         const config = new Config();
         config.folder = cfg.folder;
         config.rollbackStrategy = RollbackStrategy.DOWN;
+        config.validateBeforeRun = false; // Disable validation for this rollback-specific test
 
         // No backup property
         const handler: IDatabaseMigrationHandler = {
@@ -217,6 +222,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         const config = new Config();
         config.folder = cfg.folder;
         config.rollbackStrategy = RollbackStrategy.BACKUP;
+        config.validateBeforeRun = false; // Disable validation for this rollback-specific test
 
         // No backup property
         const handler: IDatabaseMigrationHandler = {
