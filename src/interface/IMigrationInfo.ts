@@ -55,4 +55,12 @@ export class IMigrationInfo {
      * @example 'Created 3 tables successfully'
      */
     result?:string
+
+    /**
+     * Optional checksum of the migration file contents.
+     * Used to detect if a migration file has been modified after execution.
+     * The algorithm (MD5, SHA256) is determined by config.checksumAlgorithm.
+     * @example 'a3c9f8e2b1d4c7e6f5a8b9c0d1e2f3a4'
+     */
+    checksum?:string
 }

@@ -4,6 +4,8 @@ import {MigrationScript} from "../model/MigrationScript";
 import {ISchemaVersionService} from "../interface/service/ISchemaVersionService";
 import {ILogger} from "../interface/ILogger";
 import {IDatabaseMigrationHandler} from "../interface/IDatabaseMigrationHandler";
+import {Config} from "../model/Config";
+import {ChecksumService} from "./ChecksumService";
 
 /**
  * Service for executing migration scripts.
@@ -26,6 +28,7 @@ export class MigrationRunner {
      *
      * @param handler - Database migration handler for accessing the database
      * @param schemaVersionService - Service for saving migration metadata
+     * @param config - Configuration for checksum calculation
      * @param logger - Logger for execution messages (optional)
      *
      * @example
@@ -33,6 +36,7 @@ export class MigrationRunner {
      * const runner = new MigrationRunner(
      *     handler,
      *     schemaVersionService,
+     *     config,
      *     new ConsoleLogger()
      * );
      * ```
@@ -40,6 +44,7 @@ export class MigrationRunner {
     constructor(
         private handler: IDatabaseMigrationHandler,
         private schemaVersionService: ISchemaVersionService,
+        private config: Config,
         private logger?: ILogger
     ) {}
 
@@ -119,7 +124,30 @@ export class MigrationRunner {
         script.result = await script.script.up(this.handler.db, script, this.handler);
         script.finishedAt = Date.now();
 
+        // Calculate and store checksum for integrity tracking
+        this.calculateChecksum(script);
+
         await this.schemaVersionService.save(script);
         return script;
+    }
+
+    /**
+     * Calculate and store checksum for migration script file.
+     *
+     * Checksums are always calculated and stored to enable integrity
+     * validation. If checksum calculation fails, a warning is logged
+     * and execution continues.
+     *
+     * @param script - Migration script to calculate checksum for
+     */
+    private calculateChecksum(script: MigrationScript): void {
+        try {
+            script.checksum = ChecksumService.calculateChecksum(
+                script.filepath,
+                this.config.checksumAlgorithm
+            );
+        } catch (error) {
+            this.logger?.warn(`Warning: Could not calculate checksum for ${script.name}: ${(error as Error).message}`);
+        }
     }
 }

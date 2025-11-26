@@ -167,15 +167,16 @@ describe('MigrationScriptExecutor', () => {
         })
 
         /**
-         * Test: Migration failure triggers backup restore
-         * Validates the error recovery workflow when schema validation fails:
-         * 1. Backup is created
-         * 2. Validation fails
-         * 3. Backup is restored to undo any changes
-         * 4. Backup is cleaned up
-         * This ensures the database returns to its pre-migration state on failure.
+         * Test: Schema validation failure prevents backup creation (fail-fast)
+         * Validates that when schema validation fails during database initialization,
+         * the migration aborts BEFORE creating a backup. This tests the new fail-fast
+         * behavior where validation errors during initialization prevent any expensive
+         * database operations like backup/restore.
+         *
+         * Note: This is different from migration execution failures which DO trigger
+         * backup/restore (see "should call restore on migration failure" test).
          */
-        it('should restore backup when migration throws error', async () => {
+        it('should fail fast on schema validation error (no backup/restore)', async () => {
             // Simulate schema validation failure
             valid = false
 
@@ -198,13 +199,16 @@ describe('MigrationScriptExecutor', () => {
             expect(handler.schemaVersion.migrations.getAll).have.not.been.called
             expect(handler.schemaVersion.migrations.save).have.not.been.called
 
-            // Verify migration discovery was skipped after validation failure
-            expect(executor.migrationService.readMigrationScripts).have.not.been.called.once
+            // Migration discovery now happens BEFORE schema validation (for early validation)
+            // So it WILL be called even if schema validation fails later
+            expect(executor.migrationService.readMigrationScripts).have.been.called.once
 
-            // Verify error recovery: backup created → restored → cleaned up
-            expect(executor.backupService.backup).have.been.called.once
-            expect(executor.backupService.restore).have.been.called
-            expect(executor.backupService.deleteBackup).have.been.called.once
+            // Backup/restore NOT called when validation fails BEFORE backup is created
+            // New flow: scan → validate → THEN backup
+            // Schema validation failure happens during scan, so backup never created
+            expect(executor.backupService.backup).have.not.been.called
+            expect(executor.backupService.restore).have.not.been.called
+            expect(executor.backupService.deleteBackup).have.not.been.called
 
             // Verify workflow stopped early due to validation failure
             expect(executor.migrate).have.been.called.once

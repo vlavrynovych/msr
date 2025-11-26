@@ -583,6 +583,23 @@ describe('MigrationService', () => {
         })
     })
 
+    describe('getBeforeMigrateScript()', () => {
+        /**
+         * Test: getBeforeMigrateScript() returns undefined when beforeMigrateName is null
+         * Validates that explicitly disabling beforeMigrate feature by setting null
+         * returns undefined without checking the filesystem.
+         */
+        it('should return undefined when beforeMigrateName is explicitly null', async () => {
+            const cfg = TestUtils.getConfig();
+            cfg.beforeMigrateName = null;
+            const ms = new MigrationService(new SilentLogger());
+
+            const result = await ms.getBeforeMigrateScript(cfg);
+
+            expect(result).to.be.undefined;
+        });
+    });
+
     describe('Constructor', () => {
         /**
          * Test: Constructor uses default ConsoleLogger when logger not provided

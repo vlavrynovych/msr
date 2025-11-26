@@ -340,6 +340,105 @@ class ValidationHooks implements IMigrationHooks {
 
 ---
 
+### Backup and Restore Monitoring
+
+```typescript
+class BackupMonitoringHooks implements IMigrationHooks {
+    async onBeforeBackup(): Promise<void> {
+        console.log('📦 Creating backup before migration...');
+
+        // Check disk space
+        const diskSpace = await this.checkDiskSpace();
+        if (diskSpace.available < 1024 * 1024 * 1024) { // Less than 1GB
+            console.warn('⚠️  Low disk space - backup may fail');
+        }
+    }
+
+    async onAfterBackup(backupPath: string): Promise<void> {
+        console.log(`✅ Backup created: ${backupPath}`);
+
+        // Verify backup file exists and is readable
+        const backupSize = await this.getBackupSize(backupPath);
+        console.log(`   Size: ${(backupSize / 1024 / 1024).toFixed(2)} MB`);
+
+        // Optionally upload to S3 or cloud storage
+        if (process.env.BACKUP_TO_S3 === 'true') {
+            await this.uploadToS3(backupPath);
+        }
+    }
+
+    async onBeforeRestore(): Promise<void> {
+        console.log('⚠️  Migration failed - restoring from backup...');
+
+        // Send alert that rollback is happening
+        await this.sendAlert({
+            level: 'warning',
+            message: 'Migration rollback in progress',
+            action: 'Database restoration from backup'
+        });
+    }
+
+    async onAfterRestore(): Promise<void> {
+        console.log('✅ Database restored to previous state');
+
+        // Verify database is operational
+        const isHealthy = await this.checkDatabaseHealth();
+        if (!isHealthy) {
+            console.error('❌ Database health check failed after restore');
+            await this.sendAlert({
+                level: 'critical',
+                message: 'Database unhealthy after restoration',
+                action: 'Manual intervention required'
+            });
+        } else {
+            console.log('✅ Database health check passed');
+        }
+    }
+
+    private async checkDiskSpace(): Promise<{ available: number }> {
+        // Implementation depends on your platform
+        return { available: 10 * 1024 * 1024 * 1024 }; // 10GB example
+    }
+
+    private async getBackupSize(path: string): Promise<number> {
+        const fs = await import('fs/promises');
+        const stats = await fs.stat(path);
+        return stats.size;
+    }
+
+    private async uploadToS3(path: string): Promise<void> {
+        console.log(`   Uploading backup to S3...`);
+        // S3 upload implementation
+    }
+
+    private async checkDatabaseHealth(): Promise<boolean> {
+        // Run simple query to verify database is accessible
+        return true; // Placeholder
+    }
+
+    private async sendAlert(alert: { level: string; message: string; action: string }): Promise<void> {
+        // Send alert via Slack, PagerDuty, etc.
+        console.log(`[${alert.level.toUpperCase()}] ${alert.message}: ${alert.action}`);
+    }
+}
+
+// Usage
+const config = new Config();
+config.rollbackStrategy = RollbackStrategy.BACKUP; // Enable backup/restore
+
+const hooks = new BackupMonitoringHooks();
+const executor = new MigrationScriptExecutor(handler, config, { hooks });
+
+await executor.migrate();
+```
+
+**Note:** `onBeforeRestore` and `onAfterRestore` hooks are only called when:
+1. A migration fails during execution
+2. The rollback strategy is set to `RollbackStrategy.BACKUP`
+3. A valid backup was created before the migration
+
+---
+
 ## Combining Multiple Hooks
 
 Use `CompositeHooks` to combine multiple hook implementations:

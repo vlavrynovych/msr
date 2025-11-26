@@ -4,6 +4,7 @@ import {IMigrationRenderer} from "./service/IMigrationRenderer";
 import {IRenderStrategy} from "./service/IRenderStrategy";
 import {IMigrationService} from "./service/IMigrationService";
 import {IMigrationScanner} from "./service/IMigrationScanner";
+import {IMigrationValidationService} from "./service/IMigrationValidationService";
 import {ILogger} from "./ILogger";
 import {IMigrationHooks} from "./IMigrationHooks";
 
@@ -109,6 +110,18 @@ export interface IMigrationExecutorDependencies {
      * If not provided, uses ConsoleLogger.
      */
     logger?: ILogger;
+
+    /**
+     * Custom migration validation service implementation.
+     * If not provided, uses MigrationValidationService with config.customValidators.
+     *
+     * @example
+     * ```typescript
+     * // Use custom validation service
+     * validationService: new CustomValidationService(logger)
+     * ```
+     */
+    validationService?: IMigrationValidationService;
 
     /**
      * Lifecycle hooks for extending migration behavior.

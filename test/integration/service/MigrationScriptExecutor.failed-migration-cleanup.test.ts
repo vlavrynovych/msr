@@ -109,6 +109,7 @@ describe('MigrationScriptExecutor - Failed Migration Cleanup', () => {
         const config = new Config();
         config.folder = testDir;
         config.rollbackStrategy = RollbackStrategy.DOWN;
+        config.validateBeforeRun = false; // Disable validation for this rollback-specific test
 
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
@@ -173,6 +174,7 @@ describe('MigrationScriptExecutor - Failed Migration Cleanup', () => {
         const config = new Config();
         config.folder = testDir;
         config.rollbackStrategy = RollbackStrategy.DOWN;
+        config.validateBeforeRun = false; // Disable validation for this rollback-specific test
 
         const warnMessages: string[] = [];
         const testLogger = {
@@ -259,6 +261,7 @@ describe('MigrationScriptExecutor - Failed Migration Cleanup', () => {
         const config = new Config();
         config.folder = testDir;
         config.rollbackStrategy = RollbackStrategy.BOTH;
+        config.validateBeforeRun = false; // Disable validation for this rollback-specific test
 
         const handler: IDatabaseMigrationHandler = {
             backup: {

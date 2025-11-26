@@ -21,11 +21,13 @@ An abstract implementation of script runner which can be extended with your own 
 
 - **Database Agnostic**: Works with any database by implementing a simple interface
 - **TypeScript First**: Written in TypeScript with full type safety
+- **Built-in Validation**: Validates migrations before execution with extensible custom validators
 - **Flexible Rollback Strategies**: Choose from backup/restore, down() migrations, both, or none
 - **Reversible Migrations**: Optional down() methods for rollback without backups
 - **Optional Backup**: Built-in backup and restore functionality when you need it
 - **Migration Tracking**: Keeps track of executed migrations in your database
-- **Flexible Configuration**: Customize paths, patterns, and rollback behavior
+- **Integrity Checking**: Detects modifications to executed migrations
+- **Flexible Configuration**: Customize paths, patterns, validation, and rollback behavior
 - **Console Rendering**: Beautiful console output with tables and status information
 - **Custom Logging**: Pluggable logger interface for console, file, or cloud logging
 - **Lifecycle Hooks**: Extend behavior with hooks for notifications, metrics, and validation
@@ -36,7 +38,8 @@ An abstract implementation of script runner which can be extended with your own 
 
 - **[Getting Started](getting-started)** - Quick start guide and basic usage
 - **[Architecture](architecture)** - System design, components, and data flow
-- **[Configuration](configuration)** - Configuration options and examples
+- **[Configuration](configuration/)** - Migration, validation, rollback, and backup settings
+- **[Validation](validation/)** - Built-in and custom validation system
 - **[API Reference](api/)** - Complete API documentation
 - **[Migration Guides](migrations/)** - Version upgrade guides
 

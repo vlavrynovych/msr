@@ -1,5 +1,8 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 import { IRunnableScript, MigrationRunner, MigrationScript, SilentLogger, ConsoleLogger, Config } from "../../../src";
 
 describe('MigrationRunner', () => {
@@ -7,6 +10,7 @@ describe('MigrationRunner', () => {
     let handler: any;
     let schemaVersionService: any;
     let logger: any;
+    let tempDir: string;
 
     beforeEach(() => {
         const cfg = new Config();
@@ -22,10 +26,18 @@ describe('MigrationRunner', () => {
         };
 
         logger = new SilentLogger();
+
+        // Create temporary directory for test migration files
+        tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'migration-runner-test-'));
     });
 
     afterEach(() => {
         sinon.restore();
+
+        // Cleanup temporary files
+        if (fs.existsSync(tempDir)) {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+        }
     });
 
     describe('Constructor', () => {
@@ -33,11 +45,12 @@ describe('MigrationRunner', () => {
         /**
          * Test: Constructor creates instance with all parameters
          * Validates that MigrationRunner can be instantiated with handler,
-         * schemaVersionService, and logger. This tests the full constructor
+         * schemaVersionService, config, and logger. This tests the full constructor
          * signature with optional logger included.
          */
         it('should create instance with all parameters', () => {
-            const runner = new MigrationRunner(handler, schemaVersionService, logger);
+            const cfg = new Config();
+            const runner = new MigrationRunner(handler, schemaVersionService, cfg, logger);
             expect(runner).to.be.instanceOf(MigrationRunner);
         });
 
@@ -48,14 +61,16 @@ describe('MigrationRunner', () => {
          * runner works in silent mode when no logger is provided.
          */
         it('should create instance without logger', () => {
-            const runner = new MigrationRunner(handler, schemaVersionService);
+            const cfg = new Config();
+            const runner = new MigrationRunner(handler, schemaVersionService, cfg);
             expect(runner).to.be.instanceOf(MigrationRunner);
         });
     });
 
     describe('execute()', () => {
         beforeEach(() => {
-            runner = new MigrationRunner(handler, schemaVersionService, logger);
+            const cfg = new Config();
+            runner = new MigrationRunner(handler, schemaVersionService, cfg, logger);
         });
 
         /**
@@ -221,7 +236,8 @@ describe('MigrationRunner', () => {
 
     describe('executeOne()', () => {
         beforeEach(() => {
-            runner = new MigrationRunner(handler, schemaVersionService, logger);
+            const cfg = new Config();
+            runner = new MigrationRunner(handler, schemaVersionService, cfg, logger);
         });
 
         /**
@@ -284,7 +300,8 @@ describe('MigrationRunner', () => {
         it('should log processing message when logger is provided', async () => {
             const loggerWithSpy = new ConsoleLogger();
             const logSpy = sinon.spy(loggerWithSpy, 'log');
-            const runnerWithLogger = new MigrationRunner(handler, schemaVersionService, loggerWithSpy);
+            const cfg = new Config();
+            const runnerWithLogger = new MigrationRunner(handler, schemaVersionService, cfg, loggerWithSpy);
 
             const script = createScript(1, 'migration1');
 
@@ -304,7 +321,8 @@ describe('MigrationRunner', () => {
          * the optional logger doesn't cause null reference errors.
          */
         it('should not throw when logger is undefined', async () => {
-            const runnerNoLogger = new MigrationRunner(handler, schemaVersionService);
+            const cfg = new Config();
+            const runnerNoLogger = new MigrationRunner(handler, schemaVersionService, cfg);
             const script = createScript(1, 'migration1');
 
             await expect(runnerNoLogger.executeOne(script)).to.not.be.rejected;
@@ -324,6 +342,154 @@ describe('MigrationRunner', () => {
 
             await expect(runner.executeOne(script))
                 .to.be.rejectedWith('Script error');
+        });
+
+        /**
+         * Test: executeOne() calculates and stores checksum for migration file
+         * Validates that after executing a migration, its file checksum
+         * is calculated and stored for integrity tracking.
+         */
+        it('should calculate and store checksum for migration file', async () => {
+            // Create actual migration file for checksum calculation
+            const filename = 'V1_migration1.ts';
+            const filepath = path.join(tempDir, filename);
+            fs.writeFileSync(filepath, 'export default class { async up() { return "success"; } }');
+
+            const script = new MigrationScript(filename, filepath, 1);
+            script.script = {
+                up: async () => 'success'
+            } as IRunnableScript;
+
+            await runner.executeOne(script);
+
+            expect(script.checksum).to.be.a('string');
+            expect(script.checksum).to.have.lengthOf(64); // SHA256 default
+        });
+
+        /**
+         * Test: executeOne() uses configured checksum algorithm
+         * Validates that the runner uses the checksum algorithm
+         * specified in config (MD5 vs SHA256).
+         */
+        it('should use configured checksum algorithm', async () => {
+            const cfg = new Config();
+            cfg.checksumAlgorithm = 'md5';
+            const md5Runner = new MigrationRunner(handler, schemaVersionService, cfg, logger);
+
+            // Create actual migration file
+            const filename = 'V2_migration2.ts';
+            const filepath = path.join(tempDir, filename);
+            fs.writeFileSync(filepath, 'export default class { async up() { return "success"; } }');
+
+            const script = new MigrationScript(filename, filepath, 2);
+            script.script = {
+                up: async () => 'success'
+            } as IRunnableScript;
+
+            await md5Runner.executeOne(script);
+
+            expect(script.checksum).to.be.a('string');
+            expect(script.checksum).to.have.lengthOf(32); // MD5 is 32 hex chars
+        });
+
+        /**
+         * Test: executeOne() continues execution if checksum calculation fails
+         * Validates that if checksum calculation fails (e.g., file not found),
+         * the migration continues and checksum is not set, with a warning logged.
+         */
+        it('should continue execution if checksum calculation fails', async () => {
+            const script = new MigrationScript('V1_nonexistent.ts', '/nonexistent/path/that/does/not/exist.ts', 1);
+            script.script = {
+                up: async () => 'success'
+            } as IRunnableScript;
+
+            // Should not throw, just log warning
+            await expect(runner.executeOne(script)).to.not.be.rejected;
+
+            // Checksum should be undefined
+            expect(script.checksum).to.be.undefined;
+        });
+
+        /**
+         * Test: executeOne() logs warning when checksum calculation fails
+         * Validates that when checksum calculation fails, a warning
+         * is logged with the script name and error message.
+         */
+        it('should log warning when checksum calculation fails', async () => {
+            const loggerWithSpy = new ConsoleLogger();
+            const warnSpy = sinon.spy(loggerWithSpy, 'warn');
+            const cfg = new Config();
+            const runnerWithLogger = new MigrationRunner(handler, schemaVersionService, cfg, loggerWithSpy);
+
+            const script = new MigrationScript('V1_nonexistent.ts', '/nonexistent/path.ts', 1);
+            script.script = {
+                up: async () => 'success'
+            } as IRunnableScript;
+
+            await runnerWithLogger.executeOne(script);
+
+            expect(warnSpy.called).to.be.true;
+            const warnMessage = warnSpy.firstCall.args[0];
+            expect(warnMessage).to.include('Could not calculate checksum');
+            expect(warnMessage).to.include('nonexistent');
+
+            warnSpy.restore();
+        });
+
+        /**
+         * Test: executeOne() calculates checksum after migration execution
+         * Validates that checksum is calculated after the migration runs,
+         * ensuring timing is correct (checksum reflects executed migration).
+         */
+        it('should calculate checksum after migration execution', async () => {
+            // Create actual migration file
+            const filename = 'V3_migration3.ts';
+            const filepath = path.join(tempDir, filename);
+            fs.writeFileSync(filepath, 'export default class { async up() { return "success"; } }');
+
+            const script = new MigrationScript(filename, filepath, 3);
+            let checksumCalculatedAfterUp = false;
+
+            script.script = {
+                up: async () => {
+                    // At this point, checksum should not be set yet
+                    if (script.checksum) {
+                        checksumCalculatedAfterUp = false;
+                    } else {
+                        checksumCalculatedAfterUp = true;
+                    }
+                    return 'success';
+                }
+            } as IRunnableScript;
+
+            await runner.executeOne(script);
+
+            expect(checksumCalculatedAfterUp).to.be.true;
+            expect(script.checksum).to.be.a('string'); // Now it should be set
+        });
+
+        /**
+         * Test: executeOne() saves checksum to schema version service
+         * Validates that the checksum is included when saving migration
+         * metadata to the schema version table.
+         */
+        it('should save checksum to schema version service', async () => {
+            // Create actual migration file
+            const filename = 'V4_migration4.ts';
+            const filepath = path.join(tempDir, filename);
+            fs.writeFileSync(filepath, 'export default class { async up() { return "success"; } }');
+
+            const script = new MigrationScript(filename, filepath, 4);
+            script.script = {
+                up: async () => 'success'
+            } as IRunnableScript;
+
+            await runner.executeOne(script);
+
+            expect(schemaVersionService.save.calledOnce).to.be.true;
+            const savedScript = schemaVersionService.save.firstCall.args[0];
+            expect(savedScript.checksum).to.be.a('string');
+            expect(savedScript.checksum).to.equal(script.checksum);
         });
     });
 });
