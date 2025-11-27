@@ -25,4 +25,22 @@ export interface IMigrationScript {
      * @returns Promise that resolves when the save operation completes
      */
     save(details: IMigrationInfo): Promise<void>;
+
+    /**
+     * Remove migration record from the database by timestamp.
+     *
+     * Used when rolling back migrations to keep the schema version table
+     * synchronized with the actual database state. After calling a migration's
+     * down() method, this removes the corresponding record from the tracking table.
+     *
+     * @param timestamp - The timestamp of the migration to remove
+     * @returns Promise that resolves when the remove operation completes
+     *
+     * @example
+     * ```typescript
+     * // After rolling back migration V202501220100
+     * await migrations.remove(202501220100);
+     * ```
+     */
+    remove(timestamp: number): Promise<void>;
 }

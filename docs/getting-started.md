@@ -241,6 +241,61 @@ await executor.list(10);
 
 ---
 
+### Version Control: Migrate to Specific Version
+
+MSR supports controlled migration to specific versions, useful for:
+- **Staged deployments** - Deploy migrations incrementally in production
+- **Testing** - Test specific migration versions before full deployment
+- **Rollback** - Return to a previous database version
+
+#### Upgrade to Specific Version
+
+```typescript
+// Migrate up to specific version
+const result = await executor.migrateTo(202501220300);
+
+if (result.success) {
+  console.log(`✅ Database at version 202501220300`);
+  console.log(`Executed ${result.executed.length} migrations`);
+} else {
+  console.error('❌ Migration failed:', result.errors);
+}
+```
+
+#### Downgrade to Specific Version
+
+```typescript
+// Roll back to specific version (requires down() methods)
+const result = await executor.downTo(202501220100);
+
+if (result.success) {
+  console.log(`✅ Rolled back to version 202501220100`);
+} else {
+  console.error('❌ Rollback failed:', result.errors);
+}
+```
+
+**Important Requirements:**
+- `downTo()` requires all migrations to implement the `down()` method
+- Migrations are rolled back in reverse chronological order (newest first)
+- Migration records are removed from the schema version table after successful rollback
+
+**Example Use Case - Staged Production Deployment:**
+```typescript
+// Week 1: Deploy first batch of migrations
+await executor.migrateTo(202501220300);
+
+// Week 2: Deploy second batch after monitoring
+await executor.migrateTo(202501290500);
+
+// If issues arise, rollback to previous version
+if (issuesDetected) {
+  await executor.downTo(202501220300);
+}
+```
+
+---
+
 ## Project Structure
 
 ### Flat Structure (Traditional)

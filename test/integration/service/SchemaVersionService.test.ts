@@ -27,6 +27,9 @@ describe('SchemaVersionService', () => {
                 },
                 save(details: IMigrationInfo): Promise<any> {
                     return Promise.resolve(undefined);
+                },
+                remove(timestamp: number): Promise<void> {
+                    return Promise.resolve(undefined);
                 }
             } as IMigrationScript,
 
@@ -49,7 +52,7 @@ describe('SchemaVersionService', () => {
         created = true
         valid = true
         spy.on(schemaVersion, ['isInitialized', 'createTable', 'validateTable']);
-        spy.on(schemaVersion.migrations, ['save', 'getAll']);
+        spy.on(schemaVersion.migrations, ['save', 'getAll', 'remove']);
     })
 
     afterEach(() => {
@@ -350,6 +353,87 @@ describe('SchemaVersionService', () => {
             // Verify all records returned and performance is acceptable
             expect(res.length).eq(10000, 'Should return all scripts');
             expect(duration).to.be.lessThan(100, 'Should be fast (< 100ms)');
+        })
+    })
+
+    describe('remove()', () => {
+
+        /**
+         * Test: Removing migration record delegates to underlying implementation
+         * Validates that remove() correctly delegates to migrations.remove() method
+         * without calling any other schema version methods. This is used during
+         * rollback operations to remove migration records from the tracking table.
+         */
+        it('should remove migration record successfully', async () => {
+            // Remove a migration by timestamp
+            const timestamp = 202501220100;
+            await new SchemaVersionService(schemaVersion).remove(timestamp);
+
+            // Verify only remove() was called, no other schema operations
+            expect(schemaVersion.migrations.remove).have.been.called.with(timestamp);
+            expect(schemaVersion.migrations.save).have.not.been.called;
+            expect(schemaVersion.migrations.getAll).have.not.been.called;
+            expect(schemaVersion.isInitialized).have.not.been.called;
+            expect(schemaVersion.createTable).have.not.been.called;
+            expect(schemaVersion.validateTable).have.not.been.called;
+        })
+
+        /**
+         * Test: Removing non-existent migration is handled gracefully
+         * Edge case test validating that attempting to remove a migration that
+         * doesn't exist in the database is delegated to the underlying service
+         * without throwing errors at the SchemaVersionService level.
+         */
+        it('should handle removing non-existent migration', async () => {
+            // Attempt to remove a migration that doesn't exist
+            const nonExistentTimestamp = 999999999999;
+            await new SchemaVersionService(schemaVersion).remove(nonExistentTimestamp);
+
+            // Should delegate to service (service handles existence checking)
+            expect(schemaVersion.migrations.remove).have.been.called.with(nonExistentTimestamp);
+        })
+
+        /**
+         * Test: Removing with zero timestamp is accepted
+         * Edge case test with boundary value (zero). Validates that the service
+         * doesn't perform timestamp validation and delegates to the underlying
+         * implementation which should handle edge cases appropriately.
+         */
+        it('should handle zero timestamp', async () => {
+            // Remove with timestamp = 0 (edge case)
+            await new SchemaVersionService(schemaVersion).remove(0);
+
+            // Should delegate without validation
+            expect(schemaVersion.migrations.remove).have.been.called.with(0);
+        })
+
+        /**
+         * Test: Removing with negative timestamp is accepted
+         * Edge case test with invalid negative value. Validates that input
+         * validation is delegated to the underlying database implementation
+         * rather than performed at the service layer.
+         */
+        it('should handle negative timestamp', async () => {
+            // Remove with negative timestamp (invalid but passed through)
+            await new SchemaVersionService(schemaVersion).remove(-1);
+
+            // Should delegate to service (service handles validation)
+            expect(schemaVersion.migrations.remove).have.been.called.with(-1);
+        })
+
+        /**
+         * Test: Removing with very large timestamp is accepted
+         * Edge case test with maximum safe integer value. Validates that the
+         * service handles large timestamp values without overflow or errors,
+         * delegating to the database implementation for storage validation.
+         */
+        it('should handle very large timestamp', async () => {
+            // Remove with very large timestamp (JavaScript max safe integer)
+            const largeTimestamp = Number.MAX_SAFE_INTEGER;
+            await new SchemaVersionService(schemaVersion).remove(largeTimestamp);
+
+            // Should pass through without issues
+            expect(schemaVersion.migrations.remove).have.been.called.with(largeTimestamp);
         })
     })
 })

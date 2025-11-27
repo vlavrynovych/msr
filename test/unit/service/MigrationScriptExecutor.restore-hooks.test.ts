@@ -39,7 +39,10 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
                 validateTable: () => Promise.resolve(true),
                 migrations: {
                     getAll: () => Promise.resolve([]),
-                    save: (details: IMigrationInfo) => Promise.resolve()
+                    save: (details: IMigrationInfo) => Promise.resolve(),
+                    remove(timestamp: number): Promise<void> {
+                        return Promise.resolve(undefined);
+                    }
                 }
             } as ISchemaVersion,
             getName: () => 'TestHandler'

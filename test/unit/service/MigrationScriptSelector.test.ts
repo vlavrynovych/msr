@@ -270,6 +270,351 @@ describe('MigrationScriptSelector', () => {
             expect(intersection).to.be.empty;
         });
     });
+
+    describe('getPendingUpTo()', () => {
+
+        /**
+         * Test: getPendingUpTo returns migrations up to target version
+         * Validates that when migrating to a specific version, only migrations
+         * with timestamps <= targetVersion are returned, sorted chronologically.
+         */
+        it('should return pending migrations up to target version', () => {
+            const migratedScripts = [
+                createScript(1, 'migration1'),
+                createScript(2, 'migration2')
+            ];
+            const allScripts = [
+                createScript(1, 'migration1'),
+                createScript(2, 'migration2'),
+                createScript(3, 'migration3'),
+                createScript(4, 'migration4'),
+                createScript(5, 'migration5')
+            ];
+
+            // Migrate up to version 4
+            const result = selector.getPendingUpTo(migratedScripts, allScripts, 4);
+
+            expect(result).to.have.lengthOf(2);
+            expect(result[0].timestamp).to.equal(3);
+            expect(result[1].timestamp).to.equal(4);
+        });
+
+        /**
+         * Test: getPendingUpTo returns empty array when target already reached
+         * Validates that when the target version has already been migrated,
+         * getPendingUpTo returns an empty array.
+         */
+        it('should return empty array when target version already migrated', () => {
+            const migratedScripts = [
+                createScript(1, 'migration1'),
+                createScript(2, 'migration2'),
+                createScript(3, 'migration3')
+            ];
+            const allScripts = [
+                createScript(1, 'migration1'),
+                createScript(2, 'migration2'),
+                createScript(3, 'migration3'),
+                createScript(4, 'migration4')
+            ];
+
+            // Target version 2 is already migrated
+            const result = selector.getPendingUpTo(migratedScripts, allScripts, 2);
+
+            expect(result).to.be.an('array').that.is.empty;
+        });
+
+        /**
+         * Test: getPendingUpTo returns all pending when target is beyond all
+         * Validates that when the target version is higher than all available
+         * migrations, all pending migrations are returned.
+         */
+        it('should return all pending migrations when target is beyond all scripts', () => {
+            const migratedScripts = [
+                createScript(1, 'migration1')
+            ];
+            const allScripts = [
+                createScript(1, 'migration1'),
+                createScript(2, 'migration2'),
+                createScript(3, 'migration3')
+            ];
+
+            // Target version 100 is beyond all scripts
+            const result = selector.getPendingUpTo(migratedScripts, allScripts, 100);
+
+            expect(result).to.have.lengthOf(2);
+            expect(result[0].timestamp).to.equal(2);
+            expect(result[1].timestamp).to.equal(3);
+        });
+
+        /**
+         * Test: getPendingUpTo returns scripts in chronological order
+         * Validates that migrations are sorted by timestamp in ascending order
+         * for proper execution sequence.
+         */
+        it('should return migrations in chronological order', () => {
+            const migratedScripts: MigrationScript[] = [];
+            const allScripts = [
+                createScript(5, 'migration5'),
+                createScript(1, 'migration1'),
+                createScript(3, 'migration3'),
+                createScript(2, 'migration2')
+            ];
+
+            const result = selector.getPendingUpTo(migratedScripts, allScripts, 4);
+
+            expect(result).to.have.lengthOf(3);
+            expect(result[0].timestamp).to.equal(1);
+            expect(result[1].timestamp).to.equal(2);
+            expect(result[2].timestamp).to.equal(3);
+        });
+
+        /**
+         * Test: getPendingUpTo handles empty database
+         * Validates that when no migrations have been executed, getPendingUpTo
+         * correctly returns migrations up to the target version.
+         */
+        it('should handle empty migrated scripts', () => {
+            const migratedScripts: MigrationScript[] = [];
+            const allScripts = [
+                createScript(1, 'migration1'),
+                createScript(2, 'migration2'),
+                createScript(3, 'migration3')
+            ];
+
+            const result = selector.getPendingUpTo(migratedScripts, allScripts, 2);
+
+            expect(result).to.have.lengthOf(2);
+            expect(result[0].timestamp).to.equal(1);
+            expect(result[1].timestamp).to.equal(2);
+        });
+    });
+
+    describe('getMigratedDownTo()', () => {
+
+        /**
+         * Test: getMigratedDownTo returns migrations to roll back
+         * Validates that migrations newer than the target version are returned
+         * in reverse chronological order for proper rollback.
+         */
+        it('should return migrations to roll back in reverse order', () => {
+            const migratedScripts = [
+                createScript(1, 'migration1'),
+                createScript(2, 'migration2'),
+                createScript(3, 'migration3'),
+                createScript(4, 'migration4'),
+                createScript(5, 'migration5')
+            ];
+
+            // Roll back to version 2
+            const result = selector.getMigratedDownTo(migratedScripts, 2);
+
+            expect(result).to.have.lengthOf(3);
+            expect(result[0].timestamp).to.equal(5); // Newest first
+            expect(result[1].timestamp).to.equal(4);
+            expect(result[2].timestamp).to.equal(3);
+        });
+
+        /**
+         * Test: getMigratedDownTo returns empty array when target is current
+         * Validates that when the target version matches the newest migration,
+         * no rollback is needed and an empty array is returned.
+         */
+        it('should return empty array when target is latest version', () => {
+            const migratedScripts = [
+                createScript(1, 'migration1'),
+                createScript(2, 'migration2'),
+                createScript(3, 'migration3')
+            ];
+
+            // Target version 3 is the latest
+            const result = selector.getMigratedDownTo(migratedScripts, 3);
+
+            expect(result).to.be.an('array').that.is.empty;
+        });
+
+        /**
+         * Test: getMigratedDownTo handles rolling back to version 0
+         * Validates that rolling back to version 0 returns all migrations
+         * in reverse order, effectively undoing all migrations.
+         */
+        it('should return all migrations when rolling back to version 0', () => {
+            const migratedScripts = [
+                createScript(1, 'migration1'),
+                createScript(2, 'migration2'),
+                createScript(3, 'migration3')
+            ];
+
+            // Roll back everything
+            const result = selector.getMigratedDownTo(migratedScripts, 0);
+
+            expect(result).to.have.lengthOf(3);
+            expect(result[0].timestamp).to.equal(3);
+            expect(result[1].timestamp).to.equal(2);
+            expect(result[2].timestamp).to.equal(1);
+        });
+
+        /**
+         * Test: getMigratedDownTo handles empty migrated scripts
+         * Edge case: when no migrations have been executed, there's nothing
+         * to roll back, so an empty array should be returned.
+         */
+        it('should handle empty migrated scripts', () => {
+            const migratedScripts: MigrationScript[] = [];
+
+            const result = selector.getMigratedDownTo(migratedScripts, 5);
+
+            expect(result).to.be.an('array').that.is.empty;
+        });
+
+        /**
+         * Test: getMigratedDownTo handles target beyond all migrations
+         * Validates that when the target version is higher than all executed
+         * migrations, no rollback is needed.
+         */
+        it('should return empty array when target is beyond all migrations', () => {
+            const migratedScripts = [
+                createScript(1, 'migration1'),
+                createScript(2, 'migration2')
+            ];
+
+            // Target version 100 is beyond all migrations
+            const result = selector.getMigratedDownTo(migratedScripts, 100);
+
+            expect(result).to.be.an('array').that.is.empty;
+        });
+    });
+
+    describe('getMigratedInRange()', () => {
+
+        /**
+         * Test: getMigratedInRange returns migrations within version range
+         * Validates that only migrations between fromVersion (exclusive) and
+         * toVersion (inclusive) are returned in reverse chronological order.
+         */
+        it('should return migrations within specified range', () => {
+            const migratedScripts = [
+                createScript(1, 'migration1'),
+                createScript(2, 'migration2'),
+                createScript(3, 'migration3'),
+                createScript(4, 'migration4'),
+                createScript(5, 'migration5')
+            ];
+
+            // Get migrations between version 2 and 4 (exclusive 2, inclusive 4)
+            const result = selector.getMigratedInRange(migratedScripts, 2, 4);
+
+            expect(result).to.have.lengthOf(2);
+            expect(result[0].timestamp).to.equal(4); // Reverse order
+            expect(result[1].timestamp).to.equal(3);
+        });
+
+        /**
+         * Test: getMigratedInRange excludes fromVersion
+         * Validates that the fromVersion is excluded from the range (exclusive).
+         */
+        it('should exclude fromVersion from range', () => {
+            const migratedScripts = [
+                createScript(1, 'migration1'),
+                createScript(2, 'migration2'),
+                createScript(3, 'migration3')
+            ];
+
+            // Range from 1 to 2 - should only include 2 (1 is excluded)
+            const result = selector.getMigratedInRange(migratedScripts, 1, 2);
+
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].timestamp).to.equal(2);
+        });
+
+        /**
+         * Test: getMigratedInRange includes toVersion
+         * Validates that the toVersion is included in the range (inclusive).
+         */
+        it('should include toVersion in range', () => {
+            const migratedScripts = [
+                createScript(1, 'migration1'),
+                createScript(2, 'migration2'),
+                createScript(3, 'migration3')
+            ];
+
+            // Range from 1 to 3 - should include 3
+            const result = selector.getMigratedInRange(migratedScripts, 1, 3);
+
+            expect(result).to.have.lengthOf(2);
+            expect(result[0].timestamp).to.equal(3);
+            expect(result[1].timestamp).to.equal(2);
+        });
+
+        /**
+         * Test: getMigratedInRange returns empty array when no migrations in range
+         * Validates that when no migrations fall within the specified range,
+         * an empty array is returned.
+         */
+        it('should return empty array when no migrations in range', () => {
+            const migratedScripts = [
+                createScript(1, 'migration1'),
+                createScript(5, 'migration5')
+            ];
+
+            // Range from 5 to 10 - no migrations in this range
+            const result = selector.getMigratedInRange(migratedScripts, 5, 10);
+
+            expect(result).to.be.an('array').that.is.empty;
+        });
+
+        /**
+         * Test: getMigratedInRange handles reverse range (fromVersion > toVersion)
+         * Edge case: when fromVersion is greater than toVersion, the range is
+         * invalid and should return an empty array.
+         */
+        it('should return empty array for invalid range (from > to)', () => {
+            const migratedScripts = [
+                createScript(1, 'migration1'),
+                createScript(2, 'migration2'),
+                createScript(3, 'migration3')
+            ];
+
+            // Invalid range: from 3 to 1
+            const result = selector.getMigratedInRange(migratedScripts, 3, 1);
+
+            expect(result).to.be.an('array').that.is.empty;
+        });
+
+        /**
+         * Test: getMigratedInRange returns migrations in reverse chronological order
+         * Validates that migrations are sorted newest-first for proper rollback.
+         */
+        it('should return migrations in reverse chronological order', () => {
+            const migratedScripts = [
+                createScript(2, 'migration2'),
+                createScript(5, 'migration5'),
+                createScript(3, 'migration3'),
+                createScript(4, 'migration4')
+            ];
+
+            // Get migrations from 1 to 5
+            const result = selector.getMigratedInRange(migratedScripts, 1, 5);
+
+            expect(result).to.have.lengthOf(4);
+            expect(result[0].timestamp).to.equal(5);
+            expect(result[1].timestamp).to.equal(4);
+            expect(result[2].timestamp).to.equal(3);
+            expect(result[3].timestamp).to.equal(2);
+        });
+
+        /**
+         * Test: getMigratedInRange handles empty migrated scripts
+         * Edge case: when no migrations have been executed, there's nothing
+         * in any range, so an empty array should be returned.
+         */
+        it('should handle empty migrated scripts', () => {
+            const migratedScripts: MigrationScript[] = [];
+
+            const result = selector.getMigratedInRange(migratedScripts, 1, 5);
+
+            expect(result).to.be.an('array').that.is.empty;
+        });
+    });
 });
 
 /**

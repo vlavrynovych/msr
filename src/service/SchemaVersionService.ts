@@ -84,4 +84,22 @@ export class SchemaVersionService<T extends ISchemaVersion> implements ISchemaVe
     public async getAllMigratedScripts():Promise<MigrationScript[]> {
         return await this.service.migrations.getAll();
     }
+
+    /**
+     * Remove a migration record from the tracking table.
+     *
+     * Used when rolling back migrations to remove the tracking entry for that
+     * migration, keeping the schema_version table synchronized with the database state.
+     *
+     * @param timestamp - The timestamp of the migration to remove
+     *
+     * @example
+     * ```typescript
+     * // After rolling back V202501220100, remove its tracking record
+     * await service.remove(202501220100);
+     * ```
+     */
+    public async remove(timestamp: number): Promise<void> {
+        return this.service.migrations.remove(timestamp);
+    }
 }

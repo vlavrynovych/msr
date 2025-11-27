@@ -21,6 +21,7 @@ An abstract implementation of script runner which can be extended with your own 
 
 - **Database Agnostic**: Works with any database by implementing a simple interface
 - **TypeScript First**: Written in TypeScript with full type safety
+- **Version Control**: Migrate to specific versions with migrateTo() and downTo() methods
 - **Built-in Validation**: Validates migrations before execution with extensible custom validators
 - **Flexible Rollback Strategies**: Choose from backup/restore, down() migrations, both, or none
 - **Reversible Migrations**: Optional down() methods for rollback without backups

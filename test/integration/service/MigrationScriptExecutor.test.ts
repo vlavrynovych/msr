@@ -44,6 +44,9 @@ describe('MigrationScriptExecutor', () => {
                     },
                     save(details: IMigrationInfo): Promise<any> {
                         return Promise.resolve(undefined);
+                    },
+                    remove(timestamp: number): Promise<void> {
+                        return Promise.resolve(undefined);
                     }
                 } as IMigrationScript,
 
@@ -199,13 +202,13 @@ describe('MigrationScriptExecutor', () => {
             expect(handler.schemaVersion.migrations.getAll).have.not.been.called
             expect(handler.schemaVersion.migrations.save).have.not.been.called
 
-            // Migration discovery now happens BEFORE schema validation (for early validation)
-            // So it WILL be called even if schema validation fails later
-            expect(executor.migrationService.readMigrationScripts).have.been.called.once
+            // Migration discovery does NOT happen when schema validation fails
+            // Fixed flow: init() → scan() → validate migrations → backup
+            // Schema validation failure happens during init(), so scan() is never called
+            expect(executor.migrationService.readMigrationScripts).have.not.been.called
 
             // Backup/restore NOT called when validation fails BEFORE backup is created
-            // New flow: scan → validate → THEN backup
-            // Schema validation failure happens during scan, so backup never created
+            // Schema validation failure happens during init(), so backup never created
             expect(executor.backupService.backup).have.not.been.called
             expect(executor.backupService.restore).have.not.been.called
             expect(executor.backupService.deleteBackup).have.not.been.called

@@ -217,7 +217,11 @@ export class MigrationScriptExecutor {
                 await this.executeBeforeMigrate();
             }
 
-            // Scan migrations BEFORE any database operations
+            // Initialize schema version table BEFORE scanning
+            // scan() needs to query the schema version table to get executed migrations
+            await this.schemaVersionService.init(this.config.tableName);
+
+            // Scan migrations to gather current state
             scripts = await this.migrationScanner.scan();
 
             // Initialize migration scripts (load and parse)
@@ -234,9 +238,6 @@ export class MigrationScriptExecutor {
             if (this.config.validateMigratedFiles && scripts.migrated.length > 0) {
                 await this.validateMigratedFileIntegrity(scripts.migrated);
             }
-
-            // Now that validation passed, initialize database and create backup
-            await this.schemaVersionService.init(this.config.tableName);
 
             // Conditionally create backup based on rollback strategy
             if (this.shouldCreateBackup()) {
@@ -348,6 +349,10 @@ export class MigrationScriptExecutor {
             this.config.displayLimit = number;
         }
 
+        // Initialize schema version table BEFORE scanning
+        // scan() needs to query the schema version table to get executed migrations
+        await this.schemaVersionService.init(this.config.tableName);
+
         const scripts = await this.migrationScanner.scan();
         this.migrationRenderer.drawMigrated(scripts);
 
@@ -392,11 +397,12 @@ export class MigrationScriptExecutor {
     public async validate(): Promise<{pending: IValidationResult[], migrated: IValidationIssue[]}> {
         this.logger.info('🔍 Starting migration validation...\n');
 
+        // Initialize schema version table BEFORE scanning
+        // scan() needs to query the schema version table to get executed migrations
+        await this.schemaVersionService.init(this.config.tableName);
+
         // Scan for all migrations (pending and executed)
         const scripts = await this.migrationScanner.scan();
-
-        // Note: Do NOT call init() here - let validation service handle it
-        // This allows validation to catch and properly categorize init errors
 
         // Validate pending migrations
         let pendingResults: IValidationResult[] = [];
@@ -488,6 +494,271 @@ export class MigrationScriptExecutor {
             pending: pendingResults,
             migrated: migratedIssues
         };
+    }
+
+    /**
+     * Migrate database up to a specific target version.
+     *
+     * Executes pending migrations up to and including the specified target version.
+     * Migrations with timestamps > targetVersion will not be executed.
+     *
+     * @param targetVersion - The target version timestamp to migrate to
+     * @returns Migration result containing executed migrations and overall status
+     *
+     * @throws {ValidationError} If migration validation fails
+     * @throws {Error} If migration execution fails
+     *
+     * @example
+     * ```typescript
+     * // Migrate up to a specific version
+     * const result = await executor.migrateTo(202501220100);
+     * console.log(`Executed ${result.executed.length} migrations to reach version 202501220100`);
+     * ```
+     *
+     * @example
+     * ```typescript
+     * // Safe upgrade to a known-good version in production
+     * try {
+     *   await executor.migrateTo(202501220100);
+     *   console.log('✓ Database upgraded to version 202501220100');
+     * } catch (error) {
+     *   console.error('Migration failed:', error);
+     *   // Database automatically rolled back
+     * }
+     * ```
+     */
+    public async migrateTo(targetVersion: number): Promise<IMigrationResult> {
+        let scripts: IScripts = {
+            all: [],
+            migrated: [],
+            pending: [],
+            ignored: [],
+            executed: []
+        };
+        const errors: Error[] = [];
+        let backupPath: string | undefined;
+
+        try {
+            // Execute beforeMigrate script if it exists
+            if (this.config.beforeMigrateName) {
+                await this.executeBeforeMigrate();
+            }
+
+            // Initialize schema version table BEFORE scanning
+            // scan() needs to query the schema version table to get executed migrations
+            await this.schemaVersionService.init(this.config.tableName);
+
+            // Scan migrations to gather current state
+            scripts = await this.migrationScanner.scan();
+
+            // Get pending migrations up to target version
+            const pendingUpToTarget = this.selector.getPendingUpTo(scripts.migrated, scripts.all, targetVersion);
+
+            // Initialize migration scripts (load and parse)
+            await Promise.all(pendingUpToTarget.map(s => s.init()));
+
+            // Validate pending migration scripts
+            if (this.config.validateBeforeRun && pendingUpToTarget.length > 0) {
+                await this.validateMigrations(pendingUpToTarget);
+            }
+
+            // Validate integrity of already-executed migrations
+            if (this.config.validateMigratedFiles && scripts.migrated.length > 0) {
+                await this.validateMigratedFileIntegrity(scripts.migrated);
+            }
+
+            // Create backup if rollback strategy requires it
+            if (this.shouldCreateBackup()) {
+                await this.hooks?.onBeforeBackup?.();
+                backupPath = await this.backupService.backup();
+                if (backupPath) {
+                    await this.hooks?.onAfterBackup?.(backupPath);
+                }
+            }
+
+            // Display migration status
+            this.migrationRenderer.drawMigrated(scripts);
+            this.migrationRenderer.drawIgnored(scripts.ignored);
+
+            // Hook: Start
+            await this.hooks?.onStart?.(scripts.all.length, pendingUpToTarget.length);
+
+            if (!pendingUpToTarget.length) {
+                this.logger.info(`Already at target version ${targetVersion} or beyond`);
+                this.backupService.deleteBackup();
+
+                const result: IMigrationResult = {
+                    success: true,
+                    executed: [],
+                    migrated: scripts.migrated,
+                    ignored: scripts.ignored
+                };
+
+                await this.hooks?.onComplete?.(result);
+                return result;
+            }
+
+            this.logger.info(`Migrating to version ${targetVersion}...`);
+            this.migrationRenderer.drawPending(pendingUpToTarget);
+
+            // Execute migrations with hooks
+            await this.executeWithHooks(pendingUpToTarget, scripts.executed);
+
+            this.migrationRenderer.drawExecuted(scripts.executed);
+            this.logger.info(`Migration to version ${targetVersion} finished successfully!`);
+            this.backupService.deleteBackup();
+
+            const result: IMigrationResult = {
+                success: true,
+                executed: scripts.executed,
+                migrated: scripts.migrated,
+                ignored: scripts.ignored
+            };
+
+            await this.hooks?.onComplete?.(result);
+            return result;
+
+        } catch (error) {
+            errors.push(error as Error);
+            this.logger.error(`Migration to version ${targetVersion} failed: ${(error as Error).message}`);
+
+            // Handle rollback
+            await this.handleRollback(scripts.executed, backupPath);
+
+            throw error;
+        }
+    }
+
+    /**
+     * Roll back database to a specific target version.
+     *
+     * Calls down() methods on migrations with timestamps > targetVersion in reverse
+     * chronological order, and removes their records from the schema version table.
+     *
+     * @param targetVersion - The target version timestamp to roll back to
+     * @returns Migration result containing rolled-back migrations and overall status
+     *
+     * @throws {Error} If any down() method fails or migration doesn't have down()
+     * @throws {Error} If target version is invalid or not found
+     *
+     * @example
+     * ```typescript
+     * // Roll back to a specific version
+     * const result = await executor.downTo(202501220100);
+     * console.log(`Rolled back ${result.executed.length} migrations to version 202501220100`);
+     * ```
+     *
+     * @example
+     * ```typescript
+     * // Emergency rollback in production
+     * try {
+     *   await executor.downTo(202501220100);
+     *   console.log('✓ Database rolled back to version 202501220100');
+     * } catch (error) {
+     *   console.error('Rollback failed:', error);
+     *   // Manual intervention required
+     * }
+     * ```
+     */
+    public async downTo(targetVersion: number): Promise<IMigrationResult> {
+        this.logger.info(`Rolling back to version ${targetVersion}...`);
+
+        // Initialize schema version table BEFORE scanning
+        // scan() needs to query the schema version table to get executed migrations
+        await this.schemaVersionService.init(this.config.tableName);
+
+        // Scan migrations to get current state
+        const scripts = await this.migrationScanner.scan();
+
+        // Get migrations to roll back (newer than target)
+        const toRollback = this.selector.getMigratedDownTo(scripts.migrated, targetVersion);
+
+        if (!toRollback.length) {
+            this.logger.info(`Already at version ${targetVersion} or below - nothing to roll back`);
+
+            const result: IMigrationResult = {
+                success: true,
+                executed: [],
+                migrated: scripts.migrated,
+                ignored: scripts.ignored
+            };
+
+            return result;
+        }
+
+        // Initialize migration scripts (load and parse)
+        await Promise.all(toRollback.map(s => s.init()));
+
+        // Validate migrations to be rolled back
+        if (this.config.validateBeforeRun && toRollback.length > 0) {
+            await this.validateMigrations(toRollback);
+        }
+
+        // Validate integrity of migrations being rolled back
+        if (this.config.validateMigratedFiles && toRollback.length > 0) {
+            await this.validateMigratedFileIntegrity(toRollback);
+        }
+
+        // Call onStart hook
+        await this.hooks?.onStart?.(scripts.all.length, toRollback.length);
+
+        this.logger.info(`Rolling back ${toRollback.length} migration(s)...`);
+
+        const rolledBack: MigrationScript[] = [];
+
+        try {
+            // Execute down() for each migration in reverse order
+            for (const script of toRollback) {
+                // Script already initialized above for validation
+
+                // Check if down() method exists
+                if (!script.script.down) {
+                    throw new Error(`Migration ${script.name} does not have a down() method - cannot roll back`);
+                }
+
+                this.logger.info(`Rolling back ${script.name}...`);
+
+                // Call onBeforeMigrate hook (reusing for rollback operations)
+                await this.hooks?.onBeforeMigrate?.(script);
+
+                // Call down() method
+                script.startedAt = Date.now();
+                const result = await script.script.down(this.handler.db, script, this.handler);
+                script.finishedAt = Date.now();
+
+                // Call onAfterMigrate hook (reusing for rollback operations)
+                await this.hooks?.onAfterMigrate?.(script, result);
+
+                // Remove from schema version table
+                await this.schemaVersionService.remove(script.timestamp);
+
+                rolledBack.push(script);
+
+                this.logger.info(`✓ Rolled back ${script.name}`);
+            }
+
+            this.logger.info(`Successfully rolled back to version ${targetVersion}!`);
+
+            const result: IMigrationResult = {
+                success: true,
+                executed: rolledBack,
+                migrated: scripts.migrated.filter(m => m.timestamp <= targetVersion),
+                ignored: scripts.ignored
+            };
+
+            // Call onComplete hook
+            await this.hooks?.onComplete?.(result);
+
+            return result;
+
+        } catch (error) {
+            this.logger.error(`Rollback failed: ${(error as Error).message}`);
+
+            // Call onError hook
+            await this.hooks?.onError?.(error as Error);
+
+            throw error;
+        }
     }
 
     /**

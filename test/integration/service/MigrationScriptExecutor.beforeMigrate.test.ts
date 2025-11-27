@@ -53,7 +53,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
             schemaVersion: {
                 migrations: {
                     getAll(): Promise<any> { return Promise.resolve([]) },
-                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() }
+                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() },
+                    remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
@@ -91,7 +92,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                             username: 'test'
                         }]);
                     },
-                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() }
+                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() },
+                    remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
@@ -148,7 +150,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
             schemaVersion: {
                 migrations: {
                     getAll(): Promise<any> { return Promise.resolve([]) },
-                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() }
+                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() },
+                    remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
@@ -223,7 +226,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
             schemaVersion: {
                 migrations: {
                     getAll(): Promise<any> { return Promise.resolve([]) },
-                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() }
+                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() },
+                    remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
@@ -274,7 +278,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
             schemaVersion: {
                 migrations: {
                     getAll(): Promise<any> { return Promise.resolve([]) },
-                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() }
+                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() },
+                    remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
@@ -311,7 +316,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
             schemaVersion: {
                 migrations: {
                     getAll(): Promise<any> { return Promise.resolve([]) },
-                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() }
+                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() },
+                    remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
@@ -347,7 +353,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
             schemaVersion: {
                 migrations: {
                     getAll(): Promise<any> { return Promise.resolve([]) },
-                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() }
+                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() },
+                    remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
@@ -386,7 +393,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
             schemaVersion: {
                 migrations: {
                     getAll(): Promise<any> { return Promise.resolve([]) },
-                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() }
+                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() },
+                    remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
@@ -458,7 +466,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
             schemaVersion: {
                 migrations: {
                     getAll(): Promise<any> { return Promise.resolve([]) },
-                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() }
+                    save(details: IMigrationInfo): Promise<any> { return Promise.resolve() },
+                    remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
