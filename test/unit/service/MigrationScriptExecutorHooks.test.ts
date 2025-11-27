@@ -31,7 +31,10 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
                 validateTable: sinon.stub().resolves(true),
                 migrations: {
                     getAll: sinon.stub().resolves([]),
-                    save: sinon.stub().resolves()
+                    save: sinon.stub().resolves(),
+                    remove(timestamp: number): Promise<void> {
+                        return Promise.resolve(undefined);
+                    }
                 }
             }
         };

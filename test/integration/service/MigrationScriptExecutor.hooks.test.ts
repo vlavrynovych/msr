@@ -43,6 +43,9 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
                     },
                     save(details: IMigrationInfo): Promise<any> {
                         return Promise.resolve();
+                    },
+                    remove(timestamp: number): Promise<void> {
+                        return Promise.resolve(undefined);
                     }
                 },
                 isInitialized: sinon.stub().resolves(true),
@@ -190,7 +193,10 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
                 validateTable: handler.schemaVersion.validateTable,
                 migrations: {
                     getAll: sinon.stub().rejects(new Error('Database error')),
-                    save: sinon.stub().resolves()
+                    save: sinon.stub().resolves(),
+                    remove(timestamp: number): Promise<void> {
+                        return Promise.resolve(undefined);
+                    }
                 }
             }
         };
@@ -309,7 +315,10 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
                         migratedAt: new Date().toISOString(),
                         username: 'test'
                     }]),
-                    save: sinon.stub().resolves()
+                    save: sinon.stub().resolves(),
+                    remove(timestamp: number): Promise<void> {
+                        return Promise.resolve(undefined);
+                    }
                 }
             }
         };

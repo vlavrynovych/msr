@@ -119,6 +119,9 @@ describe('MigrationScriptExecutor - Failed Migration Cleanup', () => {
                     },
                     save(details: IMigrationInfo): Promise<void> {
                         return Promise.resolve()
+                    },
+                    remove(timestamp: number): Promise<void> {
+                        return Promise.resolve(undefined)
                     }
                 },
                 isInitialized: sinon.stub().resolves(true),
@@ -193,6 +196,9 @@ describe('MigrationScriptExecutor - Failed Migration Cleanup', () => {
                     },
                     save(details: IMigrationInfo): Promise<void> {
                         return Promise.resolve()
+                    },
+                    remove(timestamp: number): Promise<void> {
+                        return Promise.resolve(undefined)
                     }
                 },
                 isInitialized: sinon.stub().resolves(true),
@@ -275,6 +281,9 @@ describe('MigrationScriptExecutor - Failed Migration Cleanup', () => {
                     },
                     save(details: IMigrationInfo): Promise<void> {
                         return Promise.resolve()
+                    },
+                    remove(timestamp: number): Promise<void> {
+                        return Promise.resolve(undefined)
                     }
                 },
                 isInitialized: sinon.stub().resolves(true),

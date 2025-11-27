@@ -34,7 +34,10 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             schemaVersion: ISchemaVersion = {
                 migrations: {
                     getAll: sinon.stub().resolves([]),
-                    save: sinon.stub().resolves()
+                    save: sinon.stub().resolves(),
+                    remove(timestamp: number): Promise<void> {
+                        return Promise.resolve(undefined);
+                    }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
@@ -91,7 +94,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             const mockSchemaVersionService = {
                 init: sinon.stub().resolves(),
                 save: sinon.stub().resolves(),
-                getAllMigratedScripts: sinon.stub().resolves([])
+                getAllMigratedScripts: sinon.stub().resolves([]),
+                remove: sinon.stub().resolves()
             };
             const executorWithCustomSchema = new MigrationScriptExecutor(handler, cfg, {
                 schemaVersionService: mockSchemaVersionService
@@ -167,7 +171,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             const mockSchemaVersionService = {
                 init: sinon.stub().resolves(),
                 save: sinon.stub().resolves(),
-                getAllMigratedScripts: sinon.stub().resolves([])
+                getAllMigratedScripts: sinon.stub().resolves([]),
+                remove: sinon.stub().resolves()
             };
             const mockRenderer = {
                 drawFiglet: sinon.stub(),

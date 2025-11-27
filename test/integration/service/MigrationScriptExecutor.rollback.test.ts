@@ -51,7 +51,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
             schemaVersion: {
                 migrations: {
                     getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
-                    save(details: IMigrationInfo): Promise<void> { return Promise.resolve() }
+                    save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
+                    remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
@@ -85,7 +86,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
             schemaVersion: {
                 migrations: {
                     getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
-                    save(details: IMigrationInfo): Promise<void> { return Promise.resolve() }
+                    save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
+                    remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
@@ -122,7 +124,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
             schemaVersion: {
                 migrations: {
                     getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
-                    save(details: IMigrationInfo): Promise<void> { return Promise.resolve() }
+                    save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
+                    remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
@@ -159,7 +162,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
             schemaVersion: {
                 migrations: {
                     getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
-                    save(details: IMigrationInfo): Promise<void> { return Promise.resolve() }
+                    save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
+                    remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
@@ -191,7 +195,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
             schemaVersion: {
                 migrations: {
                     getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
-                    save(details: IMigrationInfo): Promise<void> { return Promise.resolve() }
+                    save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
+                    remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
@@ -229,7 +234,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
             schemaVersion: {
                 migrations: {
                     getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
-                    save(details: IMigrationInfo): Promise<void> { return Promise.resolve() }
+                    save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
+                    remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
@@ -262,7 +268,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
             schemaVersion: {
                 migrations: {
                     getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
-                    save(details: IMigrationInfo): Promise<void> { return Promise.resolve() }
+                    save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
+                    remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),

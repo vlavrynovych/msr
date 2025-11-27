@@ -4,6 +4,8 @@
 /dist
 /backups
 
-# coverage folders
+# coverage folders and files
 /reports
+/coverage
 .nyc_output
+coverage.json

@@ -110,24 +110,45 @@ const result = await executor.migrate();
 
 ### MigrationScriptSelector
 
-**Purpose:** Determines which migrations should be executed
+**Purpose:** Determines which migrations should be executed or rolled back
 
 **Responsibilities:**
 - Compare discovered scripts with executed migrations
 - Filter out already-executed migrations
 - Identify out-of-order migrations (ignored)
-- Return only pending migrations
+- Return pending migrations (for normal execution)
+- Select migrations for version-specific operations (migrateTo/downTo)
+- Select migrations for rollback operations
 
 **Key Methods:**
 - `getPending(migrated, all)` - Returns scripts to execute
 - `getIgnored(migrated, all)` - Returns outdated scripts
+- `getPendingUpTo(migrated, all, targetVersion)` - Returns scripts to execute up to target version
+- `getMigratedDownTo(migrated, targetVersion)` - Returns scripts to rollback to reach target version
+- `getMigratedInRange(migrated, fromVersion, toVersion)` - Returns scripts in version range
 
-**Algorithm:**
+**Algorithm (getPending):**
 ```
 1. Find max timestamp of executed migrations
 2. Get scripts not in executed list
 3. Filter: only scripts newer than max timestamp
 4. Result: pending migrations to execute
+```
+
+**Algorithm (getPendingUpTo):**
+```
+1. Get pending migrations using getPending()
+2. Filter: only scripts with timestamp <= targetVersion
+3. Sort by timestamp (chronological order)
+4. Result: migrations to execute to reach target version
+```
+
+**Algorithm (getMigratedDownTo):**
+```
+1. Get all executed migrations
+2. Filter: only scripts with timestamp > targetVersion
+3. Sort by timestamp (reverse chronological order)
+4. Result: migrations to rollback to reach target version
 ```
 
 **Location:** `src/service/MigrationScriptSelector.ts`
@@ -143,6 +164,13 @@ const pending = selector.getPending(migrated, all);
 
 const ignored = selector.getIgnored(migrated, all);
 // → [V3]  (older than last executed V5)
+
+// Version control examples
+const pendingUpTo = selector.getPendingUpTo(migrated, all, 6);
+// → [V6]  (only V6, up to version 6)
+
+const toRollback = selector.getMigratedDownTo(migrated, 2);
+// → [V5]  (rollback V5 to reach version 2)
 ```
 
 ---
