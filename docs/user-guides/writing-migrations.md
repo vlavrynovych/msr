@@ -11,6 +11,15 @@ nav_order: 1
 Best practices and guidelines for writing effective database migrations.
 {: .fs-6 .fw-300 }
 
+## What You'll Learn
+
+- Migration file naming conventions and formats
+- Writing type-safe migration scripts
+- Using the beforeMigrate setup script
+- Best practices for maintainable migrations
+- Implementing reversible migrations with down() methods
+- Common patterns and pitfalls to avoid
+
 ## Table of contents
 {: .no_toc .text-delta }
 
@@ -22,6 +31,9 @@ Best practices and guidelines for writing effective database migrations.
 ## Naming Convention
 
 Migration files must follow a strict naming convention: `V{timestamp}_{description}.ts`
+
+{: .note }
+> The `V` prefix and underscore separator are required. MSR will ignore files that don't follow this pattern.
 
 ### Timestamp Format
 
@@ -975,7 +987,8 @@ await db.query('INSERT INTO settings (key, value) VALUES (?, ?)', ['api_url', ap
 
 ### ❌ Modifying Old Migrations
 
-Once a migration is committed and run in any environment, **never modify it**.
+{: .warning }
+> Once a migration is committed and run in any environment, **never modify it**. MSR tracks migrations by filename and checksum. Modifying an executed migration will cause checksum mismatches and potential data corruption.
 
 ```typescript
 // ❌ Don't do this:

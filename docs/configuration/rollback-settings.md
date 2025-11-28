@@ -57,14 +57,22 @@ config.rollbackStrategy = RollbackStrategy.NONE;
 
 ## Strategy Comparison
 
-| Strategy | Description | Requires Backup | Requires down() | Speed | Safety |
-|----------|-------------|-----------------|-----------------|-------|--------|
-| `BACKUP` | Traditional backup/restore on failure | ✅ Yes | ❌ No | Slow | High |
-| `DOWN` | Call down() methods in reverse order | ❌ No | ✅ Yes | Fast | Medium |
-| `BOTH` | Try down() first, fallback to backup | ✅ Yes | ⚠️  Recommended | Fast\* | High |
-| `NONE` | No rollback, logs warning | ❌ No | ❌ No | N/A | None |
+Choose the right rollback strategy for your environment:
 
-\* Fast if down() succeeds, slow if backup fallback needed
+| Strategy | Safety | Performance | Storage | Requires Backup | Requires down() | Best For |
+|----------|--------|-------------|---------|-----------------|-----------------|----------|
+| **BACKUP** | 🟢 Highest | 🟡 Slower | 💾 High | ✅ Yes | ❌ No | **Production** (traditional) |
+| **DOWN** | 🟡 Medium | 🟢 Fast | 💾 None | ❌ No | ✅ Yes | **Development** (fast iteration) |
+| **BOTH** | 🟢 Highest | 🟢 Fast* | 💾 High | ✅ Yes | ⚠️ Recommended | **Production** (modern) |
+| **NONE** | 🔴 None | 🟢 Fastest | 💾 None | ❌ No | ❌ No | **Append-only** systems |
+
+*Fast if `down()` succeeds; falls back to slower backup restore if needed.
+
+{: .tip }
+> **Recommended**: Use `BOTH` strategy in production. It gives you fast rollback via `down()` methods with backup safety net.
+
+{: .warning }
+> Never use `NONE` strategy in production. It provides no rollback protection if migrations fail.
 
 ---
 

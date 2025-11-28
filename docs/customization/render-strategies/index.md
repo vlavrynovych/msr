@@ -8,6 +8,9 @@ has_children: true
 
 # Render Strategy Implementations
 
+New in v0.3.0
+{: .label .label-green }
+
 MSR uses the Strategy Pattern to provide multiple output formats for migration information, from beautiful terminal tables to structured JSON for CI/CD integration.
 
 ## Available Render Strategies

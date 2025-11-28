@@ -11,6 +11,14 @@ nav_order: 4
 Learn how to use MSR's version control features for controlled migrations and rollbacks.
 {: .fs-6 .fw-300 }
 
+## What You'll Learn
+
+- Migrating to specific database versions with migrateTo()
+- Rolling back to previous versions with downTo()
+- Staged deployment strategies
+- Emergency rollback procedures
+- Version control best practices
+
 ## Table of contents
 {: .no_toc .text-delta }
 
@@ -27,6 +35,9 @@ MSR supports controlled migration to specific database versions through the `mig
 - **Testing** - Test specific migration versions before full deployment
 - **Rollback** - Return database to a previous version when issues arise
 - **Blue-Green Deployments** - Maintain version parity across environments
+
+{: .tip }
+> Version control methods give you fine-grained control over database state, perfect for canary deployments, A/B testing, and gradual rollouts.
 
 ---
 
@@ -136,6 +147,9 @@ If any migration is missing a `down()` method, `downTo()` will throw an error an
 ```typescript
 Error: Cannot rollback migration V202501220100_add_users: down() method not implemented
 ```
+
+{: .warning }
+> All migrations being rolled back MUST implement `down()` methods. If you plan to use `downTo()`, always write `down()` methods for your migrations.
 
 ---
 
@@ -261,6 +275,9 @@ if (result.success) {
   console.log(`Rolled back ${result.executed.length} migrations`);
 }
 ```
+
+{: .note }
+> Rolling back to version 0 removes all migration history from the schema_version table but does NOT drop the table itself.
 
 This is useful for:
 - Development: resetting to a clean slate
