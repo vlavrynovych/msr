@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Contributing
-nav_order: 8
+parent: Development
+nav_order: 6
 ---
 
 # Contributing to MSR
