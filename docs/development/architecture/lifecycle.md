@@ -66,7 +66,7 @@ sequenceDiagram
     Note over Executor: 4. Execution Phase
     loop For each pending migration
         Executor->>Execution: execute(script)
-        Note right of Execution: script.up(db, info, handler)
+        Note right of Execution: Call script up method
         Execution-->>Executor: Success
 
         Executor->>Schema: add(script)
