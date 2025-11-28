@@ -37,6 +37,9 @@ Migration settings control how MSR discovers, loads, and tracks migration script
 
 The directory containing migration script files.
 
+{: .tip }
+> Use absolute paths in production to avoid working directory issues, or use `path.join(__dirname, '../migrations')` for reliability.
+
 ```typescript
 // Relative path (relative to current working directory)
 config.folder = './migrations';

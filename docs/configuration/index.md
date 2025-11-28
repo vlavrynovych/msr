@@ -23,10 +23,10 @@ Complete guide to configuring Migration Script Runner
 
 Migration Script Runner uses the `Config` class to control all aspects of migration behavior. Configuration is organized into several categories:
 
-- **[Migration Settings](migration-settings)** - File paths, patterns, and script discovery
-- **[Validation Settings](validation-settings)** - Validation rules and policies
-- **[Rollback Settings](rollback-settings)** - Rollback strategies and behavior
-- **[Backup Settings](backup-settings)** - Backup configuration for BACKUP strategy
+- **🎯 [Migration Settings](migration-settings)** - File paths, patterns, and script discovery
+- **✅ [Validation Settings](validation-settings)** - Validation rules and policies
+- **🔄 [Rollback Settings](rollback-settings)** - Rollback strategies and behavior
+- **💾 [Backup Settings](backup-settings)** - Backup configuration for BACKUP strategy
 
 ---
 
@@ -69,10 +69,10 @@ const config = new Config();
 
 | Category | Properties | Description |
 |----------|-----------|-------------|
-| [Migration Settings](migration-settings) | `folder`, `filePattern`, `tableName`, `displayLimit`, `beforeMigrateName`, `recursive` | Control how migrations are discovered and tracked |
-| [Validation Settings](validation-settings) | `validateBeforeRun`, `strictValidation`, `downMethodPolicy`, `customValidators` | Control validation behavior and rules |
-| [Rollback Settings](rollback-settings) | `rollbackStrategy` | Choose backup, down(), both, or none |
-| [Backup Settings](backup-settings) | `backup` (BackupConfig) | Configure backup file naming and storage |
+| 🎯 [Migration Settings](migration-settings) | `folder`, `filePattern`, `tableName`, `displayLimit`, `beforeMigrateName`, `recursive` | Control how migrations are discovered and tracked |
+| ✅ [Validation Settings](validation-settings) | `validateBeforeRun`, `strictValidation`, `downMethodPolicy`, `customValidators` | Control validation behavior and rules |
+| 🔄 [Rollback Settings](rollback-settings) | `rollbackStrategy` | Choose backup, down(), both, or none |
+| 💾 [Backup Settings](backup-settings) | `backup` (BackupConfig) | Configure backup file naming and storage |
 
 ---
 
@@ -320,10 +320,10 @@ config.backup.timestamp = true;
 
 Explore detailed configuration options:
 
-- **[Migration Settings](migration-settings)** - File discovery, patterns, and tracking
-- **[Validation Settings](validation-settings)** - Validation rules and policies
-- **[Rollback Settings](rollback-settings)** - Rollback strategies explained
-- **[Backup Settings](backup-settings)** - Backup file configuration
+- **🎯 [Migration Settings](migration-settings)** - File discovery, patterns, and tracking
+- **✅ [Validation Settings](validation-settings)** - Validation rules and policies
+- **🔄 [Rollback Settings](rollback-settings)** - Rollback strategies explained
+- **💾 [Backup Settings](backup-settings)** - Backup file configuration
 
 ---
 

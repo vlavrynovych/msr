@@ -36,17 +36,31 @@ Suppresses all rendering output completely. Ideal for testing, library usage, an
 
 ---
 
-## Quick Comparison
+## Strategy Comparison
 
-| Feature | AsciiTableRenderStrategy | JsonRenderStrategy | SilentRenderStrategy |
-|---------|--------------------------|--------------------|--------------------|
+Choose the right render strategy for your environment:
+
+| Strategy | Format | Human Readable | Machine Parsable | Best For |
+|----------|--------|----------------|------------------|----------|
+| **AsciiTable** | 📊 Tables | 🟢 Excellent | 🔴 Poor | **Development** |
+| **Json** | 📋 JSON | 🟡 Moderate | 🟢 Excellent | **CI/CD** |
+| **Silent** | ❌ None | N/A | N/A | **Testing** |
+
+### Feature Matrix
+
+| Feature | AsciiTable | Json | Silent |
+|---------|------------|------|--------|
 | Output Format | ASCII Tables | JSON | None |
-| Human Readable | ✅ Very | ❌ (structured) | N/A |
+| Human Readable | ✅ Very | ⚠️ Structured | N/A |
 | Machine Parsable | ❌ | ✅ | N/A |
 | Pretty Printing | ✅ | ✅ Configurable | N/A |
 | Compact Mode | ❌ | ✅ | N/A |
-| File Size | Large | Small (compact) | Zero |
-| Best Use Case | Development/CLI | CI/CD/Automation | Testing/Library |
+| Color Support | ✅ | ❌ | N/A |
+| File Size | 💾 Large | 💾 Small | Zero |
+| CI/CD Friendly | ❌ | ✅ | ✅ |
+
+{: .tip }
+> **Recommended**: Use `AsciiTableRenderStrategy` for local development and `JsonRenderStrategy` in CI/CD pipelines for easy parsing.
 
 ## Usage
 

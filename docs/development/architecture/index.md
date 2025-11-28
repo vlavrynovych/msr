@@ -18,6 +18,8 @@ Comprehensive guide to MSR's internal architecture, component design, and how th
 
 MSR (Migration Script Runner) follows a layered architecture with clear separation of concerns. The system is designed around the Single Responsibility Principle, with each class handling one specific aspect of the migration workflow.
 
+The diagram below shows the three main layers: User Code (blue), Core Orchestration (yellow), and Core Services (green), with data flow indicated by arrows:
+
 ```mermaid
 graph TB
     subgraph "User Code"

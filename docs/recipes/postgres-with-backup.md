@@ -680,6 +680,9 @@ private async dumpData(): Promise<string> {
 
 ## Performance Tips
 
+<details>
+<summary>Advanced: Performance optimization techniques</summary>
+
 ### 1. Use Connection Pooling
 
 Already implemented in the recipe with configurable pool size:
@@ -751,6 +754,8 @@ try {
   client.release();
 }
 ```
+
+</details>
 
 ---
 

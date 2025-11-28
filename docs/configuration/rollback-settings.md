@@ -76,6 +76,90 @@ Choose the right rollback strategy for your environment:
 
 ---
 
+## Strategy Flow Diagrams
+
+### BACKUP Strategy Flow
+
+This flowchart shows how the BACKUP strategy creates a database backup before executing migrations, restoring it if any migration fails:
+
+```mermaid
+graph TD
+    A[Start Migration] --> B[Create Backup]
+    B --> C[Execute Migration 1]
+    C --> D{Success?}
+    D -->|Yes| E[Execute Migration 2]
+    E --> F{Success?}
+    F -->|Yes| G[✅ Complete]
+    F -->|No| H[🔄 Restore from Backup]
+    D -->|No| H
+    H --> I[❌ Rollback Complete]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#e8f5e9
+    style E fill:#e8f5e9
+    style G fill:#c8e6c9
+    style H fill:#ffcdd2
+    style I fill:#ffcdd2
+```
+
+### DOWN Strategy Flow
+
+This flowchart shows how the DOWN strategy executes migrations and calls down() methods in reverse order when a migration fails:
+
+```mermaid
+graph TD
+    A[Start Migration] --> B[Execute Migration 1]
+    B --> C{Success?}
+    C -->|Yes| D[Execute Migration 2]
+    D --> E{Success?}
+    E -->|Yes| F[✅ Complete]
+    E -->|No| G[Call down for Migration 2]
+    C -->|No| G
+    G --> H[Call down for Migration 1]
+    H --> I[❌ Rollback Complete]
+
+    style A fill:#e3f2fd
+    style B fill:#e8f5e9
+    style D fill:#e8f5e9
+    style F fill:#c8e6c9
+    style G fill:#fff3e0
+    style H fill:#fff3e0
+    style I fill:#ffcdd2
+```
+
+### BOTH Strategy Flow
+
+This flowchart shows how the BOTH strategy combines both approaches - trying down() methods first, then falling back to backup restoration if needed:
+
+```mermaid
+graph TD
+    A[Start Migration] --> B[Create Backup]
+    B --> C[Execute Migration 1]
+    C --> D{Success?}
+    D -->|Yes| E[Execute Migration 2]
+    E --> F{Success?}
+    F -->|Yes| G[✅ Complete]
+    F -->|No| H[Try down methods]
+    D -->|No| H
+    H --> I{down Success?}
+    I -->|Yes| J[✅ Rollback via down]
+    I -->|No| K[🔄 Restore from Backup]
+    K --> L[❌ Rollback via Backup]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#e8f5e9
+    style E fill:#e8f5e9
+    style G fill:#c8e6c9
+    style H fill:#fff9c4
+    style J fill:#c8e6c9
+    style K fill:#ffcdd2
+    style L fill:#ffcdd2
+```
+
+---
+
 ## BACKUP Strategy
 
 Traditional backup/restore approach.

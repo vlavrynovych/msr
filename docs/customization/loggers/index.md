@@ -38,6 +38,33 @@ Forwards log messages to multiple logger implementations simultaneously. Enables
 
 **Best for:** Multi-destination logging, production environments, flexible logging strategies
 
+## Logger Comparison
+
+Choose the right logger for your environment:
+
+| Logger | Output | Performance | Use Case | Best For |
+|--------|--------|-------------|----------|----------|
+| **ConsoleLogger** | 🖥️ Console | 🟢 Fast | Development | **Local dev** |
+| **SilentLogger** | ❌ None | 🟢 Fastest | Testing | **Unit tests** |
+| **FileLogger** | 📄 Files | 🟡 Medium | Production | **Audit logs** |
+| **CompositeLogger** | 🔀 Multiple | 🟡 Medium | Production | **Multi-dest** |
+| **Cloud Loggers** | ☁️ Cloud | 🟡 Network | Production | **Distributed** |
+
+### Feature Matrix
+
+| Feature | Console | Silent | File | Composite | Cloud |
+|---------|---------|--------|------|-----------|-------|
+| Timestamps | ✅ | N/A | ✅ | ✅ | ✅ |
+| Log Levels | ✅ | N/A | ✅ | ✅ | ✅ |
+| Rotation | ❌ | N/A | ✅ | Depends | ✅ |
+| Async | ❌ | ❌ | ✅ | Depends | ✅ |
+| Persistence | ❌ | ❌ | ✅ | Depends | ✅ |
+| Searchable | ❌ | ❌ | ⚠️ Limited | Depends | ✅ |
+| Cost | Free | Free | Free | Free | 💰 Paid |
+
+{: .tip }
+> **Recommended for Production**: Use `CompositeLogger` with `FileLogger` + Cloud Logger for redundancy and better observability.
+
 ---
 
 ### [Cloud Logger Guide](cloud-logger-guide.md)

@@ -161,6 +161,9 @@ config.strictValidation = process.env.STRICT_VALIDATION === 'true';
 
 ### Environment-Specific
 
+<details>
+<summary>Advanced: Environment-based strict validation</summary>
+
 ```typescript
 const config = new Config();
 
@@ -178,6 +181,8 @@ if (process.env.NODE_ENV === 'development') {
 // Configurable in production
 config.strictValidation = process.env.STRICT_MODE === 'true';
 ```
+
+</details>
 
 ### See Also
 
@@ -287,6 +292,9 @@ config.downMethodPolicy = DownMethodPolicy.OPTIONAL;
 
 ### Policy Selection Guide
 
+<details>
+<summary>Advanced: Choosing the right down() method policy</summary>
+
 Choose based on your workflow:
 
 | Workflow | Recommended Policy |
@@ -296,6 +304,8 @@ Choose based on your workflow:
 | Hybrid rollback | `AUTO` or `RECOMMENDED` |
 | Strict team standards | `REQUIRED` |
 | Flexible team standards | `RECOMMENDED` |
+
+</details>
 
 ### Examples
 
