@@ -722,7 +722,7 @@ See [IMigrationHooks API Documentation](../api/interfaces/IMigrationHooks) for c
 
 - [Custom Logging](custom-logging.md) - Implementing custom loggers
 - [CompositeLogger](../loggers/composite-logger.md) - Multi-destination logging
-- [Architecture](../architecture.md) - System design and component relationships
+- [Architecture](../development/architecture/) - System design and component relationships
 - [API Reference](../api/) - Complete API documentation
 
 ---

@@ -340,5 +340,5 @@ Explore detailed configuration options:
 
 - [Validation](../validation/) - Validation system overview
 - [Rollback Strategies](rollback-settings) - Choosing the right strategy
-- [Architecture](../architecture) - System design
+- [Architecture](../development/architecture/) - System design
 - [API Reference](../api/) - Complete API documentation

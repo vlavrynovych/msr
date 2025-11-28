@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Migration Guides
-nav_order: 7
+nav_order: 9
 has_children: true
 ---
 
@@ -47,8 +47,8 @@ During **v0.x development**, minor versions may include breaking changes (we'll 
 
 If you encounter issues during migration:
 1. Check the specific migration guide for your version
-2. Review the [Troubleshooting](../troubleshooting.md) section
-3. Search [GitHub Issues](https://github.com/migration-script-runner/msr-core/issues)
+2. Search [GitHub Issues](https://github.com/migration-script-runner/msr-core/issues)
+3. Review the [API documentation](../api/) for detailed reference
 4. Create a new issue if your problem isn't covered
 
 ## Stay Updated
