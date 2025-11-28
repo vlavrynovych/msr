@@ -21,50 +21,107 @@ Architectural patterns and design decisions in MSR.
 
 ## Class Diagram
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                   MigrationScriptExecutor                        │
-├─────────────────────────────────────────────────────────────────┤
-│ - handler: IDatabaseMigrationHandler                            │
-│ - backupService: IBackupService                                 │
-│ - schemaVersionService: ISchemaVersionService                   │
-│ - migrationService: IMigrationService                           │
-│ - migrationRenderer: IMigrationRenderer                         │
-│ - migrationScanner: IMigrationScanner                           │
-│ - selector: MigrationScriptSelector                             │
-│ - runner: MigrationRunner                                       │
-│ - logger: ILogger                                               │
-├─────────────────────────────────────────────────────────────────┤
-│ + migrate(): Promise<IMigrationResult>                          │
-│ + list(number?: number): Promise<void>                          │
-└─────────────────────────────────────────────────────────────────┘
-                             │
-                             │ delegates to
-                             │
-        ┌────────────────────┼────────────────────┐
-        │                    │                    │
-        ▼                    ▼                    ▼
-┌──────────────────┐  ┌──────────────┐  ┌──────────────────────┐
-│ MigrationScanner │  │ MigrationScrip│  │  MigrationRunner     │
-├──────────────────┤  │ tSelector     │  ├──────────────────────┤
-│ - migrationService│ ├──────────────┤  │ - handler            │
-│ - schemaVersion   │  │ (stateless)  │  │ - schemaVersionService│
-│   Service         │  ├──────────────┤  │ - logger             │
-│ - selector        │  │ + getPending()│  ├──────────────────────┤
-│ - handler         │  │ + getIgnored()│  │ + execute()          │
-├──────────────────┤  └──────────────┘  │ + executeOne()       │
-│ + scan()         │                     └──────────────────────┘
-└──────────────────┘
+This UML class diagram shows the main classes, their properties, methods, and relationships:
 
-┌──────────────────────────────────────────────────────────────┐
-│                     Supporting Services                       │
-├──────────────────────────┬──────────────────┬────────────────┤
-│   BackupService          │ SchemaVersion    │ MigrationService│
-│   • backup()             │ Service          │ • readMigration │
-│   • restore()            │ • init()         │   Scripts()     │
-│   • deleteBackup()       │ • save()         │ • parseFilename()│
-│                          │ • getAllMigrated │                 │
-└──────────────────────────┴──────────────────┴─────────────────┘
+```mermaid
+classDiagram
+    class MigrationScriptExecutor {
+        -handler: IDatabaseMigrationHandler
+        -backupService: IBackupService
+        -schemaVersionService: ISchemaVersionService
+        -migrationService: IMigrationService
+        -migrationRenderer: IMigrationRenderer
+        -migrationScanner: IMigrationScanner
+        -selector: MigrationScriptSelector
+        -runner: MigrationRunner
+        -rollbackService: RollbackService
+        -logger: ILogger
+        +migrate() Promise~IMigrationResult~
+        +migrateTo(version) Promise~IMigrationResult~
+        +downTo(version) Promise~IMigrationResult~
+        +list(number) Promise~void~
+    }
+
+    class MigrationScanner {
+        -migrationService: IMigrationService
+        -schemaVersionService: ISchemaVersionService
+        -selector: MigrationScriptSelector
+        -handler: IDatabaseMigrationHandler
+        +scan() Promise~IScripts~
+    }
+
+    class MigrationScriptSelector {
+        <<stateless>>
+        +getPending(migrated, all) MigrationScript[]
+        +getIgnored(migrated, all) MigrationScript[]
+        +getPendingUpTo(migrated, all, version) MigrationScript[]
+        +getMigratedDownTo(migrated, version) MigrationScript[]
+    }
+
+    class MigrationRunner {
+        -handler: IDatabaseMigrationHandler
+        -schemaVersionService: ISchemaVersionService
+        -logger: ILogger
+        +execute(scripts) Promise~MigrationScript[]~
+        +executeOne(script) Promise~void~
+    }
+
+    class BackupService {
+        -handler: IDatabaseMigrationHandler
+        -config: Config
+        -logger: ILogger
+        +backup() Promise~string~
+        +restore(backupPath) Promise~void~
+        +deleteBackup(backupPath) Promise~void~
+    }
+
+    class SchemaVersionService {
+        -handler: IDatabaseMigrationHandler
+        -logger: ILogger
+        +init() Promise~void~
+        +save(script) Promise~void~
+        +getAllMigrated() Promise~MigrationScript[]~
+        +remove(script) Promise~void~
+    }
+
+    class MigrationService {
+        -logger: ILogger
+        +readMigrationScripts(config) Promise~MigrationScript[]~
+        +parseFilename(filename) ParsedFilename
+    }
+
+    class RollbackService {
+        -handler: IDatabaseMigrationHandler
+        -config: Config
+        -backupService: BackupService
+        -logger: ILogger
+        +rollback(scripts, backupPath) Promise~void~
+        +shouldCreateBackup() boolean
+    }
+
+    class MigrationRenderer {
+        -strategy: IRenderStrategy
+        -logger: ILogger
+        -config: Config
+        +render(result) void
+        +renderMigrated(scripts) void
+    }
+
+    MigrationScriptExecutor --> MigrationScanner : uses
+    MigrationScriptExecutor --> MigrationScriptSelector : uses
+    MigrationScriptExecutor --> MigrationRunner : uses
+    MigrationScriptExecutor --> BackupService : uses
+    MigrationScriptExecutor --> SchemaVersionService : uses
+    MigrationScriptExecutor --> RollbackService : uses
+    MigrationScriptExecutor --> MigrationRenderer : uses
+
+    MigrationScanner --> MigrationService : uses
+    MigrationScanner --> SchemaVersionService : uses
+    MigrationScanner --> MigrationScriptSelector : uses
+
+    MigrationRunner --> SchemaVersionService : uses
+
+    RollbackService --> BackupService : uses
 ```
 
 ---
@@ -94,37 +151,56 @@ const executor2 = new MigrationScriptExecutor(handler, config, {
 
 ### Dependency Graph
 
-```
-MigrationScriptExecutor
-  │
-  ├─▶ ILogger (injected or default: ConsoleLogger)
-  │
-  ├─▶ IBackupService (injected or default: BackupService)
-  │     └─▶ ILogger
-  │
-  ├─▶ ISchemaVersionService (injected or default: SchemaVersionService)
-  │     └─▶ ISchemaVersionDAO (from handler)
-  │
-  ├─▶ IMigrationService (injected or default: MigrationService)
-  │     └─▶ ILogger
-  │
-  ├─▶ IMigrationRenderer (injected or default: MigrationRenderer)
-  │     └─▶ IRenderStrategy (injected or default: AsciiTableRenderStrategy)
-  │           └─▶ ILogger
-  │
-  ├─▶ IMigrationScanner (injected or default: MigrationScanner)
-  │     ├─▶ IMigrationService
-  │     ├─▶ ISchemaVersionService
-  │     ├─▶ MigrationScriptSelector
-  │     └─▶ IDatabaseMigrationHandler
-  │
-  ├─▶ MigrationScriptSelector (always created)
-  │     └─▶ (stateless, no dependencies)
-  │
-  └─▶ MigrationRunner (always created)
-        ├─▶ IDatabaseMigrationHandler
-        ├─▶ ISchemaVersionService
-        └─▶ ILogger
+This diagram shows the dependency injection hierarchy and how services are composed:
+
+```mermaid
+graph TD
+    Executor[MigrationScriptExecutor]
+
+    Executor --> Logger[ILogger<br/>default: ConsoleLogger]
+
+    Executor --> Backup[IBackupService<br/>default: BackupService]
+    Backup --> Logger2[ILogger]
+
+    Executor --> Schema[ISchemaVersionService<br/>default: SchemaVersionService]
+    Schema --> DAO[ISchemaVersionDAO<br/>from handler]
+
+    Executor --> Migration[IMigrationService<br/>default: MigrationService]
+    Migration --> Logger3[ILogger]
+
+    Executor --> Renderer[IMigrationRenderer<br/>default: MigrationRenderer]
+    Renderer --> Strategy[IRenderStrategy<br/>default: AsciiTableRenderStrategy]
+    Strategy --> Logger4[ILogger]
+
+    Executor --> Scanner[IMigrationScanner<br/>default: MigrationScanner]
+    Scanner --> Migration2[IMigrationService]
+    Scanner --> Schema2[ISchemaVersionService]
+    Scanner --> Selector[MigrationScriptSelector]
+    Scanner --> Handler[IDatabaseMigrationHandler]
+
+    Executor --> Selector2[MigrationScriptSelector<br/>always created]
+    Selector2 --> Stateless[stateless, no dependencies]
+
+    Executor --> Runner[MigrationRunner<br/>always created]
+    Runner --> Handler2[IDatabaseMigrationHandler]
+    Runner --> Schema3[ISchemaVersionService]
+    Runner --> Logger5[ILogger]
+
+    Executor --> Rollback[RollbackService<br/>always created]
+    Rollback --> Backup2[BackupService]
+
+    style Executor fill:#fff3cd
+    style Logger fill:#d4edda
+    style Backup fill:#d4edda
+    style Schema fill:#d4edda
+    style Migration fill:#d4edda
+    style Renderer fill:#d4edda
+    style Scanner fill:#d4edda
+    style Selector2 fill:#d4edda
+    style Runner fill:#d4edda
+    style Rollback fill:#d4edda
+    style Strategy fill:#e8e8e8
+    style Handler fill:#f8d7da
 ```
 
 ---
