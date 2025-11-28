@@ -34,6 +34,49 @@ export class MigrationService implements IMigrationService {
     ) {}
 
     /**
+     * Validate that a filename doesn't contain path traversal attempts.
+     * Prevents directory traversal attacks by checking for '..' sequences
+     * and ensuring the resolved path stays within the base directory.
+     *
+     * @param fileName - The filename or relative path to validate
+     * @param baseDir - The base directory that the file must be within
+     *
+     * @throws {Error} If the filename attempts directory traversal
+     *
+     * @example
+     * ```typescript
+     * // Valid filename
+     * validateFileName('V1_init.ts', '/migrations'); // OK
+     * validateFileName('users/V1_init.ts', '/migrations'); // OK
+     *
+     * // Invalid filename (traversal attempt)
+     * validateFileName('../../../etc/passwd', '/migrations'); // throws Error
+     * validateFileName('..', '/migrations'); // throws Error
+     * ```
+     */
+    private validateFileName(fileName: string, baseDir: string): void {
+        // Check for explicit traversal sequences
+        if (fileName.includes('..')) {
+            throw new Error(
+                `Security error: Path traversal detected. ` +
+                `Filename '${fileName}' contains '..' which is not allowed`
+            );
+        }
+
+        // Also validate the resolved path stays within baseDir
+        const fullPath = path.join(baseDir, fileName);
+        const resolvedPath = path.resolve(fullPath);
+        const resolvedBase = path.resolve(baseDir);
+
+        if (!resolvedPath.startsWith(resolvedBase + path.sep) && resolvedPath !== resolvedBase) {
+            throw new Error(
+                `Security error: Path traversal detected. ` +
+                `File path '${fileName}' resolves outside the migrations directory '${baseDir}'`
+            );
+        }
+    }
+
+    /**
      * Recursively scan a directory and its sub-directories for files.
      * Hidden files and folders (starting with '.') are automatically ignored.
      *
@@ -51,6 +94,7 @@ export class MigrationService implements IMigrationService {
                 continue;
             }
 
+            this.validateFileName(entry.name, dir);
             const fullPath = path.join(dir, entry.name);
 
             if (entry.isDirectory()) {
@@ -114,6 +158,7 @@ export class MigrationService implements IMigrationService {
         const possibleNames = [`${cfg.beforeMigrateName}.ts`, `${cfg.beforeMigrateName}.js`];
 
         for (const name of possibleNames) {
+            this.validateFileName(name, folder);
             const filePath = path.join(folder, name);
             if (fs.existsSync(filePath)) {
                 return filePath;
@@ -193,10 +238,11 @@ export class MigrationService implements IMigrationService {
             const fileNames = fs.readdirSync(folder);
             files = fileNames
                 .filter(name => !name.startsWith('.')) // ignores hidden files
-                .map(name => ({
-                    name,
-                    filePath: path.join(folder, name)
-                }));
+                .map(name => {
+                    this.validateFileName(name, folder);
+                    const filePath = path.join(folder, name);
+                    return { name, filePath };
+                });
         }
 
         if(!files.length) {
