@@ -6,6 +6,10 @@ description: "Migration Script Runner - A database-agnostic migration framework 
 permalink: /
 ---
 
+<p align="center">
+  <img src="https://avatars.githubusercontent.com/u/198738025?s=200&v=4" alt="Migration Script Runner Logo" width="120" height="120">
+</p>
+
 # Migration Script Runner
 {: .fs-9 }
 
