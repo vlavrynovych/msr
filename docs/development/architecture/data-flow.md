@@ -73,50 +73,72 @@ graph TD
 
 ## Class Diagram
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                   MigrationScriptExecutor                        │
-├─────────────────────────────────────────────────────────────────┤
-│ - handler: IDatabaseMigrationHandler                            │
-│ - backupService: IBackupService                                 │
-│ - schemaVersionService: ISchemaVersionService                   │
-│ - migrationService: IMigrationService                           │
-│ - migrationRenderer: IMigrationRenderer                         │
-│ - migrationScanner: IMigrationScanner                           │
-│ - selector: MigrationScriptSelector                             │
-│ - runner: MigrationRunner                                       │
-│ - logger: ILogger                                               │
-├─────────────────────────────────────────────────────────────────┤
-│ + migrate(): Promise<IMigrationResult>                          │
-│ + list(number?: number): Promise<void>                          │
-└─────────────────────────────────────────────────────────────────┘
-                             │
-                             │ delegates to
-                             │
-        ┌────────────────────┼────────────────────┐
-        │                    │                    │
-        ▼                    ▼                    ▼
-┌──────────────────┐  ┌──────────────┐  ┌──────────────────────┐
-│ MigrationScanner │  │ MigrationScrip│  │  MigrationRunner     │
-├──────────────────┤  │ tSelector     │  ├──────────────────────┤
-│ - migrationService│ ├──────────────┤  │ - handler            │
-│ - schemaVersion   │  │ (stateless)  │  │ - schemaVersionService│
-│   Service         │  ├──────────────┤  │ - logger             │
-│ - selector        │  │ + getPending()│  ├──────────────────────┤
-│ - handler         │  │ + getIgnored()│  │ + execute()          │
-├──────────────────┤  └──────────────┘  │ + executeOne()       │
-│ + scan()         │                     └──────────────────────┘
-└──────────────────┘
+```mermaid
+classDiagram
+    class MigrationScriptExecutor {
+        -IDatabaseMigrationHandler handler
+        -IBackupService backupService
+        -ISchemaVersionService schemaVersionService
+        -IMigrationService migrationService
+        -IMigrationRenderer migrationRenderer
+        -IMigrationScanner migrationScanner
+        -MigrationScriptSelector selector
+        -MigrationRunner runner
+        -ILogger logger
+        +migrate() Promise~IMigrationResult~
+        +list(number?) Promise~void~
+    }
 
-┌──────────────────────────────────────────────────────────────┐
-│                     Supporting Services                       │
-├──────────────────────────┬──────────────────┬────────────────┤
-│   BackupService          │ SchemaVersion    │ MigrationService│
-│   • backup()             │ Service          │ • readMigration │
-│   • restore()            │ • init()         │   Scripts()     │
-│   • deleteBackup()       │ • save()         │ • parseFilename()│
-│                          │ • getAllMigrated │                 │
-└──────────────────────────┴──────────────────┴─────────────────┘
+    class MigrationScanner {
+        -IMigrationService migrationService
+        -ISchemaVersionService schemaVersionService
+        -MigrationScriptSelector selector
+        -IDatabaseMigrationHandler handler
+        +scan() Promise~IScanResult~
+    }
+
+    class MigrationScriptSelector {
+        +getPending(all, migrated) IMigrationScript[]
+        +getIgnored(all, migrated) IMigrationScript[]
+    }
+
+    class MigrationRunner {
+        -IDatabaseMigrationHandler handler
+        -ISchemaVersionService schemaVersionService
+        -ILogger logger
+        +execute(scripts) Promise~void~
+        +executeOne(script) Promise~void~
+    }
+
+    class BackupService {
+        +backup() Promise~string~
+        +restore(path) Promise~void~
+        +deleteBackup(path) Promise~void~
+    }
+
+    class SchemaVersionService {
+        +init() Promise~void~
+        +save(script) Promise~void~
+        +getAllMigrated() Promise~IMigrationScript[]~
+    }
+
+    class MigrationService {
+        +readMigrationScripts(folder) Promise~IMigrationScript[]~
+        +parseFilename(name) object
+    }
+
+    MigrationScriptExecutor --> MigrationScanner
+    MigrationScriptExecutor --> MigrationScriptSelector
+    MigrationScriptExecutor --> MigrationRunner
+    MigrationScriptExecutor --> BackupService
+    MigrationScriptExecutor --> SchemaVersionService
+    MigrationScriptExecutor --> MigrationService
+
+    MigrationScanner --> MigrationService
+    MigrationScanner --> SchemaVersionService
+    MigrationScanner --> MigrationScriptSelector
+
+    MigrationRunner --> SchemaVersionService
 ```
 
 ---
