@@ -680,7 +680,7 @@ private async dumpData(): Promise<string> {
 
 ## Performance Tips
 
-<details>
+<details markdown="1">
 <summary>Advanced: Performance optimization techniques</summary>
 
 ### 1. Use Connection Pooling

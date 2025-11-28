@@ -645,7 +645,7 @@ describe('MongoDB Migration Integration', () => {
 
 ## Best Practices
 
-<details>
+<details markdown="1">
 <summary>Advanced: MongoDB-specific best practices</summary>
 
 ### 1. Use Schema Validation

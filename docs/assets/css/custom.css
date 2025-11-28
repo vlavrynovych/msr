@@ -1,35 +1,6 @@
 ---
 ---
 
-/* Show both logo and title in sidebar */
-.site-header .site-title {
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  background-image: none !important;
-  padding-left: 0 !important;
-}
-
-.site-header .site-logo,
-.site-header .site-title img {
-  display: inline-block !important;
-  border: 2px solid #4b4cd4 !important;
-  border-radius: 8px !important;
-  width: 40px !important;
-  height: 40px !important;
-  margin-right: 12px !important;
-  object-fit: contain !important;
-}
-
-/* Add title text after logo */
-.site-header .site-title::after {
-  content: "Migration Script Runner" !important;
-  font-size: 16px !important;
-  font-weight: 600 !important;
-  display: inline !important;
-  vertical-align: middle !important;
-}
-
 /* Limit height of large Mermaid diagrams */
 /* Architecture page - component diagram */
 .main-content h2#high-level-architecture + p + .language-mermaid {
