@@ -52,14 +52,66 @@ constructor(
 - `dependencies` (optional): Custom service implementations for dependency injection
   - `logger?`: Custom logger implementation (defaults to `ConsoleLogger`)
   - `backupService?`: Custom backup service (defaults to `BackupService`)
+  - `rollbackService?`: Custom rollback service (defaults to `RollbackService`)
   - `schemaVersionService?`: Custom schema version service (defaults to `SchemaVersionService`)
   - `migrationRenderer?`: Custom migration renderer (defaults to `MigrationRenderer`)
   - `migrationService?`: Custom migration service (defaults to `MigrationService`)
+  - `migrationScanner?`: Custom migration scanner (defaults to `MigrationScanner`)
+  - `validationService?`: Custom validation service (defaults to `MigrationValidationService`)
   - `renderStrategy?`: Custom render strategy (defaults to `AsciiTableRenderStrategy`)
   - `hooks?`: Lifecycle hooks for migration events (defaults to `undefined`)
 
 {: .important }
 > **Breaking Change (v0.3.0):** Config is now passed as a separate second parameter instead of being accessed from `handler.cfg`. This follows the Single Responsibility Principle and improves testability.
+
+#### Public Properties
+
+The `MigrationScriptExecutor` exposes several service instances as public readonly properties for direct access:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `backupService` | `IBackupService` | Service for creating and managing database backups |
+| `rollbackService` | `IRollbackService` | Service for handling rollback operations and strategies |
+| `schemaVersionService` | `ISchemaVersionService` | Service for tracking executed migrations |
+| `migrationRenderer` | `IMigrationRenderer` | Service for rendering migration output |
+| `migrationService` | `IMigrationService` | Service for discovering migration script files |
+| `migrationScanner` | `IMigrationScanner` | Service for gathering complete migration state |
+| `validationService` | `IMigrationValidationService` | Service for validating migration scripts |
+| `logger` | `ILogger` | Logger instance used across all services |
+| `hooks` | `IMigrationHooks?` | Optional lifecycle hooks for migration events |
+
+**Example (Accessing Services):**
+```typescript
+const executor = new MigrationScriptExecutor(handler, config);
+
+// Check if backup should be created
+if (executor.rollbackService.shouldCreateBackup()) {
+  console.log('Backup will be created before migration');
+}
+
+// Access backup service directly
+const backupPath = await executor.backupService.backup();
+
+// Access validation service
+const results = await executor.validationService.validateAll(scripts, config);
+```
+
+**Example (Custom Rollback Logic):**
+```typescript
+// Access rollbackService for custom workflows
+const executor = new MigrationScriptExecutor(handler, config);
+
+try {
+  await executor.migrate();
+} catch (error) {
+  // Custom rollback decision logic
+  if (shouldUseBackupRestore(error)) {
+    await executor.rollbackService.rollback([], backupPath);
+  } else {
+    console.log('Skipping rollback for this error type');
+  }
+}
+```
 
 #### Methods
 
@@ -717,6 +769,106 @@ console.log('Ignored:', result.ignored.length);
 if (!result.success) {
   console.error('Errors:', result.errors);
 }
+```
+
+---
+
+### IRollbackService
+
+Service interface for handling rollback operations during migration failures.
+
+```typescript
+interface IRollbackService {
+  rollback(executedScripts: MigrationScript[], backupPath?: string): Promise<void>;
+  shouldCreateBackup(): boolean;
+}
+```
+
+The `RollbackService` encapsulates all rollback logic and strategies, coordinating with `BackupService` when needed. It can be injected as a custom implementation via the `dependencies` parameter.
+
+#### Methods
+
+##### rollback()
+
+Execute rollback based on the configured rollback strategy.
+
+```typescript
+async rollback(
+  executedScripts: MigrationScript[],
+  backupPath?: string
+): Promise<void>
+```
+
+**Parameters:**
+- `executedScripts`: Array of migration scripts that were attempted (including the failed one)
+- `backupPath` (optional): Path to backup file created before migration
+
+**Strategies:**
+- **BACKUP** - Restore from backup file
+- **DOWN** - Call `down()` methods in reverse order
+- **BOTH** - Try DOWN first, fallback to BACKUP if DOWN fails
+- **NONE** - No rollback (logs warning)
+
+**Example:**
+```typescript
+try {
+  await runMigrations();
+} catch (error) {
+  // Automatically rollback using configured strategy
+  await rollbackService.rollback(executedScripts, backupPath);
+}
+```
+
+---
+
+##### shouldCreateBackup()
+
+Determine if backup should be created based on rollback strategy and backup mode.
+
+```typescript
+shouldCreateBackup(): boolean
+```
+
+**Returns:** `true` if backup should be created, `false` otherwise
+
+Returns `true` only when:
+- Handler has backup interface (`handler.backup` exists)
+- Rollback strategy is BACKUP or BOTH
+- Backup mode is FULL or CREATE_ONLY
+
+**Example:**
+```typescript
+if (rollbackService.shouldCreateBackup()) {
+  const backupPath = await backupService.backup();
+}
+```
+
+**Custom Implementation Example:**
+```typescript
+import { IRollbackService, MigrationScript, Config, IBackupService, ILogger } from '@migration-script-runner/core';
+
+class CustomRollbackService implements IRollbackService {
+  constructor(
+    private backupService: IBackupService,
+    private logger: ILogger
+  ) {}
+
+  async rollback(executedScripts: MigrationScript[], backupPath?: string): Promise<void> {
+    this.logger.info('Custom rollback logic');
+    // Custom rollback implementation
+    await this.backupService.restore(backupPath);
+  }
+
+  shouldCreateBackup(): boolean {
+    // Custom logic to determine if backup should be created
+    return true;
+  }
+}
+
+// Inject custom rollback service
+const executor = new MigrationScriptExecutor(handler, config, {
+  rollbackService: new CustomRollbackService(backupService, logger)
+});
 ```
 
 ---

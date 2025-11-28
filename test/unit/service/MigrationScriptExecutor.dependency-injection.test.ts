@@ -8,7 +8,9 @@ import {
     ISchemaVersion,
     IMigrationInfo,
     IDB,
-    IMigrationValidationService
+    IMigrationValidationService,
+    IRollbackService,
+    MigrationScript
 } from '../../../src';
 
 describe('MigrationScriptExecutor - Dependency Injection', () => {
@@ -80,6 +82,41 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             expect(executor.validationService).to.exist;
             expect(executor.validationService).to.have.property('validateAll');
             expect(executor.validationService).to.have.property('validateMigratedFileIntegrity');
+        });
+
+        /**
+         * Test: Constructor accepts custom rollbackService via dependencies
+         * Covers line 169 (dependencies?.rollbackService branch)
+         * Validates that a custom rollback service can be injected, enabling
+         * testing and customization of rollback behavior.
+         */
+        it('should use custom rollbackService when provided', () => {
+            const customRollbackService: IRollbackService = {
+                rollback: sinon.stub().resolves(),
+                shouldCreateBackup: sinon.stub().returns(true)
+            };
+
+            const executor = new MigrationScriptExecutor(handler, config, {
+                logger: new SilentLogger(),
+                rollbackService: customRollbackService
+            });
+
+            expect(executor.rollbackService).to.equal(customRollbackService);
+        });
+
+        /**
+         * Test: Constructor creates default rollbackService when not provided
+         * Validates that when no custom rollback service is provided,
+         * a default RollbackService instance is created.
+         */
+        it('should create default rollbackService when not provided', () => {
+            const executor = new MigrationScriptExecutor(handler, config, {
+                logger: new SilentLogger()
+            });
+
+            expect(executor.rollbackService).to.exist;
+            expect(executor.rollbackService).to.have.property('rollback');
+            expect(executor.rollbackService).to.have.property('shouldCreateBackup');
         });
     });
 });

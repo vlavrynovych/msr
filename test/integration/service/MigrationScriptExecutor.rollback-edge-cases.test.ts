@@ -300,9 +300,9 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
 
         const executor = new MigrationScriptExecutor(handler, config, {logger: testLogger});
 
-        // Manually trigger rollback with empty array (testing private method)
+        // Test rollbackService.rollback with DOWN strategy and empty array
         // This simulates a scenario where rollback is called but no migrations were executed
-        await (executor as any).rollbackWithDown([]);
+        await executor.rollbackService.rollback([], undefined);
 
         // Should log "No migrations to rollback"
         expect(infoMessages.some(msg => msg.includes('No migrations to rollback'))).to.be.true;

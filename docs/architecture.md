@@ -47,14 +47,14 @@ MSR (Migration Script Runner) follows a layered architecture with clear separati
 │  • Coordinates entire migration workflow                         │
 │  • Manages service lifecycle                                     │
 │  • Handles errors and recovery                                   │
-└──┬──────────┬──────────┬──────────┬──────────┬─────────┬────────┘
-   │          │          │          │          │         │
-   ▼          ▼          ▼          ▼          ▼         ▼
-┌────────┐ ┌────────┐ ┌────────┐ ┌──────────┐ ┌───────┐ ┌────────┐
-│Backup  │ │Schema  │ │Migration│ │Migration │ │Migr.  │ │Migr.   │
-│Service │ │Version │ │Service  │ │Renderer  │ │Scanner│ │Selector│
-│        │ │Service │ │         │ │          │ │       │ │        │
-└────────┘ └────────┘ └────────┘ └──────────┘ └───────┘ └────────┘
+└──┬──────────┬──────────┬──────────┬──────────┬──────────┬───────┘
+   │          │          │          │          │          │
+   ▼          ▼          ▼          ▼          ▼          ▼
+┌────────┐ ┌────────┐ ┌────────┐ ┌──────────┐ ┌───────┐ ┌─────────┐
+│Backup  │ │Schema  │ │Rollback│ │Migration │ │Migr.  │ │Migr.    │
+│Service │ │Version │ │Service │ │Renderer  │ │Scanner│ │Selector │
+│        │ │Service │ │        │ │          │ │       │ │         │
+└────────┘ └────────┘ └────────┘ └──────────┘ └───────┘ └─────────┘
      │          │          │          │            │          │
      │          │          │          │            │          ▼
      │          │          │          │            │      ┌──────────────────┐
@@ -85,13 +85,15 @@ MSR (Migration Script Runner) follows a layered architecture with clear separati
 - Displays progress and results
 
 **Key Dependencies:**
-- `IBackupService` - Database backup/restore (optional, based on rollback strategy)
+- `IBackupService` - Database backup/restore operations
 - `ISchemaVersionService` - Track executed migrations
+- `IRollbackService` - Handle rollback strategies and failure recovery
 - `IMigrationService` - Discover migration files
 - `IMigrationScanner` - Gather complete migration state
 - `IMigrationRenderer` - Display output
 - `MigrationScriptSelector` - Filter migrations
 - `MigrationRunner` - Execute migrations
+- `IMigrationValidationService` - Validate migration scripts
 
 **Location:** `src/service/MigrationScriptExecutor.ts`
 
@@ -270,61 +272,115 @@ const executed = await runner.execute(scripts);
 
 ---
 
-### BackupService
+### RollbackService
 
-**Purpose:** Create and manage database backups
+**Purpose:** Orchestrate rollback operations based on configured strategy
 
 **Responsibilities:**
-- Create backup before migrations (if BACKUP or BOTH strategy)
-- Restore backup on failure (if BACKUP strategy)
-- Fallback restore if down() fails (if BOTH strategy)
-- Delete backup after success or failure
-- Handle backup lifecycle
+- Determine if backup should be created based on strategy and mode
+- Execute rollback using one of four strategies (BACKUP, DOWN, BOTH, NONE)
+- Handle backup mode logic (FULL, CREATE_ONLY, RESTORE_ONLY, MANUAL)
+- Coordinate with BackupService for backup/restore operations
+- Call lifecycle hooks during rollback (onBeforeRestore, onAfterRestore)
+
+**Location:** `src/service/RollbackService.ts`
+
+**Rollback Strategies:**
+- **BACKUP** - Restore from backup file
+- **DOWN** - Call down() methods in reverse order
+- **BOTH** - Try DOWN first, fallback to BACKUP if it fails
+- **NONE** - No rollback (logs warning)
+
+**Backup Modes (affect BACKUP/BOTH strategies):**
+- **FULL** - Create backup before migration, restore on failure
+- **CREATE_ONLY** - Create backup but don't restore on failure
+- **RESTORE_ONLY** - Don't create backup, restore from existing backup path
+- **MANUAL** - Don't create or restore (use createBackup/restoreFromBackup methods manually)
+
+**Key Method:**
+```typescript
+async rollback(
+    executedScripts: MigrationScript[],
+    backupPath?: string
+): Promise<void>
+```
+
+**Example Usage:**
+```typescript
+const rollbackService = new RollbackService(
+    handler,
+    config,
+    backupService,
+    logger,
+    hooks
+);
+
+try {
+    await runMigrations();
+} catch (error) {
+    // Automatically rollback using configured strategy
+    await rollbackService.rollback(executedScripts, backupPath);
+}
+```
+
+---
+
+### BackupService
+
+**Purpose:** Create and manage database backup files
+
+**Responsibilities:**
+- Create backup by calling handler.backup.backup()
+- Write backup data to disk with timestamp
+- Restore backup by calling handler.backup.restore()
+- Delete backup after success or cleanup
+- Handle backup file lifecycle
 
 **Location:** `src/service/BackupService.ts`
 
-**Note:** Only used when `rollbackStrategy` is BACKUP or BOTH. Not required for DOWN or NONE strategies.
+**Note:** Used by RollbackService when rollbackStrategy is BACKUP or BOTH.
 
-**Workflow (BACKUP strategy):**
+**Workflow (BACKUP strategy - orchestrated by RollbackService):**
 ```
 migrate() {
-  backup()           // ← BackupService
+  if (rollbackService.shouldCreateBackup()) {
+    backup()         // ← BackupService
+  }
   try {
     run migrations
     deleteBackup()   // ← Success: remove backup
   } catch (err) {
-    restore()        // ← Failure: restore from backup
-    deleteBackup()   // ← Cleanup
+    rollbackService.rollback(executedScripts, backupPath)
+    // → RollbackService calls restore() via BackupService
   }
 }
 ```
 
-**Workflow (DOWN strategy):**
+**Workflow (DOWN strategy - orchestrated by RollbackService):**
 ```
 migrate() {
-  // No backup created
+  // No backup created (shouldCreateBackup() returns false)
   try {
     run migrations
   } catch (err) {
-    rollbackWithDown()  // ← Call down() on all attempted migrations
+    rollbackService.rollback(executedScripts, backupPath)
+    // → RollbackService calls down() on all attempted migrations
   }
 }
 ```
 
-**Workflow (BOTH strategy):**
+**Workflow (BOTH strategy - orchestrated by RollbackService):**
 ```
 migrate() {
-  backup()           // ← BackupService
+  if (rollbackService.shouldCreateBackup()) {
+    backup()         // ← BackupService
+  }
   try {
     run migrations
     deleteBackup()   // ← Success: remove backup
   } catch (err) {
-    try {
-      rollbackWithDown()  // ← Try down() first
-      deleteBackup()
-    } catch (downErr) {
-      restore()        // ← Fallback to backup
-      deleteBackup()
+    rollbackService.rollback(executedScripts, backupPath)
+    // → RollbackService tries down() first, falls back to backup restore if down() fails
     }
   }
 }

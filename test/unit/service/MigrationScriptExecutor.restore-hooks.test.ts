@@ -76,8 +76,8 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
             backupService: mockBackupService
         });
 
-        // Access the private method via type assertion for testing
-        await (executor as any).rollbackWithBackup('/path/to/backup.bkp');
+        // Test rollbackService.rollback with BACKUP strategy
+        await executor.rollbackService.rollback([], '/path/to/backup.bkp');
 
         // Verify restore hooks were called
         expect((restoreHooks.onBeforeRestore as sinon.SinonStub).calledOnce).to.be.true;
@@ -119,8 +119,8 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
             backupService: mockBackupService
         });
 
-        // Access the private method via type assertion for testing
-        await (executor as any).rollbackWithBackup('/path/to/backup.bkp');
+        // Test rollbackService.rollback with BACKUP strategy
+        await executor.rollbackService.rollback([], '/path/to/backup.bkp');
 
         // Verify order: onBeforeRestore -> restore -> onAfterRestore -> deleteBackup
         expect(callOrder).to.deep.equal(['onBeforeRestore', 'restore', 'onAfterRestore', 'deleteBackup']);
@@ -148,8 +148,8 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
             backupService: mockBackupService
         });
 
-        // Access the private method via type assertion for testing
-        await (executor as any).rollbackWithBackup(undefined);
+        // Test rollbackService.rollback with BACKUP strategy but no backup path
+        await executor.rollbackService.rollback([], undefined);
 
         // Verify restore hooks were NOT called
         expect((restoreHooks.onBeforeRestore as sinon.SinonStub).called).to.be.false;
@@ -174,8 +174,8 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
             // No hooks provided
         });
 
-        // Should not throw error
-        await (executor as any).rollbackWithBackup('/path/to/backup.bkp');
+        // Should not throw error - test rollbackService.rollback with BACKUP strategy
+        await executor.rollbackService.rollback([], '/path/to/backup.bkp');
 
         // Verify restore was still called
         expect((mockBackupService.restore as sinon.SinonStub).calledOnce).to.be.true;
