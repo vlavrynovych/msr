@@ -18,6 +18,76 @@ Comprehensive guide to MSR's internal architecture, component design, and how th
 
 MSR (Migration Script Runner) follows a layered architecture with clear separation of concerns. The system is designed around the Single Responsibility Principle, with each class handling one specific aspect of the migration workflow.
 
+```mermaid
+graph TB
+    subgraph "User Code"
+        Handler[IDatabaseMigrationHandler<br/>Your Database Handler]
+        Migrations[Migration Scripts<br/>V*_*.ts files]
+        UserDB[(Your Database)]
+    end
+
+    subgraph "MSR Core - Orchestration"
+        Executor[MigrationScriptExecutor<br/>Main orchestrator]
+        Config[Config<br/>Settings & Options]
+    end
+
+    subgraph "MSR Core - Services"
+        Scanner[MigrationScanner<br/>Finds migrations]
+        Validator[MigrationValidator<br/>Validates scripts]
+        Backup[BackupService<br/>Creates backups]
+        SchemaVersion[SchemaVersionService<br/>Tracks versions]
+        Execution[MigrationExecutionService<br/>Runs migrations]
+        Rollback[RollbackService<br/>Handles failures]
+    end
+
+    subgraph "MSR Core - Output"
+        Renderer[ConsoleRenderer<br/>Formats output]
+        Strategy[IRenderStrategy<br/>ASCII/JSON/Silent]
+        Logger[ILogger<br/>Console/File/Silent]
+    end
+
+    Executor --> Config
+    Executor --> Handler
+    Executor --> Scanner
+    Executor --> Validator
+    Executor --> Backup
+    Executor --> SchemaVersion
+    Executor --> Execution
+    Executor --> Rollback
+    Executor --> Renderer
+
+    Handler --> UserDB
+    Execution --> Migrations
+    Migrations --> UserDB
+    SchemaVersion --> Handler
+    Backup --> Handler
+    Rollback --> Handler
+
+    Renderer --> Strategy
+    Renderer --> Logger
+
+    style Handler fill:#e1f5ff
+    style Migrations fill:#e1f5ff
+    style UserDB fill:#e1f5ff
+    style Executor fill:#fff3cd
+    style Config fill:#fff3cd
+    style Scanner fill:#d4edda
+    style Validator fill:#d4edda
+    style Backup fill:#d4edda
+    style SchemaVersion fill:#d4edda
+    style Execution fill:#d4edda
+    style Rollback fill:#d4edda
+    style Renderer fill:#f8d7da
+    style Strategy fill:#f8d7da
+    style Logger fill:#f8d7da
+```
+
+**Architecture Layers:**
+- **Blue**: User-implemented components (database handler, migrations, your database)
+- **Yellow**: Orchestration layer (executor and configuration)
+- **Green**: Service layer (specialized operations)
+- **Red**: Output layer (rendering and logging)
+
 ### Design Principles
 
 - **Single Responsibility** - Each class has one clear purpose

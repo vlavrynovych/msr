@@ -10,6 +10,14 @@ nav_order: 2
 This guide will help you set up and run your first migrations with Migration Script Runner.
 {: .fs-6 .fw-300 }
 
+## What You'll Learn
+
+- How to install and set up MSR
+- Implementing a database handler for your database
+- Creating your first migration script
+- Running migrations and tracking execution
+- Basic rollback and backup strategies
+
 ## Table of contents
 {: .no_toc .text-delta }
 

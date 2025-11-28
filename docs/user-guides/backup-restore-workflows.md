@@ -11,6 +11,14 @@ nav_order: 6
 Practical workflows for database backups, environment synchronization, and disaster recovery.
 {: .fs-6 .fw-300 }
 
+## What You'll Learn
+
+- Environment synchronization (production to development)
+- Database cloning for testing environments
+- Disaster recovery procedures
+- CI/CD integration with backups
+- Security best practices for production data
+
 ## Table of contents
 {: .no_toc .text-delta }
 
@@ -27,6 +35,9 @@ MSR provides flexible backup and restore capabilities that go beyond simple roll
 - **Database Cloning**: Create copies of databases for testing
 - **Disaster Recovery**: Manual backup and restore procedures
 - **CI/CD Integration**: Backup before deployments with external restore capability
+
+{: .warning }
+> When copying production data to non-production environments, always sanitize sensitive data (PII, passwords, API keys) to comply with security and privacy regulations.
 
 ---
 
@@ -431,6 +442,9 @@ const devHandler = new FirebaseHandler(
 ## Disaster Recovery Workflow
 
 ### Manual Backup Before Risky Operations
+
+{: .tip }
+> For production deployments, always create a manual backup before running migrations. Set `config.backup.deleteBackup = false` to keep backups for disaster recovery.
 
 ```typescript
 // scripts/safe-migration.ts
