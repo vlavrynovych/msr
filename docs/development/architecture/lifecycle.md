@@ -87,16 +87,6 @@ sequenceDiagram
     Renderer-->>Executor: Formatted output
 
     Executor-->>User: Success
-
-    style User fill:#e3f2fd
-    style Executor fill:#fff3e0
-    style Scanner fill:#e8f5e9
-    style Validator fill:#e8f5e9
-    style Backup fill:#fff9c4
-    style Schema fill:#f3e5f5
-    style Execution fill:#e8f5e9
-    style Rollback fill:#ffcdd2
-    style Renderer fill:#e1f5fe
 ```
 
 ### State Transitions
@@ -104,7 +94,7 @@ sequenceDiagram
 This state diagram illustrates the various states a migration script can be in throughout its lifecycle, from discovery to completion or failure:
 
 ```mermaid
-stateDiagram-v2
+stateDiagram
     [*] --> Discovered: File found
     Discovered --> Filtered: Check status
     Filtered --> Pending: Not yet run
