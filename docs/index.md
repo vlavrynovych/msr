@@ -6,11 +6,10 @@ description: "Migration Script Runner - A database-agnostic migration framework 
 permalink: /
 ---
 
-<p align="center">
-  <img src="https://avatars.githubusercontent.com/u/198738025?s=200&v=4" alt="Migration Script Runner Logo" width="120" height="120">
-</p>
-
-# Migration Script Runner
+<h1 style="display: flex; align-items: center; gap: 15px;">
+  <img src="https://avatars.githubusercontent.com/u/150583924?s=200&v=4" alt="Migration Script Runner Logo" width="60" height="60" style="border: 2px solid #4b4cd4; border-radius: 8px;">
+  <span>Migration Script Runner</span>
+</h1>
 {: .fs-9 }
 
 A database-agnostic migration framework for TypeScript and JavaScript projects.
