@@ -194,7 +194,7 @@ Choose the right rollback strategy for your needs:
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=vlavrynovych_msr&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=vlavrynovych_msr)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=vlavrynovych_msr&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=vlavrynovych_msr)
 [![GitHub issues](https://img.shields.io/github/issues/migration-script-runner/msr-core.svg)](https://github.com/migration-script-runner/msr-core/issues)
-[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/migration-script-runner/msr-core/master/LICENSE)
+[![License](https://img.shields.io/badge/license-MIT%20%2B%20CC%20%2B%20Attribution-blue.svg)](license)
 [![NPM Version](https://img.shields.io/npm/v/@migration-script-runner/core.svg?style=flat)](https://npmjs.org/package/@migration-script-runner/core)
 [![NPM Downloads](https://img.shields.io/npm/dm/@migration-script-runner/core.svg?style=flat)](https://npmjs.org/package/@migration-script-runner/core)
 
@@ -211,7 +211,15 @@ Choose the right rollback strategy for your needs:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/migration-script-runner/msr-core/blob/master/LICENSE) file for details.
+This project is licensed under the **MIT License with Commons Clause and Attribution Requirements**.
+
+**Quick Summary:**
+- ✅ **Free to use** in your applications and products
+- ✅ **Free to modify** and contribute
+- ❌ **Cannot sell** MSR or adapters as standalone products
+- 🔒 **Attribution required** for database adapters and extensions
+
+[Read the full license documentation](license) for detailed examples and FAQ.
 
 ---
 
