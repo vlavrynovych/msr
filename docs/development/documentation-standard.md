@@ -241,32 +241,129 @@ Use callout boxes to highlight important information.
 
 ### Mermaid Diagrams
 
-Use Mermaid for visual explanations of:
-- Architecture and component relationships
-- Data flow and sequences
-- Decision trees and workflows
-- State transitions
+Use Mermaid for visual diagrams to illustrate architecture, workflows, and data flow.
 
-**Standard format:**
+#### Mermaid Compatibility Guidelines
+
+**IMPORTANT**: MSR documentation uses Mermaid 9.1.3, which has specific syntax requirements. Follow these rules to ensure diagrams render correctly:
+
+**✅ DO:**
+- Use simple text labels without special characters
+- Use flowcharts (`graph TD/TB`) for workflows and processes
+- Use sequence diagrams (`sequenceDiagram`) for component interactions
+- Use class diagrams (`classDiagram`) for architecture relationships
+- Use basic state diagrams (`stateDiagram`) for state transitions
+- Keep diagrams focused and simple (4-6 participants max for sequence diagrams)
+- Test diagrams after making changes
+
+**❌ DON'T:**
+- **No emojis** in node labels or text (❌ ✅ 🔄 etc.)
+- **No dots** in method names or labels (`script.up()` → use `script up method`)
+- **No parentheses** in labels unless necessary (`up()` → use `up method`)
+- **No numbered lists** in Note text (`1. Phase` → use `Phase`)
+- **No wildcards** in labels (`V*_*.ts` → use `V timestamp files`)
+- **No slashes** in labels (`A/B` → use `A or B`)
+- **No ampersands** in labels (`A & B` → use `A and B`)
+- **No colons** in style declarations (avoid `style Node fill:#color`)
+- **No stateDiagram-v2** (use `stateDiagram` instead)
+
+#### Diagram Types and Examples
+
+**Flowchart (Process Flow):**
+
 ````markdown
 ```mermaid
 graph TD
-    A[Start] --> B[Process]
-    B --> C[End]
+    Start[User calls migrate] --> Init[Initialize Schema]
+    Init --> Execute[Execute Scripts]
+    Execute --> Success{Success?}
+    Success -->|Yes| Done[Complete]
+    Success -->|No| Rollback[Rollback Changes]
 ```
 ````
 
+**Sequence Diagram (Component Interactions):**
+
+Keep sequence diagrams simple with 4-6 participants maximum:
+
+````markdown
+```mermaid
+sequenceDiagram
+    participant User
+    participant Executor
+    participant Service
+
+    User->>Executor: migrate()
+    Executor->>Service: init()
+    Service-->>Executor: Ready
+    Executor-->>User: Success
+```
+````
+
+**Class Diagram (Architecture):**
+
+````markdown
+```mermaid
+classDiagram
+    class MigrationExecutor {
+        -handler: Handler
+        -service: Service
+        +migrate() Promise
+    }
+
+    class Service {
+        +init() Promise
+        +execute() Promise
+    }
+
+    MigrationExecutor --> Service
+```
+````
+
+**State Diagram (State Transitions):**
+
+Use `stateDiagram` (not v2):
+
+````markdown
+```mermaid
+stateDiagram
+    [*] --> Pending
+    Pending --> Executing
+    Executing --> Completed
+    Executing --> Failed
+    Completed --> [*]
+    Failed --> [*]
+```
+````
+
+#### Diagram Size Management
+
+For large diagrams, add CSS height constraints in `docs/assets/css/custom.css`:
+
+```css
+/* Example: Limit specific diagram height */
+.main-content h2#diagram-title + p + .language-mermaid {
+  max-height: 600px;
+  overflow-y: auto;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 16px;
+}
+```
+
 **Guidelines:**
-- Keep diagrams focused (5-10 nodes maximum)
+- Keep diagrams focused (5-10 nodes maximum for flowcharts)
 - Use descriptive labels
 - Add caption below diagram explaining what it shows
-- Use consistent colors and shapes for similar concepts
+- Split complex diagrams into multiple smaller diagrams
+- Test all diagrams after changes to ensure they render
 
 **When to use:**
 - Architecture overviews
 - Getting started flows
 - Rollback strategy comparisons
 - Migration lifecycle
+- Component interactions
 
 ### Comparison Tables
 
