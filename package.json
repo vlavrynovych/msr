@@ -1,6 +1,6 @@
 {
   "name": "@migration-script-runner/core",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Migration Script Runner - Core Framework",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -89,5 +89,6 @@
   "bugs": {
     "url": "https://github.com/migration-script-runner/msr-core/issues",
     "email": "volodyalavrynovych@gmail.com"
-  }
+  },
+  "homepage": "https://core.msr.lavr.site/"
 }
