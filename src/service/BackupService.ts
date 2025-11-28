@@ -76,6 +76,7 @@ export class BackupService implements IBackupService {
      * to restore the database to its previous state. Called automatically if
      * a migration fails.
      *
+     * @param backupPath - Optional path to specific backup file. If not provided, uses the most recent backup.
      * @throws {Error} If backup file doesn't exist or cannot be read
      *
      * @example
@@ -83,14 +84,18 @@ export class BackupService implements IBackupService {
      * try {
      *   await runMigrations();
      * } catch (error) {
-     *   await service.restore(); // Restore to backup
+     *   await service.restore(); // Restore to most recent backup
      * }
+     *
+     * // Restore from specific backup
+     * await service.restore('./backups/my-backup.bkp');
      * ```
      */
-    public async restore(): Promise<void> {
+    public async restore(backupPath?: string): Promise<void> {
         this.logger.info('Restoring from backup...');
-        await this._restore()
-        this.logger.info('Restored to the previous state:\r\n', this.backupFile);
+        await this._restore(backupPath)
+        const usedPath = backupPath || this.backupFile;
+        this.logger.info('Restored to the previous state:\r\n', usedPath);
     }
 
     /**
@@ -113,17 +118,19 @@ export class BackupService implements IBackupService {
         this.logger.log("Backup file successfully deleted")
     }
 
-    private async _restore(): Promise<void> {
+    private async _restore(backupPath?: string): Promise<void> {
         if (!this.handler.backup) {
             return Promise.reject('No backup interface provided - cannot restore');
         }
 
-        if (this.backupFile && fs.existsSync(this.backupFile)) {
-            const data:string = fs.readFileSync(this.backupFile, 'utf8');
+        const pathToRestore = backupPath || this.backupFile;
+
+        if (pathToRestore && fs.existsSync(pathToRestore)) {
+            const data:string = fs.readFileSync(pathToRestore, 'utf8');
             return this.handler.backup.restore(data);
         }
 
-        return Promise.reject(`Cannot open ${this.backupFile}`);
+        return Promise.reject(`Cannot open ${pathToRestore}`);
     }
 
     private async _backup(): Promise<string> {

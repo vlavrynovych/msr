@@ -509,6 +509,345 @@ backupConfig.ext = '.backup';
 
 ---
 
+### backupMode
+
+**Type:** `BackupMode`
+**Default:** `BackupMode.FULL`
+
+Controls when backups are created and whether automatic restore occurs on failure.
+
+```typescript
+import { BackupMode, RollbackStrategy } from '@migration-script-runner/core';
+
+// Full automatic backup and restore (default)
+config.backupMode = BackupMode.FULL;
+config.rollbackStrategy = RollbackStrategy.BACKUP;
+```
+
+#### Backup Modes
+
+##### BackupMode.FULL (default)
+
+Complete automatic backup and restore workflow:
+- Creates backup before migrations
+- Restores automatically on failure
+- Deletes backup on success
+
+```typescript
+config.backupMode = BackupMode.FULL;
+config.rollbackStrategy = RollbackStrategy.BACKUP;
+
+await executor.migrate();
+// Backup created → migrations run → backup deleted on success
+// OR: Backup created → migrations fail → restore from backup
+```
+
+##### BackupMode.CREATE_ONLY
+
+Creates backup but doesn't restore automatically:
+- Creates backup before migrations
+- Does NOT restore on failure
+- Keeps backup file for manual inspection
+
+```typescript
+config.backupMode = BackupMode.CREATE_ONLY;
+config.rollbackStrategy = RollbackStrategy.DOWN;
+config.backup.deleteBackup = false;
+
+await executor.migrate();
+// Backup created → migrations run → down() methods used on failure
+// Backup file kept for safety/manual restore
+```
+
+**Use cases:**
+- Using `down()` methods for rollback but want backup safety net
+- Manual inspection/decision before restore
+- External monitoring handles restore decisions
+
+##### BackupMode.RESTORE_ONLY
+
+Restores from existing backup without creating new one:
+- Does NOT create backup
+- Restores from `config.backup.existingBackupPath` on failure
+- Requires `existingBackupPath` to be set
+
+```typescript
+config.backupMode = BackupMode.RESTORE_ONLY;
+config.rollbackStrategy = RollbackStrategy.BACKUP;
+config.backup.existingBackupPath = './backups/pre-deploy.bkp';
+
+await executor.migrate();
+// No backup creation → migrations run → restore from existing on failure
+```
+
+**Use cases:**
+- External backup system already created backup
+- CI/CD pipeline with backup in earlier step
+- Re-attempting failed migration with known-good backup
+
+**Important:** Must set `config.backup.existingBackupPath`:
+
+```typescript
+// ✅ Correct usage
+config.backupMode = BackupMode.RESTORE_ONLY;
+config.backup.existingBackupPath = './backups/my-backup.bkp';
+
+// ❌ Will throw error - missing existingBackupPath
+config.backupMode = BackupMode.RESTORE_ONLY;
+// Error: BackupMode.RESTORE_ONLY requires existingBackupPath configuration
+```
+
+##### BackupMode.MANUAL
+
+No automatic backup or restore - full manual control:
+- Does NOT create backup automatically
+- Does NOT restore automatically on failure
+- Use public methods for manual workflow
+
+```typescript
+config.backupMode = BackupMode.MANUAL;
+config.rollbackStrategy = RollbackStrategy.BACKUP;
+
+// Manual workflow
+const backupPath = await executor.createBackup();
+try {
+  await executor.migrate();
+  executor.deleteBackup();
+} catch (error) {
+  await executor.restoreFromBackup(backupPath);
+}
+```
+
+**Use cases:**
+- Full control over backup/restore timing
+- Custom backup logic or conditions
+- Integrating with external backup systems
+- Complex multi-step workflows
+
+#### BackupMode with RollbackStrategy
+
+BackupMode works in conjunction with `rollbackStrategy`:
+
+| RollbackStrategy | BackupMode Effect |
+|------------------|-------------------|
+| `BACKUP` | BackupMode controls backup/restore behavior |
+| `BOTH` | BackupMode controls backup/restore, `down()` runs first |
+| `DOWN` | BackupMode ignored, only `down()` methods used |
+| `NONE` | BackupMode ignored, no rollback |
+
+```typescript
+// BACKUP strategy - backup/restore controlled by backupMode
+config.rollbackStrategy = RollbackStrategy.BACKUP;
+config.backupMode = BackupMode.FULL; // Creates + restores
+config.backupMode = BackupMode.CREATE_ONLY; // Creates only
+config.backupMode = BackupMode.RESTORE_ONLY; // Restores only
+config.backupMode = BackupMode.MANUAL; // Manual control
+
+// BOTH strategy - down() first, then backup/restore per backupMode
+config.rollbackStrategy = RollbackStrategy.BOTH;
+config.backupMode = BackupMode.FULL; // down() → backup if down() fails
+config.backupMode = BackupMode.CREATE_ONLY; // down() → no backup restore
+
+// DOWN strategy - backupMode has no effect
+config.rollbackStrategy = RollbackStrategy.DOWN;
+config.backupMode = BackupMode.FULL; // Ignored, only down() used
+```
+
+---
+
+### existingBackupPath
+
+**Type:** `string | undefined`
+**Default:** `undefined`
+
+Path to existing backup file for `BackupMode.RESTORE_ONLY`.
+
+```typescript
+// Use existing backup for restore
+config.backupMode = BackupMode.RESTORE_ONLY;
+config.backup.existingBackupPath = './backups/pre-deploy-2025-01-22.bkp';
+
+// Absolute path
+config.backup.existingBackupPath = '/var/backups/myapp/manual-backup.bkp';
+```
+
+#### Behavior
+
+**When `BackupMode.RESTORE_ONLY`:**
+- Required - migrations will fail if not set
+- Used as restore source if migrations fail
+- No new backup created
+
+**Other backup modes:**
+- Optional - ignored if set
+- No effect on backup/restore behavior
+
+#### Use Cases
+
+```typescript
+// External backup system
+config.backupMode = BackupMode.RESTORE_ONLY;
+config.backup.existingBackupPath = '/mnt/backup-system/latest.bkp';
+
+// CI/CD pipeline with separate backup step
+config.backupMode = BackupMode.RESTORE_ONLY;
+config.backup.existingBackupPath = process.env.BACKUP_PATH;
+
+// Manual backup before risky migration
+const manualBackup = './backups/before-major-update.bkp';
+config.backupMode = BackupMode.RESTORE_ONLY;
+config.backup.existingBackupPath = manualBackup;
+```
+
+---
+
+## Manual Backup Methods
+
+When using `BackupMode.MANUAL` or for custom workflows, MSR provides public methods for manual backup/restore control.
+
+### createBackup()
+
+Create a database backup manually.
+
+```typescript
+const backupPath = await executor.createBackup();
+console.log(`Backup created: ${backupPath}`);
+// Backup created: ./backups/backup-2025-01-22-01-30-45.bkp
+```
+
+**Returns:** `Promise<string>` - Absolute path to created backup file
+
+**Use cases:**
+- Manual backup before risky operations
+- Custom backup timing/conditions
+- Integration with external systems
+
+### restoreFromBackup(backupPath?)
+
+Restore database from backup file.
+
+```typescript
+// Restore from specific backup
+await executor.restoreFromBackup('./backups/my-backup.bkp');
+
+// Restore from most recent backup (created by createBackup())
+await executor.restoreFromBackup();
+```
+
+**Parameters:**
+- `backupPath` (optional): Path to backup file. If not provided, uses most recent backup.
+
+**Returns:** `Promise<void>`
+
+**Use cases:**
+- Manual restore after failed migration
+- Testing restore process
+- Selective restore based on conditions
+
+### deleteBackup()
+
+Delete backup file from disk.
+
+```typescript
+executor.deleteBackup();
+```
+
+**Behavior:**
+- Only deletes if `config.backup.deleteBackup = true`
+- Safe to call multiple times
+- No error if file already deleted
+
+**Use cases:**
+- Manual cleanup after successful migrations
+- Custom cleanup logic
+- Conditional backup deletion
+
+### Complete Manual Workflow Example
+
+```typescript
+import { MigrationScriptExecutor, Config, BackupMode } from '@migration-script-runner/core';
+
+const config = new Config();
+config.backupMode = BackupMode.MANUAL;
+config.backup.deleteBackup = true;
+
+const executor = new MigrationScriptExecutor(handler, config);
+
+// Step 1: Create backup manually
+console.log('Creating backup...');
+const backupPath = await executor.createBackup();
+console.log(`Backup created: ${backupPath}`);
+
+try {
+  // Step 2: Run migrations
+  console.log('Running migrations...');
+  await executor.migrate();
+
+  // Step 3: Success - clean up
+  console.log('Migrations successful!');
+  executor.deleteBackup();
+
+} catch (error) {
+  // Step 4: Failure - restore
+  console.error('Migration failed:', error.message);
+  console.log('Restoring from backup...');
+
+  await executor.restoreFromBackup(backupPath);
+  console.log('Database restored to previous state');
+
+  // Optional: Keep backup for investigation
+  // executor.deleteBackup(); // Uncomment to delete
+}
+```
+
+### Conditional Restore Example
+
+```typescript
+const backupPath = await executor.createBackup();
+
+try {
+  await executor.migrate();
+  executor.deleteBackup();
+} catch (error) {
+  // Only restore for certain error types
+  if (shouldRestore(error)) {
+    await executor.restoreFromBackup(backupPath);
+  } else {
+    console.log('Keeping database as-is for debugging');
+  }
+}
+
+function shouldRestore(error: Error): boolean {
+  // Custom logic to determine if restore is needed
+  return error.message.includes('constraint violation');
+}
+```
+
+### Multiple Backup Workflow
+
+```typescript
+// Create multiple backups for different scenarios
+config.backup.deleteBackup = false;
+
+// Before migrations
+const beforeBackup = await executor.createBackup();
+
+// After first batch
+await runFirstBatch();
+const midpointBackup = await executor.createBackup();
+
+// After all migrations
+await runSecondBatch();
+const finalBackup = await executor.createBackup();
+
+// Selective restore based on which batch failed
+if (secondBatchFailed) {
+  await executor.restoreFromBackup(midpointBackup);
+}
+```
+
+---
+
 ## Complete Examples
 
 ### Development Configuration

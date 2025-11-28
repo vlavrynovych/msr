@@ -1,5 +1,5 @@
 export interface IBackupService {
     backup(): Promise<string>
-    restore(): Promise<void>
+    restore(backupPath?: string): Promise<void>
     deleteBackup():void
 }

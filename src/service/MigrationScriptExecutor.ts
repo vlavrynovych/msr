@@ -18,7 +18,7 @@ import {MigrationScriptSelector} from "./MigrationScriptSelector";
 import {MigrationRunner} from "./MigrationRunner";
 import {MigrationScanner} from "./MigrationScanner";
 import {IMigrationScanner} from "../interface/service/IMigrationScanner";
-import {Config, RollbackStrategy, ValidationIssueType} from "../model";
+import {Config, RollbackStrategy, ValidationIssueType, BackupMode} from "../model";
 import {MigrationValidationService} from "./MigrationValidationService";
 import {IMigrationValidationService, IValidationResult, IValidationIssue} from "../interface";
 import {ValidationError} from "../error/ValidationError";
@@ -497,6 +497,71 @@ export class MigrationScriptExecutor {
     }
 
     /**
+     * Create a database backup manually.
+     *
+     * Useful for manual backup workflows or when using BackupMode.MANUAL.
+     * The backup file is created using the configured backup settings.
+     *
+     * @returns The absolute path to the created backup file
+     *
+     * @example
+     * ```typescript
+     * // Manual backup workflow
+     * const backupPath = await executor.createBackup();
+     * console.log(`Backup created: ${backupPath}`);
+     *
+     * try {
+     *   await executor.migrate();
+     * } catch (error) {
+     *   await executor.restoreFromBackup(backupPath);
+     * }
+     * ```
+     */
+    public async createBackup(): Promise<string> {
+        return this.backupService.backup();
+    }
+
+    /**
+     * Restore database from a backup file.
+     *
+     * Restores the database to the state captured in the specified backup file.
+     * If no path is provided, restores from the most recently created backup.
+     *
+     * @param backupPath - Optional path to backup file. If not provided, uses the most recent backup.
+     *
+     * @example
+     * ```typescript
+     * // Restore from specific backup
+     * await executor.restoreFromBackup('./backups/backup-2025-01-22.bkp');
+     *
+     * // Restore from most recent backup (created by createBackup())
+     * await executor.restoreFromBackup();
+     * ```
+     */
+    public async restoreFromBackup(backupPath?: string): Promise<void> {
+        return this.backupService.restore(backupPath);
+    }
+
+    /**
+     * Delete the backup file from disk.
+     *
+     * Only deletes if config.backup.deleteBackup is true. Useful for manual
+     * cleanup after successful migrations when using BackupMode.MANUAL or
+     * BackupMode.CREATE_ONLY.
+     *
+     * @example
+     * ```typescript
+     * // Manual cleanup after successful migration
+     * const backupPath = await executor.createBackup();
+     * await executor.migrate();
+     * executor.deleteBackup();
+     * ```
+     */
+    public deleteBackup(): void {
+        this.backupService.deleteBackup();
+    }
+
+    /**
      * Migrate database up to a specific target version.
      *
      * Executes pending migrations up to and including the specified target version.
@@ -791,11 +856,10 @@ export class MigrationScriptExecutor {
      * @private
      */
     private shouldCreateBackup(): boolean {
-        const strategy = this.config.rollbackStrategy;
         const hasBackup = !!this.handler.backup;
 
-        // Need backup interface for BACKUP or BOTH strategies
-        return hasBackup && (strategy === RollbackStrategy.BACKUP || strategy === RollbackStrategy.BOTH);
+        // Need backup interface and correct mode/strategy combination
+        return hasBackup && this.shouldBackupInMode();
     }
 
     /**
@@ -929,11 +993,31 @@ export class MigrationScriptExecutor {
     /**
      * Rollback using backup/restore strategy.
      *
-     * @param backupPath - Path to backup file
+     * @param backupPath - Path to backup file (from CREATE backup operations)
      * @private
      */
     private async rollbackWithBackup(backupPath: string | undefined): Promise<void> {
-        if (!backupPath) {
+        // Check if restore should happen based on backupMode
+        if (!this.shouldRestoreInMode()) {
+            this.logger.warn('⚠️  Backup restore skipped due to backupMode setting');
+            return;
+        }
+
+        // Determine which backup to restore from
+        let pathToRestore: string | undefined;
+        if (this.config.backupMode === BackupMode.RESTORE_ONLY) {
+            // Use existing backup path from config
+            pathToRestore = this.config.backup.existingBackupPath;
+            if (!pathToRestore) {
+                this.logger.error('❌ BackupMode.RESTORE_ONLY requires config.backup.existingBackupPath to be set');
+                throw new Error('BackupMode.RESTORE_ONLY requires existingBackupPath configuration');
+            }
+        } else {
+            // Use the backup created during this migration run
+            pathToRestore = backupPath;
+        }
+
+        if (!pathToRestore) {
             this.logger.warn('No backup available for restore');
             return;
         }
@@ -944,7 +1028,7 @@ export class MigrationScriptExecutor {
         }
 
         this.logger.info('Restoring from backup...');
-        await this.backupService.restore();
+        await this.backupService.restore(pathToRestore);
 
         // Hook: After restore
         if (this.hooks && this.hooks.onAfterRestore) {
@@ -1004,6 +1088,44 @@ export class MigrationScriptExecutor {
             // Fallback to backup if down() fails
             await this.rollbackWithBackup(backupPath);
         }
+    }
+
+    /**
+     * Determine if backup should be created based on backupMode and rollbackStrategy.
+     *
+     * @returns True if backup should be created, false otherwise
+     * @private
+     */
+    private shouldBackupInMode(): boolean {
+        const mode = this.config.backupMode;
+        const strategy = this.config.rollbackStrategy;
+
+        // Only create backup if rollback strategy involves backups
+        if (strategy !== RollbackStrategy.BACKUP && strategy !== RollbackStrategy.BOTH) {
+            return false;
+        }
+
+        // Check backup mode
+        return mode === BackupMode.FULL || mode === BackupMode.CREATE_ONLY;
+    }
+
+    /**
+     * Determine if restore should happen on failure based on backupMode and rollbackStrategy.
+     *
+     * @returns True if restore should happen on failure, false otherwise
+     * @private
+     */
+    private shouldRestoreInMode(): boolean {
+        const mode = this.config.backupMode;
+        const strategy = this.config.rollbackStrategy;
+
+        // Only restore if rollback strategy involves backups
+        if (strategy !== RollbackStrategy.BACKUP && strategy !== RollbackStrategy.BOTH) {
+            return false;
+        }
+
+        // Check backup mode
+        return mode === BackupMode.FULL || mode === BackupMode.RESTORE_ONLY;
     }
 
     private async executeBeforeMigrate(): Promise<void> {
