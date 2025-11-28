@@ -21,41 +21,89 @@ Detailed documentation of MSR's core classes and services.
 
 ## High-Level Architecture
 
+This component diagram shows the relationships between MSR's core services and how they interact with your database handler:
+
+```mermaid
+graph TB
+    subgraph "User Layer"
+        App[User Application<br/>Your migration code]
+        Scripts[Migration Scripts<br/>V*_*.ts files]
+    end
+
+    subgraph "Orchestration Layer"
+        Executor[MigrationScriptExecutor<br/>Main orchestrator]
+        Config[Config<br/>Settings]
+    end
+
+    subgraph "Service Layer"
+        Scanner[MigrationScanner<br/>Gathers state]
+        Selector[MigrationScriptSelector<br/>Filters migrations]
+        Runner[MigrationRunner<br/>Executes scripts]
+        Validator[MigrationValidator<br/>Validates scripts]
+        Backup[BackupService<br/>Creates backups]
+        Schema[SchemaVersionService<br/>Tracks history]
+        Rollback[RollbackService<br/>Handles failures]
+        Renderer[MigrationRenderer<br/>Formats output]
+    end
+
+    subgraph "Database Layer"
+        Handler[IDatabaseMigrationHandler<br/>Your database handler]
+        DB[(Your Database<br/>PostgreSQL/MongoDB/etc)]
+    end
+
+    App --> Executor
+    Executor --> Config
+    Executor --> Scanner
+    Executor --> Validator
+    Executor --> Backup
+    Executor --> Rollback
+    Executor --> Renderer
+
+    Scanner --> Selector
+    Scanner --> Schema
+    Scanner --> MigrationService[MigrationService<br/>Discovers files]
+
+    Executor --> Runner
+    Runner --> Scripts
+    Runner --> Schema
+
+    Backup --> Handler
+    Schema --> Handler
+    Rollback --> Handler
+    Rollback --> Backup
+    MigrationService --> Scripts
+
+    Scripts --> DB
+    Handler --> DB
+
+    Renderer --> Strategy[IRenderStrategy<br/>ASCII/JSON/Silent]
+    Renderer --> Logger[ILogger<br/>Console/File/Silent]
+
+    style App fill:#e1f5ff
+    style Scripts fill:#e1f5ff
+    style Executor fill:#fff3cd
+    style Config fill:#fff3cd
+    style Scanner fill:#d4edda
+    style Selector fill:#d4edda
+    style Runner fill:#d4edda
+    style Validator fill:#d4edda
+    style Backup fill:#d4edda
+    style Schema fill:#d4edda
+    style Rollback fill:#d4edda
+    style Renderer fill:#d4edda
+    style MigrationService fill:#d4edda
+    style Handler fill:#f8d7da
+    style DB fill:#f8d7da
+    style Strategy fill:#e8e8e8
+    style Logger fill:#e8e8e8
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         User Application                         │
-│                  (Your migration script code)                    │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   MigrationScriptExecutor                        │
-│                    (Orchestration Layer)                         │
-│  • Coordinates entire migration workflow                         │
-│  • Manages service lifecycle                                     │
-│  • Handles errors and recovery                                   │
-└──┬──────────┬──────────┬──────────┬──────────┬──────────┬───────┘
-   │          │          │          │          │          │
-   ▼          ▼          ▼          ▼          ▼          ▼
-┌────────┐ ┌────────┐ ┌────────┐ ┌──────────┐ ┌───────┐ ┌─────────┐
-│Backup  │ │Schema  │ │Rollback│ │Migration │ │Migr.  │ │Migr.    │
-│Service │ │Version │ │Service │ │Renderer  │ │Scanner│ │Selector │
-│        │ │Service │ │        │ │          │ │       │ │         │
-└────────┘ └────────┘ └────────┘ └──────────┘ └───────┘ └─────────┘
-     │          │          │          │            │          │
-     │          │          │          │            │          ▼
-     │          │          │          │            │      ┌──────────────────┐
-     │          │          │          │            │      │MigrationRunner   │
-     │          │          │          │            │      │                  │
-     │          │          │          │            │      └──────────────────┘
-     │          │          │          │
-     ▼          ▼          ▼          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                  IDatabaseMigrationHandler                       │
-│                   (Database Abstraction)                         │
-│  • PostgreSQL, MySQL, MongoDB, etc.                              │
-└─────────────────────────────────────────────────────────────────┘
-```
+
+**Layer Responsibilities:**
+- **Blue (User Layer)**: Your application code and migration scripts
+- **Yellow (Orchestration)**: Main coordinator and configuration
+- **Green (Service Layer)**: Specialized services with focused responsibilities
+- **Pink (Database Layer)**: Your database handler and database
+- **Gray (Output)**: Rendering and logging strategies
 
 ---
 
