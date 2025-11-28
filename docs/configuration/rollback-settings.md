@@ -517,4 +517,4 @@ config.rollbackStrategy = RollbackStrategy.NONE;
 - [Backup Settings](backup-settings) - Configure backups for BACKUP/BOTH strategies
 - [Validation Settings](validation-settings) - Configure down() method validation
 - [Configuration Overview](index) - All configuration options
-- [Writing Migrations](../guides/writing-migrations) - Best practices including down() methods
+- [Writing Migrations](../user-guides/writing-migrations) - Best practices including down() methods

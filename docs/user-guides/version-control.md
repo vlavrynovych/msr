@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Version Control
-parent: Guides
+parent: User Guides
 nav_order: 4
 ---
 

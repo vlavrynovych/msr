@@ -684,4 +684,4 @@ logger.clearLogs();
 
 - [ConsoleLogger](console-logger.md) - For development and debugging
 - [SilentLogger](silent-logger.md) - For suppressing all output
-- [Custom Logging Guide](../guides/custom-logging.md) - Creating custom loggers
+- [Custom Logging Guide](../customization/custom-logging.md) - Creating custom loggers

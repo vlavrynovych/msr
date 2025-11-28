@@ -37,12 +37,25 @@ An abstract implementation of script runner which can be extended with your own 
 
 ## Documentation
 
-- **[Getting Started](getting-started)** - Quick start guide and basic usage
-- **[Architecture](architecture)** - System design, components, and data flow
+### Getting Started
+
+- **[Getting Started](getting-started)** - Installation, basic usage, and quick start
+- **[User Guides](user-guides/)** - Core usage guides for writing and managing migrations
+
+### Reference
+
+- **[API Reference](api/)** - Complete API documentation for all classes and interfaces
 - **[Configuration](configuration/)** - Migration, validation, rollback, and backup settings
-- **[Validation](validation/)** - Built-in and custom validation system
-- **[API Reference](api/)** - Complete API documentation
-- **[Migration Guides](migrations/)** - Version upgrade guides
+
+### Advanced
+
+- **[Customization](customization/)** - Extend MSR with custom loggers, renderers, and validators
+- **[Architecture](development/architecture/)** - System design, components, and data flow
+
+### Project
+
+- **[Version Migration](version-migration/)** - Upgrade guides for migrating between MSR versions
+- **[Development](development/)** - Contributing, testing, and development workflow
 
 ---
 

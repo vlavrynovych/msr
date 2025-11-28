@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Writing Migrations
-parent: Guides
+parent: User Guides
 nav_order: 1
 ---
 

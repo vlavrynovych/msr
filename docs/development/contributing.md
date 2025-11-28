@@ -245,7 +245,7 @@ bundle exec jekyll serve
 - `docs/configuration.md` - Configuration reference
 - `docs/api/` - API documentation
 - `docs/guides/` - User guides
-- `docs/migrations/` - Migration guides
+- `do../version-migration/` - Migration guides
 
 ---
 

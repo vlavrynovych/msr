@@ -89,7 +89,7 @@ Type definitions and aliases for TypeScript users
 
 MSR follows [Semantic Versioning](https://semver.org/). This documentation reflects:
 - **Current Version**: v0.3.0
-- **Breaking Changes**: Documented in [Migration Guides](../migrations/)
+- **Breaking Changes**: Documented in [Migration Guides](../version-migration/)
 - **Deprecations**: Marked with `@deprecated` in source code
 
 ---

@@ -1,8 +1,8 @@
 ---
 layout: default
 title: Migration Hooks
-parent: Guides
-nav_order: 5
+parent: Customization
+nav_order: 6
 ---
 
 # Migration Hooks
@@ -721,7 +721,7 @@ See [IMigrationHooks API Documentation](../api/interfaces/IMigrationHooks) for c
 ## Related Documentation
 
 - [Custom Logging](custom-logging.md) - Implementing custom loggers
-- [CompositeLogger](../loggers/composite-logger.md) - Multi-destination logging
+- [CompositeLogger](../customization/loggers/composite-logger.md) - Multi-destination logging
 - [Architecture](../development/architecture/) - System design and component relationships
 - [API Reference](../api/) - Complete API documentation
 

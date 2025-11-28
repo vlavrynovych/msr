@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Loggers
-nav_order: 6
+parent: Customization
+nav_order: 1
 has_children: true
 ---
 
@@ -61,10 +62,10 @@ Guide for implementing cloud logging services (AWS CloudWatch, Google Cloud Logg
 
 ## Creating Custom Loggers
 
-All loggers implement the `ILogger` interface. See the [Custom Logging Guide](../guides/custom-logging.md) for detailed examples of creating your own logger implementations.
+All loggers implement the `ILogger` interface. See the [Custom Logging Guide](../customization/custom-logging.md) for detailed examples of creating your own logger implementations.
 
 ## Next Steps
 
 - Choose a logger from the list above to learn more
-- Read the [Custom Logging Guide](../guides/custom-logging.md) for advanced usage
+- Read the [Custom Logging Guide](../customization/custom-logging.md) for advanced usage
 - See [Getting Started](../guides/getting-started.md) for basic setup

@@ -1,8 +1,8 @@
 ---
 layout: default
 title: Custom Logging
-parent: Guides
-nav_order: 2
+parent: Customization
+nav_order: 4
 ---
 
 # Custom Logging

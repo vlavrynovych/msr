@@ -1,8 +1,8 @@
 ---
 layout: default
 title: Custom Rendering
-parent: Guides
-nav_order: 3
+parent: Customization
+nav_order: 5
 ---
 
 # Custom Rendering
@@ -628,4 +628,4 @@ describe('XmlRenderStrategy', () => {
 - [AsciiTableRenderStrategy](/msr-core/rendering/ascii-table-strategy) - Default ASCII table strategy
 - [JsonRenderStrategy](/msr-core/rendering/json-strategy) - Built-in JSON strategy
 - [SilentRenderStrategy](/msr-core/rendering/silent-strategy) - Built-in silent strategy
-- [Custom Logging](/msr-core/guides/custom-logging) - Creating custom loggers
+- [Custom Logging](/msr-co../customization/custom-logging) - Creating custom loggers

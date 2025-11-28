@@ -189,7 +189,7 @@ function calculateChecksum(filePath: string, algorithm: string): string {
 }
 
 // Example output
-calculateChecksum('./migrations/V202501220100_create_users.ts', 'sha256');
+calculateChecksum(../version-migration/V202501220100_create_users.ts', 'sha256');
 // Returns: "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6..."
 ```
 

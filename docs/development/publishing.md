@@ -101,7 +101,7 @@ This command:
    - Update examples if API changed
 
 3. **Migration Guide** (if breaking changes)
-   - Create `docs/migrations/v0.X-to-v0.Y.md`
+   - Create `do../version-migration/v0.X-to-v0.Y.md`
    - BEFORE/AFTER code examples
    - Step-by-step migration instructions
 
@@ -226,7 +226,7 @@ v1.0.0
    ```
 
 2. **Create Migration Guide**
-   - File: `docs/migrations/v0.X-to-v0.Y.md`
+   - File: `do../version-migration/v0.X-to-v0.Y.md`
    - Include BEFORE/AFTER examples
    - Step-by-step instructions
    - Explain rationale for change
@@ -408,7 +408,7 @@ npm publish
 
 - [Development Workflow](workflow) - Contributing process
 - [Testing Guide](testing/) - Testing standards
-- [Migration Guides](../migrations/) - Version upgrade guides
+- [Migration Guides](../version-migration/) - Version upgrade guides
 
 ---
 

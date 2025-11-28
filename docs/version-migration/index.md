@@ -1,15 +1,15 @@
 ---
 layout: default
-title: Migration Guides
-nav_order: 9
+title: Version Migration
+nav_order: 7
 has_children: true
 ---
 
-# Migration Guides
+# Version Migration
 
-This section contains migration guides for upgrading between major versions of MSR. Each guide includes detailed instructions, breaking changes, and examples to help you migrate smoothly.
+This section contains guides for upgrading between major versions of MSR. Each guide includes detailed instructions, breaking changes, and examples to help you migrate smoothly.
 
-## Available Migration Guides
+## Available Upgrade Guides
 
 - [**v0.2 to v0.3**](v0.2-to-v0.3.md) - **Breaking:** `migrate()` now returns `IMigrationResult`, no longer calls `process.exit()`
 - [**v0.1 to v0.2**](v0.1-to-v0.2.md) - Package rename from `migration-script-runner` to `@migration-script-runner/core`
