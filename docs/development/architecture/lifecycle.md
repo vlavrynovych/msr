@@ -21,72 +21,69 @@ Migration script lifecycle and error handling workflows.
 
 ## Migration Script Lifecycle
 
-### Complete Lifecycle Diagram
+### High-Level Workflow
 
-This sequence diagram shows the interactions between components during the complete migration lifecycle, from initialization through execution to completion:
+This simplified diagram shows the main phases of migration execution:
+
+```mermaid
+graph TD
+    Start[User calls migrate] --> Init[Initialize Schema and Backup]
+    Init --> Discover[Discover and Filter Scripts]
+    Discover --> Validate[Validate Pending Scripts]
+    Validate --> ValidCheck{Valid?}
+    ValidCheck -->|No| Rollback[Rollback Changes]
+    ValidCheck -->|Yes| Execute[Execute Scripts]
+    Execute --> ExecCheck{Success?}
+    ExecCheck -->|No| Rollback
+    ExecCheck -->|Yes| Cleanup[Delete Backup]
+    Cleanup --> Render[Render Results]
+    Render --> Done[Return Success]
+    Rollback --> RenderFail[Render Errors]
+    RenderFail --> Fail[Return Failure]
+```
+
+### Detailed Phase Interactions
+
+#### Initialization and Discovery
 
 ```mermaid
 sequenceDiagram
-    participant User
     participant Executor as MigrationScriptExecutor
-    participant Scanner as MigrationScanner
-    participant Validator as MigrationValidator
     participant Backup as BackupService
     participant Schema as SchemaVersionService
-    participant Execution as MigrationExecutionService
-    participant Rollback as RollbackService
-    participant Renderer as MigrationRenderer
+    participant Scanner as MigrationScanner
 
-    User->>Executor: migrate()
-
-    Note over Executor: Initialization Phase
     Executor->>Schema: init()
     Schema-->>Executor: Schema table ready
 
     Executor->>Backup: createBackup()
     Backup-->>Executor: Backup created
 
-    Note over Executor: Discovery Phase
     Executor->>Scanner: scan(folder)
-    Scanner-->>Executor: All migration files
+    Scanner-->>Executor: Pending migrations
+```
 
-    Executor->>Schema: list()
-    Schema-->>Executor: Already migrated
+#### Execution Loop
 
-    Note over Executor: Validation Phase
-    Executor->>Validator: validate(pending)
-    Validator-->>Executor: Valid or Errors
+```mermaid
+sequenceDiagram
+    participant Executor as MigrationScriptExecutor
+    participant Execution as MigrationExecutionService
+    participant Schema as SchemaVersionService
+    participant Rollback as RollbackService
 
-    alt Validation Failed
-        Executor->>Rollback: rollback()
-        Rollback-->>Executor: Rolled back
-        Executor-->>User: Failure
-    end
-
-    Note over Executor: Execution Phase
     loop For each pending migration
         Executor->>Execution: execute(script)
-        Note right of Execution: Call script up method
-        Execution-->>Executor: Success
+        Execution-->>Executor: Success or Error
 
-        Executor->>Schema: add(script)
-        Schema-->>Executor: Saved
-
-        alt Migration Failed
+        alt Success
+            Executor->>Schema: add(script)
+            Schema-->>Executor: Saved
+        else Error
             Executor->>Rollback: rollback()
             Rollback-->>Executor: Rolled back
-            Executor-->>User: Failure
         end
     end
-
-    Note over Executor: Completion Phase
-    Executor->>Backup: deleteBackup()
-    Backup-->>Executor: Deleted
-
-    Executor->>Renderer: render(result)
-    Renderer-->>Executor: Formatted output
-
-    Executor-->>User: Success
 ```
 
 ### State Transitions
