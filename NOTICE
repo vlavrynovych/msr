@@ -1,0 +1,51 @@
+Migration Script Runner (MSR)
+Copyright (c) 2023-2025 Volodymyr Lavrynovych
+
+This software is licensed under the MIT License with Commons Clause and
+Attribution Requirements. See the LICENSE file for full terms.
+
+================================================================================
+
+IMPORTANT LICENSE NOTES
+
+This software is free to use in your applications and projects. However,
+please note the following restrictions:
+
+1. NO COMMERCIAL DISTRIBUTION
+   You may NOT sell this software or derivative works (such as database
+   adapters) as standalone products or services.
+
+2. ATTRIBUTION FOR EXTENSIONS
+   If you create database adapters, extensions, or similar migration tools,
+   you must provide attribution to the original author.
+
+3. FREE TO USE IN YOUR APPLICATIONS
+   You CAN freely use this software as a library in your commercial
+   applications without any attribution requirements.
+
+================================================================================
+
+QUICK FAQ
+
+Q: Can I use MSR in my commercial application?
+A: Yes! Use it freely in your web apps, APIs, internal tools, etc.
+
+Q: Can I create a PostgreSQL adapter?
+A: Yes, but you must include attribution and cannot sell it as a product.
+
+Q: Do I need to mention MSR in my app's credits?
+A: No, only if you create migration tools/adapters based on MSR.
+
+Q: Can I fork MSR and improve it?
+A: Yes, but keep the attribution and cannot sell it.
+
+Q: Can my company use MSR internally?
+A: Absolutely! Internal use has no restrictions.
+
+================================================================================
+
+For detailed examples and clarifications, see:
+https://migration-script-runner.github.io/msr-core/license
+
+For questions, open an issue at:
+https://github.com/migration-script-runner/msr-core/issues

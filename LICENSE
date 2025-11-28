@@ -1,16 +1,72 @@
-MIT License
+MIT License with Commons Clause and Attribution Requirements
 
-Copyright (c) 2023 Volodymyr Lavrynovych
+Copyright (c) 2023-2025 Volodymyr Lavrynovych
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+to use, copy, modify, merge, publish, distribute, sublicense, and to permit
+persons to whom the Software is furnished to do so, subject to the following
+conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. COMMONS CLAUSE - "SELL" RESTRICTION
+
+   Without limiting other conditions in this License, the grant of rights
+   under this License will not include, and this License does not grant to
+   you, the right to Sell the Software.
+
+   For purposes of the foregoing, "Sell" means practicing any or all of the
+   rights granted to you under this License to provide to third parties, for
+   a fee or other consideration (including without limitation fees for hosting
+   or consulting/support services related to the Software), a product or
+   service whose value derives, entirely or substantially, from the
+   functionality of the Software.
+
+   Examples of prohibited activities:
+   - Selling database migration tools built on this Software
+   - Offering this Software as a hosted service for a fee
+   - Selling database adapters or extensions as standalone products
+   - Providing paid consulting/support services focused on this Software
+
+   Examples of permitted activities:
+   - Using this Software as a library in your commercial application
+   - Building and selling applications that use this Software for migrations
+   - Using this Software internally within your organization
+   - Contributing improvements and bug fixes
+   - Creating and sharing database adapters for free
+
+2. ATTRIBUTION FOR DERIVATIVE WORKS
+
+   If you create derivative works, database adapters, extensions, or similar
+   migration tools that extend or build upon the functionality of this
+   Software, you must:
+
+   a) Retain the above copyright notice in your source code
+   b) Include prominent attribution to the original author in your
+      documentation and README:
+      "Based on Migration Script Runner by Volodymyr Lavrynovych
+       https://github.com/migration-script-runner/msr-core"
+   c) Include this license file with your derivative work
+
+   This attribution requirement does NOT apply if you are merely using this
+   Software as a library/dependency in your application. It only applies to
+   works that extend the migration functionality itself.
+
+   Examples requiring attribution:
+   - Creating a PostgreSQL migration adapter
+   - Creating a MongoDB migration adapter
+   - Forking this project with enhancements
+   - Building alternative migration runners based on this Software
+
+   Examples NOT requiring attribution:
+   - Using this Software in your web application
+   - Using this Software in your internal tools
+   - Integrating this Software into your product as a dependency
+
+3. STANDARD MIT CONDITIONS
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -19,3 +75,8 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+For questions about licensing, please open an issue at:
+https://github.com/migration-script-runner/msr-core/issues

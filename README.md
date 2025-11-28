@@ -5,7 +5,7 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=vlavrynovych_msr&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=vlavrynovych_msr)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=vlavrynovych_msr&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=vlavrynovych_msr)
 [![GitHub issues](https://img.shields.io/github/issues/migration-script-runner/msr-core.svg)](https://github.com/migration-script-runner/msr-core/issues)
-[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/migration-script-runner/msr-core/master/LICENSE)
+[![License](https://img.shields.io/badge/license-MIT%20%2B%20CC%20%2B%20Attribution-blue.svg)](https://raw.githubusercontent.com/migration-script-runner/msr-core/master/LICENSE)
 [![NPM Version][npm-image]][npm-url]
 [![NPM Downloads][npm-downloads-image]][npm-url]
 ![Static Badge](https://img.shields.io/badge/in%20Ukraine-dodgerblue?label=Proudly%20made&labelColor=%23FFFF00)
@@ -504,7 +504,15 @@ A: MSR automatically restores the database from the backup created before migrat
 
 ## 📄 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License with Commons Clause and Attribution Requirements**.
+
+**TL;DR:**
+- ✅ Free to use in your applications (even commercial)
+- ✅ Free to modify and contribute improvements
+- ❌ Cannot sell MSR or database adapters as products
+- 🔒 Database adapters/extensions require attribution
+
+See the [LICENSE](LICENSE) file for complete terms or read the [License Documentation](https://migration-script-runner.github.io/msr-core/license) for detailed examples and FAQ.
 
 ---
 

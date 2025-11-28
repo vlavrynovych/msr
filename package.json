@@ -43,7 +43,7 @@
     "email": "volodyalavrynovych@gmail.com",
     "url": "https://www.instagram.com/vlavrynovych/"
   },
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "devDependencies": {
     "@stryker-mutator/core": "^9.3.0",
     "@stryker-mutator/mocha-runner": "^9.3.0",
