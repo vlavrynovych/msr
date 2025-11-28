@@ -28,7 +28,7 @@ Validation settings control how MSR validates migration scripts before execution
 - Control down() method requirements
 - Add custom validation rules
 
-See [Validation Documentation](../validation/) for complete validation guides.
+See [Validation Documentation](../customization/validation/) for complete validation guides.
 
 ---
 
@@ -92,8 +92,8 @@ config.validateBeforeRun = false;  // Re-enable after debugging!
 
 ### See Also
 
-- [Validation Overview](../validation/) - Complete validation guide
-- [Built-in Validation](../validation/built-in-validation) - Built-in validation rules
+- [Validation Overview](../customization/validation/) - Complete validation guide
+- [Built-in Validation](../customization/validation/built-in-validation) - Built-in validation rules
 
 ---
 
@@ -181,8 +181,8 @@ config.strictValidation = process.env.STRICT_MODE === 'true';
 
 ### See Also
 
-- [Validation Overview](../validation/) - Understanding validation
-- [Custom Validation](../validation/custom-validation) - Creating validators
+- [Validation Overview](../customization/validation/) - Understanding validation
+- [Custom Validation](../customization/validation/custom-validation) - Creating validators
 
 ---
 
@@ -351,7 +351,7 @@ config.downMethodPolicy = DownMethodPolicy.OPTIONAL;
 ### See Also
 
 - [Rollback Settings](rollback-settings) - Rollback strategies
-- [Built-in Validation](../validation/built-in-validation) - MISSING_DOWN_METHOD error
+- [Built-in Validation](../customization/validation/built-in-validation) - MISSING_DOWN_METHOD error
 
 ---
 
@@ -431,8 +431,8 @@ if (process.env.NODE_ENV === 'development') {
 
 ### See Also
 
-- [Checksum & Integrity Guide](../validation/checksum-integrity) - Complete integrity checking guide
-- [Built-in Validation](../validation/built-in-validation) - MIGRATED_FILE_MODIFIED error details
+- [Checksum & Integrity Guide](../customization/validation/checksum-integrity) - Complete integrity checking guide
+- [Built-in Validation](../customization/validation/built-in-validation) - MIGRATED_FILE_MODIFIED error details
 
 ---
 
@@ -485,7 +485,7 @@ config.checksumAlgorithm = 'sha256';
 
 ### See Also
 
-- [Checksum & Integrity Guide](../validation/checksum-integrity) - Algorithm selection guide
+- [Checksum & Integrity Guide](../customization/validation/checksum-integrity) - Algorithm selection guide
 
 ---
 
@@ -556,7 +556,7 @@ config.validateMigratedFiles = true;  // Still validate if file exists
 
 ### See Also
 
-- [Checksum & Integrity Guide](../validation/checksum-integrity) - Missing file handling
+- [Checksum & Integrity Guide](../customization/validation/checksum-integrity) - Missing file handling
 
 ---
 
@@ -710,8 +710,8 @@ class ClassNameValidator implements IMigrationValidator {
 
 ### See Also
 
-- [Custom Validation Guide](../validation/custom-validation) - Complete guide with examples
-- [Validation Overview](../validation/) - Validation system overview
+- [Custom Validation Guide](../customization/validation/custom-validation) - Complete guide with examples
+- [Validation Overview](../customization/validation/) - Validation system overview
 
 ---
 
@@ -852,8 +852,8 @@ config.customValidators = validators;
 
 ## Related Documentation
 
-- [Validation Overview](../validation/) - Complete validation guide
-- [Built-in Validation](../validation/built-in-validation) - Built-in rules
-- [Custom Validation](../validation/custom-validation) - Creating validators
+- [Validation Overview](../customization/validation/) - Complete validation guide
+- [Built-in Validation](../customization/validation/built-in-validation) - Built-in rules
+- [Custom Validation](../customization/validation/custom-validation) - Creating validators
 - [Configuration Overview](index) - All configuration options
 - [Rollback Settings](rollback-settings) - Rollback strategies

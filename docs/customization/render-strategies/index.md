@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Render Strategies
-nav_order: 7
+parent: Customization
+nav_order: 2
 has_children: true
 ---
 
@@ -92,10 +93,10 @@ const executor = new MigrationScriptExecutor(handler, config, {
 
 ## Creating Custom Render Strategies
 
-All render strategies implement the `IRenderStrategy` interface. See the [Custom Rendering Guide](../guides/custom-rendering.md) for detailed examples of creating your own render strategy implementations.
+All render strategies implement the `IRenderStrategy` interface. See the [Custom Rendering Guide](../customization/custom-rendering.md) for detailed examples of creating your own render strategy implementations.
 
 ## Next Steps
 
 - Choose a render strategy from the list above to learn more
-- Read the [Custom Rendering Guide](../guides/custom-rendering.md) for advanced usage
+- Read the [Custom Rendering Guide](../customization/custom-rendering.md) for advanced usage
 - See [Getting Started](../getting-started.md) for basic setup

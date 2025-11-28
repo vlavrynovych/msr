@@ -122,8 +122,8 @@ const executor = new MigrationScriptExecutor(handler, config, {
 +-----------+------------------+----------------------------------------------------------+
 | Timestamp |       Name       |                           Path                           |
 +-----------+------------------+----------------------------------------------------------+
-|       206 | add_indexes      | /app/migrations/V202501220206_add_indexes.ts             |
-|       207 | optimize_queries | /app/migrations/V202501220207_optimize_queries.ts        |
+|       206 | add_indexes      | /a../version-migration/V202501220206_add_indexes.ts             |
+|       207 | optimize_queries | /a../version-migration/V202501220207_optimize_queries.ts        |
 +-----------+------------------+----------------------------------------------------------+
 ```
 
@@ -148,7 +148,7 @@ const executor = new MigrationScriptExecutor(handler, config, {
 +-----------+------------------+----------------------------------------------+
 | Timestamp |       Name       |                    Path                      |
 +-----------+------------------+----------------------------------------------+
-|       100 | old_migration    | /app/migrations/V202501220100_old.ts         |
+|       100 | old_migration    | /a../version-migration/V202501220100_old.ts         |
 +-----------+------------------+----------------------------------------------+
 ```
 
@@ -354,4 +354,4 @@ Helper method to calculate and format migration duration.
 
 - [JsonRenderStrategy](json-strategy.md) - For CI/CD and automation
 - [SilentRenderStrategy](silent-strategy.md) - For suppressing output
-- [Custom Rendering Guide](../guides/custom-rendering.md) - Creating custom strategies
+- [Custom Rendering Guide](../customization/custom-rendering.md) - Creating custom strategies

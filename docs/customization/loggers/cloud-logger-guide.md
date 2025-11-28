@@ -222,7 +222,7 @@ export class CloudWatchLogger implements ILogger {
 ```typescript
 const logger = new CloudWatchLogger({
     region: 'us-east-1',
-    logGroupName: '/aws/migrations/production',
+    logGroupName: '/a../version-migration/production',
     logStreamName: `instance-${process.env.INSTANCE_ID}`
 });
 ```
@@ -540,7 +540,7 @@ await service.executeMigrations(config);
 - [ConsoleLogger](console-logger.md) - Default console output
 - [SilentLogger](silent-logger.md) - Suppress all output
 - [FileLogger](file-logger.md) - File-based logging with rotation
-- [Custom Logging Guide](../guides/custom-logging.md) - ILogger interface basics
+- [Custom Logging Guide](../customization/custom-logging.md) - ILogger interface basics
 
 ---
 

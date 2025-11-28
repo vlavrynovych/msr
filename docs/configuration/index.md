@@ -331,14 +331,14 @@ Explore detailed configuration options:
 
 - [Migration Settings](migration-settings) - Configure file discovery
 - [Validation Settings](validation-settings) - Configure validation
-- [Writing Migrations](../guides/writing-migrations) - Best practices
+- [Writing Migrations](../user-guides/writing-migrations) - Best practices
 - [Getting Started](../getting-started) - Quick start guide
 
 ---
 
 ## Related Documentation
 
-- [Validation](../validation/) - Validation system overview
+- [Validation](../customization/validation/) - Validation system overview
 - [Rollback Strategies](rollback-settings) - Choosing the right strategy
 - [Architecture](../development/architecture/) - System design
 - [API Reference](../api/) - Complete API documentation

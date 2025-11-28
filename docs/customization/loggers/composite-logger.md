@@ -488,7 +488,7 @@ logger.info('message'); // Does nothing
 - [FileLogger](file-logger.md) - File-based logging with rotation
 - [SilentLogger](silent-logger.md) - Suppress all output
 - [Cloud Logger Guide](cloud-logger-guide.md) - Implementing cloud loggers
-- [Custom Logging Guide](../guides/custom-logging.md) - Create custom loggers
+- [Custom Logging Guide](../customization/custom-logging.md) - Create custom loggers
 
 ---
 

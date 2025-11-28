@@ -325,4 +325,4 @@ Logs a general message using `console.log()`.
 
 - [SilentLogger](silent-logger.md) - For suppressing all output
 - [FileLogger](file-logger.md) - For persistent file-based logging
-- [Custom Logging Guide](../guides/custom-logging.md) - Creating custom loggers
+- [Custom Logging Guide](../customization/custom-logging.md) - Creating custom loggers

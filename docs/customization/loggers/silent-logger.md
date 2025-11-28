@@ -386,4 +386,4 @@ This makes it ideal for performance-critical code paths where logging is disable
 
 - [ConsoleLogger](console-logger.md) - For development and debugging
 - [FileLogger](file-logger.md) - For persistent file-based logging
-- [Custom Logging Guide](../guides/custom-logging.md) - Creating custom loggers
+- [Custom Logging Guide](../customization/custom-logging.md) - Creating custom loggers

@@ -124,7 +124,7 @@ const executor = new MigrationScriptExecutor(handler, config, {
 ### Pending (Compact)
 
 ```json
-{"pending":[{"timestamp":202501220300,"name":"add_indexes","path":"/app/migrations/V202501220300_add_indexes.ts"},{"timestamp":202501220400,"name":"optimize_queries","path":"/app/migrations/V202501220400_optimize_queries.ts"}]}
+{"pending":[{"timestamp":202501220300,"name":"add_indexes","path":"/a../version-migration/V202501220300_add_indexes.ts"},{"timestamp":202501220400,"name":"optimize_queries","path":"/a../version-migration/V202501220400_optimize_queries.ts"}]}
 ```
 
 ### Executed (Pretty)
@@ -156,7 +156,7 @@ const executor = new MigrationScriptExecutor(handler, config, {
     {
       "timestamp": 202501220050,
       "name": "old_migration",
-      "path": "/app/migrations/V202501220050_old_migration.ts"
+      "path": "/a../version-migration/V202501220050_old_migration.ts"
     }
   ]
 }
@@ -259,7 +259,7 @@ Send structured logs to aggregation services:
 import { FileLogger, JsonRenderStrategy } from '@migration-script-runner/core';
 
 const logger = new FileLogger({
-    logPath: '/var/log/migrations/migrations.jsonl'  // JSON Lines format
+    logPath: '/var/l../version-migration/migrations.jsonl'  // JSON Lines format
 });
 
 const executor = new MigrationScriptExecutor(handler, config, {
@@ -344,7 +344,7 @@ import { JsonRenderStrategy } from '@migration-script-runner/core';
 
 const app = express();
 
-app.get('/api/migrations/status', async (req, res) => {
+app.get('/a../version-migration/status', async (req, res) => {
     // Capture JSON output
     const output = await captureOutput(() => executor.list());
     const migrations = JSON.parse(output);
@@ -505,4 +505,4 @@ Renders banner information as JSON.
 
 - [AsciiTableRenderStrategy](ascii-table-strategy.md) - For human-readable terminal output
 - [SilentRenderStrategy](silent-strategy.md) - For suppressing output
-- [Custom Rendering Guide](../guides/custom-rendering.md) - Creating custom strategies
+- [Custom Rendering Guide](../customization/custom-rendering.md) - Creating custom strategies

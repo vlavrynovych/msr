@@ -55,7 +55,7 @@ Migration script lifecycle and error handling workflows.
 // 1. Discovery (MigrationService)
 {
   name: "V202311020036_create_users.ts",
-  filepath: "/path/to/migrations/V202311020036_create_users.ts",
+  filepath: "/path/../version-migration/V202311020036_create_users.ts",
   timestamp: 202311020036,
   script: undefined  // Not loaded yet
 }
@@ -63,7 +63,7 @@ Migration script lifecycle and error handling workflows.
 // 2. Initialization (script.init())
 {
   name: "V202311020036_create_users.ts",
-  filepath: "/path/to/migrations/V202311020036_create_users.ts",
+  filepath: "/path/../version-migration/V202311020036_create_users.ts",
   timestamp: 202311020036,
   script: {
     up: async (db, info, handler) => { ... }
@@ -73,7 +73,7 @@ Migration script lifecycle and error handling workflows.
 // 3. Execution (MigrationRunner)
 {
   name: "V202311020036_create_users.ts",
-  filepath: "/path/to/migrations/V202311020036_create_users.ts",
+  filepath: "/path/../version-migration/V202311020036_create_users.ts",
   timestamp: 202311020036,
   username: "developer",        // ← Added
   startedAt: 1699999999000,     // ← Added

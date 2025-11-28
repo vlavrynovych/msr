@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Validation
-nav_order: 8
+parent: Customization
+nav_order: 3
 has_children: true
 ---
 

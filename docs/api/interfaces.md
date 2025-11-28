@@ -39,7 +39,7 @@ interface IDatabaseMigrationHandler {
 > - The `cfg: Config` property has been removed from this interface. Config is now passed separately to service constructors.
 > - The `backup` property is now **optional**. Only implement it if using BACKUP or BOTH rollback strategies.
 >
-> See the [migration guide](../migrations/v0.2-to-v0.3) for details.
+> See the [migration guide](../version-migration/v0.2-to-v0.3) for details.
 
 #### Properties
 
@@ -100,30 +100,41 @@ Handles database backup and restore operations. See `IBackup` interface for deta
 
 ### IDB
 
-Create a backup of current database state.
+Base interface for database connections. This is intentionally minimal to support any database system (SQL, NoSQL, etc.).
 
 ```typescript
-async backup(): Promise<string>
+interface IDB {
+  [key: string]: unknown;
+}
 ```
 
-**Returns:** Serialized backup data (typically JSON string)
+**Purpose:** Provides a minimal base that user implementations extend with their database-specific methods.
 
-Called before starting migrations. Should capture enough state to fully restore the database.
-
----
-
-##### restore()
-
-Restore database from backup data.
+**Usage:** Define your database type by extending IDB:
 
 ```typescript
-async restore(data: string): Promise<void>
+// PostgreSQL implementation
+interface IPostgresDB extends IDB {
+  query<T>(sql: string, params?: unknown[]): Promise<T[]>;
+  transaction(callback: (client: IPostgresDB) => Promise<void>): Promise<void>;
+}
+
+// MongoDB implementation
+interface IMongoDBConnection extends IDB {
+  collection(name: string): Collection;
+  startSession(): ClientSession;
+}
+
+// Simple key-value store
+interface IKeyValueDB extends IDB {
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string): Promise<void>;
+}
 ```
 
-**Parameters:**
-- `data`: Serialized backup data (from `backup()`)
+The index signature `[key: string]: unknown` allows implementations to add any additional properties while maintaining type safety for the base interface.
 
-Called if any migration fails. Should restore database to the state captured in the backup.
+**Note:** This interface is passed to migration scripts' `up()` and `down()` methods, enabling database interaction during migrations.
 
 ---
 
@@ -382,7 +393,7 @@ export default class AddUsersTable implements IRunnableScript {
 {: .warning }
 > The `down()` method is called when a migration fails, **including the failed migration itself**. This allows cleanup of partial changes. Ensure your down() method is idempotent and can handle being called on partially-executed migrations.
 
-See [Writing Migrations Guide](../guides/writing-migrations#reversible-migrations) for best practices.
+See [Writing Migrations Guide](../user-guides/writing-migrations#reversible-migrations) for best practices.
 
 ---
 
