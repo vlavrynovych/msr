@@ -63,6 +63,14 @@ export class MigrationService implements IMigrationService {
             );
         }
 
+        // Reject absolute paths
+        if (path.isAbsolute(fileName)) {
+            throw new Error(
+                `Security error: Path traversal detected. ` +
+                `Filename '${fileName}' is an absolute path which resolves outside the migrations directory '${baseDir}'`
+            );
+        }
+
         // Also validate the resolved path stays within baseDir
         const fullPath = path.join(baseDir, fileName);
         const resolvedPath = path.resolve(fullPath);
