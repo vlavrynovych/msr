@@ -37,8 +37,8 @@ graph TD
     C --> D[Create Migration Scripts]
     D --> E[Run Migrations]
     E --> F{Success?}
-    F -->|Yes| G[✅ Migrations Applied]
-    F -->|No| H[🔄 Automatic Rollback]
+    F -->|Yes| G[Migrations Applied]
+    F -->|No| H[Automatic Rollback]
     H --> I[Fix & Retry]
     I --> D
 

@@ -55,12 +55,12 @@ sequenceDiagram
 
     Note over Executor: 3. Validation Phase
     Executor->>Validator: validate(pending)
-    Validator-->>Executor: ✅ Valid / ❌ Errors
+    Validator-->>Executor: Valid or Errors
 
     alt Validation Failed
         Executor->>Rollback: rollback()
         Rollback-->>Executor: Rolled back
-        Executor-->>User: ❌ Failure
+        Executor-->>User: Failure
     end
 
     Note over Executor: 4. Execution Phase
@@ -75,7 +75,7 @@ sequenceDiagram
         alt Migration Failed
             Executor->>Rollback: rollback()
             Rollback-->>Executor: Rolled back
-            Executor-->>User: ❌ Failure
+            Executor-->>User: Failure
         end
     end
 
@@ -86,7 +86,7 @@ sequenceDiagram
     Executor->>Renderer: render(result)
     Renderer-->>Executor: Formatted output
 
-    Executor-->>User: ✅ Success
+    Executor-->>User: Success
 
     style User fill:#e3f2fd
     style Executor fill:#fff3e0

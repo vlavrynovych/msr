@@ -89,10 +89,10 @@ graph TD
     C --> D{Success?}
     D -->|Yes| E[Execute Migration 2]
     E --> F{Success?}
-    F -->|Yes| G[✅ Complete]
-    F -->|No| H[🔄 Restore from Backup]
+    F -->|Yes| G[Complete]
+    F -->|No| H[Restore from Backup]
     D -->|No| H
-    H --> I[❌ Rollback Complete]
+    H --> I[Rollback Complete]
 
     style A fill:#e3f2fd
     style B fill:#fff3e0
@@ -113,11 +113,11 @@ graph TD
     B --> C{Success?}
     C -->|Yes| D[Execute Migration 2]
     D --> E{Success?}
-    E -->|Yes| F[✅ Complete]
+    E -->|Yes| F[Complete]
     E -->|No| G[Call down for Migration 2]
     C -->|No| G
     G --> H[Call down for Migration 1]
-    H --> I[❌ Rollback Complete]
+    H --> I[Rollback Complete]
 
     style A fill:#e3f2fd
     style B fill:#e8f5e9
@@ -139,13 +139,13 @@ graph TD
     C --> D{Success?}
     D -->|Yes| E[Execute Migration 2]
     E --> F{Success?}
-    F -->|Yes| G[✅ Complete]
+    F -->|Yes| G[Complete]
     F -->|No| H[Try down methods]
     D -->|No| H
     H --> I{down Success?}
-    I -->|Yes| J[✅ Rollback via down]
-    I -->|No| K[🔄 Restore from Backup]
-    K --> L[❌ Rollback via Backup]
+    I -->|Yes| J[Rollback via down]
+    I -->|No| K[Restore from Backup]
+    K --> L[Rollback via Backup]
 
     style A fill:#e3f2fd
     style B fill:#fff3e0

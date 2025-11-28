@@ -24,13 +24,13 @@ The diagram below shows the three main layers: User Code (blue), Core Orchestrat
 graph TB
     subgraph "User Code"
         Handler[IDatabaseMigrationHandler<br/>Your Database Handler]
-        Migrations[Migration Scripts<br/>V*_*.ts files]
+        Migrations[Migration Scripts<br/>V timestamp files]
         UserDB[(Your Database)]
     end
 
     subgraph "MSR Core - Orchestration"
         Executor[MigrationScriptExecutor<br/>Main orchestrator]
-        Config[Config<br/>Settings & Options]
+        Config[Config<br/>Settings and Options]
     end
 
     subgraph "MSR Core - Services"
@@ -44,8 +44,8 @@ graph TB
 
     subgraph "MSR Core - Output"
         Renderer[ConsoleRenderer<br/>Formats output]
-        Strategy[IRenderStrategy<br/>ASCII/JSON/Silent]
-        Logger[ILogger<br/>Console/File/Silent]
+        Strategy[IRenderStrategy<br/>ASCII JSON Silent]
+        Logger[ILogger<br/>Console File Silent]
     end
 
     Executor --> Config
