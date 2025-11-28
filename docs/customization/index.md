@@ -21,7 +21,7 @@ MSR is designed to be highly customizable. This section covers how to extend the
 
 ## Customization Areas
 
-### [Loggers](loggers/)
+### 📝 [Loggers](loggers/)
 Built-in and custom logger implementations:
 - ConsoleLogger - Standard console output
 - SilentLogger - No output (testing)
@@ -30,28 +30,28 @@ Built-in and custom logger implementations:
 - CompositeLogger - Multiple destinations
 - **Custom Loggers** - Implement your own
 
-### [Render Strategies](render-strategies/)
+### 🎨 [Render Strategies](render-strategies/)
 Output format implementations:
 - AsciiTableRenderStrategy - Beautiful terminal tables
 - JsonRenderStrategy - Structured JSON output
 - SilentRenderStrategy - No output
 - **Custom Renderers** - Create custom formats
 
-### [Custom Logging](custom-logging)
+### 🔧 [Custom Logging](custom-logging)
 Implement custom logger behavior:
 - Logger interface implementation
 - Integration with logging frameworks
 - Multi-destination logging
 - Log levels and formatting
 
-### [Custom Rendering](custom-rendering)
+### 🖼️ [Custom Rendering](custom-rendering)
 Create custom output formats:
 - Render strategy interface
 - Custom table formats
 - JSON variations
 - Integration with reporting tools
 
-### [Migration Hooks](hooks)
+### 🪝 [Migration Hooks](hooks)
 Extend migration lifecycle:
 - beforeMigrate and afterMigrate hooks
 - Notifications and alerts
@@ -59,7 +59,7 @@ Extend migration lifecycle:
 - Custom validation
 - Integration with external systems
 
-### [Custom Validation](validation/)
+### ✅ [Custom Validation](validation/)
 Extend the validation system:
 - Built-in validation rules
 - Custom validator implementation

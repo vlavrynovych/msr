@@ -305,7 +305,7 @@ Fixes #123
 OR
 
 - Changed ABC API from X to Y
-- Migration guide: [link]
+- Migration guide: [Migration Guide](../version-migration/)
 ```
 
 ---

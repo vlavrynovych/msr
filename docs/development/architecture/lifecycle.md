@@ -21,32 +21,106 @@ Migration script lifecycle and error handling workflows.
 
 ## Migration Script Lifecycle
 
-### States
+### Complete Lifecycle Diagram
 
+This sequence diagram shows the interactions between components during the complete migration lifecycle, from initialization through execution to completion:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Executor as MigrationScriptExecutor
+    participant Scanner as MigrationScanner
+    participant Validator as MigrationValidator
+    participant Backup as BackupService
+    participant Schema as SchemaVersionService
+    participant Execution as MigrationExecutionService
+    participant Rollback as RollbackService
+    participant Renderer as MigrationRenderer
+
+    User->>Executor: migrate()
+
+    Note over Executor: 1. Initialization Phase
+    Executor->>Schema: init()
+    Schema-->>Executor: Schema table ready
+
+    Executor->>Backup: createBackup()
+    Backup-->>Executor: Backup created
+
+    Note over Executor: 2. Discovery Phase
+    Executor->>Scanner: scan(folder)
+    Scanner-->>Executor: All migration files
+
+    Executor->>Schema: list()
+    Schema-->>Executor: Already migrated
+
+    Note over Executor: 3. Validation Phase
+    Executor->>Validator: validate(pending)
+    Validator-->>Executor: ✅ Valid / ❌ Errors
+
+    alt Validation Failed
+        Executor->>Rollback: rollback()
+        Rollback-->>Executor: Rolled back
+        Executor-->>User: ❌ Failure
+    end
+
+    Note over Executor: 4. Execution Phase
+    loop For each pending migration
+        Executor->>Execution: execute(script)
+        Execution->>Script: up(db, info, handler)
+        Script-->>Execution: Result
+        Execution-->>Executor: Success
+
+        Executor->>Schema: add(script)
+        Schema-->>Executor: Saved
+
+        alt Migration Failed
+            Executor->>Rollback: rollback()
+            Rollback-->>Executor: Rolled back
+            Executor-->>User: ❌ Failure
+        end
+    end
+
+    Note over Executor: 5. Completion Phase
+    Executor->>Backup: deleteBackup()
+    Backup-->>Executor: Deleted
+
+    Executor->>Renderer: render(result)
+    Renderer-->>Executor: Formatted output
+
+    Executor-->>User: ✅ Success
+
+    style User fill:#e3f2fd
+    style Executor fill:#fff3e0
+    style Scanner fill:#e8f5e9
+    style Validator fill:#e8f5e9
+    style Backup fill:#fff9c4
+    style Schema fill:#f3e5f5
+    style Execution fill:#e8f5e9
+    style Rollback fill:#ffcdd2
+    style Renderer fill:#e1f5fe
 ```
-┌─────────────┐
-│ Discovered  │  ← MigrationService finds file
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│  Filtered   │  ← MigrationScriptSelector: pending/ignored/migrated
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│ Initialized │  ← script.init() loads module
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│  Executing  │  ← MigrationRunner: set username, startedAt
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│  Completed  │  ← Set finishedAt, result, save to DB
-└─────────────┘
+
+### State Transitions
+
+This state diagram illustrates the various states a migration script can be in throughout its lifecycle, from discovery to completion or failure:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Discovered: File found
+    Discovered --> Filtered: Check status
+    Filtered --> Pending: Not yet run
+    Filtered --> Ignored: Skipped
+    Filtered --> Migrated: Already run
+    Pending --> Validated: Pass validation
+    Validated --> Initialized: Load module
+    Initialized --> Executing: Run up()
+    Executing --> Completed: Success
+    Executing --> Failed: Error
+    Failed --> RollingBack: Trigger rollback
+    RollingBack --> RolledBack: Restore state
+    Completed --> Saved: Save to DB
+    Saved --> [*]
+    RolledBack --> [*]
 ```
 
 ### Script Object Evolution

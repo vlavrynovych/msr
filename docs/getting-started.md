@@ -26,6 +26,36 @@ This guide will help you set up and run your first migrations with Migration Scr
 
 ---
 
+## Quick Start Flow
+
+The following diagram illustrates the complete migration workflow from installation to execution:
+
+```mermaid
+graph TD
+    A[Install MSR] --> B[Implement Database Handler]
+    B --> C[Configure MSR]
+    C --> D[Create Migration Scripts]
+    D --> E[Run Migrations]
+    E --> F{Success?}
+    F -->|Yes| G[✅ Migrations Applied]
+    F -->|No| H[🔄 Automatic Rollback]
+    H --> I[Fix & Retry]
+    I --> D
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#fff3e0
+    style D fill:#e8f5e9
+    style E fill:#e8f5e9
+    style G fill:#c8e6c9
+    style H fill:#ffcdd2
+    style I fill:#fff9c4
+```
+
+Follow these steps to get started with MSR.
+
+---
+
 ## Installation
 
 Install MSR via npm:

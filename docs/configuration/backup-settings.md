@@ -25,6 +25,9 @@ Backup settings control how MSR creates, names, and stores database backup files
 
 The `BackupConfig` class provides fine-grained control over backup file naming and storage location.
 
+{: .note }
+> Backup settings are optional if you're using `RollbackStrategy.DOWN` or `RollbackStrategy.NONE`.
+
 ---
 
 ## When Backups Are Needed
@@ -140,6 +143,9 @@ backupConfig.deleteBackup = false;
 - Backup preserved after success
 - Accumulates backup files over time
 - Useful for audit trails or manual verification
+
+{: .warning }
+> In production, consider setting `deleteBackup = false` for critical deployments to maintain recovery options.
 
 #### Use Cases
 
