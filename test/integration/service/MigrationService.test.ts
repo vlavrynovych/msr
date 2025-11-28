@@ -610,4 +610,181 @@ describe('MigrationService', () => {
             expect(ms).to.be.instanceOf(MigrationService);
         })
     })
+
+    describe('Path Traversal Security', () => {
+        /**
+         * Test: Validates filenames before processing in single-folder mode
+         * Security test ensuring that all filenames are validated for path traversal
+         * attempts, even if they don't match the migration pattern (defense in depth).
+         */
+        it('should validate all filenames for path traversal in single-folder mode', async () => {
+            const cfg = TestUtils.getConfig();
+            cfg.recursive = false;
+            const ms = new MigrationService(new SilentLogger());
+
+            const sinon = await import('sinon');
+            // Simulate filesystem returning a file with '..' in the name
+            const readdirStub = sinon.stub(require('fs'), 'readdirSync')
+                .returns([
+                    'go..up',  // File with .. in name (wouldn't match pattern but should still be caught)
+                    'V202311020036_valid.ts'
+                ]);
+
+            try {
+                await ms.readMigrationScripts(cfg);
+                expect.fail('Should have thrown path traversal error');
+            } catch (e: any) {
+                expect(e.message).to.include('Security error: Path traversal detected');
+                expect(e.message).to.include('contains \'..\' which is not allowed');
+            } finally {
+                readdirStub.restore();
+            }
+        })
+
+        /**
+         * Test: Rejects path traversal in recursive mode
+         * Security test validating that path traversal attempts are blocked
+         * when scanning directories, preventing '..' directory traversal.
+         */
+        it('should reject path traversal in recursive mode', async () => {
+            const cfg = TestUtils.getConfig();
+            cfg.recursive = true;
+            const ms = new MigrationService(new SilentLogger());
+
+            const sinon = await import('sinon');
+            const readdirStub = sinon.stub(require('fs'), 'readdirSync');
+
+            // Simulate directory listing with '..' in folder name
+            readdirStub.onFirstCall().callsFake((dir: string, options?: any) => {
+                if (options?.withFileTypes) {
+                    return [
+                        { name: 'go..up', isDirectory: () => true, isFile: () => false }
+                    ];
+                }
+                return [];
+            });
+
+            try {
+                await ms.readMigrationScripts(cfg);
+                expect.fail('Should have thrown path traversal error');
+            } catch (e: any) {
+                expect(e.message).to.include('Security error: Path traversal detected');
+            } finally {
+                readdirStub.restore();
+            }
+        })
+
+        /**
+         * Test: Rejects path traversal in beforeMigrate script
+         * Security test validating that beforeMigrateName cannot be used
+         * to read files outside the migrations directory.
+         */
+        it('should reject path traversal in beforeMigrate script', async () => {
+            const cfg = TestUtils.getConfig();
+            cfg.beforeMigrateName = '../../../etc/passwd';
+            const ms = new MigrationService(new SilentLogger());
+
+            try {
+                await ms.getBeforeMigrateScript(cfg);
+                expect.fail('Should have thrown path traversal error');
+            } catch (e: any) {
+                expect(e.message).to.include('Security error: Path traversal detected');
+            }
+        })
+
+        /**
+         * Test: Allows valid relative paths within migrations directory
+         * Validates that legitimate sub-folders and files are still allowed
+         * after adding path traversal protection.
+         */
+        it('should allow valid relative paths within migrations directory', async () => {
+            const cfg = TestUtils.getConfig();
+            cfg.recursive = true;
+            const ms = new MigrationService(new SilentLogger());
+
+            const sinon = await import('sinon');
+            const readdirStub = sinon.stub(require('fs'), 'readdirSync');
+
+            readdirStub.onFirstCall().callsFake((dir: string, options?: any) => {
+                if (options?.withFileTypes) {
+                    return [
+                        { name: 'users', isDirectory: () => true, isFile: () => false }
+                    ];
+                }
+                return [];
+            });
+
+            readdirStub.onSecondCall().callsFake((dir: string, options?: any) => {
+                if (options?.withFileTypes) {
+                    return [
+                        { name: 'V202311010001_test.ts', isDirectory: () => false, isFile: () => true }
+                    ];
+                }
+                return [];
+            });
+
+            const res = await ms.readMigrationScripts(cfg);
+
+            expect(res.length).eq(1, 'Valid sub-folders should still work');
+            expect(res[0].name).eq('V202311010001_test.ts');
+
+            readdirStub.restore();
+        })
+
+        /**
+         * Test: Rejects absolute paths that resolve outside base directory
+         * Security test ensuring that absolute paths pointing outside the
+         * migrations folder are rejected, even without '..' sequences.
+         */
+        it('should reject absolute paths outside migrations directory', async () => {
+            const cfg = TestUtils.getConfig();
+            cfg.recursive = false;
+            const ms = new MigrationService(new SilentLogger());
+
+            const sinon = await import('sinon');
+            const path = await import('path');
+
+            // Use an absolute path that's definitely outside the migrations folder
+            const outsidePath = path.resolve('/etc/passwd');
+            const filename = outsidePath;  // Absolute path as filename
+
+            const readdirStub = sinon.stub(require('fs'), 'readdirSync')
+                .returns([filename]);
+
+            try {
+                await ms.readMigrationScripts(cfg);
+                expect.fail('Should have thrown path traversal error');
+            } catch (e: any) {
+                expect(e.message).to.include('Security error: Path traversal detected');
+                expect(e.message).to.include('resolves outside the migrations directory');
+            } finally {
+                readdirStub.restore();
+            }
+        })
+
+        /**
+         * Test: Handles edge case where resolved path equals base directory
+         * Validates behavior when a filename resolves to exactly the base directory,
+         * which should be allowed (second condition in validation: resolvedPath !== resolvedBase).
+         */
+        it('should allow path that resolves to base directory itself', async () => {
+            const cfg = TestUtils.getConfig();
+            cfg.recursive = false;
+            const ms = new MigrationService(new SilentLogger());
+
+            const sinon = await import('sinon');
+
+            // Edge case: filename is '.' which resolves to base directory
+            const readdirStub = sinon.stub(require('fs'), 'readdirSync')
+                .returns(['.']);
+
+            try {
+                const res = await ms.readMigrationScripts(cfg);
+                // '.' won't match the migration pattern, so no results
+                expect(res.length).eq(0);
+            } finally {
+                readdirStub.restore();
+            }
+        })
+    })
 })

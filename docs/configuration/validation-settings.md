@@ -355,6 +355,211 @@ config.downMethodPolicy = DownMethodPolicy.OPTIONAL;
 
 ---
 
+## validateMigratedFiles
+
+**Type:** `boolean`
+**Default:** `true`
+**Introduced:** v0.3.0
+
+Enable checksum integrity checking for previously executed migrations.
+
+```typescript
+// Enable integrity checking (recommended)
+config.validateMigratedFiles = true;
+
+// Disable (not recommended for production)
+config.validateMigratedFiles = false;
+```
+
+### What It Does
+
+When enabled, MSR:
+1. **Calculates checksums** when migrations execute
+2. **Stores checksums** in the schema version table
+3. **Validates checksums** on subsequent runs
+4. **Fails migration** if a previously executed file was modified
+
+### How It Works
+
+```typescript
+// First run:
+// 1. V202501220100_create_users.ts executes
+// 2. MSR calculates checksum: a1b2c3d4e5f6...
+// 3. Checksum stored in database
+
+// Second run:
+// 1. MSR recalculates checksum of V202501220100_create_users.ts
+// 2. Compares with stored checksum
+// 3. If different → throws MIGRATED_FILE_MODIFIED error
+```
+
+### Error Example
+
+```
+❌ Validation Error: MIGRATED_FILE_MODIFIED
+   File: V202501220100_create_users.ts
+   Expected checksum: a1b2c3d4e5f6g7h8i9j0
+   Actual checksum:   z9y8x7w6v5u4t3s2r1q0
+
+   This migration was modified after execution.
+```
+
+### Use Cases
+
+**Enable When:**
+- ✅ Production environments
+- ✅ Need audit trail of migrations
+- ✅ Multi-environment consistency required
+- ✅ Compliance requirements
+
+**Disable When:**
+- ⚠️  Local development (iterating on migrations)
+- ⚠️  Testing scenarios
+- ❌ Never disable in production
+
+### Environment-Specific
+
+```typescript
+if (process.env.NODE_ENV === 'development') {
+    // Allow modifications during development
+    config.validateMigratedFiles = false;
+} else {
+    // Strict checking in staging/production
+    config.validateMigratedFiles = true;
+}
+```
+
+### See Also
+
+- [Checksum & Integrity Guide](../validation/checksum-integrity) - Complete integrity checking guide
+- [Built-in Validation](../validation/built-in-validation) - MIGRATED_FILE_MODIFIED error details
+
+---
+
+## checksumAlgorithm
+
+**Type:** `'md5' | 'sha1' | 'sha256' | 'sha512'`
+**Default:** `'sha256'`
+**Introduced:** v0.3.0
+
+The hashing algorithm used to calculate file checksums.
+
+```typescript
+// SHA-256 (recommended default)
+config.checksumAlgorithm = 'sha256';
+
+// MD5 (fastest, less secure)
+config.checksumAlgorithm = 'md5';
+
+// SHA-512 (most secure, slower)
+config.checksumAlgorithm = 'sha512';
+```
+
+### Algorithm Comparison
+
+| Algorithm | Speed | Security | Recommendation |
+|-----------|-------|----------|----------------|
+| `md5` | Fastest | Low | Development only |
+| `sha1` | Fast | Medium | Legacy systems |
+| `sha256` | Fast | High | **Recommended** |
+| `sha512` | Slower | Highest | High-security |
+
+### Important Notes
+
+{: .warning }
+**Never change the algorithm** after migrations have been executed. This will cause all checksum validations to fail. If you must change it, you'll need to clear existing checksums from the database.
+
+### Migration Between Algorithms
+
+```sql
+-- If you must change algorithms (e.g., md5 → sha256)
+-- Step 1: Clear existing checksums
+UPDATE schema_version
+SET checksum = NULL, checksum_algorithm = NULL;
+
+-- Step 2: Update config
+config.checksumAlgorithm = 'sha256';
+
+-- Step 3: Run migrations (new checksums will be calculated)
+```
+
+### See Also
+
+- [Checksum & Integrity Guide](../validation/checksum-integrity) - Algorithm selection guide
+
+---
+
+## requireMigratedFilesExist
+
+**Type:** `boolean`
+**Default:** `true`
+**Introduced:** v0.3.0
+
+Controls whether previously executed migration files must still exist in the filesystem.
+
+```typescript
+// Require files to exist (strict mode - recommended)
+config.requireMigratedFilesExist = true;
+
+// Allow missing files (permissive mode)
+config.requireMigratedFilesExist = false;
+```
+
+### Behavior
+
+**When `true` (strict mode - default):**
+- Missing executed migration file → `MIGRATED_FILE_MISSING` error
+- Ensures complete audit trail
+- All migrations remain in version control
+
+**When `false` (permissive mode):**
+- Missing executed migration file → No error
+- Only validates checksum if file exists
+- Allows deletion of old migrations
+
+### Use Cases
+
+**Set to `true` When:**
+- ✅ Need complete migration history
+- ✅ Compliance requires audit trail
+- ✅ Debugging may need old migrations
+- ✅ Team policy: never delete migrations
+
+**Set to `false` When:**
+- ⚠️  Cleaning up very old migrations
+- ⚠️  Reducing repository size
+- ⚠️  Migrations deployed everywhere
+- ❌ Not recommended for most projects
+
+### Example: Cleanup Strategy
+
+```typescript
+// Production: Keep all files
+config.requireMigratedFilesExist = true;
+
+// After deployment to all environments,
+// you MAY delete very old migrations:
+config.requireMigratedFilesExist = false;
+config.validateMigratedFiles = true;  // Still validate if file exists
+```
+
+### Error Example
+
+```
+❌ Validation Error: MIGRATED_FILE_MISSING
+   File: V202501220100_create_users.ts
+   Timestamp: 202501220100
+
+   This migration was executed but the file is missing.
+   Cannot verify migration integrity.
+```
+
+### See Also
+
+- [Checksum & Integrity Guide](../validation/checksum-integrity) - Missing file handling
+
+---
+
 ## customValidators
 
 **Type:** `IMigrationValidator[]`

@@ -195,7 +195,8 @@ export class RollbackService implements IRollbackService {
 
         // Roll back all attempted migrations in reverse order
         // The failed migration is last in the array, so it will be rolled back first
-        for (const script of attemptedScripts.reverse()) {
+        // Use spread operator to avoid mutating the caller's array
+        for (const script of [...attemptedScripts].reverse()) {
             if (script.script.down) {
                 this.logger.info(`Rolling back: ${script.name}`);
                 await script.script.down(this.handler.db, script, this.handler);

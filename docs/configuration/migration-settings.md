@@ -277,9 +277,11 @@ config.beforeMigrateName = null;
 
 - Executes **before** scanning for migrations
 - NOT saved to the schema version table
+- NO checksum validation (by design)
 - Can be TypeScript (.ts) or JavaScript (.js)
 - Must implement `IRunnableScript` interface
 - Located in the migrations folder
+- Runs on every migration execution (not just once)
 
 ### Example: beforeMigrate.ts
 
@@ -369,11 +371,16 @@ export default class BeforeMigrate implements IRunnableScript {
 }
 ```
 
+### Important Notes
+
 {: .note }
-The beforeMigrate script executes **before** MSR scans for migrations, allowing it to completely reset/erase the database.
+**No Checksum Validation:** The beforeMigrate script is NOT subject to checksum integrity checking (even when `validateMigratedFiles = true`). This is intentional because beforeMigrate is designed to be modified frequently (e.g., updating snapshots, changing test data). Since it doesn't register in the schema version table, there's no historical checksum to compare against.
+
+{: .note }
+**Execution Timing:** The beforeMigrate script executes **before** MSR scans for migrations, allowing it to completely reset/erase the database. This happens every time migrations run, not just once.
 
 {: .warning }
-beforeMigrate can erase your database. Only use in development/testing or with proper safeguards.
+**Danger:** beforeMigrate can erase your database. Only use in development/testing or with proper safeguards. Consider checking `process.env.NODE_ENV` before performing destructive operations.
 
 ---
 
