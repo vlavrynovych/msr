@@ -1,0 +1,23 @@
+---
+---
+
+/* Show both logo and title in sidebar */
+.site-title {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+}
+
+.site-logo {
+  border: 2px solid #4b4cd4;
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+}
+
+/* Ensure title text is visible */
+.site-title::after {
+  content: "Migration Script Runner";
+  font-size: 16px;
+  font-weight: 600;
+}
