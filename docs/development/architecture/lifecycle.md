@@ -39,21 +39,21 @@ sequenceDiagram
 
     User->>Executor: migrate()
 
-    Note over Executor: 1. Initialization Phase
+    Note over Executor: Initialization Phase
     Executor->>Schema: init()
     Schema-->>Executor: Schema table ready
 
     Executor->>Backup: createBackup()
     Backup-->>Executor: Backup created
 
-    Note over Executor: 2. Discovery Phase
+    Note over Executor: Discovery Phase
     Executor->>Scanner: scan(folder)
     Scanner-->>Executor: All migration files
 
     Executor->>Schema: list()
     Schema-->>Executor: Already migrated
 
-    Note over Executor: 3. Validation Phase
+    Note over Executor: Validation Phase
     Executor->>Validator: validate(pending)
     Validator-->>Executor: Valid or Errors
 
@@ -63,7 +63,7 @@ sequenceDiagram
         Executor-->>User: Failure
     end
 
-    Note over Executor: 4. Execution Phase
+    Note over Executor: Execution Phase
     loop For each pending migration
         Executor->>Execution: execute(script)
         Note right of Execution: Call script up method
@@ -79,7 +79,7 @@ sequenceDiagram
         end
     end
 
-    Note over Executor: 5. Completion Phase
+    Note over Executor: Completion Phase
     Executor->>Backup: deleteBackup()
     Backup-->>Executor: Deleted
 
@@ -112,7 +112,7 @@ stateDiagram-v2
     Filtered --> Migrated: Already run
     Pending --> Validated: Pass validation
     Validated --> Initialized: Load module
-    Initialized --> Executing: Run up()
+    Initialized --> Executing: Run up method
     Executing --> Completed: Success
     Executing --> Failed: Error
     Failed --> RollingBack: Trigger rollback
