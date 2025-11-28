@@ -27,7 +27,7 @@ This component diagram shows the relationships between MSR's core services and h
 graph TB
     subgraph "User Layer"
         App[User Application<br/>Your migration code]
-        Scripts[Migration Scripts<br/>V*_*.ts files]
+        Scripts[Migration Scripts<br/>V timestamp files]
     end
 
     subgraph "Orchestration Layer"
@@ -48,7 +48,7 @@ graph TB
 
     subgraph "Database Layer"
         Handler[IDatabaseMigrationHandler<br/>Your database handler]
-        DB[(Your Database<br/>PostgreSQL/MongoDB/etc)]
+        DB[(Your Database<br/>PostgreSQL MongoDB etc)]
     end
 
     App --> Executor

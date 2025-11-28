@@ -2,22 +2,50 @@
 ---
 
 /* Show both logo and title in sidebar */
-.site-title {
+.site-header .site-title {
   display: flex !important;
-  align-items: center;
-  gap: 12px;
+  align-items: center !important;
+  gap: 12px !important;
+  background-image: none !important;
+  padding-left: 0 !important;
 }
 
-.site-logo {
-  border: 2px solid #4b4cd4;
-  border-radius: 8px;
-  width: 40px;
-  height: 40px;
+.site-header .site-logo,
+.site-header .site-title img {
+  display: inline-block !important;
+  border: 2px solid #4b4cd4 !important;
+  border-radius: 8px !important;
+  width: 40px !important;
+  height: 40px !important;
+  margin-right: 12px !important;
+  object-fit: contain !important;
 }
 
-/* Ensure title text is visible */
-.site-title::after {
-  content: "Migration Script Runner";
-  font-size: 16px;
-  font-weight: 600;
+/* Add title text after logo */
+.site-header .site-title::after {
+  content: "Migration Script Runner" !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  display: inline !important;
+  vertical-align: middle !important;
+}
+
+/* Limit height of large Mermaid diagrams */
+/* Architecture page - component diagram */
+.main-content h2#high-level-architecture + p + .language-mermaid {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 16px;
+}
+
+/* Design Patterns page - class diagram and dependency graph */
+.main-content h2#class-diagram + p + .language-mermaid,
+.main-content h3#dependency-graph + p + .language-mermaid {
+  max-height: 600px;
+  overflow-y: auto;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 16px;
 }
