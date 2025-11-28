@@ -492,11 +492,11 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
 
         const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
 
-        // Access private method via type casting (for coverage of defensive code)
-        const shouldRestore = (executor as any).shouldRestoreInMode();
+        // Test rollbackService.shouldCreateBackup() with DOWN strategy
+        const shouldCreate = executor.rollbackService.shouldCreateBackup();
 
-        // Should return false because strategy is DOWN
-        expect(shouldRestore).to.be.false;
+        // Should return false because strategy is DOWN (doesn't need backup)
+        expect(shouldCreate).to.be.false;
     });
 
     /**

@@ -365,8 +365,8 @@ describe('MigrationScriptExecutor - Version Control', () => {
                 executed: []
             });
 
-            // Stub handleRollback to prevent actual rollback
-            const rollbackStub = sinon.stub(executor as any, 'handleRollback').resolves();
+            // Stub rollbackService.rollback to prevent actual rollback
+            const rollbackStub = sinon.stub(executor.rollbackService, 'rollback').resolves();
 
             try {
                 await executor.migrateTo(1);

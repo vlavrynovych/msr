@@ -18,10 +18,12 @@ import {MigrationScriptSelector} from "./MigrationScriptSelector";
 import {MigrationRunner} from "./MigrationRunner";
 import {MigrationScanner} from "./MigrationScanner";
 import {IMigrationScanner} from "../interface/service/IMigrationScanner";
-import {Config, RollbackStrategy, ValidationIssueType, BackupMode} from "../model";
+import {Config, ValidationIssueType} from "../model";
 import {MigrationValidationService} from "./MigrationValidationService";
 import {IMigrationValidationService, IValidationResult, IValidationIssue} from "../interface";
 import {ValidationError} from "../error/ValidationError";
+import {RollbackService} from "./RollbackService";
+import {IRollbackService} from "../interface/service/IRollbackService";
 
 /**
  * Main executor class for running database migrations.
@@ -82,6 +84,9 @@ export class MigrationScriptExecutor {
 
     /** Service for validating migration scripts before execution */
     public readonly validationService: IMigrationValidationService;
+
+    /** Service for handling rollback operations based on configured strategy */
+    public readonly rollbackService: IRollbackService;
 
     /**
      * Creates a new MigrationScriptExecutor instance.
@@ -160,6 +165,9 @@ export class MigrationScriptExecutor {
 
         this.validationService = dependencies?.validationService
             ?? new MigrationValidationService(this.logger, this.config.customValidators);
+
+        this.rollbackService = dependencies?.rollbackService
+            ?? new RollbackService(handler, this.config, this.backupService, this.logger, this.hooks);
 
         this.migrationRenderer.drawFiglet();
     }
@@ -240,7 +248,7 @@ export class MigrationScriptExecutor {
             }
 
             // Conditionally create backup based on rollback strategy
-            if (this.shouldCreateBackup()) {
+            if (this.rollbackService.shouldCreateBackup()) {
                 // Hook: Before backup
                 await this.hooks?.onBeforeBackup?.();
 
@@ -305,7 +313,7 @@ export class MigrationScriptExecutor {
 
             // Handle rollback based on configured strategy
             // scripts.executed contains ALL attempted migrations (including the failed one)
-            await this.handleRollback(scripts.executed, backupPath);
+            await this.rollbackService.rollback(scripts.executed, backupPath);
 
             // Hook: Error
             await this.hooks?.onError?.(err as Error);
@@ -633,7 +641,7 @@ export class MigrationScriptExecutor {
             }
 
             // Create backup if rollback strategy requires it
-            if (this.shouldCreateBackup()) {
+            if (this.rollbackService.shouldCreateBackup()) {
                 await this.hooks?.onBeforeBackup?.();
                 backupPath = await this.backupService.backup();
                 if (backupPath) {
@@ -688,7 +696,7 @@ export class MigrationScriptExecutor {
             this.logger.error(`Migration to version ${targetVersion} failed: ${(error as Error).message}`);
 
             // Handle rollback
-            await this.handleRollback(scripts.executed, backupPath);
+            await this.rollbackService.rollback(scripts.executed, backupPath);
 
             throw error;
         }
@@ -849,18 +857,6 @@ export class MigrationScriptExecutor {
      * }
      * ```
      */
-    /**
-     * Determine if backup should be created based on rollback strategy and handler configuration.
-     *
-     * @returns true if backup should be created, false otherwise
-     * @private
-     */
-    private shouldCreateBackup(): boolean {
-        const hasBackup = !!this.handler.backup;
-
-        // Need backup interface and correct mode/strategy combination
-        return hasBackup && this.shouldBackupInMode();
-    }
 
     /**
      * Validate migration scripts before execution.
@@ -959,173 +955,6 @@ export class MigrationScriptExecutor {
 
             throw new ValidationError('Migration file integrity check failed', errorResults);
         }
-    }
-
-    /**
-     * Handle rollback after migration failure based on configured strategy.
-     *
-     * @param executedScripts - Scripts that were attempted (including the failed one)
-     * @param backupPath - Path to backup file (if created)
-     * @private
-     */
-    private async handleRollback(executedScripts: MigrationScript[], backupPath: string | undefined): Promise<void> {
-        const strategy = this.config.rollbackStrategy;
-
-        switch (strategy) {
-            case RollbackStrategy.BACKUP:
-                await this.rollbackWithBackup(backupPath);
-                break;
-
-            case RollbackStrategy.DOWN:
-                await this.rollbackWithDown(executedScripts);
-                break;
-
-            case RollbackStrategy.BOTH:
-                await this.rollbackWithBoth(executedScripts, backupPath);
-                break;
-
-            case RollbackStrategy.NONE:
-                this.logger.warn('⚠️  No rollback configured - database may be in inconsistent state');
-                break;
-        }
-    }
-
-    /**
-     * Rollback using backup/restore strategy.
-     *
-     * @param backupPath - Path to backup file (from CREATE backup operations)
-     * @private
-     */
-    private async rollbackWithBackup(backupPath: string | undefined): Promise<void> {
-        // Check if restore should happen based on backupMode
-        if (!this.shouldRestoreInMode()) {
-            this.logger.warn('⚠️  Backup restore skipped due to backupMode setting');
-            return;
-        }
-
-        // Determine which backup to restore from
-        let pathToRestore: string | undefined;
-        if (this.config.backupMode === BackupMode.RESTORE_ONLY) {
-            // Use existing backup path from config
-            pathToRestore = this.config.backup.existingBackupPath;
-            if (!pathToRestore) {
-                this.logger.error('❌ BackupMode.RESTORE_ONLY requires config.backup.existingBackupPath to be set');
-                throw new Error('BackupMode.RESTORE_ONLY requires existingBackupPath configuration');
-            }
-        } else {
-            // Use the backup created during this migration run
-            pathToRestore = backupPath;
-        }
-
-        if (!pathToRestore) {
-            this.logger.warn('No backup available for restore');
-            return;
-        }
-
-        // Hook: Before restore
-        if (this.hooks && this.hooks.onBeforeRestore) {
-            await this.hooks.onBeforeRestore();
-        }
-
-        this.logger.info('Restoring from backup...');
-        await this.backupService.restore(pathToRestore);
-
-        // Hook: After restore
-        if (this.hooks && this.hooks.onAfterRestore) {
-            await this.hooks.onAfterRestore();
-        }
-
-        this.backupService.deleteBackup();
-        this.logger.info('✓ Database restored from backup');
-    }
-
-    /**
-     * Rollback using down() methods strategy.
-     *
-     * Calls down() on all attempted migrations in reverse order.
-     * This includes the failed migration (last in array) to clean up partial changes.
-     *
-     * @param attemptedScripts - All scripts that were attempted (including the failed one)
-     * @private
-     */
-    private async rollbackWithDown(attemptedScripts: MigrationScript[]): Promise<void> {
-        if (attemptedScripts.length === 0) {
-            this.logger.info('No migrations to rollback');
-            return;
-        }
-
-        this.logger.info(`Rolling back ${attemptedScripts.length} migration(s) using down() methods...`);
-
-        // Roll back all attempted migrations in reverse order
-        // The failed migration is last in the array, so it will be rolled back first
-        for (const script of attemptedScripts.reverse()) {
-            if (script.script.down) {
-                this.logger.info(`Rolling back: ${script.name}`);
-                await script.script.down(this.handler.db, script, this.handler);
-            } else {
-                this.logger.warn(`⚠️  No down() method for ${script.name} - skipping rollback`);
-            }
-        }
-
-        this.logger.info('✓ Rollback completed using down() methods');
-    }
-
-    /**
-     * Rollback using both strategies (down first, backup as fallback).
-     *
-     * @param attemptedScripts - All scripts that were attempted (including the failed one)
-     * @param backupPath - Path to backup file
-     * @private
-     */
-    private async rollbackWithBoth(attemptedScripts: MigrationScript[], backupPath: string | undefined): Promise<void> {
-        try {
-            // Try down() methods first (includes failed migration cleanup)
-            await this.rollbackWithDown(attemptedScripts);
-        } catch (downError) {
-            this.logger.error(`down() rollback failed: ${downError}`);
-            this.logger.info('Falling back to backup restore...');
-
-            // Fallback to backup if down() fails
-            await this.rollbackWithBackup(backupPath);
-        }
-    }
-
-    /**
-     * Determine if backup should be created based on backupMode and rollbackStrategy.
-     *
-     * @returns True if backup should be created, false otherwise
-     * @private
-     */
-    private shouldBackupInMode(): boolean {
-        const mode = this.config.backupMode;
-        const strategy = this.config.rollbackStrategy;
-
-        // Only create backup if rollback strategy involves backups
-        if (strategy !== RollbackStrategy.BACKUP && strategy !== RollbackStrategy.BOTH) {
-            return false;
-        }
-
-        // Check backup mode
-        return mode === BackupMode.FULL || mode === BackupMode.CREATE_ONLY;
-    }
-
-    /**
-     * Determine if restore should happen on failure based on backupMode and rollbackStrategy.
-     *
-     * @returns True if restore should happen on failure, false otherwise
-     * @private
-     */
-    private shouldRestoreInMode(): boolean {
-        const mode = this.config.backupMode;
-        const strategy = this.config.rollbackStrategy;
-
-        // Only restore if rollback strategy involves backups
-        if (strategy !== RollbackStrategy.BACKUP && strategy !== RollbackStrategy.BOTH) {
-            return false;
-        }
-
-        // Check backup mode
-        return mode === BackupMode.FULL || mode === BackupMode.RESTORE_ONLY;
     }
 
     private async executeBeforeMigrate(): Promise<void> {

@@ -5,6 +5,7 @@ import {IRenderStrategy} from "./service/IRenderStrategy";
 import {IMigrationService} from "./service/IMigrationService";
 import {IMigrationScanner} from "./service/IMigrationScanner";
 import {IMigrationValidationService} from "./service/IMigrationValidationService";
+import {IRollbackService} from "./service/IRollbackService";
 import {ILogger} from "./ILogger";
 import {IMigrationHooks} from "./IMigrationHooks";
 
@@ -136,4 +137,19 @@ export interface IMigrationExecutorDependencies {
      * ```
      */
     hooks?: IMigrationHooks;
+
+    /**
+     * Custom rollback service implementation.
+     * If not provided, uses RollbackService with default configuration.
+     *
+     * The rollback service handles all rollback strategies (BACKUP, DOWN, BOTH, NONE)
+     * and backup mode logic, determining when to create and restore backups.
+     *
+     * @example
+     * ```typescript
+     * // Use custom rollback service
+     * rollbackService: new CustomRollbackService(handler, config, backupService, logger, hooks)
+     * ```
+     */
+    rollbackService?: IRollbackService;
 }
