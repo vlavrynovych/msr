@@ -161,7 +161,7 @@ config.strictValidation = process.env.STRICT_VALIDATION === 'true';
 
 ### Environment-Specific
 
-<details>
+<details markdown="1">
 <summary>Advanced: Environment-based strict validation</summary>
 
 ```typescript
@@ -292,7 +292,7 @@ config.downMethodPolicy = DownMethodPolicy.OPTIONAL;
 
 ### Policy Selection Guide
 
-<details>
+<details markdown="1">
 <summary>Advanced: Choosing the right down() method policy</summary>
 
 Choose based on your workflow:
