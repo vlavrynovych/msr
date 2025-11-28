@@ -146,4 +146,32 @@ export class BackupConfig {
      * ```
      */
     extension:string = 'bkp';
+
+    /**
+     * Path to existing backup file for restore operations.
+     *
+     * Used with BackupMode.RESTORE_ONLY to restore from a pre-existing backup
+     * rather than creating a new one. Can be absolute or relative path.
+     *
+     * @default undefined
+     *
+     * @example
+     * ```typescript
+     * import { BackupMode } from '@migration-script-runner/core';
+     *
+     * // Use existing backup from external backup system
+     * config.backupMode = BackupMode.RESTORE_ONLY;
+     * config.backup.existingBackupPath = './backups/pre-deploy-2025-01-22.bkp';
+     *
+     * // Absolute path
+     * config.backup.existingBackupPath = '/var/backups/myapp/manual-backup.bkp';
+     *
+     * // Manual restore workflow
+     * config.backupMode = BackupMode.MANUAL;
+     * await executor.restoreFromBackup('./backups/specific-backup.bkp');
+     * ```
+     *
+     * @see BackupMode.RESTORE_ONLY for automatic restore mode
+     */
+    existingBackupPath?: string;
 }

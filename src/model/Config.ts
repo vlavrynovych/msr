@@ -1,4 +1,4 @@
-import {BackupConfig, RollbackStrategy, DownMethodPolicy} from "./index";
+import {BackupConfig, RollbackStrategy, DownMethodPolicy, BackupMode} from "./index";
 import {IMigrationValidator} from "../interface/validation/IMigrationValidator";
 
 /**
@@ -198,6 +198,53 @@ export class Config {
      * @see RollbackStrategy enum for all available options
      */
     rollbackStrategy: RollbackStrategy = RollbackStrategy.BACKUP
+
+    /**
+     * Backup behavior mode during migration execution.
+     *
+     * Controls when backups are created and whether automatic restore occurs on failure.
+     * Works in conjunction with rollbackStrategy to provide granular control over backup workflows.
+     *
+     * - `FULL` (default): Creates backup before migrations, restores on failure, deletes on success
+     * - `CREATE_ONLY`: Creates backup but doesn't restore automatically on failure
+     * - `RESTORE_ONLY`: Doesn't create backup, restores from existing backup on failure (requires existingBackupPath)
+     * - `MANUAL`: No automatic backup/restore, use public methods (createBackup/restoreFromBackup/deleteBackup)
+     *
+     * @default BackupMode.FULL
+     *
+     * @example
+     * ```typescript
+     * import { BackupMode, RollbackStrategy } from '@migration-script-runner/core';
+     *
+     * // Full automatic backup and restore (default)
+     * config.backupMode = BackupMode.FULL;
+     * config.rollbackStrategy = RollbackStrategy.BACKUP;
+     * // Creates backup, restores on failure, deletes on success
+     *
+     * // Create backup but use down() for rollback
+     * config.backupMode = BackupMode.CREATE_ONLY;
+     * config.rollbackStrategy = RollbackStrategy.DOWN;
+     * // Creates backup for safety, uses down() methods for rollback, keeps backup
+     *
+     * // Use external backup system
+     * config.backupMode = BackupMode.RESTORE_ONLY;
+     * config.backup.existingBackupPath = './backups/pre-deploy.bkp';
+     * // No backup creation, restores from existing backup on failure
+     *
+     * // Full manual control
+     * config.backupMode = BackupMode.MANUAL;
+     * const backupPath = await executor.createBackup();
+     * try {
+     *   await executor.migrate();
+     * } catch (error) {
+     *   await executor.restoreFromBackup(backupPath);
+     * }
+     * ```
+     *
+     * @see BackupMode enum for detailed mode descriptions
+     * @see BackupConfig.existingBackupPath for RESTORE_ONLY mode
+     */
+    backupMode: BackupMode = BackupMode.FULL
 
     /**
      * Enable validation of migration scripts before execution.
