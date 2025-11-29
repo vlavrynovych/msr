@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import {IMigrationInfo, IDatabaseMigrationHandler} from "../../../src";
+import {IMigrationInfo, IDatabaseMigrationHandler, LoaderRegistry} from "../../../src";
 import {TestUtils} from "../../helpers/TestUtils";
 
 describe('MigrationScript', () => {
@@ -15,8 +15,9 @@ describe('MigrationScript', () => {
         const ms = TestUtils.prepareMigration('V202311062345_valid.ts');
         expect(ms.script).is.undefined
 
-        // Call init() to load the script content from the file
-        await ms.init();
+        // Call init() to load the script content from the file using default loader registry
+        const registry = LoaderRegistry.createDefault();
+        await ms.init(registry);
 
         // Verify the script is now loaded and has a callable up() function
         expect(ms.script).not.undefined

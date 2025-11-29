@@ -41,7 +41,7 @@ describe('MigrationService - Unit Tests', () => {
                 .returns([fileName]);
 
             // Attempt to read migration scripts - should throw security error
-            const config = { folder: baseDir, filePattern: /.*/, recursive: false };
+            const config = { folder: baseDir, filePatterns: [/.*/], recursive: false };
 
             return (ms as any).readMigrationScripts(config)
                 .then(() => {
@@ -79,7 +79,7 @@ describe('MigrationService - Unit Tests', () => {
             const readdirStub = sinon.stub(fsModule, 'readdirSync')
                 .returns([fileName]);
 
-            const config = { folder: baseDir, filePattern: /^V.*\.ts$/, recursive: false };
+            const config = { folder: baseDir, filePatterns: [/^V.*\.ts$/], recursive: false };
 
             return (ms as any).readMigrationScripts(config)
                 .then((result: any[]) => {
@@ -119,13 +119,60 @@ describe('MigrationService - Unit Tests', () => {
             const readdirStub = sinon.stub(fsModule, 'readdirSync')
                 .returns([fileName]);
 
-            const config = { folder: baseDir, filePattern: /^V(\d+)_(.+)\.ts$/, recursive: false };
+            const config = { folder: baseDir, filePatterns: [/^V(\d+)_(.+)\.ts$/], recursive: false };
 
             return (ms as any).readMigrationScripts(config)
                 .then((result: any[]) => {
                     expect(result).to.be.an('array');
                     expect(result.length).to.be.greaterThan(0);
                     expect(result[0].name).to.equal(fileName);
+                })
+                .finally(() => {
+                    readdirStub.restore();
+                    joinStub.restore();
+                    resolveStub.restore();
+                });
+        });
+
+        /**
+         * Test: Validates that files not matching any pattern are filtered out
+         * This covers line 282 in MigrationService.ts where matchingPattern is null
+         * and we return null to skip non-matching files.
+         *
+         * Covers: Line 282 (return null when no pattern matches)
+         */
+        it('should filter out files that do not match any configured pattern', () => {
+            const ms = new MigrationService(new SilentLogger());
+            const pathModule = require('path');
+
+            const resolveStub = sinon.stub(pathModule, 'resolve');
+            const joinStub = sinon.stub(pathModule, 'join');
+
+            const baseDir = '/migrations';
+            const validFile = 'V202311010001_test.ts';
+            const invalidFile = 'README.md';
+
+            // Setup path resolution for both files
+            joinStub.withArgs(baseDir, validFile).returns('/migrations/V202311010001_test.ts');
+            joinStub.withArgs(baseDir, invalidFile).returns('/migrations/README.md');
+            resolveStub.withArgs('/migrations/V202311010001_test.ts').returns('/migrations/V202311010001_test.ts');
+            resolveStub.withArgs('/migrations/README.md').returns('/migrations/README.md');
+            resolveStub.withArgs(baseDir).returns('/migrations');
+
+            Object.defineProperty(pathModule, 'sep', { value: '/', configurable: true });
+
+            const fsModule = require('fs');
+            const readdirStub = sinon.stub(fsModule, 'readdirSync')
+                .returns([validFile, invalidFile]);
+
+            const config = { folder: baseDir, filePatterns: [/^V(\d+)_(.+)\.ts$/], recursive: false };
+
+            return (ms as any).readMigrationScripts(config)
+                .then((result: any[]) => {
+                    expect(result).to.be.an('array');
+                    expect(result.length).to.equal(1);
+                    expect(result[0].name).to.equal(validFile);
+                    // README.md should be filtered out
                 })
                 .finally(() => {
                     readdirStub.restore();

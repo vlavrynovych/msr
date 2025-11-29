@@ -16,23 +16,39 @@ import {IMigrationValidator} from "../interface/validation/IMigrationValidator";
  */
 export class Config {
     /**
-     * Regular expression pattern for matching migration file names.
-     * The pattern must capture two groups:
-     * 1. Timestamp (numeric version identifier)
-     * 2. Name (descriptive name)
+     * Array of regular expression patterns for matching migration script filenames.
      *
-     * @default /^V(\d{12})_/
+     * Supports multiple file types (TypeScript, SQL, JavaScript, etc.).
+     * Each pattern must capture the timestamp in group 1.
+     *
+     * @default [/^V(\d{12})_.*\.ts$/, /^V(\d{12})_.*\.js$/, /^V(\d{12})_.*\.up\.sql$/]
      *
      * @example
      * ```typescript
-     * // Default pattern matches: V202501220100_initial_setup.ts
-     * config.filePattern = /^V(\d+)_(.+)\.ts$/;
+     * // Support TypeScript and SQL files only
+     * config.filePatterns = [
+     *     /^V(\d{12})_.*\.ts$/,
+     *     /^V(\d{12})_.*\.up\.sql$/
+     * ];
      *
-     * // Custom pattern for JavaScript files
-     * config.filePattern = /^V(\d+)_(.+)\.js$/;
+     * // Support TypeScript, JavaScript, and SQL
+     * config.filePatterns = [
+     *     /^V(\d{12})_.*\.ts$/,
+     *     /^V(\d{12})_.*\.js$/,
+     *     /^V(\d{12})_.*\.up\.sql$/
+     * ];
+     *
+     * // Custom timestamp format (YYYYMMDD)
+     * config.filePatterns = [
+     *     /^V(\d{8})_.*\.ts$/
+     * ];
      * ```
      */
-    filePattern:RegExp = /^V(\d{12})_/
+    filePatterns:RegExp[] = [
+        /^V(\d{12})_.*\.ts$/,
+        /^V(\d{12})_.*\.js$/,
+        /^V(\d{12})_.*\.up\.sql$/
+    ]
 
     /**
      * Directory path containing migration script files.

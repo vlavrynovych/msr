@@ -12,9 +12,12 @@ describe('Config', () => {
     it('should have correct default values', () => {
         const config = new Config();
 
-        // Verify file pattern defaults to V{12 digits}_ format
-        expect(config.filePattern).to.be.instanceOf(RegExp);
-        expect(config.filePattern.toString()).to.eq('/^V(\\d{12})_/');
+        // Verify file patterns default to TypeScript, JavaScript, and SQL formats
+        expect(config.filePatterns).to.be.instanceOf(Array);
+        expect(config.filePatterns).to.have.lengthOf(3);
+        expect(config.filePatterns[0].toString()).to.eq('/^V(\\d{12})_.*\\.ts$/');
+        expect(config.filePatterns[1].toString()).to.eq('/^V(\\d{12})_.*\\.js$/');
+        expect(config.filePatterns[2].toString()).to.eq('/^V(\\d{12})_.*\\.up\\.sql$/');
 
         // Verify folder defaults to migrations in current working directory
         expect(config.folder).to.eq(`${process.cwd()}/migrations`);
@@ -30,60 +33,71 @@ describe('Config', () => {
     })
 
     /**
-     * Test: filePattern regex matches valid migration filenames
-     * Validates that the default file pattern correctly matches migration
+     * Test: filePatterns regex matches valid migration filenames
+     * Validates that the default file patterns correctly match migration
      * files with the V{timestamp}_{name} format. This is critical for
      * the migration discovery process.
      */
-    it('should match valid migration filenames with filePattern', () => {
+    it('should match valid migration filenames with filePatterns', () => {
         const config = new Config();
 
-        // Test valid migration filenames
-        expect(config.filePattern.test('V202311020036_test.ts')).to.be.true;
-        expect(config.filePattern.test('V999999999999_migration.ts')).to.be.true;
-        expect(config.filePattern.test('V000000000001_init.ts')).to.be.true;
+        // Test valid TypeScript migration filenames
+        expect(config.filePatterns[0].test('V202311020036_test.ts')).to.be.true;
+        expect(config.filePatterns[0].test('V999999999999_migration.ts')).to.be.true;
+        expect(config.filePatterns[0].test('V000000000001_init.ts')).to.be.true;
+
+        // Test valid JavaScript migration filenames
+        expect(config.filePatterns[1].test('V202311020036_test.js')).to.be.true;
+
+        // Test valid SQL migration filenames
+        expect(config.filePatterns[2].test('V202311020036_test.up.sql')).to.be.true;
 
         // Verify pattern extracts timestamp correctly
-        const match = config.filePattern.exec('V202311020036_test.ts');
+        const match = config.filePatterns[0].exec('V202311020036_test.ts');
         expect(match).to.not.be.null;
         expect(match![1]).to.eq('202311020036');
     })
 
     /**
-     * Test: filePattern regex rejects invalid filenames
-     * Validates that the file pattern correctly rejects filenames that don't
+     * Test: filePatterns regex rejects invalid filenames
+     * Validates that the file patterns correctly reject filenames that don't
      * match the expected format. This prevents incorrect files from being
      * processed as migrations.
      */
-    it('should reject invalid migration filenames with filePattern', () => {
+    it('should reject invalid migration filenames with filePatterns', () => {
         const config = new Config();
 
-        // Test invalid formats
-        expect(config.filePattern.test('invalid.ts')).to.be.false;
-        expect(config.filePattern.test('V123_too_short.ts')).to.be.false;
-        expect(config.filePattern.test('V12345678901234_too_long.ts')).to.be.false;
-        expect(config.filePattern.test('202311020036_no_v_prefix.ts')).to.be.false;
-        expect(config.filePattern.test('v202311020036_lowercase.ts')).to.be.false;
-        expect(config.filePattern.test('VabcdefghijKL_letters.ts')).to.be.false;
+        // Test invalid formats for TypeScript pattern
+        expect(config.filePatterns[0].test('invalid.ts')).to.be.false;
+        expect(config.filePatterns[0].test('V123_too_short.ts')).to.be.false;
+        expect(config.filePatterns[0].test('V12345678901234_too_long.ts')).to.be.false;
+        expect(config.filePatterns[0].test('202311020036_no_v_prefix.ts')).to.be.false;
+        expect(config.filePatterns[0].test('v202311020036_lowercase.ts')).to.be.false;
+        expect(config.filePatterns[0].test('VabcdefghijKL_letters.ts')).to.be.false;
+
+        // SQL pattern should not match .ts files
+        expect(config.filePatterns[2].test('V202311020036_test.ts')).to.be.false;
+        // TypeScript pattern should not match .sql files
+        expect(config.filePatterns[0].test('V202311020036_test.up.sql')).to.be.false;
     })
 
     /**
-     * Test: filePattern can be customized
-     * Validates that the filePattern property can be overridden with a custom
-     * regex. This allows users to implement their own migration naming conventions
+     * Test: filePatterns can be customized
+     * Validates that the filePatterns property can be overridden with custom
+     * regex patterns. This allows users to implement their own migration naming conventions
      * while maintaining compatibility with the migration system.
      */
-    it('should allow customizing filePattern', () => {
+    it('should allow customizing filePatterns', () => {
         const config = new Config();
 
         // Customize to use different prefix and timestamp format
-        config.filePattern = /^MIGRATION_(\d{10})_/;
+        config.filePatterns = [/^MIGRATION_(\d{10})_.*\.ts$/];
 
         // Verify custom pattern works
-        expect(config.filePattern.test('MIGRATION_1234567890_test.ts')).to.be.true;
-        expect(config.filePattern.test('V202311020036_test.ts')).to.be.false;
+        expect(config.filePatterns[0].test('MIGRATION_1234567890_test.ts')).to.be.true;
+        expect(config.filePatterns[0].test('V202311020036_test.ts')).to.be.false;
 
-        const match = config.filePattern.exec('MIGRATION_1234567890_test.ts');
+        const match = config.filePatterns[0].exec('MIGRATION_1234567890_test.ts');
         expect(match![1]).to.eq('1234567890');
     })
 

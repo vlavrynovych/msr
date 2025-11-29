@@ -24,6 +24,8 @@ import {IMigrationValidationService, IValidationResult, IValidationIssue} from "
 import {ValidationError} from "../error/ValidationError";
 import {RollbackService} from "./RollbackService";
 import {IRollbackService} from "../interface/service/IRollbackService";
+import {LoaderRegistry} from "../loader/LoaderRegistry";
+import {ILoaderRegistry} from "../interface/loader/ILoaderRegistry";
 
 /**
  * Main executor class for running database migrations.
@@ -88,6 +90,9 @@ export class MigrationScriptExecutor {
     /** Service for handling rollback operations based on configured strategy */
     public readonly rollbackService: IRollbackService;
 
+    /** Registry for loading migration scripts of different types (TypeScript, SQL, etc.) */
+    private readonly loaderRegistry: ILoaderRegistry;
+
     /**
      * Creates a new MigrationScriptExecutor instance.
      *
@@ -137,6 +142,9 @@ export class MigrationScriptExecutor {
 
         // Use provided hooks if available
         this.hooks = dependencies?.hooks;
+
+        // Use provided loader registry or create default (TypeScript + SQL)
+        this.loaderRegistry = dependencies?.loaderRegistry ?? LoaderRegistry.createDefault(this.logger);
 
         // Use provided dependencies or create defaults
         this.backupService = dependencies?.backupService
@@ -233,7 +241,7 @@ export class MigrationScriptExecutor {
             scripts = await this.migrationScanner.scan();
 
             // Initialize migration scripts (load and parse)
-            await Promise.all(scripts.pending.map(s => s.init()));
+            await Promise.all(scripts.pending.map(s => s.init(this.loaderRegistry)));
 
             // Validate pending migration scripts BEFORE database init and backup
             // This provides fast failure if scripts have issues
@@ -416,7 +424,7 @@ export class MigrationScriptExecutor {
         let pendingResults: IValidationResult[] = [];
         if (scripts.pending.length > 0 && this.config.validateBeforeRun) {
             this.logger.info(`Validating ${scripts.pending.length} pending migration(s)...`);
-            pendingResults = await this.validationService.validateAll(scripts.pending, this.config);
+            pendingResults = await this.validationService.validateAll(scripts.pending, this.config, this.loaderRegistry);
 
             // Display validation results
             const resultsWithErrors = pendingResults.filter(r => !r.valid);
@@ -628,7 +636,7 @@ export class MigrationScriptExecutor {
             const pendingUpToTarget = this.selector.getPendingUpTo(scripts.migrated, scripts.all, targetVersion);
 
             // Initialize migration scripts (load and parse)
-            await Promise.all(pendingUpToTarget.map(s => s.init()));
+            await Promise.all(pendingUpToTarget.map(s => s.init(this.loaderRegistry)));
 
             // Validate pending migration scripts
             if (this.config.validateBeforeRun && pendingUpToTarget.length > 0) {
@@ -760,7 +768,7 @@ export class MigrationScriptExecutor {
         }
 
         // Initialize migration scripts (load and parse)
-        await Promise.all(toRollback.map(s => s.init()));
+        await Promise.all(toRollback.map(s => s.init(this.loaderRegistry)));
 
         // Validate migrations to be rolled back
         if (this.config.validateBeforeRun && toRollback.length > 0) {
@@ -871,7 +879,7 @@ export class MigrationScriptExecutor {
     private async validateMigrations(scripts: MigrationScript[]): Promise<void> {
         this.logger.info(`Validating ${scripts.length} migration script(s)...`);
 
-        const validationResults = await this.validationService.validateAll(scripts, this.config);
+        const validationResults = await this.validationService.validateAll(scripts, this.config, this.loaderRegistry);
 
         // Separate results by type
         const resultsWithErrors = validationResults.filter(r => !r.valid);
@@ -979,7 +987,7 @@ export class MigrationScriptExecutor {
         );
 
         // Initialize and execute directly (don't save to schema version table)
-        await beforeMigrateScript.init();
+        await beforeMigrateScript.init(this.loaderRegistry);
         const result = await beforeMigrateScript.script.up(this.handler.db, beforeMigrateScript, this.handler);
 
         const duration = Date.now() - startTime;

@@ -13,8 +13,8 @@ describe('MigrationService', () => {
         it('should throw error when file name format is wrong', async () => {
             // Configure to accept filenames but fail to extract timestamp
             const cfg =TestUtils.getConfig()
-            cfg.filePattern.test = (value) => {return true}
-            cfg.filePattern.exec = (value) => {return null}
+            cfg.filePatterns[0].test = (value) => {return true}
+            cfg.filePatterns[0].exec = (value) => {return null}
             const ms = new MigrationService(new SilentLogger())
 
             // Attempt to read scripts with malformed filenames

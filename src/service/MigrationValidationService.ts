@@ -17,6 +17,7 @@ import {ILogger} from "../interface/ILogger";
 import {ConsoleLogger} from "../logger";
 import fs from "fs";
 import {ChecksumService} from "./ChecksumService";
+import {ILoaderRegistry} from "../interface/loader/ILoaderRegistry";
 
 /**
  * Service for validating migration scripts before execution.
@@ -57,11 +58,12 @@ export class MigrationValidationService implements IMigrationValidationService {
      *
      * @param scripts - Migration scripts to validate
      * @param config - Migration configuration
+     * @param loaderRegistry - Loader registry for initializing scripts during validation
      * @returns Array of validation results (one per script)
      *
      * @example
      * ```typescript
-     * const results = await validator.validateAll(pendingScripts, config);
+     * const results = await validator.validateAll(pendingScripts, config, loaderRegistry);
      *
      * // Separate errors and warnings
      * const errors = results.filter(r => !r.valid);
@@ -70,11 +72,11 @@ export class MigrationValidationService implements IMigrationValidationService {
      * );
      * ```
      */
-    async validateAll(scripts: MigrationScript[], config: Config): Promise<IValidationResult[]> {
+    async validateAll(scripts: MigrationScript[], config: Config, loaderRegistry: ILoaderRegistry): Promise<IValidationResult[]> {
         const results: IValidationResult[] = [];
 
         for (const script of scripts) {
-            const result = await this.validateOne(script, config);
+            const result = await this.validateOne(script, config, loaderRegistry);
             results.push(result);
         }
 
@@ -92,13 +94,14 @@ export class MigrationValidationService implements IMigrationValidationService {
      *
      * @param script - Migration script to validate
      * @param config - Migration configuration
+     * @param loaderRegistry - Loader registry for initializing scripts during validation
      * @returns Validation result with any issues found
      */
-    async validateOne(script: MigrationScript, config: Config): Promise<IValidationResult> {
+    async validateOne(script: MigrationScript, config: Config, loaderRegistry: ILoaderRegistry): Promise<IValidationResult> {
         const issues: IValidationIssue[] = [];
 
         // Built-in validation
-        await this.validateStructure(script, issues);
+        await this.validateStructure(script, loaderRegistry, issues);
         await this.validateInterface(script, issues);
         await this.validateDownMethod(script, config, issues);
 
@@ -140,9 +143,10 @@ export class MigrationValidationService implements IMigrationValidationService {
      * - Script exports exactly one migration class
      *
      * @param script - Migration script to validate
+     * @param loaderRegistry - Loader registry for initializing scripts
      * @param issues - Array to collect validation issues
      */
-    private async validateStructure(script: MigrationScript, issues: IValidationIssue[]): Promise<void> {
+    private async validateStructure(script: MigrationScript, loaderRegistry: ILoaderRegistry, issues: IValidationIssue[]): Promise<void> {
         // Check if file exists
         if (!fs.existsSync(script.filepath)) {
             issues.push({
@@ -156,7 +160,7 @@ export class MigrationValidationService implements IMigrationValidationService {
 
         try {
             // Try to initialize the script (loads and instantiates)
-            await script.init();
+            await script.init(loaderRegistry);
         } catch (error) {
             const errorMessage = (error as Error).message;
 

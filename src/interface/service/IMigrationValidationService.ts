@@ -1,5 +1,6 @@
 import {IValidationResult, IValidationIssue} from "../validation";
 import {MigrationScript, Config} from "../../model";
+import {ILoaderRegistry} from "../loader/ILoaderRegistry";
 
 /**
  * Interface for migration validation service.
@@ -12,18 +13,20 @@ export interface IMigrationValidationService {
      *
      * @param scripts - Migration scripts to validate
      * @param config - Migration configuration
+     * @param loaderRegistry - Loader registry for initializing scripts during validation
      * @returns Array of validation results
      */
-    validateAll(scripts: MigrationScript[], config: Config): Promise<IValidationResult[]>;
+    validateAll(scripts: MigrationScript[], config: Config, loaderRegistry: ILoaderRegistry): Promise<IValidationResult[]>;
 
     /**
      * Validate a single migration script.
      *
      * @param script - Migration script to validate
      * @param config - Migration configuration
+     * @param loaderRegistry - Loader registry for initializing scripts during validation
      * @returns Validation result
      */
-    validateOne(script: MigrationScript, config: Config): Promise<IValidationResult>;
+    validateOne(script: MigrationScript, config: Config, loaderRegistry: ILoaderRegistry): Promise<IValidationResult>;
 
     /**
      * Validate integrity of already-executed migration files.

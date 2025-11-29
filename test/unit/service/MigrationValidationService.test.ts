@@ -13,17 +13,21 @@ import {
     RollbackStrategy,
     IRunnableScript,
     IMigrationValidator,
-    IValidationResult
+    IValidationResult,
+    LoaderRegistry,
+    ILoaderRegistry
 } from "../../../src";
 
 describe('MigrationValidationService', () => {
     let validator: MigrationValidationService;
     let config: Config;
     let fsExistsSyncStub: sinon.SinonStub;
+    let loaderRegistry: ILoaderRegistry;
 
     beforeEach(() => {
         validator = new MigrationValidationService(new SilentLogger());
         config = new Config();
+        loaderRegistry = LoaderRegistry.createDefault();
         fsExistsSyncStub = sinon.stub(fs, 'existsSync');
     });
 
@@ -80,7 +84,7 @@ describe('MigrationValidationService', () => {
 
             fsExistsSyncStub.returns(true);
 
-            const results = await validator.validateAll(scripts, config);
+            const results = await validator.validateAll(scripts, config, loaderRegistry);
 
             expect(results).to.have.lengthOf(2);
             expect(results[0].valid).to.be.true;
@@ -93,7 +97,7 @@ describe('MigrationValidationService', () => {
          * are provided, without throwing errors.
          */
         it('should handle empty scripts array', async () => {
-            const results = await validator.validateAll([], config);
+            const results = await validator.validateAll([], config, loaderRegistry);
             expect(results).to.be.an('array').that.is.empty;
         });
 
@@ -109,7 +113,7 @@ describe('MigrationValidationService', () => {
             fsExistsSyncStub.withArgs(validScript.filepath).returns(true);
             fsExistsSyncStub.withArgs(invalidScript.filepath).returns(false);
 
-            const results = await validator.validateAll([validScript, invalidScript], config);
+            const results = await validator.validateAll([validScript, invalidScript], config, loaderRegistry);
 
             expect(results).to.have.lengthOf(2);
             expect(results[0].valid).to.be.true;
@@ -127,7 +131,7 @@ describe('MigrationValidationService', () => {
             const script = createValidScript(1, 'migration1');
             fsExistsSyncStub.returns(false);
 
-            const result = await validator.validateOne(script, config);
+            const result = await validator.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.false;
             expect(result.issues).to.have.lengthOf(1);
@@ -148,7 +152,7 @@ describe('MigrationValidationService', () => {
             (script.init as sinon.SinonStub).restore();
             sinon.stub(script, 'init').rejects(new Error('Cannot parse migration script: syntax error'));
 
-            const result = await validator.validateOne(script, config);
+            const result = await validator.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.false;
             expect(result.issues).to.have.lengthOf(1);
@@ -169,7 +173,7 @@ describe('MigrationValidationService', () => {
 
             sinon.stub(script, 'init').rejects(new Error('no executable content found'));
 
-            const result = await validator.validateOne(script, config);
+            const result = await validator.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.false;
             expect(result.issues[0].code).to.equal(ValidationErrorCode.NO_EXPORT);
@@ -188,7 +192,7 @@ describe('MigrationValidationService', () => {
             (script.init as sinon.SinonStub).restore();
             sinon.stub(script, 'init').rejects(new Error('multiple executable instances were found'));
 
-            const result = await validator.validateOne(script, config);
+            const result = await validator.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.false;
             expect(result.issues[0].code).to.equal(ValidationErrorCode.MULTIPLE_EXPORTS);
@@ -207,7 +211,7 @@ describe('MigrationValidationService', () => {
             (script.init as sinon.SinonStub).restore();
             sinon.stub(script, 'init').rejects(new Error('Constructor threw error'));
 
-            const result = await validator.validateOne(script, config);
+            const result = await validator.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.false;
             expect(result.issues[0].code).to.equal(ValidationErrorCode.NOT_INSTANTIABLE);
@@ -225,7 +229,7 @@ describe('MigrationValidationService', () => {
             fsExistsSyncStub.returns(true);
             script.script = {} as IRunnableScript;
 
-            const result = await validator.validateOne(script, config);
+            const result = await validator.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.false;
             expect(result.issues[0].code).to.equal(ValidationErrorCode.MISSING_UP_METHOD);
@@ -241,7 +245,7 @@ describe('MigrationValidationService', () => {
             fsExistsSyncStub.returns(true);
             script.script = { up: 'not a function' } as unknown as IRunnableScript;
 
-            const result = await validator.validateOne(script, config);
+            const result = await validator.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.false;
             expect(result.issues[0].code).to.equal(ValidationErrorCode.INVALID_UP_SIGNATURE);
@@ -259,7 +263,7 @@ describe('MigrationValidationService', () => {
                 up: function() { return Promise.resolve('success'); }
             } as unknown as IRunnableScript;
 
-            const result = await validator.validateOne(script, config);
+            const result = await validator.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.true; // Warning, not error
             expect(result.issues).to.have.lengthOf(1);
@@ -280,7 +284,7 @@ describe('MigrationValidationService', () => {
                 down: 'not a function'
             } as unknown as IRunnableScript;
 
-            const result = await validator.validateOne(script, config);
+            const result = await validator.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.false;
             expect(result.issues[0].code).to.equal(ValidationErrorCode.INVALID_DOWN_SIGNATURE);
@@ -299,7 +303,7 @@ describe('MigrationValidationService', () => {
                 down: function() { return Promise.resolve('rollback'); }
             } as unknown as IRunnableScript;
 
-            const result = await validator.validateOne(script, config);
+            const result = await validator.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.true; // Warning, not error
             const downWarning = result.issues.find(i => i.code === 'DOWN_NOT_ASYNC_FUNCTION');
@@ -319,7 +323,7 @@ describe('MigrationValidationService', () => {
             fsExistsSyncStub.returns(true);
             config.downMethodPolicy = DownMethodPolicy.REQUIRED;
 
-            const result = await validator.validateOne(script, config);
+            const result = await validator.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.false;
             expect(result.issues[0].code).to.equal(ValidationErrorCode.MISSING_DOWN_WITH_DOWN_STRATEGY);
@@ -335,7 +339,7 @@ describe('MigrationValidationService', () => {
             fsExistsSyncStub.returns(true);
             config.downMethodPolicy = DownMethodPolicy.RECOMMENDED;
 
-            const result = await validator.validateOne(script, config);
+            const result = await validator.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.true; // Warning, not error
             expect(result.issues).to.have.lengthOf(1);
@@ -353,7 +357,7 @@ describe('MigrationValidationService', () => {
             fsExistsSyncStub.returns(true);
             config.downMethodPolicy = DownMethodPolicy.OPTIONAL;
 
-            const result = await validator.validateOne(script, config);
+            const result = await validator.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.true;
             expect(result.issues).to.be.empty;
@@ -370,7 +374,7 @@ describe('MigrationValidationService', () => {
             config.downMethodPolicy = DownMethodPolicy.AUTO;
             config.rollbackStrategy = RollbackStrategy.DOWN;
 
-            const result = await validator.validateOne(script, config);
+            const result = await validator.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.false;
             expect(result.issues[0].code).to.equal(ValidationErrorCode.MISSING_DOWN_WITH_DOWN_STRATEGY);
@@ -387,7 +391,7 @@ describe('MigrationValidationService', () => {
             config.downMethodPolicy = DownMethodPolicy.AUTO;
             config.rollbackStrategy = RollbackStrategy.BOTH;
 
-            const result = await validator.validateOne(script, config);
+            const result = await validator.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.true;
             expect(result.issues[0].code).to.equal(ValidationWarningCode.MISSING_DOWN_WITH_BOTH_STRATEGY);
@@ -404,7 +408,7 @@ describe('MigrationValidationService', () => {
             config.downMethodPolicy = DownMethodPolicy.AUTO;
             config.rollbackStrategy = RollbackStrategy.BACKUP;
 
-            const result = await validator.validateOne(script, config);
+            const result = await validator.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.true;
             expect(result.issues).to.be.empty;
@@ -436,7 +440,7 @@ describe('MigrationValidationService', () => {
             const script = createValidScript(1, 'migration1');
             fsExistsSyncStub.returns(true);
 
-            const result = await validatorWithCustom.validateOne(script, config);
+            const result = await validatorWithCustom.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.true;
             expect(result.issues).to.have.lengthOf(1);
@@ -461,7 +465,7 @@ describe('MigrationValidationService', () => {
             const script = createValidScript(1, 'migration1');
             fsExistsSyncStub.returns(false); // File doesn't exist - built-in validation fails
 
-            const result = await validatorWithCustom.validateOne(script, config);
+            const result = await validatorWithCustom.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.false;
             expect(customValidatorSpy.called).to.be.false;
@@ -483,7 +487,7 @@ describe('MigrationValidationService', () => {
             const script = createValidScript(1, 'migration1');
             fsExistsSyncStub.returns(true);
 
-            const result = await validatorWithCustom.validateOne(script, config);
+            const result = await validatorWithCustom.validateOne(script, config, loaderRegistry);
 
             expect(result.valid).to.be.false;
             expect(result.issues[0].code).to.equal(ValidationErrorCode.CUSTOM_VALIDATION_FAILED);

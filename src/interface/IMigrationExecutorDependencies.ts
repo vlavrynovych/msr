@@ -8,6 +8,7 @@ import {IMigrationValidationService} from "./service/IMigrationValidationService
 import {IRollbackService} from "./service/IRollbackService";
 import {ILogger} from "./ILogger";
 import {IMigrationHooks} from "./IMigrationHooks";
+import {ILoaderRegistry} from "./loader/ILoaderRegistry";
 
 /**
  * Optional dependencies for MigrationScriptExecutor.
@@ -152,4 +153,35 @@ export interface IMigrationExecutorDependencies {
      * ```
      */
     rollbackService?: IRollbackService;
+
+    /**
+     * Custom loader registry for migration script loading.
+     *
+     * If not provided, uses LoaderRegistry.createDefault() which includes:
+     * - TypeScriptLoader (handles .ts and .js files)
+     * - SqlLoader (handles .up.sql and .down.sql files)
+     *
+     * Use this to register custom loaders for additional file types (Python, Ruby, shell scripts, etc.)
+     * or to customize the behavior of existing loaders.
+     *
+     * @example
+     * ```typescript
+     * // Use default loaders
+     * const executor = new MigrationScriptExecutor(handler);
+     * // Automatically uses TypeScript and SQL loaders
+     *
+     * // Register custom loader
+     * const registry = LoaderRegistry.createDefault();
+     * registry.register(new PythonLoader());
+     * const executor = new MigrationScriptExecutor(handler, {
+     *     loaderRegistry: registry
+     * });
+     *
+     * // Use only specific loaders
+     * const registry = new LoaderRegistry();
+     * registry.register(new TypeScriptLoader());
+     * // SQL files will not be supported
+     * ```
+     */
+    loaderRegistry?: ILoaderRegistry;
 }

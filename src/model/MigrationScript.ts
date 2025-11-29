@@ -1,5 +1,4 @@
-import {IMigrationInfo, IRunnableScript} from "../interface";
-import {Utils} from "../service/Utils";
+import {IMigrationInfo, IRunnableScript, ILoaderRegistry} from "../interface";
 
 /**
  * Represents a migration script file discovered in the migrations directory.
@@ -49,23 +48,27 @@ export class MigrationScript extends IMigrationInfo {
     }
 
     /**
-     * Load and parse the migration script file.
+     * Load and parse the migration script file using the provided loader registry.
      *
-     * Dynamically imports the migration file and instantiates the exported class.
-     * The script must export a class that implements {@link IRunnableScript} with an `up()` method.
+     * The registry determines which loader to use based on file extension:
+     * - TypeScriptLoader for .ts and .js files
+     * - SqlLoader for .up.sql files
+     * - Custom loaders registered by the user
      *
-     * @throws {Error} If the file cannot be parsed, doesn't export a valid migration class,
-     *                 or exports multiple migration classes.
+     * @param registry - Loader registry to find appropriate loader for this file
+     * @throws {Error} If no loader can handle this file type, or if the file cannot be loaded
      *
      * @example
      * ```typescript
+     * const registry = LoaderRegistry.createDefault();
      * const script = new MigrationScript('V202501220100_test.ts', '/path/to/file.ts', 202501220100);
-     * await script.init();
+     * await script.init(registry);
      * // Now script.script contains the loaded migration with up() method
      * await script.script.up(db, info, handler);
      * ```
      */
-    async init():Promise<void> {
-        this.script = await Utils.parseRunnable(this)
+    async init(registry: ILoaderRegistry):Promise<void> {
+        const loader = registry.findLoader(this.filepath);
+        this.script = await loader.load(this);
     }
 }

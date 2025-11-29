@@ -180,8 +180,11 @@ export class MigrationService implements IMigrationService {
      * Scan the migrations directory and load all valid migration scripts.
      *
      * Reads the directory specified in the config, filters files by the configured
-     * pattern, and creates MigrationScript objects with parsed timestamps and paths.
+     * patterns, and creates MigrationScript objects with parsed timestamps and paths.
      * Hidden files (starting with '.') are automatically ignored.
+     *
+     * Supports multiple file formats via filePatterns array (TypeScript, SQL, etc.).
+     * Falls back to single filePattern for backward compatibility.
      *
      * The special beforeMigrate file (configured via `config.beforeMigrateName`) is not
      * included in the results - it's handled separately via getBeforeMigrateScript().
@@ -190,7 +193,7 @@ export class MigrationService implements IMigrationService {
      * allowing you to organize migrations by feature, module, or version while
      * maintaining timestamp-based execution order.
      *
-     * @param cfg - Configuration containing folder path, filename pattern, and recursive flag
+     * @param cfg - Configuration containing folder path, filename patterns, and recursive flag
      *
      * @returns Array of MigrationScript objects, unsorted (excludes beforeMigrate.ts)
      *
@@ -199,7 +202,7 @@ export class MigrationService implements IMigrationService {
      *
      * @example
      * ```typescript
-     * // Single-folder mode (default)
+     * // Single file type (backward compatible)
      * const config = new Config();
      * config.folder = './migrations';
      * config.filePattern = /^V(\d+)_(.+)\.ts$/;
@@ -210,6 +213,20 @@ export class MigrationService implements IMigrationService {
      * //   MigrationScript { name: 'V202501220200_add_users.ts', timestamp: 202501220200, ... }
      * // ]
      * // Note: beforeMigrate.ts is excluded
+     * ```
+     *
+     * @example
+     * ```typescript
+     * // Multiple file types (TypeScript and SQL)
+     * const config = new Config();
+     * config.folder = './migrations';
+     * config.filePatterns = [
+     *   /^V(\d{12})_.*\.ts$/,
+     *   /^V(\d{12})_.*\.up\.sql$/
+     * ];
+     *
+     * const scripts = await service.readMigrationScripts(config);
+     * // Returns both .ts and .up.sql migrations
      * ```
      *
      * @example
@@ -230,7 +247,7 @@ export class MigrationService implements IMigrationService {
      */
     public async readMigrationScripts(cfg: Config): Promise<MigrationScript[]> {
         const folder = cfg.folder;
-        const pattern = cfg.filePattern;
+        const patterns = cfg.filePatterns;
 
         let files: Array<{ name: string; filePath: string }>;
 
@@ -258,12 +275,16 @@ export class MigrationService implements IMigrationService {
         }
 
         return files
-            .filter(({ name }) => pattern.test(name))
             .map(({ name, filePath }) => {
-                const execArray: RegExpExecArray | null = pattern.exec(name);
+                // Find which pattern matches this file
+                const matchingPattern = patterns.find(pattern => pattern.test(name));
+                if (!matchingPattern) return null; // Skip files that don't match any pattern
+
+                const execArray: RegExpExecArray | null = matchingPattern.exec(name);
                 if(execArray == null) throw new Error("Wrong file name format")
                 const timestamp = parseInt(execArray[1]);
                 return new MigrationScript(name, filePath, timestamp);
             })
+            .filter((script): script is MigrationScript => script !== null)
     }
 }

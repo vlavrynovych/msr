@@ -71,7 +71,15 @@ export class AsciiTableRenderStrategy implements IRenderStrategy {
             const finished = moment(m.finishedAt);
             const date = finished.format('YYYY/MM/DD HH:mm');
             const ago = finished.fromNow();
-            const name = m.name.replace(config.filePattern, '');
+            // Try each pattern to remove the timestamp prefix for display
+            let name = m.name;
+            for (const pattern of config.filePatterns) {
+                const cleaned = m.name.replace(pattern, '');
+                if (cleaned !== m.name) {
+                    name = cleaned;
+                    break;
+                }
+            }
             const found = (scripts.all || []).find(s => s.timestamp === m.timestamp) ? 'Y' : 'N';
             table.addRow(m.timestamp, name, `${date} (${ago})`, AsciiTableRenderStrategy.getDuration(m), m.username, found);
         });

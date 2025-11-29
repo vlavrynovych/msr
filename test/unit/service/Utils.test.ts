@@ -183,6 +183,22 @@ describe('Utils', () => {
         })
 
         /**
+         * Test: parseRunnable uses default logger when not provided
+         * Covers the default parameter branch (line 80) where no logger is passed.
+         * Validates that parseRunnable can work without explicit logger parameter,
+         * falling back to ConsoleLogger.
+         */
+        it('should use default logger when not provided', async () => {
+            // Parse without providing logger parameter (uses default ConsoleLogger)
+            const res = await Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_valid.ts'));
+
+            // Verify the script was parsed successfully with default logger
+            expect(res).not.undefined
+            expect(typeof res.up === 'function').is.true
+            expect(await res.up({}, {} as IMigrationInfo, {} as IDatabaseMigrationHandler)).eq('result string')
+        })
+
+        /**
          * Test: parseRunnable handles scripts with no executable content
          * Validates error handling when a migration script file exists but doesn't
          * contain any class with an up() method. This prevents silent failures when

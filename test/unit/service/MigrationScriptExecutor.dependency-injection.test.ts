@@ -10,7 +10,9 @@ import {
     IDB,
     IMigrationValidationService,
     IRollbackService,
-    MigrationScript
+    MigrationScript,
+    ILoaderRegistry,
+    IMigrationScriptLoader
 } from '../../../src';
 
 describe('MigrationScriptExecutor - Dependency Injection', () => {
@@ -117,6 +119,56 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             expect(executor.rollbackService).to.exist;
             expect(executor.rollbackService).to.have.property('rollback');
             expect(executor.rollbackService).to.have.property('shouldCreateBackup');
+        });
+
+        /**
+         * Test: Constructor accepts custom loaderRegistry via dependencies
+         * Covers line 147 (dependencies?.loaderRegistry branch)
+         * Validates that a custom loader registry can be injected, enabling
+         * testing and customization of migration file loading behavior.
+         */
+        it('should use custom loaderRegistry when provided', () => {
+            const customLoader: IMigrationScriptLoader = {
+                canHandle: () => true,
+                load: sinon.stub().resolves({
+                    up: async () => 'custom',
+                    down: async () => 'custom down'
+                }),
+                getName: () => 'CustomLoader'
+            };
+
+            const customRegistry: ILoaderRegistry = {
+                register: sinon.stub(),
+                findLoader: sinon.stub().returns(customLoader),
+                getLoaders: sinon.stub().returns([customLoader])
+            };
+
+            const executor = new MigrationScriptExecutor(handler, config, {
+                logger: new SilentLogger(),
+                loaderRegistry: customRegistry
+            });
+
+            expect((executor as any).loaderRegistry).to.equal(customRegistry);
+        });
+
+        /**
+         * Test: Constructor creates default loaderRegistry when not provided
+         * Covers line 147 (LoaderRegistry.createDefault fallback)
+         * Validates that when no custom loader registry is provided,
+         * a default LoaderRegistry with TypeScriptLoader and SqlLoader is created.
+         */
+        it('should create default loaderRegistry when not provided', () => {
+            const executor = new MigrationScriptExecutor(handler, config, {
+                logger: new SilentLogger()
+            });
+
+            const registry = (executor as any).loaderRegistry as ILoaderRegistry;
+            expect(registry).to.exist;
+            expect(registry.getLoaders()).to.have.lengthOf(2);
+
+            const loaderNames = registry.getLoaders().map(l => l.getName());
+            expect(loaderNames).to.include('TypeScriptLoader');
+            expect(loaderNames).to.include('SqlLoader');
         });
     });
 });
