@@ -467,4 +467,46 @@ export class Config {
      * ```
      */
     duplicateTimestampMode: DuplicateTimestampMode = DuplicateTimestampMode.WARN
+
+    /**
+     * Enable dry run mode to preview migrations without executing them.
+     *
+     * When enabled, MSR will:
+     * - Show which migrations would be executed
+     * - Run validation (if enabled)
+     * - Skip actual migration execution
+     * - Skip backup/restore operations
+     * - Pass isDryRun flag to hooks
+     *
+     * Perfect for:
+     * - CI/CD validation before deployment
+     * - Safety checks before production runs
+     * - Documenting planned changes
+     * - Testing migration logic
+     *
+     * @default false
+     *
+     * @example
+     * ```typescript
+     * import { Config, MigrationScriptExecutor } from '@migration-script-runner/core';
+     *
+     * const config = new Config();
+     * config.dryRun = true;
+     *
+     * const executor = new MigrationScriptExecutor(handler, config);
+     * await executor.migrate(); // No changes made, only preview
+     * ```
+     *
+     * @example
+     * ```typescript
+     * // CI/CD validation
+     * const config = new Config();
+     * config.dryRun = process.env.CI === 'true';
+     * config.validateBeforeRun = true;
+     *
+     * // Preview changes in CI, execute in deployment
+     * await executor.migrate();
+     * ```
+     */
+    dryRun: boolean = false
 }

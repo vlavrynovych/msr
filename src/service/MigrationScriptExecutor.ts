@@ -269,10 +269,16 @@ export class MigrationScriptExecutor {
         let backupPath: string | undefined;
 
         try {
+            // Dry run mode - log that we're in preview mode
+            if (this.config.dryRun) {
+                this.logger.info('🔍 DRY RUN MODE - No changes will be made\n');
+            }
+
             // Execute beforeMigrate script if it exists - BEFORE scanning migrations
             // This allows beforeMigrate to erase/reset the database (e.g., load prod snapshot)
             // Note: beforeMigrate runs BEFORE init() to allow complete database reset
-            if (this.config.beforeMigrateName) {
+            // Skip in dry run mode
+            if (this.config.beforeMigrateName && !this.config.dryRun) {
                 await this.executeBeforeMigrate();
             }
 
@@ -299,7 +305,8 @@ export class MigrationScriptExecutor {
             }
 
             // Conditionally create backup based on rollback strategy
-            if (this.rollbackService.shouldCreateBackup()) {
+            // Skip backup in dry run mode
+            if (this.rollbackService.shouldCreateBackup() && !this.config.dryRun) {
                 // Hook: Before backup
                 await this.hooks?.onBeforeBackup?.();
 
@@ -320,7 +327,16 @@ export class MigrationScriptExecutor {
             await this.hooks?.onStart?.(scripts.all.length, scripts.pending.length);
 
             if (!scripts.pending.length) {
-                this.logger.info('Nothing to do');
+                if (!this.config.dryRun) {
+                    this.logger.info('Nothing to do');
+                } else {
+                    // Dry run mode with no pending migrations
+                    this.logger.info(`\n✓ Dry run completed - no changes made`);
+                    this.logger.info(`  Would execute: 0 migration(s)`);
+                    if (scripts.ignored.length > 0) {
+                        this.logger.info(`  Would ignore: ${scripts.ignored.length} migration(s)`);
+                    }
+                }
                 this.backupService.deleteBackup();
 
                 const result: IMigrationResult = {
@@ -341,11 +357,20 @@ export class MigrationScriptExecutor {
 
             // Execute migrations with hooks
             // Note: executeWithHooks modifies scripts.executed directly for rollback tracking
-            await this.executeWithHooks(scripts.pending, scripts.executed);
-
-            this.migrationRenderer.drawExecuted(scripts.executed);
-            this.logger.info('Migration finished successfully!');
-            this.backupService.deleteBackup();
+            // Skip actual execution in dry run mode
+            if (!this.config.dryRun) {
+                await this.executeWithHooks(scripts.pending, scripts.executed);
+                this.migrationRenderer.drawExecuted(scripts.executed);
+                this.logger.info('Migration finished successfully!');
+                this.backupService.deleteBackup();
+            } else {
+                // Dry run mode - show what would be executed
+                this.logger.info(`\n✓ Dry run completed - no changes made`);
+                this.logger.info(`  Would execute: ${scripts.pending.length} migration(s)`);
+                if (scripts.ignored.length > 0) {
+                    this.logger.info(`  Would ignore: ${scripts.ignored.length} migration(s)`);
+                }
+            }
 
             const result: IMigrationResult = {
                 success: true,
@@ -646,8 +671,14 @@ export class MigrationScriptExecutor {
         let backupPath: string | undefined;
 
         try {
+            // Dry run mode - log that we're in preview mode
+            if (this.config.dryRun) {
+                this.logger.info(`🔍 DRY RUN MODE - No changes will be made (target: ${targetVersion})\n`);
+            }
+
             // Execute beforeMigrate script if it exists
-            if (this.config.beforeMigrateName) {
+            // Skip in dry run mode
+            if (this.config.beforeMigrateName && !this.config.dryRun) {
                 await this.executeBeforeMigrate();
             }
 
@@ -675,7 +706,8 @@ export class MigrationScriptExecutor {
             }
 
             // Create backup if rollback strategy requires it
-            if (this.rollbackService.shouldCreateBackup()) {
+            // Skip backup in dry run mode
+            if (this.rollbackService.shouldCreateBackup() && !this.config.dryRun) {
                 await this.hooks?.onBeforeBackup?.();
                 backupPath = await this.backupService.backup();
                 if (backupPath) {
@@ -691,7 +723,16 @@ export class MigrationScriptExecutor {
             await this.hooks?.onStart?.(scripts.all.length, pendingUpToTarget.length);
 
             if (!pendingUpToTarget.length) {
-                this.logger.info(`Already at target version ${targetVersion} or beyond`);
+                if (!this.config.dryRun) {
+                    this.logger.info(`Already at target version ${targetVersion} or beyond`);
+                } else {
+                    // Dry run mode with no pending migrations to target
+                    this.logger.info(`\n✓ Dry run completed - no changes made`);
+                    this.logger.info(`  Would execute: 0 migration(s) to version ${targetVersion}`);
+                    if (scripts.ignored.length > 0) {
+                        this.logger.info(`  Would ignore: ${scripts.ignored.length} migration(s)`);
+                    }
+                }
                 this.backupService.deleteBackup();
 
                 const result: IMigrationResult = {
@@ -709,11 +750,20 @@ export class MigrationScriptExecutor {
             this.migrationRenderer.drawPending(pendingUpToTarget);
 
             // Execute migrations with hooks
-            await this.executeWithHooks(pendingUpToTarget, scripts.executed);
-
-            this.migrationRenderer.drawExecuted(scripts.executed);
-            this.logger.info(`Migration to version ${targetVersion} finished successfully!`);
-            this.backupService.deleteBackup();
+            // Skip actual execution in dry run mode
+            if (!this.config.dryRun) {
+                await this.executeWithHooks(pendingUpToTarget, scripts.executed);
+                this.migrationRenderer.drawExecuted(scripts.executed);
+                this.logger.info(`Migration to version ${targetVersion} finished successfully!`);
+                this.backupService.deleteBackup();
+            } else {
+                // Dry run mode - show what would be executed
+                this.logger.info(`\n✓ Dry run completed - no changes made`);
+                this.logger.info(`  Would execute: ${pendingUpToTarget.length} migration(s) up to version ${targetVersion}`);
+                if (scripts.ignored.length > 0) {
+                    this.logger.info(`  Would ignore: ${scripts.ignored.length} migration(s)`);
+                }
+            }
 
             const result: IMigrationResult = {
                 success: true,

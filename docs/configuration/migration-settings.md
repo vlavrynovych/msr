@@ -599,6 +599,102 @@ Using IGNORE mode is discouraged unless you have explicit control over execution
 
 ---
 
+## dryRun
+
+**Type:** `boolean`
+**Default:** `false`
+
+Enable dry run mode to preview migrations without executing them. When enabled, MSR will show which migrations would be executed without making any database changes or creating backups.
+
+{: .tip }
+> Use dry run mode in CI/CD pipelines to validate migrations before deployment, or to safely preview what would happen before running migrations in production.
+
+```typescript
+// Enable dry run mode
+config.dryRun = true;
+
+// Run migration preview
+const result = await executor.migrate();
+// Shows what would execute, but doesn't run anything
+```
+
+### What Happens in Dry Run Mode
+
+When `dryRun` is enabled:
+
+1. **✓ Validation runs** - Migration scripts are validated for errors
+2. **✗ Migrations don't execute** - No up() or down() methods are called
+3. **✗ No backups created** - Backup operations are skipped
+4. **✗ No database changes** - Schema version table isn't modified
+5. **✓ Output shows plan** - Displays what would be executed
+
+### Use Cases
+
+**1. CI/CD Validation**
+
+```typescript
+// In your CI pipeline
+const config = new Config();
+config.dryRun = process.env.CI === 'true';
+config.validateBeforeRun = true;
+
+const executor = new MigrationScriptExecutor(handler, config);
+const result = await executor.migrate();
+
+if (!result.success) {
+    console.error('Migrations would fail!');
+    process.exit(1);
+}
+```
+
+**2. Production Safety Checks**
+
+```typescript
+// Preview before running
+config.dryRun = true;
+await executor.migrate();
+// Review the output...
+
+// Then run for real
+config.dryRun = false;
+await executor.migrate();
+```
+
+**3. Documentation and Planning**
+
+```typescript
+// Generate migration plan
+config.dryRun = true;
+const result = await executor.migrate();
+
+// Log what would execute for documentation
+console.log(`Would execute ${result.executed.length} migrations`);
+```
+
+### Works With All Methods
+
+Dry run mode works with all migration methods:
+
+```typescript
+config.dryRun = true;
+
+// Preview all pending migrations
+await executor.migrate();
+
+// Preview migrations up to specific version
+await executor.migrate(202311020036);
+
+// Preview rollback
+await executor.down(202311010001);
+```
+
+### Related Settings
+
+{: .note }
+Dry run mode respects [`validateBeforeRun`](validation-settings.md#validatebeforerun) - validation will still run in dry run mode if enabled.
+
+---
+
 ## Complete Example
 
 ```typescript

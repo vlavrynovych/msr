@@ -603,6 +603,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate migrations (dry run)
+        run: npm run migrate:validate
+        env:
+          TEST_DB_HOST: localhost
+          TEST_DB_PORT: 5432
+          TEST_DB_NAME: msr_test
+          TEST_DB_USER: postgres
+          TEST_DB_PASSWORD: test
+
       - name: Run unit tests
         run: npm run test:unit
 
@@ -643,10 +652,54 @@ jobs:
     "test:integration": "mocha 'test/integration/**/*.test.ts' --require ts-node/register --timeout 10000",
     "test:rollback": "node test/scripts/test-rollback.js",
     "test:coverage": "nyc npm test",
-    "test:watch": "mocha 'test/**/*.test.ts' --require ts-node/register --watch"
+    "test:watch": "mocha 'test/**/*.test.ts' --require ts-node/register --watch",
+    "migrate:validate": "node test/scripts/validate-migrations.js"
   }
 }
 ```
+
+### Dry Run Validation Script
+
+Create a validation script that uses dry run mode:
+
+```typescript
+// test/scripts/validate-migrations.ts
+import { Config, MigrationScriptExecutor } from '@migration-script-runner/core';
+import { createDatabaseHandler } from '../helpers/database';
+
+async function validateMigrations() {
+  const handler = await createDatabaseHandler();
+  const config = new Config();
+
+  // Enable dry run and validation
+  config.dryRun = true;
+  config.validateBeforeRun = true;
+  config.folder = './migrations';
+
+  const executor = new MigrationScriptExecutor(handler, config);
+
+  try {
+    const result = await executor.migrate();
+
+    if (!result.success) {
+      console.error('❌ Migration validation failed');
+      process.exit(1);
+    }
+
+    console.log('✓ All migrations validated successfully');
+    console.log(`  Would execute: ${result.executed.length} migration(s)`);
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Validation error:', error.message);
+    process.exit(1);
+  }
+}
+
+validateMigrations();
+```
+
+{: .tip }
+> Dry run mode is perfect for CI/CD validation because it catches errors without making database changes.
 
 ---
 
