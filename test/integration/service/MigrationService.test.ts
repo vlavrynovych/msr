@@ -1,6 +1,7 @@
 import { expect } from 'chai';
-import {MigrationScript, MigrationService, SilentLogger} from "../../../src";
+import {MigrationScript, MigrationService, SilentLogger, DuplicateTimestampMode} from "../../../src";
 import {TestUtils} from "../../helpers/TestUtils";
+import path from 'path';
 
 describe('MigrationService', () => {
     describe('findMigrationScripts()', () => {
@@ -116,16 +117,26 @@ describe('MigrationService', () => {
         })
 
         /**
-         * Test: Duplicate timestamps are allowed (handled at execution level)
-         * Validates that multiple migration files with the same timestamp are all
-         * included in the results. Timestamp deduplication happens at the execution
-         * level, not during discovery. This allows developers to fix conflicts.
+         * Test: Default behavior (WARN) logs warning but allows duplicates
+         * Validates that by default, multiple migration files with the same timestamp
+         * generate a warning but don't block execution. This allows developers to
+         * continue working while being alerted to potential issues.
          */
-        it('should handle duplicate timestamps', async () => {
+        it('should warn about duplicate timestamps by default', async () => {
             // Stub filesystem to return files with identical timestamps
             const cfg = TestUtils.getConfig();
             cfg.recursive = false; // Use single-folder mode for this test
-            const ms = new MigrationService(new SilentLogger());
+            // Default mode is WARN, so don't set it explicitly
+
+            const warnings: string[] = [];
+            const testLogger = {
+                log: () => {},
+                info: () => {},
+                warn: (msg: string) => warnings.push(msg),
+                error: () => {},
+                debug: () => {}
+            };
+            const ms = new MigrationService(testLogger);
 
             const sinon = await import('sinon');
             const readdirStub = sinon.stub(require('fs'), 'readdirSync')
@@ -134,16 +145,16 @@ describe('MigrationService', () => {
                     'V202311020036_second.ts',
                 ]);
 
-            // Read migration scripts
-            const res = await ms.findMigrationScripts(cfg);
-
-            // Verify both files are included (conflict resolution happens later)
-            expect(res.length).eq(2, 'Should include both files with same timestamp');
-            expect(res[0].timestamp).eq(202311020036);
-            expect(res[1].timestamp).eq(202311020036);
-            expect(res[0].name).not.eq(res[1].name, 'Should have different names');
-
-            readdirStub.restore();
+            // Read migration scripts - should warn but not throw
+            try {
+                const res = await ms.findMigrationScripts(cfg);
+                expect(res.length).to.equal(2);
+                expect(warnings.length).to.equal(1);
+                expect(warnings[0]).to.include('Duplicate migration timestamp detected');
+                expect(warnings[0]).to.include('202311020036');
+            } finally {
+                readdirStub.restore();
+            }
         })
 
         /**
@@ -784,6 +795,173 @@ describe('MigrationService', () => {
                 expect(res.length).eq(0);
             } finally {
                 readdirStub.restore();
+            }
+        })
+    })
+
+    describe('Duplicate Timestamp Detection', () => {
+        /**
+         * Test: ERROR mode - throws error when duplicate timestamps are detected
+         * Validates that migrations with identical timestamps are rejected
+         * to prevent undefined execution order and data corruption.
+         */
+        it('should throw error when duplicateTimestampMode is ERROR', async () => {
+            const cfg = TestUtils.getConfig();
+            cfg.folder = path.join(process.cwd(), 'test', 'fixtures', 'migrations-duplicates');
+            cfg.recursive = false;
+            cfg.duplicateTimestampMode = DuplicateTimestampMode.ERROR;
+            const ms = new MigrationService(new SilentLogger());
+
+            try {
+                await ms.findMigrationScripts(cfg);
+                expect.fail('Should have thrown duplicate timestamp error');
+            } catch (e: any) {
+                expect(e.message).to.include('Duplicate migration timestamp detected');
+                expect(e.message).to.include('202311010001');
+                expect(e.message).to.include('undefined execution order');
+                expect(e.message).to.include('Conflicting files:');
+                expect(e.message).to.include('V202311010001');
+            }
+        })
+
+        /**
+         * Test: Allows migrations with unique timestamps
+         * Validates that migrations with different timestamps pass validation.
+         */
+        it('should allow migrations with unique timestamps', async () => {
+            const cfg = TestUtils.getConfig();
+            cfg.folder = path.join(process.cwd(), 'test', 'fixtures', 'migrations-test');
+            cfg.recursive = false;
+            const ms = new MigrationService(new SilentLogger());
+
+            const res = await ms.findMigrationScripts(cfg);
+
+            expect(res.length).to.be.greaterThan(0);
+            // Verify all timestamps are unique
+            const timestamps = res.map(s => s.timestamp);
+            const uniqueTimestamps = new Set(timestamps);
+            expect(timestamps.length).to.equal(uniqueTimestamps.size, 'All timestamps should be unique');
+        })
+
+        /**
+         * Test: WARN mode - logs warning but continues execution (default)
+         * Validates that duplicate timestamps generate a warning but don't block execution.
+         * This is the default behavior to alert developers without stopping migrations.
+         */
+        it('should warn but continue when duplicateTimestampMode is WARN (default)', async () => {
+            const cfg = TestUtils.getConfig();
+            cfg.folder = path.join(process.cwd(), 'test', 'fixtures', 'migrations-duplicates');
+            cfg.recursive = false;
+            // WARN is the default, but set it explicitly for clarity
+            cfg.duplicateTimestampMode = DuplicateTimestampMode.WARN;
+
+            // Use a logger that captures warnings
+            const warnings: string[] = [];
+            const testLogger = {
+                log: () => {},
+                info: () => {},
+                warn: (msg: string) => warnings.push(msg),
+                error: () => {},
+                debug: () => {}
+            };
+            const ms = new MigrationService(testLogger);
+
+            // Should not throw - continues execution despite duplicates
+            const res = await ms.findMigrationScripts(cfg);
+
+            // Verify both scripts are returned
+            expect(res.length).to.equal(2);
+            expect(res[0].timestamp).to.equal(202311010001);
+            expect(res[1].timestamp).to.equal(202311010001);
+
+            // Verify warning was logged
+            expect(warnings.length).to.equal(1);
+            expect(warnings[0]).to.include('Duplicate migration timestamp detected');
+            expect(warnings[0]).to.include('202311010001');
+            expect(warnings[0]).to.include('V202311010001_first.ts');
+            expect(warnings[0]).to.include('V202311010001_second.ts');
+        })
+
+        /**
+         * Test: IGNORE mode - silently allows duplicates
+         * Validates that duplicate timestamps are completely ignored when mode is IGNORE.
+         * Use this only when you have external guarantees about execution order.
+         */
+        it('should silently allow duplicates when duplicateTimestampMode is IGNORE', async () => {
+            const cfg = TestUtils.getConfig();
+            cfg.folder = path.join(process.cwd(), 'test', 'fixtures', 'migrations-duplicates');
+            cfg.recursive = false;
+            cfg.duplicateTimestampMode = DuplicateTimestampMode.IGNORE;
+
+            // Track that no warnings/errors are logged
+            const warnings: string[] = [];
+            const testLogger = {
+                log: () => {},
+                info: () => {},
+                warn: (msg: string) => warnings.push(msg),
+                error: () => {},
+                debug: () => {}
+            };
+            const ms = new MigrationService(testLogger);
+
+            // Should not throw or warn
+            const res = await ms.findMigrationScripts(cfg);
+
+            // Verify both scripts are returned
+            expect(res.length).to.equal(2);
+            expect(res[0].timestamp).to.equal(202311010001);
+            expect(res[1].timestamp).to.equal(202311010001);
+
+            // Verify no warnings were logged
+            expect(warnings.length).to.equal(0);
+        })
+
+        /**
+         * Test: ERROR mode includes helpful error message with file paths
+         * Validates that the error message includes both conflicting filenames
+         * and their full paths to help users identify and fix the issue.
+         */
+        it('should include both conflicting file paths in error message (ERROR mode)', async () => {
+            const cfg = TestUtils.getConfig();
+            cfg.folder = path.join(process.cwd(), 'test', 'fixtures', 'migrations-duplicates');
+            cfg.recursive = false;
+            cfg.duplicateTimestampMode = DuplicateTimestampMode.ERROR;
+            const ms = new MigrationService(new SilentLogger());
+
+            try {
+                await ms.findMigrationScripts(cfg);
+                expect.fail('Should have thrown duplicate timestamp error');
+            } catch (e: any) {
+                // Error should show both files
+                expect(e.message).to.include('V202311010001');
+                expect(e.message).to.include('Conflicting files:');
+                expect(e.message).to.include('1.');
+                expect(e.message).to.include('2.');
+
+                // Error should include resolution guidance
+                expect(e.message).to.include('Resolution:');
+                expect(e.message).to.include('Rename one of these files');
+            }
+        })
+
+        /**
+         * Test: ERROR mode includes example resolution
+         * Validates that the error provides an example of how to fix
+         * the duplicate timestamp issue.
+         */
+        it('should suggest resolution with example new timestamp (ERROR mode)', async () => {
+            const cfg = TestUtils.getConfig();
+            cfg.folder = path.join(process.cwd(), 'test', 'fixtures', 'migrations-duplicates');
+            cfg.recursive = false;
+            cfg.duplicateTimestampMode = DuplicateTimestampMode.ERROR;
+            const ms = new MigrationService(new SilentLogger());
+
+            try {
+                await ms.findMigrationScripts(cfg);
+                expect.fail('Should have thrown duplicate timestamp error');
+            } catch (e: any) {
+                expect(e.message).to.include('Example:');
+                expect(e.message).to.match(/V\d+_/);
             }
         })
     })

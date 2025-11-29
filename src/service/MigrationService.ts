@@ -3,7 +3,7 @@ import path from "path";
 import {parseInt} from "lodash";
 
 import {IMigrationService, ILogger} from "../interface";
-import {Config, MigrationScript} from "../model";
+import {Config, MigrationScript, DuplicateTimestampMode} from "../model";
 import {ConsoleLogger} from "../logger";
 
 /**
@@ -274,7 +274,7 @@ export class MigrationService implements IMigrationService {
             this.logger.warn(`Migration scripts folder is empty. Please check your configuration.\r\n${folder}`)
         }
 
-        return files
+        const scripts = files
             .map(({ name, filePath }) => {
                 // Find which pattern matches this file
                 const matchingPattern = patterns.find(pattern => pattern.test(name));
@@ -285,6 +285,57 @@ export class MigrationService implements IMigrationService {
                 const timestamp = parseInt(execArray[1]);
                 return new MigrationScript(name, filePath, timestamp);
             })
-            .filter((script): script is MigrationScript => script !== null)
+            .filter((script): script is MigrationScript => script !== null);
+
+        // Detect duplicate timestamps
+        this.validateNoDuplicateTimestamps(scripts, cfg.duplicateTimestampMode);
+
+        return scripts;
+    }
+
+    /**
+     * Validate that no migration scripts have duplicate timestamps.
+     *
+     * Duplicate timestamps can cause undefined execution order. This method
+     * checks for duplicates and handles them according to the configured mode:
+     * - WARN: Log warning but continue (default)
+     * - ERROR: Throw error and halt execution
+     * - IGNORE: Skip validation entirely
+     *
+     * @param scripts - Array of migration scripts to validate
+     * @param mode - How to handle duplicate timestamps
+     * @throws {Error} If duplicate timestamps are detected and mode is ERROR
+     *
+     * @private
+     */
+    private validateNoDuplicateTimestamps(scripts: MigrationScript[], mode: DuplicateTimestampMode): void {
+        // Skip validation if mode is IGNORE
+        if (mode === DuplicateTimestampMode.IGNORE) {
+            return;
+        }
+
+        const timestampMap = new Map<number, MigrationScript>();
+
+        for (const script of scripts) {
+            const existing = timestampMap.get(script.timestamp);
+            if (existing) {
+                const message =
+                    `Duplicate migration timestamp detected: ${script.timestamp}\n` +
+                    `This causes undefined execution order and can lead to data corruption.\n\n` +
+                    `Conflicting files:\n` +
+                    `  1. ${existing.name} (${existing.filepath})\n` +
+                    `  2. ${script.name} (${script.filepath})\n\n` +
+                    `Resolution:\n` +
+                    `  Rename one of these files with a new timestamp to ensure unique ordering.\n` +
+                    `  Example: V${Date.now()}_${script.name.replace(/^V\d+_/, '')}`;
+
+                if (mode === DuplicateTimestampMode.ERROR) {
+                    throw new Error(message);
+                } else if (mode === DuplicateTimestampMode.WARN) {
+                    this.logger.warn(message);
+                }
+            }
+            timestampMap.set(script.timestamp, script);
+        }
     }
 }

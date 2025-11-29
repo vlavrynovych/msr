@@ -1,4 +1,4 @@
-import {BackupConfig, RollbackStrategy, DownMethodPolicy, BackupMode} from "./index";
+import {BackupConfig, RollbackStrategy, DownMethodPolicy, BackupMode, DuplicateTimestampMode} from "./index";
 import {IMigrationValidator} from "../interface/validation/IMigrationValidator";
 
 /**
@@ -438,4 +438,33 @@ export class Config {
      * ```
      */
     checksumAlgorithm: 'md5' | 'sha256' = 'sha256'
+
+    /**
+     * How to handle duplicate migration timestamps.
+     *
+     * Duplicate timestamps can cause undefined execution order when migrations
+     * are discovered and executed. This setting controls whether duplicates
+     * trigger a warning, error, or are silently ignored.
+     *
+     * - `WARN` (default): Log warning but continue - alerts developers without blocking
+     * - `ERROR`: Throw error and halt - ensures timestamp uniqueness in production
+     * - `IGNORE`: Silent - use only when you have external ordering guarantees
+     *
+     * @default DuplicateTimestampMode.WARN
+     *
+     * @example
+     * ```typescript
+     * import { DuplicateTimestampMode } from '@migration-script-runner/core';
+     *
+     * // Warn about duplicates (default, recommended)
+     * config.duplicateTimestampMode = DuplicateTimestampMode.WARN;
+     *
+     * // Block execution on duplicates (strict, for production)
+     * config.duplicateTimestampMode = DuplicateTimestampMode.ERROR;
+     *
+     * // Ignore duplicates (when using subdirectory-based ordering)
+     * config.duplicateTimestampMode = DuplicateTimestampMode.IGNORE;
+     * ```
+     */
+    duplicateTimestampMode: DuplicateTimestampMode = DuplicateTimestampMode.WARN
 }

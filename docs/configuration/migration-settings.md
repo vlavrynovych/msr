@@ -480,6 +480,125 @@ Hidden files and folders (starting with `.`) are automatically excluded from sca
 
 ---
 
+## duplicateTimestampMode
+
+**Type:** `DuplicateTimestampMode`
+**Default:** `DuplicateTimestampMode.WARN`
+
+Controls how MSR handles duplicate migration timestamps.
+
+```typescript
+import { DuplicateTimestampMode } from '@migration-script-runner/core';
+
+// Warn about duplicates (default, recommended)
+config.duplicateTimestampMode = DuplicateTimestampMode.WARN;
+
+// Block execution on duplicates (strict, for production)
+config.duplicateTimestampMode = DuplicateTimestampMode.ERROR;
+
+// Ignore duplicates (when using subdirectory-based ordering)
+config.duplicateTimestampMode = DuplicateTimestampMode.IGNORE;
+```
+
+### Modes
+
+**`WARN` (Default)**
+- Logs a warning when duplicate timestamps are detected
+- Continues execution despite duplicates
+- Alerts developers without blocking migrations
+- **Recommended for most use cases**
+
+**`ERROR`**
+- Throws an error and halts execution on duplicates
+- Ensures timestamp uniqueness
+- **Recommended for production environments**
+
+**`IGNORE`**
+- Silently allows duplicate timestamps
+- No warning or error
+- Use only when you have external guarantees about execution order
+- **Use with caution**
+
+### Why This Matters
+
+Duplicate timestamps can cause undefined execution order:
+
+```
+migrations/
+├── users/V202501220100_create_users.ts
+└── auth/V202501220100_create_sessions.ts  ← Same timestamp!
+```
+
+**Problem:** Which migration runs first? The order is undefined and may vary between:
+- Different operating systems (file system ordering)
+- Different Node.js versions
+- Different deployment environments
+
+**Result:** Inconsistent database state across environments, potential data corruption.
+
+### Behavior
+
+When duplicates are detected, MSR provides:
+- Both conflicting file paths
+- Clear explanation of the risk
+- Resolution guidance with example
+
+**Example Warning:**
+```
+Duplicate migration timestamp detected: 202501220100
+This causes undefined execution order and can lead to data corruption.
+
+Conflicting files:
+  1. V202501220100_create_users.ts (/project/migrations/users/V202501220100_create_users.ts)
+  2. V202501220100_create_sessions.ts (/project/migrations/auth/V202501220100_create_sessions.ts)
+
+Resolution:
+  Rename one of these files with a new timestamp to ensure unique ordering.
+  Example: V1764433322394_create_sessions.ts
+```
+
+### Use Cases
+
+**Development (WARN mode):**
+```typescript
+// Allows continued work while alerting to the issue
+config.duplicateTimestampMode = DuplicateTimestampMode.WARN;
+```
+
+**Production (ERROR mode):**
+```typescript
+// Ensures data integrity by enforcing unique timestamps
+config.duplicateTimestampMode = DuplicateTimestampMode.ERROR;
+```
+
+**Controlled Subdirectories (IGNORE mode):**
+```typescript
+// When you have external ordering guarantees
+// Example: migrations are executed in subdirectory order
+config.duplicateTimestampMode = DuplicateTimestampMode.IGNORE;
+```
+
+### Environment-Specific Configuration
+
+```typescript
+import { DuplicateTimestampMode } from '@migration-script-runner/core';
+
+const config = new Config();
+
+// Lenient in development, strict in production
+config.duplicateTimestampMode = process.env.NODE_ENV === 'production'
+    ? DuplicateTimestampMode.ERROR
+    : DuplicateTimestampMode.WARN;
+```
+
+{: .note }
+Even in WARN and IGNORE modes, both migrations with duplicate timestamps will be executed. The mode only controls whether a warning is logged or an error is thrown, not whether duplicates are allowed to run.
+
+{: .warning }
+Using IGNORE mode is discouraged unless you have explicit control over execution order through external mechanisms. Duplicate timestamps introduce non-deterministic behavior that can cause serious issues in production.
+
+---
+
 ## Complete Example
 
 ```typescript

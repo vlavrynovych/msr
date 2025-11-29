@@ -4,5 +4,6 @@ export * from "./BackupMode";
 export * from "./MigrationScript";
 export * from "./RollbackStrategy";
 export * from "./DownMethodPolicy";
+export * from "./DuplicateTimestampMode";
 export * from "./ValidationErrorCode";
 export * from "./ValidationIssueType";
