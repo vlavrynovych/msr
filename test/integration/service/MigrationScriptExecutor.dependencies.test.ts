@@ -32,8 +32,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
             };
             schemaVersion: ISchemaVersion = {
-                migrations: {
-                    getAll: sinon.stub().resolves([]),
+                migrationRecords: {
+                    getAllExecuted: sinon.stub().resolves([]),
                     save: sinon.stub().resolves(),
                     remove(timestamp: number): Promise<void> {
                         return Promise.resolve(undefined);
@@ -128,8 +128,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
          */
         it('should use custom migrationService when provided', () => {
             const mockMigrationService = {
-                readMigrationScripts: sinon.stub().resolves([]),
-                getBeforeMigrateScript: sinon.stub().resolves(undefined)
+                findMigrationScripts: sinon.stub().resolves([]),
+                findBeforeMigrateScript: sinon.stub().resolves(undefined)
             };
             const executorWithCustomMigration = new MigrationScriptExecutor(handler, cfg, {
                 migrationService: mockMigrationService
@@ -182,8 +182,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 drawExecuted: sinon.stub()
             };
             const mockMigrationService = {
-                readMigrationScripts: sinon.stub().resolves([]),
-                getBeforeMigrateScript: sinon.stub().resolves(undefined)
+                findMigrationScripts: sinon.stub().resolves([]),
+                findBeforeMigrateScript: sinon.stub().resolves(undefined)
             };
 
             const executorWithAllCustom = new MigrationScriptExecutor(handler, cfg, {

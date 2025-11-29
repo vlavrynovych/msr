@@ -68,8 +68,8 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
 
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> {
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -135,8 +135,8 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
 
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> {
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -215,8 +215,8 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
                 restore: restoreStub
             },
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> {
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -279,8 +279,8 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
 
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> {
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -336,8 +336,8 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
 
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> {
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {

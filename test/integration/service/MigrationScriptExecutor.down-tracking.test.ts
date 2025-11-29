@@ -104,8 +104,8 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
 
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> {
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -192,8 +192,8 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
 
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> {
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -267,8 +267,8 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
 
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> {
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {

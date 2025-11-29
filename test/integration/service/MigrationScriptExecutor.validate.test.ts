@@ -39,8 +39,8 @@ describe('MigrationScriptExecutor - validate() method', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(true),
                 validateTable: sinon.stub().resolves(true),
-                migrations: {
-                    getAll: sinon.stub().resolves([]),
+                migrationRecords: {
+                    getAllExecuted: sinon.stub().resolves([]),
                     save: sinon.stub().resolves(),
                     remove(timestamp: number): Promise<void> {
                         return Promise.resolve(undefined);
@@ -285,7 +285,7 @@ describe('MigrationScriptExecutor - validate() method', () => {
             const ChecksumService = require('../../../src/service/ChecksumService').ChecksumService;
             const originalChecksum = ChecksumService.calculateChecksum(filepath, config.checksumAlgorithm);
 
-            (handler.schemaVersion.migrations.getAll as sinon.SinonStub).resolves([{
+            (handler.schemaVersion.migrationRecords.getAllExecuted as sinon.SinonStub).resolves([{
                 name: filename,
                 filepath: filepath,
                 timestamp: 1,
@@ -319,7 +319,7 @@ describe('MigrationScriptExecutor - validate() method', () => {
             fs.appendFileSync(filepath, '\n// Modified content');
 
             // Mock that original version was executed
-            (handler.schemaVersion.migrations.getAll as sinon.SinonStub).resolves([{
+            (handler.schemaVersion.migrationRecords.getAllExecuted as sinon.SinonStub).resolves([{
                 name: filename,
                 filepath: filepath,
                 timestamp: 1,
@@ -340,7 +340,7 @@ describe('MigrationScriptExecutor - validate() method', () => {
             config.validateMigratedFilesLocation = true;
 
             // Mock that a migration was executed but file no longer exists
-            (handler.schemaVersion.migrations.getAll as sinon.SinonStub).resolves([{
+            (handler.schemaVersion.migrationRecords.getAllExecuted as sinon.SinonStub).resolves([{
                 name: 'V000000000001_deleted.ts',
                 filepath: path.join(tempMigrationsDir, 'V000000000001_deleted.ts'),
                 timestamp: 1,
@@ -361,7 +361,7 @@ describe('MigrationScriptExecutor - validate() method', () => {
             config.validateMigratedFilesLocation = false;
 
             // Mock that a migration was executed but file no longer exists
-            (handler.schemaVersion.migrations.getAll as sinon.SinonStub).resolves([{
+            (handler.schemaVersion.migrationRecords.getAllExecuted as sinon.SinonStub).resolves([{
                 name: 'V000000000001_deleted.ts',
                 filepath: path.join(tempMigrationsDir, 'V000000000001_deleted.ts'),
                 timestamp: 1,
@@ -384,7 +384,7 @@ describe('MigrationScriptExecutor - validate() method', () => {
             config.validateMigratedFiles = false;
 
             // Mock executed migration with wrong checksum
-            (handler.schemaVersion.migrations.getAll as sinon.SinonStub).resolves([{
+            (handler.schemaVersion.migrationRecords.getAllExecuted as sinon.SinonStub).resolves([{
                 name: 'V000000000001_test.ts',
                 filepath: path.join(tempMigrationsDir, 'V000000000001_test.ts'),
                 timestamp: 1,
@@ -418,7 +418,7 @@ describe('MigrationScriptExecutor - validate() method', () => {
                 config.checksumAlgorithm
             );
 
-            (handler.schemaVersion.migrations.getAll as sinon.SinonStub).resolves([{
+            (handler.schemaVersion.migrationRecords.getAllExecuted as sinon.SinonStub).resolves([{
                 name: executedFile,
                 filepath: path.join(tempMigrationsDir, executedFile),
                 timestamp: 1,

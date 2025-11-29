@@ -31,7 +31,7 @@ describe('RollbackService', () => {
                 init: sinon.stub().resolves(),
                 save: sinon.stub().resolves(),
                 remove: sinon.stub().resolves(),
-                getAll: sinon.stub().resolves([])
+                getAllExecuted: sinon.stub().resolves([])
             },
             backup: {
                 backup: sinon.stub().resolves('backup-data'),

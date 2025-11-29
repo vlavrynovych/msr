@@ -43,7 +43,7 @@ describe('MigrationService - Unit Tests', () => {
             // Attempt to read migration scripts - should throw security error
             const config = { folder: baseDir, filePatterns: [/.*/], recursive: false };
 
-            return (ms as any).readMigrationScripts(config)
+            return (ms as any).findMigrationScripts(config)
                 .then(() => {
                     expect.fail('Should have thrown path traversal error');
                 })
@@ -81,7 +81,7 @@ describe('MigrationService - Unit Tests', () => {
 
             const config = { folder: baseDir, filePatterns: [/^V.*\.ts$/], recursive: false };
 
-            return (ms as any).readMigrationScripts(config)
+            return (ms as any).findMigrationScripts(config)
                 .then((result: any[]) => {
                     // Should not throw - '.' resolves to base directory which is allowed
                     // Won't match pattern so no results, but no error
@@ -121,7 +121,7 @@ describe('MigrationService - Unit Tests', () => {
 
             const config = { folder: baseDir, filePatterns: [/^V(\d+)_(.+)\.ts$/], recursive: false };
 
-            return (ms as any).readMigrationScripts(config)
+            return (ms as any).findMigrationScripts(config)
                 .then((result: any[]) => {
                     expect(result).to.be.an('array');
                     expect(result.length).to.be.greaterThan(0);
@@ -167,7 +167,7 @@ describe('MigrationService - Unit Tests', () => {
 
             const config = { folder: baseDir, filePatterns: [/^V(\d+)_(.+)\.ts$/], recursive: false };
 
-            return (ms as any).readMigrationScripts(config)
+            return (ms as any).findMigrationScripts(config)
                 .then((result: any[]) => {
                     expect(result).to.be.an('array');
                     expect(result.length).to.equal(1);

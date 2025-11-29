@@ -38,8 +38,8 @@ describe('MigrationScriptExecutor', () => {
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
             };
             schemaVersion:ISchemaVersion = {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> {
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> {
                         return Promise.resolve(scripts);
                     },
                     save(details: IMigrationInfo): Promise<any> {
@@ -73,11 +73,11 @@ describe('MigrationScriptExecutor', () => {
         created = true
         valid = true
         spy.on(handler.schemaVersion, ['isInitialized', 'createTable', 'validateTable']);
-        spy.on(handler.schemaVersion.migrations, ['save', 'getAll']);
+        spy.on(handler.schemaVersion.migrationRecords, ['save', 'getAllExecuted']);
 
         spy.on(executor, ['migrate', 'execute']);
         spy.on(executor.backupService, ['restore', 'deleteBackup', 'backup']);
-        spy.on(executor.migrationService, ['readMigrationScripts']);
+        spy.on(executor.migrationService, ['findMigrationScripts']);
     })
 
     afterEach(() => {
@@ -112,11 +112,11 @@ describe('MigrationScriptExecutor', () => {
             expect(handler.schemaVersion.isInitialized).have.been.called.once
             expect(handler.schemaVersion.createTable).have.not.been.called
             expect(handler.schemaVersion.validateTable).have.been.called.once
-            expect(handler.schemaVersion.migrations.getAll).have.been.called.once
-            expect(handler.schemaVersion.migrations.save).have.been.called.once
+            expect(handler.schemaVersion.migrationRecords.getAllExecuted).have.been.called.once
+            expect(handler.schemaVersion.migrationRecords.save).have.been.called.once
 
             // Verify migration discovery ran
-            expect(executor.migrationService.readMigrationScripts).have.been.called.once
+            expect(executor.migrationService.findMigrationScripts).have.been.called.once
 
             // Verify backup lifecycle: created → not restored (success) → deleted
             expect(executor.backupService.backup).have.been.called.once
@@ -153,11 +153,11 @@ describe('MigrationScriptExecutor', () => {
             expect(handler.schemaVersion.isInitialized).have.been.called.once
             expect(handler.schemaVersion.createTable).have.not.been.called
             expect(handler.schemaVersion.validateTable).have.been.called.once
-            expect(handler.schemaVersion.migrations.getAll).have.been.called.once
-            expect(handler.schemaVersion.migrations.save).have.not.been.called
+            expect(handler.schemaVersion.migrationRecords.getAllExecuted).have.been.called.once
+            expect(handler.schemaVersion.migrationRecords.save).have.not.been.called
 
             // Verify script discovery still ran
-            expect(executor.migrationService.readMigrationScripts).have.been.called.once
+            expect(executor.migrationService.findMigrationScripts).have.been.called.once
 
             // Verify backup lifecycle completed even with no migrations
             expect(executor.backupService.backup).have.been.called.once
@@ -199,13 +199,13 @@ describe('MigrationScriptExecutor', () => {
             expect(handler.schemaVersion.isInitialized).have.been.called.once
             expect(handler.schemaVersion.createTable).have.not.been.called
             expect(handler.schemaVersion.validateTable).have.been.called.once
-            expect(handler.schemaVersion.migrations.getAll).have.not.been.called
-            expect(handler.schemaVersion.migrations.save).have.not.been.called
+            expect(handler.schemaVersion.migrationRecords.getAllExecuted).have.not.been.called
+            expect(handler.schemaVersion.migrationRecords.save).have.not.been.called
 
             // Migration discovery does NOT happen when schema validation fails
             // Fixed flow: init() → scan() → validate migrations → backup
             // Schema validation failure happens during init(), so scan() is never called
-            expect(executor.migrationService.readMigrationScripts).have.not.been.called
+            expect(executor.migrationService.findMigrationScripts).have.not.been.called
 
             // Backup/restore NOT called when validation fails BEFORE backup is created
             // Schema validation failure happens during init(), so backup never created
@@ -234,7 +234,7 @@ describe('MigrationScriptExecutor', () => {
                 }
             } as IRunnableScript;
 
-            const readStub = sinon.stub(executor.migrationService, 'readMigrationScripts');
+            const readStub = sinon.stub(executor.migrationService, 'findMigrationScripts');
             readStub.resolves([failingScript]);
 
             // Execute migration (will fail)
@@ -378,7 +378,7 @@ describe('MigrationScriptExecutor', () => {
 
             // then: verify key methods were called
             expect(executor.backupService.backup).have.been.called;
-            expect(executor.migrationService.readMigrationScripts).have.been.called;
+            expect(executor.migrationService.findMigrationScripts).have.been.called;
             expect(executor.execute).have.been.called;
             expect(executor.backupService.restore).have.not.been.called;
             expect(executor.backupService.deleteBackup).have.been.called;
@@ -410,7 +410,7 @@ describe('MigrationScriptExecutor', () => {
             expect(executor.backupService.backup).have.been.called;
             expect(executor.backupService.restore).have.been.called;
             expect(executor.backupService.deleteBackup).have.been.called;
-            expect(executor.migrationService.readMigrationScripts).have.not.been.called;
+            expect(executor.migrationService.findMigrationScripts).have.not.been.called;
         })
 
         /**
@@ -458,7 +458,7 @@ describe('MigrationScriptExecutor', () => {
             expect(executed[2].result).eq('result3');
 
             // verify all were saved
-            expect(handler.schemaVersion.migrations.save).have.been.called.exactly(3);
+            expect(handler.schemaVersion.migrationRecords.save).have.been.called.exactly(3);
         })
 
         /**
@@ -496,7 +496,7 @@ describe('MigrationScriptExecutor', () => {
                 expect.fail('Should have thrown');
             } catch (e: any) {
                 // then: only first migration should be saved
-                expect(handler.schemaVersion.migrations.save).have.been.called.once;
+                expect(handler.schemaVersion.migrationRecords.save).have.been.called.once;
                 expect(e.message).to.include('Migration 2 failed');
             }
         })

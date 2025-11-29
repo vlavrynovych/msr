@@ -32,11 +32,11 @@ describe('MigrationService Performance Benchmarks', () => {
         const config = TestUtils.getConfig();
 
         // Warm up (first run may include JIT compilation, module loading, etc.)
-        await ms.readMigrationScripts(config);
+        await ms.findMigrationScripts(config);
 
         // Measure actual performance
         const start = Date.now();
-        await ms.readMigrationScripts(config);
+        await ms.findMigrationScripts(config);
         const duration = Date.now() - start;
 
         // Verify performance meets threshold
@@ -58,11 +58,11 @@ describe('MigrationService Performance Benchmarks', () => {
         const config = TestUtils.getConfig(TestUtils.EMPTY_FOLDER);
 
         // Warm up
-        await ms.readMigrationScripts(config);
+        await ms.findMigrationScripts(config);
 
         // Measure
         const start = Date.now();
-        await ms.readMigrationScripts(config);
+        await ms.findMigrationScripts(config);
         const duration = Date.now() - start;
 
         expect(duration).to.be.lessThan(50,
@@ -86,7 +86,7 @@ describe('MigrationService Performance Benchmarks', () => {
         // Run 10 scans and record durations
         for (let i = 0; i < 10; i++) {
             const start = Date.now();
-            await ms.readMigrationScripts(config);
+            await ms.findMigrationScripts(config);
             const duration = Date.now() - start;
             durations.push(duration);
         }

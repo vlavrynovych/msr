@@ -51,8 +51,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<any> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<any> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<any> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -82,9 +82,9 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
             } as IBackup,
             schemaVersion: {
-                migrations: {
+                migrationRecords: {
                     // Return the migration as already executed
-                    getAll(): Promise<any> {
+                    getAllExecuted(): Promise<any> {
                         return Promise.resolve([{
                             timestamp: 202311020036,
                             name: 'V202311020036_test.ts',
@@ -148,8 +148,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 restore: restoreStub
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<any> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<any> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<any> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -224,8 +224,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 restore: restoreStub
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<any> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<any> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<any> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -276,8 +276,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<any> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<any> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<any> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -314,8 +314,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<any> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<any> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<any> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -351,8 +351,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<any> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<any> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<any> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -391,8 +391,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<any> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<any> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<any> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -464,8 +464,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<any> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<any> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<any> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },

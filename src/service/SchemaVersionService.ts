@@ -67,7 +67,7 @@ export class SchemaVersionService<T extends ISchemaVersion> implements ISchemaVe
      * ```
      */
     public async save(details:IMigrationInfo):Promise<void> {
-        return this.service.migrations.save(details);
+        return this.service.migrationRecords.save(details);
     }
 
     /**
@@ -82,7 +82,7 @@ export class SchemaVersionService<T extends ISchemaVersion> implements ISchemaVe
      * ```
      */
     public async getAllMigratedScripts():Promise<MigrationScript[]> {
-        return await this.service.migrations.getAll();
+        return await this.service.migrationRecords.getAllExecuted();
     }
 
     /**
@@ -100,6 +100,6 @@ export class SchemaVersionService<T extends ISchemaVersion> implements ISchemaVe
      * ```
      */
     public async remove(timestamp: number): Promise<void> {
-        return this.service.migrations.remove(timestamp);
+        return this.service.migrationRecords.remove(timestamp);
     }
 }

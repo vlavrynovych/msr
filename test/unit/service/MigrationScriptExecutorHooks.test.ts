@@ -29,8 +29,8 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true),
-                migrations: {
-                    getAll: sinon.stub().resolves([]),
+                migrationRecords: {
+                    getAllExecuted: sinon.stub().resolves([]),
                     save: sinon.stub().resolves(),
                     remove(timestamp: number): Promise<void> {
                         return Promise.resolve(undefined);

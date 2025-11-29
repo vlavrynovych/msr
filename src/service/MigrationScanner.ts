@@ -77,7 +77,7 @@ export class MigrationScanner implements IMigrationScanner {
         // Gather information from database and filesystem in parallel
         const {migrated, all} = await Utils.promiseAll({
             migrated: this.schemaVersionService.getAllMigratedScripts(),
-            all: this.migrationService.readMigrationScripts(this.config)
+            all: this.migrationService.findMigrationScripts(this.config)
         }) as IScripts;
 
         // Determine which migrations should be executed and which should be ignored

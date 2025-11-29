@@ -21,8 +21,8 @@ describe('SchemaVersionService', () => {
 
     before(() => {
         schemaVersion = {
-            migrations: {
-                getAll(): Promise<MigrationScript[]> {
+            migrationRecords: {
+                getAllExecuted(): Promise<MigrationScript[]> {
                     return Promise.resolve(scripts);
                 },
                 save(details: IMigrationInfo): Promise<any> {
@@ -52,7 +52,7 @@ describe('SchemaVersionService', () => {
         created = true
         valid = true
         spy.on(schemaVersion, ['isInitialized', 'createTable', 'validateTable']);
-        spy.on(schemaVersion.migrations, ['save', 'getAll', 'remove']);
+        spy.on(schemaVersion.migrationRecords, ['save', 'getAllExecuted', 'remove']);
     })
 
     afterEach(() => {
@@ -246,8 +246,8 @@ describe('SchemaVersionService', () => {
             await new SchemaVersionService(schemaVersion).save({} as IMigrationInfo);
 
             // Verify only save() was called, no other schema operations
-            expect(schemaVersion.migrations.save).have.been.called.with(m)
-            expect(schemaVersion.migrations.getAll).have.not.been.called
+            expect(schemaVersion.migrationRecords.save).have.been.called.with(m)
+            expect(schemaVersion.migrationRecords.getAllExecuted).have.not.been.called
             expect(schemaVersion.isInitialized).have.not.been.called
             expect(schemaVersion.createTable).have.not.been.called
             expect(schemaVersion.validateTable).have.not.been.called
@@ -271,7 +271,7 @@ describe('SchemaVersionService', () => {
 
             // Should save without throwing or hanging
             await new SchemaVersionService(schemaVersion).save(largeMigration);
-            expect(schemaVersion.migrations.save).have.been.called.with(largeMigration);
+            expect(schemaVersion.migrationRecords.save).have.been.called.with(largeMigration);
         })
 
         /**
@@ -293,7 +293,7 @@ describe('SchemaVersionService', () => {
 
             // Should delegate to service (service handles validation)
             await new SchemaVersionService(schemaVersion).save(incompleteMigration);
-            expect(schemaVersion.migrations.save).have.been.called;
+            expect(schemaVersion.migrationRecords.save).have.been.called;
         })
     })
 
@@ -311,8 +311,8 @@ describe('SchemaVersionService', () => {
 
             // Verify correct method was called and result returned
             expect(res).eq(scripts, "Should return list of scripts")
-            expect(schemaVersion.migrations.save).have.not.been.called
-            expect(schemaVersion.migrations.getAll).have.been.called.once
+            expect(schemaVersion.migrationRecords.save).have.not.been.called
+            expect(schemaVersion.migrationRecords.getAllExecuted).have.been.called.once
             expect(schemaVersion.isInitialized).have.not.been.called
             expect(schemaVersion.createTable).have.not.been.called
             expect(schemaVersion.validateTable).have.not.been.called
@@ -370,9 +370,9 @@ describe('SchemaVersionService', () => {
             await new SchemaVersionService(schemaVersion).remove(timestamp);
 
             // Verify only remove() was called, no other schema operations
-            expect(schemaVersion.migrations.remove).have.been.called.with(timestamp);
-            expect(schemaVersion.migrations.save).have.not.been.called;
-            expect(schemaVersion.migrations.getAll).have.not.been.called;
+            expect(schemaVersion.migrationRecords.remove).have.been.called.with(timestamp);
+            expect(schemaVersion.migrationRecords.save).have.not.been.called;
+            expect(schemaVersion.migrationRecords.getAllExecuted).have.not.been.called;
             expect(schemaVersion.isInitialized).have.not.been.called;
             expect(schemaVersion.createTable).have.not.been.called;
             expect(schemaVersion.validateTable).have.not.been.called;
@@ -390,7 +390,7 @@ describe('SchemaVersionService', () => {
             await new SchemaVersionService(schemaVersion).remove(nonExistentTimestamp);
 
             // Should delegate to service (service handles existence checking)
-            expect(schemaVersion.migrations.remove).have.been.called.with(nonExistentTimestamp);
+            expect(schemaVersion.migrationRecords.remove).have.been.called.with(nonExistentTimestamp);
         })
 
         /**
@@ -404,7 +404,7 @@ describe('SchemaVersionService', () => {
             await new SchemaVersionService(schemaVersion).remove(0);
 
             // Should delegate without validation
-            expect(schemaVersion.migrations.remove).have.been.called.with(0);
+            expect(schemaVersion.migrationRecords.remove).have.been.called.with(0);
         })
 
         /**
@@ -418,7 +418,7 @@ describe('SchemaVersionService', () => {
             await new SchemaVersionService(schemaVersion).remove(-1);
 
             // Should delegate to service (service handles validation)
-            expect(schemaVersion.migrations.remove).have.been.called.with(-1);
+            expect(schemaVersion.migrationRecords.remove).have.been.called.with(-1);
         })
 
         /**
@@ -433,7 +433,7 @@ describe('SchemaVersionService', () => {
             await new SchemaVersionService(schemaVersion).remove(largeTimestamp);
 
             // Should pass through without issues
-            expect(schemaVersion.migrations.remove).have.been.called.with(largeTimestamp);
+            expect(schemaVersion.migrationRecords.remove).have.been.called.with(largeTimestamp);
         })
     })
 })

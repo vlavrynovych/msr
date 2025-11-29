@@ -37,8 +37,8 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
                 isInitialized: () => Promise.resolve(true),
                 createTable: () => Promise.resolve(true),
                 validateTable: () => Promise.resolve(true),
-                migrations: {
-                    getAll: () => Promise.resolve([]),
+                migrationRecords: {
+                    getAllExecuted: () => Promise.resolve([]),
                     save: (details: IMigrationInfo) => Promise.resolve(),
                     remove(timestamp: number): Promise<void> {
                         return Promise.resolve(undefined);

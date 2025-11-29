@@ -28,7 +28,7 @@ describe('MigrationScanner', () => {
     beforeEach(() => {
         // Create stubs for services
         migrationService = {
-            readMigrationScripts: sinon.stub()
+            findMigrationScripts: sinon.stub()
         } as sinon.SinonStubbedInstance<IMigrationService>;
 
         schemaVersionService = {
@@ -71,7 +71,7 @@ describe('MigrationScanner', () => {
             ];
 
             schemaVersionService.getAllMigratedScripts.resolves(migratedScripts);
-            migrationService.readMigrationScripts.resolves(allScripts);
+            migrationService.findMigrationScripts.resolves(allScripts);
 
             // Execute
             const result = await scanner.scan();
@@ -114,7 +114,7 @@ describe('MigrationScanner', () => {
             ];
 
             schemaVersionService.getAllMigratedScripts.resolves(migratedScripts);
-            migrationService.readMigrationScripts.resolves(allScripts);
+            migrationService.findMigrationScripts.resolves(allScripts);
 
             const result = await scanner.scan();
 
@@ -140,7 +140,7 @@ describe('MigrationScanner', () => {
             ];
 
             schemaVersionService.getAllMigratedScripts.resolves(migratedScripts);
-            migrationService.readMigrationScripts.resolves(allScripts);
+            migrationService.findMigrationScripts.resolves(allScripts);
 
             const result = await scanner.scan();
 
@@ -152,7 +152,7 @@ describe('MigrationScanner', () => {
 
         it('should handle no migrations case', async () => {
             schemaVersionService.getAllMigratedScripts.resolves([]);
-            migrationService.readMigrationScripts.resolves([]);
+            migrationService.findMigrationScripts.resolves([]);
 
             const result = await scanner.scan();
 
@@ -185,7 +185,7 @@ describe('MigrationScanner', () => {
             ];
 
             schemaVersionService.getAllMigratedScripts.resolves(migratedScripts);
-            migrationService.readMigrationScripts.resolves(allScripts);
+            migrationService.findMigrationScripts.resolves(allScripts);
 
             const result = await scanner.scan();
 
@@ -201,7 +201,7 @@ describe('MigrationScanner', () => {
             ];
 
             schemaVersionService.getAllMigratedScripts.resolves([]);
-            migrationService.readMigrationScripts.resolves(allScripts);
+            migrationService.findMigrationScripts.resolves(allScripts);
 
             const result = await scanner.scan();
 
@@ -215,19 +215,19 @@ describe('MigrationScanner', () => {
             const allScripts: MigrationScript[] = [];
 
             schemaVersionService.getAllMigratedScripts.resolves(migratedScripts);
-            migrationService.readMigrationScripts.resolves(allScripts);
+            migrationService.findMigrationScripts.resolves(allScripts);
 
             await scanner.scan();
 
             // Both services should be called
             expect(schemaVersionService.getAllMigratedScripts.called).to.be.true;
-            expect(migrationService.readMigrationScripts.called).to.be.true;
+            expect(migrationService.findMigrationScripts.called).to.be.true;
         });
 
         it('should propagate errors from schemaVersionService', async () => {
             const error = new Error('Database connection failed');
             schemaVersionService.getAllMigratedScripts.rejects(error);
-            migrationService.readMigrationScripts.resolves([]);
+            migrationService.findMigrationScripts.resolves([]);
 
             try {
                 await scanner.scan();
@@ -240,7 +240,7 @@ describe('MigrationScanner', () => {
         it('should propagate errors from migrationService', async () => {
             const error = new Error('Filesystem read failed');
             schemaVersionService.getAllMigratedScripts.resolves([]);
-            migrationService.readMigrationScripts.rejects(error);
+            migrationService.findMigrationScripts.rejects(error);
 
             try {
                 await scanner.scan();

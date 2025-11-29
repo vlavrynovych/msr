@@ -49,8 +49,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
                 restore: restoreStub
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -84,8 +84,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         // Handler without backup (down() only)
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -122,8 +122,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
                 restore: restoreStub
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -160,8 +160,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
                 restore: sinon.stub().resolves()
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -193,8 +193,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         // No backup property
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -232,8 +232,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         // No backup property
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -266,8 +266,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
                 restore: sinon.stub().resolves()
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },

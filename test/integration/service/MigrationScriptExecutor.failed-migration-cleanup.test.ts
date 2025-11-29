@@ -113,8 +113,8 @@ describe('MigrationScriptExecutor - Failed Migration Cleanup', () => {
 
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> {
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -190,8 +190,8 @@ describe('MigrationScriptExecutor - Failed Migration Cleanup', () => {
 
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> {
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -275,8 +275,8 @@ describe('MigrationScriptExecutor - Failed Migration Cleanup', () => {
                 restore: restoreStub
             },
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> {
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {

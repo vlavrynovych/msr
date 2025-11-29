@@ -77,8 +77,8 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
                 restore: restoreStub
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -141,8 +141,8 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
                 restore: restoreStub
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -206,8 +206,8 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
                 restore: restoreStub
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -275,8 +275,8 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
                 restore: restoreStub
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -341,8 +341,8 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
                 restore: restoreStub
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -391,8 +391,8 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
                 restore: sinon.stub().resolves()
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -438,8 +438,8 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
                 restore: restoreStub
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -477,8 +477,8 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
                 restore: sinon.stub().resolves()
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
@@ -514,8 +514,8 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
                 restore: sinon.stub().resolves()
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },

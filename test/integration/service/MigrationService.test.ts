@@ -3,7 +3,7 @@ import {MigrationScript, MigrationService, SilentLogger} from "../../../src";
 import {TestUtils} from "../../helpers/TestUtils";
 
 describe('MigrationService', () => {
-    describe('readMigrationScripts()', () => {
+    describe('findMigrationScripts()', () => {
         /**
          * Test: Wrong file name format throws clear error
          * Validates error handling when migration files match the pattern regex but
@@ -19,7 +19,7 @@ describe('MigrationService', () => {
 
             // Attempt to read scripts with malformed filenames
             try {
-                await ms.readMigrationScripts(cfg);
+                await ms.findMigrationScripts(cfg);
                 expect.fail('Should have thrown');
             } catch (e: any) {
                 // Verify clear error message helps developers fix naming
@@ -37,7 +37,7 @@ describe('MigrationService', () => {
         it('should read valid migration scripts successfully', async () => {
             // Read migration scripts from test directory
             const ms = new MigrationService(new SilentLogger())
-            const res:MigrationScript[] = await ms.readMigrationScripts(TestUtils.getConfig());
+            const res:MigrationScript[] = await ms.findMigrationScripts(TestUtils.getConfig());
 
             // Verify one script was found with correct metadata
             expect(res).not.undefined
@@ -62,7 +62,7 @@ describe('MigrationService', () => {
         it('should return empty array for empty folder', async () => {
             // Read from empty test directory
             const cfg = TestUtils.getConfig(TestUtils.EMPTY_FOLDER)
-            const res:MigrationScript[] = await new MigrationService(new SilentLogger()).readMigrationScripts(cfg)
+            const res:MigrationScript[] = await new MigrationService(new SilentLogger()).findMigrationScripts(cfg)
 
             // Verify empty array is returned without errors
             expect(res).not.undefined
@@ -81,7 +81,7 @@ describe('MigrationService', () => {
             const ms = new MigrationService(new SilentLogger())
 
             // Verify filesystem error is thrown
-            await expect(ms.readMigrationScripts(cfg)).to.be.rejectedWith("ENOENT: no such file or directory");
+            await expect(ms.findMigrationScripts(cfg)).to.be.rejectedWith("ENOENT: no such file or directory");
         })
 
         /**
@@ -106,7 +106,7 @@ describe('MigrationService', () => {
                 ]);
 
             // Read migration scripts
-            const res = await ms.readMigrationScripts(cfg);
+            const res = await ms.findMigrationScripts(cfg);
 
             // Verify only the visible, valid migration file is included
             expect(res.length).eq(1, 'Should filter out hidden files');
@@ -135,7 +135,7 @@ describe('MigrationService', () => {
                 ]);
 
             // Read migration scripts
-            const res = await ms.readMigrationScripts(cfg);
+            const res = await ms.findMigrationScripts(cfg);
 
             // Verify both files are included (conflict resolution happens later)
             expect(res.length).eq(2, 'Should include both files with same timestamp');
@@ -168,7 +168,7 @@ describe('MigrationService', () => {
                 ]);
 
             // Read migration scripts
-            const res = await ms.readMigrationScripts(cfg);
+            const res = await ms.findMigrationScripts(cfg);
 
             // Verify only the valid migration file is included
             expect(res.length).eq(1, 'Should only include files matching pattern');
@@ -199,7 +199,7 @@ describe('MigrationService', () => {
 
             // Measure scanning performance
             const start = Date.now();
-            const res = await ms.readMigrationScripts(cfg);
+            const res = await ms.findMigrationScripts(cfg);
             const duration = Date.now() - start;
 
             // Verify all files processed quickly and in correct order
@@ -236,7 +236,7 @@ describe('MigrationService', () => {
                 ]);
 
             // Read migration scripts
-            const res = await ms.readMigrationScripts(cfg);
+            const res = await ms.findMigrationScripts(cfg);
 
             // Verify files with dashes and underscores are included
             expect(res.length).eq(2, 'Should handle dashes and underscores');
@@ -248,7 +248,7 @@ describe('MigrationService', () => {
 
         /**
          * Test: Concurrent reads are thread-safe
-         * Validates that multiple concurrent calls to readMigrationScripts return
+         * Validates that multiple concurrent calls to findMigrationScripts return
          * identical results without race conditions. Important for systems where
          * multiple processes might scan the migration directory simultaneously.
          */
@@ -258,7 +258,7 @@ describe('MigrationService', () => {
             const ms = new MigrationService(new SilentLogger());
 
             const promises = Array.from({length: 10}, () =>
-                ms.readMigrationScripts(cfg)
+                ms.findMigrationScripts(cfg)
             );
 
             // Wait for all reads to complete
@@ -277,7 +277,7 @@ describe('MigrationService', () => {
         })
     })
 
-    describe('readMigrationScripts() - Recursive Mode', () => {
+    describe('findMigrationScripts() - Recursive Mode', () => {
         /**
          * Test: Successfully reads migration scripts from sub-folders recursively
          * Validates that when recursive mode is enabled, the scanner finds all
@@ -289,7 +289,7 @@ describe('MigrationService', () => {
             cfg.recursive = true;
             const ms = new MigrationService(new SilentLogger());
 
-            const res: MigrationScript[] = await ms.readMigrationScripts(cfg);
+            const res: MigrationScript[] = await ms.findMigrationScripts(cfg);
 
             // Verify all 4 migrations from different sub-folders are found
             expect(res).not.undefined;
@@ -320,7 +320,7 @@ describe('MigrationService', () => {
             cfg.recursive = true;
             const ms = new MigrationService(new SilentLogger());
 
-            const res: MigrationScript[] = await ms.readMigrationScripts(cfg);
+            const res: MigrationScript[] = await ms.findMigrationScripts(cfg);
 
             // Expected execution order by timestamp:
             // 1. V202311010001 (users)
@@ -375,7 +375,7 @@ describe('MigrationService', () => {
                 return [];
             });
 
-            const res = await ms.readMigrationScripts(cfg);
+            const res = await ms.findMigrationScripts(cfg);
 
             // Verify only the visible folder was scanned
             expect(readdirStub.callCount).eq(2, 'Should only scan visible folders');
@@ -394,7 +394,7 @@ describe('MigrationService', () => {
             cfg.recursive = false;
             const ms = new MigrationService(new SilentLogger());
 
-            const res: MigrationScript[] = await ms.readMigrationScripts(cfg);
+            const res: MigrationScript[] = await ms.findMigrationScripts(cfg);
 
             // Should find 0 migrations because all are in sub-folders
             expect(res).not.undefined;
@@ -432,7 +432,7 @@ describe('MigrationService', () => {
                 return [];
             });
 
-            const res = await ms.readMigrationScripts(cfg);
+            const res = await ms.findMigrationScripts(cfg);
 
             // Should return empty array without errors
             expect(res).not.undefined;
@@ -484,7 +484,7 @@ describe('MigrationService', () => {
                 return [];
             });
 
-            const res = await ms.readMigrationScripts(cfg);
+            const res = await ms.findMigrationScripts(cfg);
 
             // Should find the deeply nested migration
             expect(res.length).eq(1, 'Should find migration in deeply nested folder');
@@ -527,7 +527,7 @@ describe('MigrationService', () => {
                 return [];
             });
 
-            const res = await ms.readMigrationScripts(cfg);
+            const res = await ms.findMigrationScripts(cfg);
 
             // Should find both migrations
             expect(res.length).eq(2, 'Should find migrations in both root and subfolder');
@@ -573,7 +573,7 @@ describe('MigrationService', () => {
                 return [];
             });
 
-            const res = await ms.readMigrationScripts(cfg);
+            const res = await ms.findMigrationScripts(cfg);
 
             // Should only find the valid migration file
             expect(res.length).eq(1, 'Should only include valid migration files');
@@ -583,9 +583,9 @@ describe('MigrationService', () => {
         })
     })
 
-    describe('getBeforeMigrateScript()', () => {
+    describe('findBeforeMigrateScript()', () => {
         /**
-         * Test: getBeforeMigrateScript() returns undefined when beforeMigrateName is null
+         * Test: findBeforeMigrateScript() returns undefined when beforeMigrateName is null
          * Validates that explicitly disabling beforeMigrate feature by setting null
          * returns undefined without checking the filesystem.
          */
@@ -594,7 +594,7 @@ describe('MigrationService', () => {
             cfg.beforeMigrateName = null;
             const ms = new MigrationService(new SilentLogger());
 
-            const result = await ms.getBeforeMigrateScript(cfg);
+            const result = await ms.findBeforeMigrateScript(cfg);
 
             expect(result).to.be.undefined;
         });
@@ -631,7 +631,7 @@ describe('MigrationService', () => {
                 ]);
 
             try {
-                await ms.readMigrationScripts(cfg);
+                await ms.findMigrationScripts(cfg);
                 expect.fail('Should have thrown path traversal error');
             } catch (e: any) {
                 expect(e.message).to.include('Security error: Path traversal detected');
@@ -665,7 +665,7 @@ describe('MigrationService', () => {
             });
 
             try {
-                await ms.readMigrationScripts(cfg);
+                await ms.findMigrationScripts(cfg);
                 expect.fail('Should have thrown path traversal error');
             } catch (e: any) {
                 expect(e.message).to.include('Security error: Path traversal detected');
@@ -685,7 +685,7 @@ describe('MigrationService', () => {
             const ms = new MigrationService(new SilentLogger());
 
             try {
-                await ms.getBeforeMigrateScript(cfg);
+                await ms.findBeforeMigrateScript(cfg);
                 expect.fail('Should have thrown path traversal error');
             } catch (e: any) {
                 expect(e.message).to.include('Security error: Path traversal detected');
@@ -723,7 +723,7 @@ describe('MigrationService', () => {
                 return [];
             });
 
-            const res = await ms.readMigrationScripts(cfg);
+            const res = await ms.findMigrationScripts(cfg);
 
             expect(res.length).eq(1, 'Valid sub-folders should still work');
             expect(res[0].name).eq('V202311010001_test.ts');
@@ -752,7 +752,7 @@ describe('MigrationService', () => {
                 .returns([filename]);
 
             try {
-                await ms.readMigrationScripts(cfg);
+                await ms.findMigrationScripts(cfg);
                 expect.fail('Should have thrown path traversal error');
             } catch (e: any) {
                 expect(e.message).to.include('Security error: Path traversal detected');
@@ -779,7 +779,7 @@ describe('MigrationService', () => {
                 .returns(['.']);
 
             try {
-                const res = await ms.readMigrationScripts(cfg);
+                const res = await ms.findMigrationScripts(cfg);
                 // '.' won't match the migration pattern, so no results
                 expect(res.length).eq(0);
             } finally {

@@ -181,15 +181,17 @@ export class MigrationScriptExecutor {
     }
 
     /**
-     * Execute all pending database migrations.
+     * Execute database migrations.
      *
      * This is the main method for running migrations. It:
-     * 1. Creates a database backup
+     * 1. Creates a database backup (if configured)
      * 2. Initializes the schema version tracking table
      * 3. Loads all migration scripts and determines which need to run
      * 4. Executes pending migrations in chronological order
      * 5. Updates the schema version table after each successful migration
      * 6. Deletes the backup on success, or restores from backup on failure
+     *
+     * @param targetVersion - Optional target version to migrate to. If not provided, runs all pending migrations.
      *
      * @returns Promise resolving to a MigrationResult object containing:
      *          - success: true if all migrations completed successfully, false otherwise
@@ -200,10 +202,13 @@ export class MigrationScriptExecutor {
      *
      * @example
      * ```typescript
-     * const executor = new MigrationScriptExecutor(handler);
+     * const executor = new MigrationScriptExecutor(handler, config);
      *
      * // Run all pending migrations
-     * const result = await executor.migrate();
+     * const result = await executor.up();
+     *
+     * // Or migrate to specific version
+     * const result = await executor.up(202501220100);
      *
      * if (result.success) {
      *   console.log(`Executed ${result.executed.length} migrations`);
@@ -214,7 +219,45 @@ export class MigrationScriptExecutor {
      * }
      * ```
      */
-    public async migrate(): Promise<IMigrationResult> {
+    public async up(targetVersion?: number): Promise<IMigrationResult> {
+        // If targetVersion provided, delegate to migrateTo logic
+        if (targetVersion !== undefined) {
+            return this.migrateToVersion(targetVersion);
+        }
+
+        // Otherwise, run all pending migrations
+        return this.migrateAll();
+    }
+
+    /**
+     * Alias for up() method - executes database migrations.
+     *
+     * Provided for convenience and clarity. Delegates to up() method.
+     *
+     * @param targetVersion - Optional target version to migrate to. If not provided, runs all pending migrations.
+     * @returns Promise resolving to a MigrationResult object
+     *
+     * @example
+     * ```typescript
+     * // Both of these are equivalent:
+     * await executor.migrate();
+     * await executor.up();
+     *
+     * // With target version:
+     * await executor.migrate(202501220100);
+     * await executor.up(202501220100);
+     * ```
+     */
+    public async migrate(targetVersion?: number): Promise<IMigrationResult> {
+        return this.up(targetVersion);
+    }
+
+    /**
+     * Execute all pending database migrations (internal implementation).
+     *
+     * @private
+     */
+    private async migrateAll(): Promise<IMigrationResult> {
         let scripts: IScripts = {
             all: [],
             migrated: [],
@@ -578,7 +621,7 @@ export class MigrationScriptExecutor {
     }
 
     /**
-     * Migrate database up to a specific target version.
+     * Migrate database up to a specific target version (internal implementation).
      *
      * Executes pending migrations up to and including the specified target version.
      * Migrations with timestamps > targetVersion will not be executed.
@@ -589,26 +632,9 @@ export class MigrationScriptExecutor {
      * @throws {ValidationError} If migration validation fails
      * @throws {Error} If migration execution fails
      *
-     * @example
-     * ```typescript
-     * // Migrate up to a specific version
-     * const result = await executor.migrateTo(202501220100);
-     * console.log(`Executed ${result.executed.length} migrations to reach version 202501220100`);
-     * ```
-     *
-     * @example
-     * ```typescript
-     * // Safe upgrade to a known-good version in production
-     * try {
-     *   await executor.migrateTo(202501220100);
-     *   console.log('✓ Database upgraded to version 202501220100');
-     * } catch (error) {
-     *   console.error('Migration failed:', error);
-     *   // Database automatically rolled back
-     * }
-     * ```
+     * @private
      */
-    public async migrateTo(targetVersion: number): Promise<IMigrationResult> {
+    private async migrateToVersion(targetVersion: number): Promise<IMigrationResult> {
         let scripts: IScripts = {
             all: [],
             migrated: [],
@@ -725,7 +751,7 @@ export class MigrationScriptExecutor {
      * @example
      * ```typescript
      * // Roll back to a specific version
-     * const result = await executor.downTo(202501220100);
+     * const result = await executor.down(202501220100);
      * console.log(`Rolled back ${result.executed.length} migrations to version 202501220100`);
      * ```
      *
@@ -733,7 +759,7 @@ export class MigrationScriptExecutor {
      * ```typescript
      * // Emergency rollback in production
      * try {
-     *   await executor.downTo(202501220100);
+     *   await executor.down(202501220100);
      *   console.log('✓ Database rolled back to version 202501220100');
      * } catch (error) {
      *   console.error('Rollback failed:', error);
@@ -741,7 +767,7 @@ export class MigrationScriptExecutor {
      * }
      * ```
      */
-    public async downTo(targetVersion: number): Promise<IMigrationResult> {
+    public async down(targetVersion: number): Promise<IMigrationResult> {
         this.logger.info(`Rolling back to version ${targetVersion}...`);
 
         // Initialize schema version table BEFORE scanning
@@ -968,7 +994,7 @@ export class MigrationScriptExecutor {
     private async executeBeforeMigrate(): Promise<void> {
         this.logger.info('Checking for beforeMigrate setup script...');
 
-        const beforeMigratePath = await this.migrationService.getBeforeMigrateScript(this.config);
+        const beforeMigratePath = await this.migrationService.findBeforeMigrateScript(this.config);
         if (!beforeMigratePath) {
             this.logger.info('No beforeMigrate script found, skipping setup phase');
             return;

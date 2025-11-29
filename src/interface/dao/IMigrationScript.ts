@@ -11,9 +11,24 @@ export interface IMigrationScript {
     /**
      * Retrieve all executed migrations from the database.
      *
-     * @returns Array of migration scripts that have been executed
+     * Returns migration records in chronological order (oldest first) based on timestamp.
+     * Each record includes execution metadata: timestamp, name, username, execution time,
+     * duration, and result message.
+     *
+     * @returns Promise<MigrationScript[]> - Array of executed migration records
+     *
+     * @example
+     * ```typescript
+     * const executed = await migrationRecords.getAllExecuted();
+     * console.log(`Found ${executed.length} executed migrations`);
+     *
+     * executed.forEach(migration => {
+     *   console.log(`${migration.timestamp}: ${migration.name}`);
+     *   console.log(`  Executed by ${migration.username} at ${migration.finishedAt}`);
+     * });
+     * ```
      */
-    getAll(): Promise<MigrationScript[]>;
+    getAllExecuted(): Promise<MigrationScript[]>;
 
     /**
      * Save migration execution metadata to the database.

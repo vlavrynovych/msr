@@ -156,7 +156,7 @@ export class MigrationService implements IMigrationService {
      * config.beforeMigrateName = null;
      * ```
      */
-    public async getBeforeMigrateScript(cfg: Config): Promise<string | undefined> {
+    public async findBeforeMigrateScript(cfg: Config): Promise<string | undefined> {
         // If beforeMigrateName is null, the feature is disabled
         if (cfg.beforeMigrateName === null) {
             return undefined;
@@ -245,7 +245,7 @@ export class MigrationService implements IMigrationService {
      * // Returns migrations from all sub-folders, sorted by timestamp
      * ```
      */
-    public async readMigrationScripts(cfg: Config): Promise<MigrationScript[]> {
+    public async findMigrationScripts(cfg: Config): Promise<MigrationScript[]> {
         const folder = cfg.folder;
         const patterns = cfg.filePatterns;
 

@@ -44,8 +44,8 @@ describe('MigrationScriptExecutor - Version Control', () => {
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
             } as IBackup,
             schemaVersion: {
-                migrations: {
-                    getAll(): Promise<MigrationScript[]> {
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> {
                         return Promise.resolve(scripts);
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -82,9 +82,9 @@ describe('MigrationScriptExecutor - Version Control', () => {
         valid = true;
         removedTimestamps = [];
         spy.on(handler.schemaVersion, ['isInitialized', 'createTable', 'validateTable']);
-        spy.on(handler.schemaVersion.migrations, ['save', 'getAll', 'remove']);
+        spy.on(handler.schemaVersion.migrationRecords, ['save', 'getAllExecuted', 'remove']);
         spy.on(executor.backupService, ['restore', 'deleteBackup', 'backup']);
-        spy.on(executor.migrationService, ['readMigrationScripts']);
+        spy.on(executor.migrationService, ['findMigrationScripts']);
     });
 
     afterEach(() => {
@@ -143,7 +143,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             });
 
             // Migrate up to version 3
-            const result = await executor.migrateTo(3);
+            const result = await executor.up(3);
 
             // Verify only migrations 1, 2, 3 were executed
             expect(result.executed.length).to.equal(3);
@@ -153,7 +153,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             expect(result.success).to.be.true;
 
             // Verify save was called 3 times
-            expect(handler.schemaVersion.migrations.save).to.have.been.called.exactly(3);
+            expect(handler.schemaVersion.migrationRecords.save).to.have.been.called.exactly(3);
 
             scanStub.restore();
         });
@@ -189,12 +189,12 @@ describe('MigrationScriptExecutor - Version Control', () => {
             });
 
             // Try to migrate to version 2 (already beyond it)
-            const result = await executor.migrateTo(2);
+            const result = await executor.up(2);
 
             // Verify no migrations were executed
             expect(result.executed.length).to.equal(0);
             expect(result.success).to.be.true;
-            expect(handler.schemaVersion.migrations.save).to.have.not.been.called;
+            expect(handler.schemaVersion.migrationRecords.save).to.have.not.been.called;
 
             scanStub.restore();
         });
@@ -233,7 +233,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             });
 
             // Migrate to version 4
-            const result = await executor.migrateTo(4);
+            const result = await executor.up(4);
 
             // Verify only migrations 3, 4 were executed
             expect(result.executed.length).to.equal(2);
@@ -265,7 +265,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                 executed: []
             });
 
-            await executor.migrateTo(1);
+            await executor.up(1);
 
             // Verify backup was created
             expect(executor.backupService.backup).to.have.been.called.once;
@@ -295,7 +295,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             // Enable validation
             cfg.validateBeforeRun = true;
 
-            await executor.migrateTo(1);
+            await executor.up(1);
 
             // Verify validation was called
             expect(validateStub.calledOnce).to.be.true;
@@ -331,7 +331,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             // Enable file integrity validation
             cfg.validateMigratedFiles = true;
 
-            await executor.migrateTo(2);
+            await executor.up(2);
 
             // Verify validation was called
             expect(integrityStub.calledOnce).to.be.true;
@@ -369,7 +369,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             const rollbackStub = sinon.stub(executor.rollbackService, 'rollback').resolves();
 
             try {
-                await executor.migrateTo(1);
+                await executor.up(1);
                 expect.fail('Should have thrown error');
             } catch (error: any) {
                 // Verify error is thrown
@@ -406,7 +406,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                 executed: []
             });
 
-            const result = await executorWithEmptyHooks.migrateTo(1);
+            const result = await executorWithEmptyHooks.up(1);
 
             // Verify execution succeeded despite undefined hook methods
             expect(result.success).to.be.true;
@@ -440,7 +440,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             });
 
             // Try to migrate to version 1, but already at version 2
-            const result = await executor.migrateTo(1);
+            const result = await executor.up(1);
 
             // Verify early return
             expect(result.success).to.be.true;
@@ -470,7 +470,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             // Stub backup to return undefined
             const backupStub = sinon.stub(executor.backupService, 'backup').resolves(undefined);
 
-            const result = await executor.migrateTo(1);
+            const result = await executor.up(1);
 
             // Verify execution succeeded even with undefined backup path
             expect(result.success).to.be.true;
@@ -514,7 +514,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             // Ensure backup returns a valid path
             const backupStub = sinon.stub(executorWithAllHooks.backupService, 'backup').resolves('/fake/backup.sql');
 
-            const result = await executorWithAllHooks.migrateTo(1);
+            const result = await executorWithAllHooks.up(1);
 
             // Verify all hooks were called
             expect(onBeforeBackupSpy.calledOnce).to.be.true;
@@ -561,7 +561,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             });
 
             // Migrate to version 1, but already at version 1 (early return)
-            const result = await executorWithHooks.migrateTo(1);
+            const result = await executorWithHooks.up(1);
 
             // Verify hooks were called in early return path
             expect(onStartSpy.calledOnce).to.be.true;
@@ -616,7 +616,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             });
 
             // Roll back to version 2
-            const result = await executor.downTo(2);
+            const result = await executor.down(2);
 
             // Verify migrations 5, 4, 3 were rolled back (in reverse order)
             expect(result.executed.length).to.equal(3);
@@ -627,7 +627,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
 
             // Verify remove was called for versions 5, 4, 3
             expect(removedTimestamps).to.deep.equal([5, 4, 3]);
-            expect(handler.schemaVersion.migrations.remove).to.have.been.called.exactly(3);
+            expect(handler.schemaVersion.migrationRecords.remove).to.have.been.called.exactly(3);
 
             scanStub.restore();
         });
@@ -663,12 +663,12 @@ describe('MigrationScriptExecutor - Version Control', () => {
             });
 
             // Try to roll back to version 2 (already at it)
-            const result = await executor.downTo(2);
+            const result = await executor.down(2);
 
             // Verify no rollback was performed
             expect(result.executed.length).to.equal(0);
             expect(result.success).to.be.true;
-            expect(handler.schemaVersion.migrations.remove).to.have.not.been.called;
+            expect(handler.schemaVersion.migrationRecords.remove).to.have.not.been.called;
 
             scanStub.restore();
         });
@@ -705,7 +705,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             });
 
             // Roll back to version 0 (remove everything)
-            const result = await executor.downTo(0);
+            const result = await executor.down(0);
 
             // Verify all 3 migrations were rolled back
             expect(result.executed.length).to.equal(3);
@@ -751,7 +751,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
 
             // Try to roll back - should fail
             try {
-                await executor.downTo(0);
+                await executor.down(0);
                 expect.fail('Should have thrown error for missing down() method');
             } catch (error: any) {
                 expect(error.message).to.include('does not have a down() method');
@@ -759,7 +759,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             }
 
             // Verify remove was NOT called since rollback failed
-            expect(handler.schemaVersion.migrations.remove).to.have.not.been.called;
+            expect(handler.schemaVersion.migrationRecords.remove).to.have.not.been.called;
 
             scanStub.restore();
         });
@@ -799,7 +799,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             });
 
             // Roll back to version 1
-            await executor.downTo(1);
+            await executor.down(1);
 
             // Verify removal order: 4, 3, 2 (reverse chronological)
             expect(removedTimestamps).to.deep.equal([4, 3, 2]);
@@ -838,7 +838,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             });
 
             // Step 1: Migrate to version 3
-            const upResult = await executor.migrateTo(3);
+            const upResult = await executor.up(3);
             expect(upResult.executed.length).to.equal(3);
             expect(upResult.success).to.be.true;
 
@@ -873,7 +873,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             });
 
             // Step 2: Roll back to version 1
-            const downResult = await executor.downTo(1);
+            const downResult = await executor.down(1);
             expect(downResult.executed.length).to.equal(2); // Rolled back 3, 2
             expect(downResult.success).to.be.true;
 
@@ -919,7 +919,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             cfg.validateBeforeRun = true;
 
             // Roll back to version 0
-            const result = await executor.downTo(0);
+            const result = await executor.down(0);
 
             // Verify validation was called
             expect(validateStub.calledOnce).to.be.true;
@@ -964,7 +964,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             cfg.validateMigratedFiles = true;
 
             // Roll back to version 0
-            const result = await executor.downTo(0);
+            const result = await executor.down(0);
 
             // Verify validation was called
             expect(integrityStub.calledOnce).to.be.true;
@@ -1009,7 +1009,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                 executed: []
             });
 
-            await executorWithHooks.downTo(0);
+            await executorWithHooks.down(0);
 
             // Verify onStart was called with (total=2, toRollback=2)
             expect(onStartSpy.calledOnce).to.be.true;
@@ -1054,7 +1054,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                 executed: []
             });
 
-            await executorWithHooks.downTo(0);
+            await executorWithHooks.down(0);
 
             // Verify hooks were called for each migration (2 migrations rolled back)
             expect(onBeforeMigrateSpy.callCount).to.equal(2);
@@ -1100,7 +1100,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                 executed: []
             });
 
-            await executorWithHooks.downTo(0);
+            await executorWithHooks.down(0);
 
             // Verify onComplete was called
             expect(onCompleteSpy.calledOnce).to.be.true;
@@ -1147,7 +1147,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
 
             // Attempt rollback - should fail
             try {
-                await executorWithHooks.downTo(0);
+                await executorWithHooks.down(0);
                 expect.fail('Should have thrown error for missing down() method');
             } catch (error: any) {
                 // Verify onError was called

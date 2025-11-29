@@ -26,8 +26,8 @@ describe('MigrationScriptExecutor - Validation Error Paths Coverage', () => {
                 isInitialized: () => Promise.resolve(true),
                 createTable: () => Promise.resolve(true),
                 validateTable: () => Promise.resolve(true),
-                migrations: {
-                    getAll: () => Promise.resolve([]),
+                migrationRecords: {
+                    getAllExecuted: () => Promise.resolve([]),
                     save: (details: IMigrationInfo) => Promise.resolve(),
                     remove(timestamp: number): Promise<void> {
                         return Promise.resolve(undefined);
@@ -181,7 +181,7 @@ describe('MigrationScriptExecutor - Validation Error Paths Coverage', () => {
         const originalChecksum = ChecksumService.calculateChecksum(filepath, config.checksumAlgorithm);
 
         // Mock that this migration was already executed with correct checksum
-        handler.schemaVersion.migrations.getAll = () => Promise.resolve([{
+        handler.schemaVersion.migrationRecords.getAllExecuted = () => Promise.resolve([{
             name: filename,
             filepath: filepath,
             timestamp: 1,

@@ -37,8 +37,8 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
             };
             schemaVersion: ISchemaVersion = {
-                migrations: {
-                    getAll(): Promise<any> {
+                migrationRecords: {
+                    getAllExecuted(): Promise<any> {
                         return Promise.resolve([]);
                     },
                     save(details: IMigrationInfo): Promise<any> {
@@ -191,8 +191,8 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
                 isInitialized: handler.schemaVersion.isInitialized,
                 createTable: handler.schemaVersion.createTable,
                 validateTable: handler.schemaVersion.validateTable,
-                migrations: {
-                    getAll: sinon.stub().rejects(new Error('Database error')),
+                migrationRecords: {
+                    getAllExecuted: sinon.stub().rejects(new Error('Database error')),
                     save: sinon.stub().resolves(),
                     remove(timestamp: number): Promise<void> {
                         return Promise.resolve(undefined);
@@ -307,9 +307,9 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
                 isInitialized: handler.schemaVersion.isInitialized,
                 createTable: handler.schemaVersion.createTable,
                 validateTable: handler.schemaVersion.validateTable,
-                migrations: {
+                migrationRecords: {
                     // Return a script with a very high timestamp so all real scripts are ignored
-                    getAll: sinon.stub().resolves([{
+                    getAllExecuted: sinon.stub().resolves([{
                         name: 'V999999999999_already_migrated.ts',
                         timestamp: 999999999999,
                         migratedAt: new Date().toISOString(),
