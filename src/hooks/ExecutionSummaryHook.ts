@@ -35,9 +35,9 @@ import {IDatabaseMigrationHandler} from '../interface/IDatabaseMigrationHandler'
  * ```
  */
 export class ExecutionSummaryHook implements IMigrationHooks {
-    private summaryLogger: ExecutionSummaryLogger;
+    private readonly summaryLogger: ExecutionSummaryLogger;
     private startTime: number = 0;
-    private migrationStartTimes: Map<string, number> = new Map();
+    private readonly migrationStartTimes: Map<string, number> = new Map();
 
     constructor(
         config: Config,

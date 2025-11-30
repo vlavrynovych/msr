@@ -41,10 +41,10 @@ export class MigrationRenderer implements IMigrationRenderer {
      * @param strategy - Rendering strategy (defaults to AsciiTableRenderStrategy)
      */
     constructor(
-        private handler: IDatabaseMigrationHandler,
-        private config: Config,
-        private logger: ILogger = new ConsoleLogger(),
-        private strategy: IRenderStrategy = new AsciiTableRenderStrategy(logger)
+        private readonly handler: IDatabaseMigrationHandler,
+        private readonly config: Config,
+        private readonly logger: ILogger = new ConsoleLogger(),
+        private readonly strategy: IRenderStrategy = new AsciiTableRenderStrategy(logger)
     ) {}
 
     /**

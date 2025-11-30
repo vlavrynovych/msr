@@ -30,7 +30,7 @@ export class MigrationService implements IMigrationService {
      * @param logger - Logger instance for output (defaults to ConsoleLogger)
      */
     public constructor(
-        private logger: ILogger = new ConsoleLogger()
+        private readonly logger: ILogger = new ConsoleLogger()
     ) {}
 
     /**

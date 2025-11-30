@@ -26,7 +26,7 @@ import {ConsoleLogger} from '../logger/ConsoleLogger';
  * ```
  */
 export class SqlLoader implements IMigrationScriptLoader {
-    constructor(private logger: ILogger = new ConsoleLogger()) {}
+    constructor(private readonly logger: ILogger = new ConsoleLogger()) {}
 
     /**
      * Check if this loader can handle SQL up files.
@@ -110,10 +110,10 @@ export class SqlLoader implements IMigrationScriptLoader {
  */
 class SqlScript implements IRunnableScript {
     constructor(
-        private upSql: string,
-        private downSql: string | null,
-        private scriptName: string,
-        private logger: ILogger
+        private readonly upSql: string,
+        private readonly downSql: string | null,
+        private readonly scriptName: string,
+        private readonly logger: ILogger
     ) {}
 
     /**

@@ -20,7 +20,7 @@ import {ConsoleLogger} from '../logger/ConsoleLogger';
  * ```
  */
 export class TypeScriptLoader implements IMigrationScriptLoader {
-    constructor(private logger: ILogger = new ConsoleLogger()) {}
+    constructor(private readonly logger: ILogger = new ConsoleLogger()) {}
 
     /**
      * Check if this loader can handle TypeScript or JavaScript files.

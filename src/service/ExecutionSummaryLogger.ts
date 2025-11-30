@@ -48,9 +48,9 @@ export class ExecutionSummaryLogger {
     private msrVersion: string;
 
     constructor(
-        private config: Config,
-        private logger: ILogger,
-        private handler: IDatabaseMigrationHandler
+        private readonly config: Config,
+        private readonly logger: ILogger,
+        private readonly handler: IDatabaseMigrationHandler
     ) {
         this.migrationDetails = new Map();
         this.runStartTime = new Date();

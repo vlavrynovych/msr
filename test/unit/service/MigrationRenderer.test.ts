@@ -266,8 +266,10 @@ describe('MigrationRenderer', () => {
             const renderer = new MigrationRenderer({getName: () => 'TestHandler', getVersion: () => '1.0.0-test'} as IDatabaseMigrationHandler, config);
 
             // Test with displayLimit of 2 and 0 (should not throw)
-            renderer.drawMigrated({migrated: list} as IScripts)
-            renderer.drawMigrated({migrated: [...list]} as IScripts)
+            expect(() => {
+                renderer.drawMigrated({migrated: list} as IScripts)
+                renderer.drawMigrated({migrated: [...list]} as IScripts)
+            }).to.not.throw();
         })
 
         /**
@@ -411,17 +413,19 @@ describe('MigrationRenderer', () => {
             const renderer = new MigrationRenderer({getName: () => 'TestHandler', getVersion: () => '1.0.0-test'} as IDatabaseMigrationHandler, config);
 
             // Call all rendering methods (should not throw)
-            renderer.drawExecuted(list)
-            renderer.drawPending(list)
-            renderer.drawIgnored(list)
-            renderer.drawMigrated({
-                migrated: list2,
-                all: list
-            } as IScripts)
+            expect(() => {
+                renderer.drawExecuted(list)
+                renderer.drawPending(list)
+                renderer.drawIgnored(list)
+                renderer.drawMigrated({
+                    migrated: list2,
+                    all: list
+                } as IScripts)
 
-            renderer.drawMigrated({
-                migrated: list2,
-            } as IScripts)
+                renderer.drawMigrated({
+                    migrated: list2,
+                } as IScripts)
+            }).to.not.throw();
         })
 
         /**

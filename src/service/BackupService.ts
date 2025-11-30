@@ -36,9 +36,9 @@ export class BackupService implements IBackupService {
      * @param logger - Logger instance for output (defaults to ConsoleLogger)
      */
     public constructor(
-        private handler: IDatabaseMigrationHandler,
-        private config: Config,
-        private logger: ILogger = new ConsoleLogger()
+        private readonly handler: IDatabaseMigrationHandler,
+        private readonly config: Config,
+        private readonly logger: ILogger = new ConsoleLogger()
     ) {}
 
     /**

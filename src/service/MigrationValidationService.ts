@@ -46,8 +46,8 @@ export class MigrationValidationService implements IMigrationValidationService {
      * @param customValidators - Optional custom validators to run after built-in validation
      */
     constructor(
-        private logger: ILogger = new ConsoleLogger(),
-        private customValidators?: IMigrationValidator[]
+        private readonly logger: ILogger = new ConsoleLogger(),
+        private readonly customValidators?: IMigrationValidator[]
     ) {}
 
     /**

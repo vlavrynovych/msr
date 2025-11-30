@@ -42,10 +42,10 @@ export class MigrationRunner {
      * ```
      */
     constructor(
-        private handler: IDatabaseMigrationHandler,
-        private schemaVersionService: ISchemaVersionService,
-        private config: Config,
-        private logger?: ILogger
+        private readonly handler: IDatabaseMigrationHandler,
+        private readonly schemaVersionService: ISchemaVersionService,
+        private readonly config: Config,
+        private readonly logger?: ILogger
     ) {}
 
     /**

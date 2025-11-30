@@ -48,11 +48,11 @@ export class RollbackService implements IRollbackService {
      * ```
      */
     constructor(
-        private handler: IDatabaseMigrationHandler,
-        private config: Config,
-        private backupService: IBackupService,
-        private logger: ILogger,
-        private hooks?: IMigrationHooks
+        private readonly handler: IDatabaseMigrationHandler,
+        private readonly config: Config,
+        private readonly backupService: IBackupService,
+        private readonly logger: ILogger,
+        private readonly hooks?: IMigrationHooks
     ) {}
 
     /**

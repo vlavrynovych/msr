@@ -462,7 +462,7 @@ describe('BackupService', () => {
             const bs = new BackupService({} as IDatabaseMigrationHandler, cfg);
 
             // Call deleteBackup (should be no-op, not throw)
-            bs.deleteBackup()
+            expect(() => bs.deleteBackup()).to.not.throw();
         })
 
         /**

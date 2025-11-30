@@ -32,7 +32,7 @@ export class AsciiTableRenderStrategy implements IRenderStrategy {
      *
      * @param logger - Logger instance for outputting tables (defaults to ConsoleLogger)
      */
-    constructor(private logger: ILogger = new ConsoleLogger()) {}
+    constructor(private readonly logger: ILogger = new ConsoleLogger()) {}
 
     /**
      * Render the list of previously executed migrations as an ASCII table.

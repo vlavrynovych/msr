@@ -32,7 +32,7 @@ import {ConsoleLogger} from '../logger/ConsoleLogger';
  * ```
  */
 export class LoaderRegistry implements ILoaderRegistry {
-    private loaders: IMigrationScriptLoader[] = [];
+    private readonly loaders: IMigrationScriptLoader[] = [];
 
     /**
      * Register a new migration script loader.

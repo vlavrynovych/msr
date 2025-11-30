@@ -33,8 +33,8 @@ export class JsonRenderStrategy implements IRenderStrategy {
      * @param logger - Logger instance for outputting JSON (defaults to ConsoleLogger)
      */
     constructor(
-        private pretty: boolean = true,
-        private logger: ILogger = new ConsoleLogger()
+        private readonly pretty: boolean = true,
+        private readonly logger: ILogger = new ConsoleLogger()
     ) {}
 
     /**

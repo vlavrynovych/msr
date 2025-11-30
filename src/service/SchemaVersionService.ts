@@ -15,7 +15,7 @@ export class SchemaVersionService<T extends ISchemaVersion> implements ISchemaVe
      *
      * @param service - Database-specific implementation of {@link ISchemaVersion}
      */
-    constructor(private service: T) {}
+    constructor(private readonly service: T) {}
 
     /**
      * Initialize the schema version tracking table.
