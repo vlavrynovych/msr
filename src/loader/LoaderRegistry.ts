@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 import {ILoaderRegistry} from '../interface/loader/ILoaderRegistry';
 import {IMigrationScriptLoader} from '../interface/loader/IMigrationScriptLoader';
 import {TypeScriptLoader} from './TypeScriptLoader';

@@ -1,5 +1,5 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import {
     IExecutionSummary,
     IMigrationExecutionDetail,
@@ -311,37 +311,42 @@ export class ExecutionSummaryLogger {
     }
 
     private addHeaderSection(lines: string[]): void {
-        lines.push('='.repeat(80));
-        lines.push('MIGRATION EXECUTION SUMMARY');
-        lines.push('='.repeat(80));
-        lines.push('');
-
-        lines.push(`Timestamp:       ${this.summary.timestamp}`);
-        lines.push(`MSR Version:     ${this.summary.msrVersion}`);
-        lines.push(`Adapter Version: ${this.summary.adapterVersion}`);
-        lines.push(`Handler:         ${this.summary.handler}`);
-        lines.push(`Status:          ${this.summary.result.success ? 'SUCCESS' : 'FAILED'}`);
-        lines.push('');
+        lines.push(
+            '='.repeat(80),
+            'MIGRATION EXECUTION SUMMARY',
+            '='.repeat(80),
+            '',
+            `Timestamp:       ${this.summary.timestamp}`,
+            `MSR Version:     ${this.summary.msrVersion}`,
+            `Adapter Version: ${this.summary.adapterVersion}`,
+            `Handler:         ${this.summary.handler}`,
+            `Status:          ${this.summary.result.success ? 'SUCCESS' : 'FAILED'}`,
+            ''
+        );
     }
 
     private addConfigSection(lines: string[]): void {
-        lines.push('-'.repeat(80));
-        lines.push('CONFIGURATION');
-        lines.push('-'.repeat(80));
-        lines.push(`Folder:              ${this.summary.config.folder}`);
-        lines.push(`Rollback Strategy:   ${this.summary.config.rollbackStrategy}`);
-        lines.push(`Backup Mode:         ${this.summary.config.backupMode}`);
-        lines.push(`Dry Run:             ${this.summary.config.dryRun}`);
-        lines.push(`Validate Before Run: ${this.summary.config.validateBeforeRun}`);
-        lines.push('');
+        lines.push(
+            '-'.repeat(80),
+            'CONFIGURATION',
+            '-'.repeat(80),
+            `Folder:              ${this.summary.config.folder}`,
+            `Rollback Strategy:   ${this.summary.config.rollbackStrategy}`,
+            `Backup Mode:         ${this.summary.config.backupMode}`,
+            `Dry Run:             ${this.summary.config.dryRun}`,
+            `Validate Before Run: ${this.summary.config.validateBeforeRun}`,
+            ''
+        );
     }
 
     private addMigrationsSection(lines: string[]): void {
         if (this.summary.migrations.length === 0) return;
 
-        lines.push('-'.repeat(80));
-        lines.push('MIGRATIONS EXECUTED');
-        lines.push('-'.repeat(80));
+        lines.push(
+            '-'.repeat(80),
+            'MIGRATIONS EXECUTED',
+            '-'.repeat(80)
+        );
 
         for (const migration of this.summary.migrations) {
             this.addMigrationDetails(lines, migration);
@@ -350,19 +355,20 @@ export class ExecutionSummaryLogger {
     }
 
     private addMigrationDetails(lines: string[], migration: any): void {
-        lines.push('');
-        lines.push(`Name:      ${migration.name}`);
-        lines.push(`Timestamp: ${migration.timestamp}`);
-        lines.push(`Status:    ${migration.status}`);
-        lines.push(`Duration:  ${migration.duration}ms`);
-        lines.push(`Started:   ${migration.startTime}`);
-        lines.push(`Ended:     ${migration.endTime}`);
+        lines.push(
+            '',
+            `Name:      ${migration.name}`,
+            `Timestamp: ${migration.timestamp}`,
+            `Status:    ${migration.status}`,
+            `Duration:  ${migration.duration}ms`,
+            `Started:   ${migration.startTime}`,
+            `Ended:     ${migration.endTime}`
+        );
 
         if (migration.error) {
             lines.push(`Error:     ${migration.error}`);
             if (migration.stackTrace) {
-                lines.push('Stack Trace:');
-                lines.push(migration.stackTrace);
+                lines.push('Stack Trace:', migration.stackTrace);
             }
         }
     }
@@ -370,10 +376,12 @@ export class ExecutionSummaryLogger {
     private addBackupSection(lines: string[]): void {
         if (!this.summary.backup) return;
 
-        lines.push('-'.repeat(80));
-        lines.push('BACKUP');
-        lines.push('-'.repeat(80));
-        lines.push(`Created: ${this.summary.backup.created}`);
+        lines.push(
+            '-'.repeat(80),
+            'BACKUP',
+            '-'.repeat(80),
+            `Created: ${this.summary.backup.created}`
+        );
         if (this.summary.backup.path) {
             lines.push(`Path:    ${this.summary.backup.path}`);
         }
@@ -386,10 +394,12 @@ export class ExecutionSummaryLogger {
     private addRollbackSection(lines: string[]): void {
         if (!this.summary.rollback) return;
 
-        lines.push('-'.repeat(80));
-        lines.push('ROLLBACK');
-        lines.push('-'.repeat(80));
-        lines.push(`Triggered: ${this.summary.rollback.triggered}`);
+        lines.push(
+            '-'.repeat(80),
+            'ROLLBACK',
+            '-'.repeat(80),
+            `Triggered: ${this.summary.rollback.triggered}`
+        );
         if (this.summary.rollback.strategy) {
             lines.push(`Strategy:  ${this.summary.rollback.strategy}`);
         }
@@ -403,15 +413,17 @@ export class ExecutionSummaryLogger {
     }
 
     private addResultSection(lines: string[]): void {
-        lines.push('-'.repeat(80));
-        lines.push('RESULT');
-        lines.push('-'.repeat(80));
-        lines.push(`Success:        ${this.summary.result.success}`);
-        lines.push(`Executed:       ${this.summary.result.executed}`);
-        lines.push(`Failed:         ${this.summary.result.failed}`);
-        lines.push(`Total Duration: ${this.summary.result.totalDuration}ms`);
-        lines.push('');
-        lines.push('='.repeat(80));
+        lines.push(
+            '-'.repeat(80),
+            'RESULT',
+            '-'.repeat(80),
+            `Success:        ${this.summary.result.success}`,
+            `Executed:       ${this.summary.result.executed}`,
+            `Failed:         ${this.summary.result.failed}`,
+            `Total Duration: ${this.summary.result.totalDuration}ms`,
+            '',
+            '='.repeat(80)
+        );
     }
 
     /**

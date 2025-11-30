@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "node:fs";
 import moment from "moment";
 
 import {BackupConfig, Config} from "../model";

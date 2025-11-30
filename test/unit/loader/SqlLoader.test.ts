@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { SqlLoader, MigrationScript, SilentLogger, IDB, IMigrationInfo, IDatabaseMigrationHandler } from '../../../src';
-import path from 'path';
+import path from 'node:path';
 
 describe('SqlLoader', () => {
     let loader: SqlLoader;

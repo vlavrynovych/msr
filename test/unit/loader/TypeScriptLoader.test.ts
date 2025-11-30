@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { TypeScriptLoader, MigrationScript, SilentLogger } from '../../../src';
-import path from 'path';
+import path from 'node:path';
 
 describe('TypeScriptLoader', () => {
     let loader: TypeScriptLoader;

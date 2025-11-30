@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import fs from 'fs';
+import fs from 'node:fs';
 import {
     MigrationValidationService,
     MigrationScript,

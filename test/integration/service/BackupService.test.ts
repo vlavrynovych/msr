@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import fs from "fs";
+import fs from "node:fs";
 import sinon from 'sinon';
 import {BackupConfig, BackupService, Config, IDatabaseMigrationHandler, SilentLogger} from "../../../src";
 

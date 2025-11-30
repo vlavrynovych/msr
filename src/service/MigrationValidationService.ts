@@ -15,7 +15,7 @@ import {
 } from "../model";
 import {ILogger} from "../interface/ILogger";
 import {ConsoleLogger} from "../logger";
-import fs from "fs";
+import fs from "node:fs";
 import {ChecksumService} from "./ChecksumService";
 import {ILoaderRegistry} from "../interface/loader/ILoaderRegistry";
 

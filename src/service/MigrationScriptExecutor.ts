@@ -1029,46 +1029,93 @@ export class MigrationScriptExecutor {
             r.valid && r.issues.some(i => i.type === ValidationIssueType.WARNING)
         );
 
-        // Display validation errors
-        if (resultsWithErrors.length > 0) {
-            this.logger.error('❌ Migration validation failed:\n');
-            for (const result of resultsWithErrors) {
-                this.logger.error(`  ${result.script.name}:`);
-                const errors = result.issues.filter(i => i.type === ValidationIssueType.ERROR);
-                for (const issue of errors) {
-                    this.logger.error(`    ❌ [${issue.code}] ${issue.message}`);
-                    if (issue.details) {
-                        this.logger.error(`       ${issue.details}`);
-                    }
-                }
-            }
-            throw new ValidationError('Migration validation failed', resultsWithErrors);
-        }
-
-        // Display validation warnings
-        if (resultsWithWarnings.length > 0) {
-            this.logger.warn('⚠️  Migration validation warnings:\n');
-            for (const result of resultsWithWarnings) {
-                this.logger.warn(`  ${result.script.name}:`);
-                const warnings = result.issues.filter(i => i.type === ValidationIssueType.WARNING);
-                for (const issue of warnings) {
-                    this.logger.warn(`    ⚠️  [${issue.code}] ${issue.message}`);
-                    if (issue.details) {
-                        this.logger.warn(`       ${issue.details}`);
-                    }
-                }
-            }
-
-            // In strict mode, treat warnings as errors
-            if (this.config.strictValidation) {
-                this.logger.error('\n❌ Strict validation enabled - warnings treated as errors');
-                throw new ValidationError('Strict validation enabled - warnings treated as errors', resultsWithWarnings);
-            }
-
-            this.logger.warn(''); // Empty line for spacing
-        }
+        this.handleValidationErrors(resultsWithErrors);
+        this.handleValidationWarnings(resultsWithWarnings);
 
         this.logger.info(`✓ Validated ${scripts.length} migration script(s)`);
+    }
+
+    /**
+     * Handle validation errors by logging and throwing ValidationError.
+     * @private
+     */
+    private handleValidationErrors(resultsWithErrors: IValidationResult[]): void {
+        if (resultsWithErrors.length === 0) {
+            return;
+        }
+
+        this.logger.error('❌ Migration validation failed:\n');
+        for (const result of resultsWithErrors) {
+            this.displayValidationErrorsForScript(result);
+        }
+        throw new ValidationError('Migration validation failed', resultsWithErrors);
+    }
+
+    /**
+     * Display validation errors for a single script.
+     * @private
+     */
+    private displayValidationErrorsForScript(result: IValidationResult): void {
+        this.logger.error(`  ${result.script.name}:`);
+        const errors = result.issues.filter(i => i.type === ValidationIssueType.ERROR);
+        for (const issue of errors) {
+            this.displayValidationIssue(issue, 'error');
+        }
+    }
+
+    /**
+     * Handle validation warnings by logging and optionally throwing in strict mode.
+     * @private
+     */
+    private handleValidationWarnings(resultsWithWarnings: IValidationResult[]): void {
+        if (resultsWithWarnings.length === 0) {
+            return;
+        }
+
+        this.logger.warn('⚠️  Migration validation warnings:\n');
+        for (const result of resultsWithWarnings) {
+            this.displayValidationWarningsForScript(result);
+        }
+
+        this.checkStrictValidationMode(resultsWithWarnings);
+        this.logger.warn(''); // Empty line for spacing
+    }
+
+    /**
+     * Display validation warnings for a single script.
+     * @private
+     */
+    private displayValidationWarningsForScript(result: IValidationResult): void {
+        this.logger.warn(`  ${result.script.name}:`);
+        const warnings = result.issues.filter(i => i.type === ValidationIssueType.WARNING);
+        for (const issue of warnings) {
+            this.displayValidationIssue(issue, 'warn');
+        }
+    }
+
+    /**
+     * Display a single validation issue (error or warning).
+     * @private
+     */
+    private displayValidationIssue(issue: IValidationIssue, level: 'error' | 'warn'): void {
+        const icon = level === 'error' ? '❌' : '⚠️';
+        const logMethod = level === 'error' ? this.logger.error.bind(this.logger) : this.logger.warn.bind(this.logger);
+
+        logMethod(`    ${icon} [${issue.code}] ${issue.message}`);
+        if (issue.details) {
+            logMethod(`       ${issue.details}`);
+        }
+    }
+
+    /**
+     * Check strict validation mode and throw if warnings should be treated as errors.
+     * @private
+     */
+    private checkStrictValidationMode(resultsWithWarnings: IValidationResult[]): void {
+        if (this.config.strictValidation) {
+            this.logger.error('\n❌ Strict validation enabled - warnings treated as errors');
+            throw new ValidationError('Strict validation enabled - warnings treated as errors', resultsWithWarnings);
+        }
     }
 
     /**

@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 import { IRunnableScript, MigrationRunner, MigrationScript, SilentLogger, ConsoleLogger, Config } from "../../../src";
 
 describe('MigrationRunner', () => {

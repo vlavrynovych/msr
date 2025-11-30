@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import {MigrationScript, MigrationService, SilentLogger, DuplicateTimestampMode} from "../../../src";
 import {TestUtils} from "../../helpers/TestUtils";
-import path from 'path';
+import path from 'node:path';
 
 describe('MigrationService', () => {
     describe('findMigrationScripts()', () => {

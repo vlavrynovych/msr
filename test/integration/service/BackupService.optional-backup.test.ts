@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import {BackupService, Config, IBackup, IDatabaseMigrationHandler, ISchemaVersion, IDB} from "../../../src";
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 /**
  * Tests for BackupService with optional backup interface.

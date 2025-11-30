@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 import { MigrationScriptExecutor, Config, SilentLogger, IDatabaseMigrationHandler, ValidationError, ISchemaVersion, IMigrationInfo, IDB } from '../../../src';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 
 describe('MigrationScriptExecutor - Validation Error Paths Coverage', () => {
     let tempDir: string;

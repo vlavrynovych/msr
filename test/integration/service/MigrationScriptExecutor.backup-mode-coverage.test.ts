@@ -14,7 +14,7 @@ import {
     BackupMode
 } from "../../../src";
 import {TestUtils} from "../../helpers/TestUtils";
-import fs from 'fs';
+import fs from 'node:fs';
 
 /**
  * Integration tests for BackupMode functionality to achieve 100% coverage.

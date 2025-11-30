@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'node:fs';
 import {IMigrationScriptLoader} from '../interface/loader/IMigrationScriptLoader';
 import {IRunnableScript} from '../interface/IRunnableScript';
 import {MigrationScript} from '../model/MigrationScript';
