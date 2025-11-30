@@ -248,7 +248,12 @@ describe('BackupService', () => {
             } as IDatabaseMigrationHandler, cfg);
 
             // Create and write large backup (should not throw or timeout)
-            await bs.backup();
+            const backupPath = await bs.backup();
+
+            // Verify backup was created successfully
+            expect(backupPath).to.exist;
+            expect(fs.existsSync(backupPath)).to.be.true;
+            expect(fs.statSync(backupPath).size).to.be.greaterThan(10 * 1024 * 1024 - 100); // Allow small overhead
 
             // Cleanup the test backup file
             bs.deleteBackup();
@@ -511,8 +516,8 @@ describe('BackupService', () => {
                 }
             } as IDatabaseMigrationHandler, cfg, new SilentLogger());
 
-            // Call deleteBackup without creating a backup first
-            bs.deleteBackup();
+            // Call deleteBackup without creating a backup first - should not throw
+            expect(() => bs.deleteBackup()).to.not.throw();
 
             // Should complete without throwing (backupFile is undefined, early return)
         })

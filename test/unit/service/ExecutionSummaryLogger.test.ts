@@ -57,16 +57,16 @@ describe('ExecutionSummaryLogger', () => {
 
     describe('startRun()', () => {
         it('should initialize a new run', () => {
-            summaryLogger.startRun();
-            // No errors means success
+            // Should not throw when starting a run
+            expect(() => summaryLogger.startRun()).to.not.throw();
         });
     });
 
     describe('recordMigrationStart()', () => {
         it('should record migration start', () => {
             summaryLogger.startRun();
-            summaryLogger.recordMigrationStart('TestMigration', 202501010001);
-            // No errors means success
+            // Should not throw when recording migration start
+            expect(() => summaryLogger.recordMigrationStart('TestMigration', 202501010001)).to.not.throw();
         });
     });
 
@@ -74,8 +74,8 @@ describe('ExecutionSummaryLogger', () => {
         it('should record successful migration', () => {
             summaryLogger.startRun();
             summaryLogger.recordMigrationStart('TestMigration', 202501010001);
-            summaryLogger.recordMigrationSuccess('TestMigration', 202501010001, 1000);
-            // No errors means success
+            // Should not throw when recording migration success
+            expect(() => summaryLogger.recordMigrationSuccess('TestMigration', 202501010001, 1000)).to.not.throw();
         });
     });
 
@@ -84,16 +84,16 @@ describe('ExecutionSummaryLogger', () => {
             summaryLogger.startRun();
             summaryLogger.recordMigrationStart('TestMigration', 202501010001);
             const error = new Error('Test error');
-            summaryLogger.recordMigrationFailure('TestMigration', 202501010001, error);
-            // No errors means success
+            // Should not throw when recording migration failure
+            expect(() => summaryLogger.recordMigrationFailure('TestMigration', 202501010001, error)).to.not.throw();
         });
     });
 
     describe('recordBackup()', () => {
         it('should record backup creation', () => {
             summaryLogger.startRun();
-            summaryLogger.recordBackup('/backups/test.bkp', 1024);
-            // No errors means success
+            // Should not throw when recording backup creation
+            expect(() => summaryLogger.recordBackup('/backups/test.bkp', 1024)).to.not.throw();
         });
     });
 
@@ -101,22 +101,22 @@ describe('ExecutionSummaryLogger', () => {
         it('should record migration rollback', () => {
             summaryLogger.startRun();
             summaryLogger.recordMigrationStart('TestMigration', 202501010001);
-            summaryLogger.recordMigrationRollback('TestMigration');
-            // No errors means success
+            // Should not throw when recording migration rollback
+            expect(() => summaryLogger.recordMigrationRollback('TestMigration')).to.not.throw();
         });
     });
 
     describe('recordRollback()', () => {
         it('should record rollback action', () => {
             summaryLogger.startRun();
-            summaryLogger.recordRollback('BACKUP', true);
-            // No errors means success
+            // Should not throw when recording successful rollback
+            expect(() => summaryLogger.recordRollback('BACKUP', true)).to.not.throw();
         });
 
         it('should record failed rollback with error', () => {
             summaryLogger.startRun();
-            summaryLogger.recordRollback('BACKUP', false, 'Rollback failed');
-            // No errors means success
+            // Should not throw when recording failed rollback
+            expect(() => summaryLogger.recordRollback('BACKUP', false, 'Rollback failed')).to.not.throw();
         });
     });
 

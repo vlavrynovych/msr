@@ -302,108 +302,20 @@ export class MigrationScriptExecutor {
         let backupPath: string | undefined;
 
         try {
-            // Dry run mode - log that we're in preview mode
-            if (this.config.dryRun) {
-                this.logger.info('🔍 DRY RUN MODE - No changes will be made\n');
-            }
+            this.logDryRunMode();
+            await this.prepareForMigration();
 
-            // Execute beforeMigrate script if it exists - BEFORE scanning migrations
-            // This allows beforeMigrate to erase/reset the database (e.g., load prod snapshot)
-            // Note: beforeMigrate runs BEFORE init() to allow complete database reset
-            // Skip in dry run mode
-            if (this.config.beforeMigrateName && !this.config.dryRun) {
-                await this.executeBeforeMigrate();
-            }
+            scripts = await this.scanAndValidate();
+            backupPath = await this.createBackupIfNeeded();
 
-            // Initialize schema version table BEFORE scanning
-            // scan() needs to query the schema version table to get executed migrations
-            await this.schemaVersionService.init(this.config.tableName);
-
-            // Scan migrations to gather current state
-            scripts = await this.migrationScanner.scan();
-
-            // Initialize migration scripts (load and parse)
-            await Promise.all(scripts.pending.map(s => s.init(this.loaderRegistry)));
-
-            // Validate pending migration scripts BEFORE database init and backup
-            // This provides fast failure if scripts have issues
-            if (this.config.validateBeforeRun && scripts.pending.length > 0) {
-                await this.validateMigrations(scripts.pending);
-            }
-
-            // Validate integrity of already-executed migrations
-            // Check if migrated files still exist and haven't been modified
-            if (this.config.validateMigratedFiles && scripts.migrated.length > 0) {
-                await this.validateMigratedFileIntegrity(scripts.migrated);
-            }
-
-            // Conditionally create backup based on rollback strategy
-            // Skip backup in dry run mode
-            if (this.rollbackService.shouldCreateBackup() && !this.config.dryRun) {
-                // Hook: Before backup
-                await this.hooks?.onBeforeBackup?.();
-
-                // Create backup
-                backupPath = await this.backupService.backup();
-
-                // Hook: After backup
-                if (backupPath) {
-                    await this.hooks?.onAfterBackup?.(backupPath);
-                }
-            }
-
-            // Display migration status
-            this.migrationRenderer.drawMigrated(scripts);
-            this.migrationRenderer.drawIgnored(scripts.ignored);
-
-            // Hook: Start (after we know what will be executed)
+            this.renderMigrationStatus(scripts);
             await this.hooks?.onStart?.(scripts.all.length, scripts.pending.length);
 
             if (!scripts.pending.length) {
-                if (!this.config.dryRun) {
-                    this.logger.info('Nothing to do');
-                } else {
-                    // Dry run mode with no pending migrations
-                    this.logger.info(`\n✓ Dry run completed - no changes made`);
-                    this.logger.info(`  Would execute: 0 migration(s)`);
-                    if (scripts.ignored.length > 0) {
-                        this.logger.info(`  Would ignore: ${scripts.ignored.length} migration(s)`);
-                    }
-                }
-                this.backupService.deleteBackup();
-
-                const result: IMigrationResult = {
-                    success: true,
-                    executed: [],
-                    migrated: scripts.migrated,
-                    ignored: scripts.ignored
-                };
-
-                // Hook: Complete
-                await this.hooks?.onComplete?.(result);
-
-                return result;
+                return await this.handleNoPendingMigrations(scripts);
             }
 
-            this.logger.info('Processing...');
-            this.migrationRenderer.drawPending(scripts.pending);
-
-            // Execute migrations with hooks
-            // Note: executeWithHooks modifies scripts.executed directly for rollback tracking
-            // Skip actual execution in dry run mode
-            if (!this.config.dryRun) {
-                await this.executeWithHooks(scripts.pending, scripts.executed);
-                this.migrationRenderer.drawExecuted(scripts.executed);
-                this.logger.info('Migration finished successfully!');
-                this.backupService.deleteBackup();
-            } else {
-                // Dry run mode - show what would be executed
-                this.logger.info(`\n✓ Dry run completed - no changes made`);
-                this.logger.info(`  Would execute: ${scripts.pending.length} migration(s)`);
-                if (scripts.ignored.length > 0) {
-                    this.logger.info(`  Would ignore: ${scripts.ignored.length} migration(s)`);
-                }
-            }
+            await this.executePendingMigrations(scripts);
 
             const result: IMigrationResult = {
                 success: true,
@@ -412,29 +324,130 @@ export class MigrationScriptExecutor {
                 ignored: scripts.ignored
             };
 
-            // Hook: Complete
             await this.hooks?.onComplete?.(result);
-
             return result;
         } catch (err) {
-            this.logger.error(err as string);
-            errors.push(err as Error);
-
-            // Handle rollback based on configured strategy
-            // scripts.executed contains ALL attempted migrations (including the failed one)
-            await this.rollbackService.rollback(scripts.executed, backupPath);
-
-            // Hook: Error
-            await this.hooks?.onError?.(err as Error);
-
-            return {
-                success: false,
-                executed: scripts.executed,
-                migrated: scripts.migrated,
-                ignored: scripts.ignored,
-                errors
-            };
+            return await this.handleMigrationError(err, scripts, errors, backupPath);
         }
+    }
+
+    private logDryRunMode(): void {
+        if (this.config.dryRun) {
+            this.logger.info('🔍 DRY RUN MODE - No changes will be made\n');
+        }
+    }
+
+    private async prepareForMigration(): Promise<void> {
+        if (this.config.beforeMigrateName && !this.config.dryRun) {
+            await this.executeBeforeMigrate();
+        }
+        await this.schemaVersionService.init(this.config.tableName);
+    }
+
+    private async scanAndValidate(): Promise<IScripts> {
+        const scripts = await this.migrationScanner.scan();
+        await Promise.all(scripts.pending.map(s => s.init(this.loaderRegistry)));
+
+        if (this.config.validateBeforeRun && scripts.pending.length > 0) {
+            await this.validateMigrations(scripts.pending);
+        }
+
+        if (this.config.validateMigratedFiles && scripts.migrated.length > 0) {
+            await this.validateMigratedFileIntegrity(scripts.migrated);
+        }
+
+        return scripts;
+    }
+
+    private async createBackupIfNeeded(): Promise<string | undefined> {
+        if (!this.rollbackService.shouldCreateBackup() || this.config.dryRun) {
+            return undefined;
+        }
+
+        await this.hooks?.onBeforeBackup?.();
+        const backupPath = await this.backupService.backup();
+
+        if (backupPath) {
+            await this.hooks?.onAfterBackup?.(backupPath);
+        }
+
+        return backupPath;
+    }
+
+    private renderMigrationStatus(scripts: IScripts): void {
+        this.migrationRenderer.drawMigrated(scripts);
+        this.migrationRenderer.drawIgnored(scripts.ignored);
+    }
+
+    private async handleNoPendingMigrations(scripts: IScripts): Promise<IMigrationResult> {
+        this.logNoPendingMigrations(scripts.ignored.length);
+        this.backupService.deleteBackup();
+
+        const result: IMigrationResult = {
+            success: true,
+            executed: [],
+            migrated: scripts.migrated,
+            ignored: scripts.ignored
+        };
+
+        await this.hooks?.onComplete?.(result);
+        return result;
+    }
+
+    private logNoPendingMigrations(ignoredCount: number): void {
+        if (!this.config.dryRun) {
+            this.logger.info('Nothing to do');
+            return;
+        }
+
+        this.logger.info(`\n✓ Dry run completed - no changes made`);
+        this.logger.info(`  Would execute: 0 migration(s)`);
+        if (ignoredCount > 0) {
+            this.logger.info(`  Would ignore: ${ignoredCount} migration(s)`);
+        }
+    }
+
+    private async executePendingMigrations(scripts: IScripts): Promise<void> {
+        this.logger.info('Processing...');
+        this.migrationRenderer.drawPending(scripts.pending);
+
+        if (!this.config.dryRun) {
+            await this.executeWithHooks(scripts.pending, scripts.executed);
+            this.migrationRenderer.drawExecuted(scripts.executed);
+            this.logger.info('Migration finished successfully!');
+            this.backupService.deleteBackup();
+        } else {
+            this.logDryRunResults(scripts.pending.length, scripts.ignored.length);
+        }
+    }
+
+    private logDryRunResults(pendingCount: number, ignoredCount: number): void {
+        this.logger.info(`\n✓ Dry run completed - no changes made`);
+        this.logger.info(`  Would execute: ${pendingCount} migration(s)`);
+        if (ignoredCount > 0) {
+            this.logger.info(`  Would ignore: ${ignoredCount} migration(s)`);
+        }
+    }
+
+    private async handleMigrationError(
+        err: unknown,
+        scripts: IScripts,
+        errors: Error[],
+        backupPath: string | undefined
+    ): Promise<IMigrationResult> {
+        this.logger.error(err as string);
+        errors.push(err as Error);
+
+        await this.rollbackService.rollback(scripts.executed, backupPath);
+        await this.hooks?.onError?.(err as Error);
+
+        return {
+            success: false,
+            executed: scripts.executed,
+            migrated: scripts.migrated,
+            ignored: scripts.ignored,
+            errors
+        };
     }
 
     /**
@@ -707,99 +720,23 @@ export class MigrationScriptExecutor {
         let backupPath: string | undefined;
 
         try {
-            // Dry run mode - log that we're in preview mode
-            if (this.config.dryRun) {
-                this.logger.info(`🔍 DRY RUN MODE - No changes will be made (target: ${targetVersion})\n`);
-            }
+            this.logDryRunModeForVersion(targetVersion);
+            await this.prepareForMigration();
 
-            // Execute beforeMigrate script if it exists
-            // Skip in dry run mode
-            if (this.config.beforeMigrateName && !this.config.dryRun) {
-                await this.executeBeforeMigrate();
-            }
-
-            // Initialize schema version table BEFORE scanning
-            // scan() needs to query the schema version table to get executed migrations
-            await this.schemaVersionService.init(this.config.tableName);
-
-            // Scan migrations to gather current state
             scripts = await this.migrationScanner.scan();
-
-            // Get pending migrations up to target version
             const pendingUpToTarget = this.selector.getPendingUpTo(scripts.migrated, scripts.all, targetVersion);
 
-            // Initialize migration scripts (load and parse)
-            await Promise.all(pendingUpToTarget.map(s => s.init(this.loaderRegistry)));
+            await this.initAndValidateScripts(pendingUpToTarget, scripts.migrated);
+            backupPath = await this.createBackupIfNeeded();
 
-            // Validate pending migration scripts
-            if (this.config.validateBeforeRun && pendingUpToTarget.length > 0) {
-                await this.validateMigrations(pendingUpToTarget);
-            }
-
-            // Validate integrity of already-executed migrations
-            if (this.config.validateMigratedFiles && scripts.migrated.length > 0) {
-                await this.validateMigratedFileIntegrity(scripts.migrated);
-            }
-
-            // Create backup if rollback strategy requires it
-            // Skip backup in dry run mode
-            if (this.rollbackService.shouldCreateBackup() && !this.config.dryRun) {
-                await this.hooks?.onBeforeBackup?.();
-                backupPath = await this.backupService.backup();
-                if (backupPath) {
-                    await this.hooks?.onAfterBackup?.(backupPath);
-                }
-            }
-
-            // Display migration status
-            this.migrationRenderer.drawMigrated(scripts);
-            this.migrationRenderer.drawIgnored(scripts.ignored);
-
-            // Hook: Start
+            this.renderMigrationStatus(scripts);
             await this.hooks?.onStart?.(scripts.all.length, pendingUpToTarget.length);
 
             if (!pendingUpToTarget.length) {
-                if (!this.config.dryRun) {
-                    this.logger.info(`Already at target version ${targetVersion} or beyond`);
-                } else {
-                    // Dry run mode with no pending migrations to target
-                    this.logger.info(`\n✓ Dry run completed - no changes made`);
-                    this.logger.info(`  Would execute: 0 migration(s) to version ${targetVersion}`);
-                    if (scripts.ignored.length > 0) {
-                        this.logger.info(`  Would ignore: ${scripts.ignored.length} migration(s)`);
-                    }
-                }
-                this.backupService.deleteBackup();
-
-                const result: IMigrationResult = {
-                    success: true,
-                    executed: [],
-                    migrated: scripts.migrated,
-                    ignored: scripts.ignored
-                };
-
-                await this.hooks?.onComplete?.(result);
-                return result;
+                return await this.handleNoMigrationsToTarget(scripts, targetVersion);
             }
 
-            this.logger.info(`Migrating to version ${targetVersion}...`);
-            this.migrationRenderer.drawPending(pendingUpToTarget);
-
-            // Execute migrations with hooks
-            // Skip actual execution in dry run mode
-            if (!this.config.dryRun) {
-                await this.executeWithHooks(pendingUpToTarget, scripts.executed);
-                this.migrationRenderer.drawExecuted(scripts.executed);
-                this.logger.info(`Migration to version ${targetVersion} finished successfully!`);
-                this.backupService.deleteBackup();
-            } else {
-                // Dry run mode - show what would be executed
-                this.logger.info(`\n✓ Dry run completed - no changes made`);
-                this.logger.info(`  Would execute: ${pendingUpToTarget.length} migration(s) up to version ${targetVersion}`);
-                if (scripts.ignored.length > 0) {
-                    this.logger.info(`  Would ignore: ${scripts.ignored.length} migration(s)`);
-                }
-            }
+            await this.executeMigrationsToVersion(pendingUpToTarget, scripts, targetVersion);
 
             const result: IMigrationResult = {
                 success: true,
@@ -814,11 +751,80 @@ export class MigrationScriptExecutor {
         } catch (error) {
             errors.push(error as Error);
             this.logger.error(`Migration to version ${targetVersion} failed: ${(error as Error).message}`);
-
-            // Handle rollback
             await this.rollbackService.rollback(scripts.executed, backupPath);
-
             throw error;
+        }
+    }
+
+    private logDryRunModeForVersion(targetVersion: number): void {
+        if (this.config.dryRun) {
+            this.logger.info(`🔍 DRY RUN MODE - No changes will be made (target: ${targetVersion})\n`);
+        }
+    }
+
+    private async initAndValidateScripts(pending: MigrationScript[], migrated: MigrationScript[]): Promise<void> {
+        await Promise.all(pending.map(s => s.init(this.loaderRegistry)));
+
+        if (this.config.validateBeforeRun && pending.length > 0) {
+            await this.validateMigrations(pending);
+        }
+
+        if (this.config.validateMigratedFiles && migrated.length > 0) {
+            await this.validateMigratedFileIntegrity(migrated);
+        }
+    }
+
+    private async handleNoMigrationsToTarget(scripts: IScripts, targetVersion: number): Promise<IMigrationResult> {
+        this.logNoMigrationsToTarget(targetVersion, scripts.ignored.length);
+        this.backupService.deleteBackup();
+
+        const result: IMigrationResult = {
+            success: true,
+            executed: [],
+            migrated: scripts.migrated,
+            ignored: scripts.ignored
+        };
+
+        await this.hooks?.onComplete?.(result);
+        return result;
+    }
+
+    private logNoMigrationsToTarget(targetVersion: number, ignoredCount: number): void {
+        if (!this.config.dryRun) {
+            this.logger.info(`Already at target version ${targetVersion} or beyond`);
+            return;
+        }
+
+        this.logger.info(`\n✓ Dry run completed - no changes made`);
+        this.logger.info(`  Would execute: 0 migration(s) to version ${targetVersion}`);
+        if (ignoredCount > 0) {
+            this.logger.info(`  Would ignore: ${ignoredCount} migration(s)`);
+        }
+    }
+
+    private async executeMigrationsToVersion(
+        pending: MigrationScript[],
+        scripts: IScripts,
+        targetVersion: number
+    ): Promise<void> {
+        this.logger.info(`Migrating to version ${targetVersion}...`);
+        this.migrationRenderer.drawPending(pending);
+
+        if (!this.config.dryRun) {
+            await this.executeWithHooks(pending, scripts.executed);
+            this.migrationRenderer.drawExecuted(scripts.executed);
+            this.logger.info(`Migration to version ${targetVersion} finished successfully!`);
+            this.backupService.deleteBackup();
+        } else {
+            this.logDryRunResultsForVersion(pending.length, scripts.ignored.length, targetVersion);
+        }
+    }
+
+    private logDryRunResultsForVersion(pendingCount: number, ignoredCount: number, targetVersion: number): void {
+        this.logger.info(`\n✓ Dry run completed - no changes made`);
+        this.logger.info(`  Would execute: ${pendingCount} migration(s) up to version ${targetVersion}`);
+        if (ignoredCount > 0) {
+            this.logger.info(`  Would ignore: ${ignoredCount} migration(s)`);
         }
     }
 

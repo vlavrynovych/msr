@@ -103,7 +103,7 @@ describe('BackupService - Optional Backup', () => {
             await backupService.restore();
             expect.fail('Should have thrown error');
         } catch (error) {
-            expect(error).to.equal('No backup interface provided - cannot restore');
+            expect((error as Error).message).to.equal('No backup interface provided - cannot restore');
         }
 
         // Cleanup

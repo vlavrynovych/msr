@@ -434,9 +434,11 @@ describe('MigrationRenderer', () => {
             const renderer = new MigrationRenderer({getName: () => 'TestHandler', getVersion: () => '1.0.0-test'} as IDatabaseMigrationHandler, config);
 
             // These should all return early without rendering (and not throw)
-            renderer.drawExecuted([])
-            renderer.drawPending([])
-            renderer.drawIgnored([])
+            expect(() => {
+                renderer.drawExecuted([])
+                renderer.drawPending([])
+                renderer.drawIgnored([])
+            }).to.not.throw();
         })
 
     })

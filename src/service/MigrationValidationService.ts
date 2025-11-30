@@ -369,59 +369,15 @@ export class MigrationValidationService implements IMigrationValidationService {
         migratedScripts: MigrationScript[],
         config: Config
     ): Promise<IValidationIssue[]> {
-        const issues: IValidationIssue[] = [];
-
         if (!config.validateMigratedFiles) {
-            return issues; // Feature disabled
+            return []; // Feature disabled
         }
 
         this.logger.info(`Validating integrity of ${migratedScripts.length} executed migration(s)...`);
 
+        const issues: IValidationIssue[] = [];
         for (const script of migratedScripts) {
-            // Check if file exists
-            const fileExists = fs.existsSync(script.filepath);
-
-            if (!fileExists) {
-                if (config.validateMigratedFilesLocation) {
-                    // Strict mode: missing file is an error
-                    issues.push({
-                        type: ValidationIssueType.ERROR,
-                        code: ValidationErrorCode.MIGRATED_FILE_MISSING,
-                        message: `Previously-executed migration file is missing: ${script.name}`,
-                        details: `Expected at: ${script.filepath}`
-                    });
-                } else {
-                    // Lenient mode: missing file is just a warning
-                    this.logger.warn(`⚠️  Migration file missing (allowed): ${script.name}`);
-                }
-                continue; // Can't check checksum if file doesn't exist
-            }
-
-            // Check checksum if stored
-            if (script.checksum) {
-                try {
-                    const currentChecksum = ChecksumService.calculateChecksum(
-                        script.filepath,
-                        config.checksumAlgorithm
-                    );
-
-                    if (currentChecksum !== script.checksum) {
-                        issues.push({
-                            type: ValidationIssueType.ERROR,
-                            code: ValidationErrorCode.MIGRATED_FILE_CHECKSUM_MISMATCH,
-                            message: `Migration file has been modified after execution: ${script.name}`,
-                            details: `Expected checksum: ${script.checksum}, Current: ${currentChecksum}`
-                        });
-                    }
-                } catch (error) {
-                    issues.push({
-                        type: ValidationIssueType.ERROR,
-                        code: ValidationErrorCode.IMPORT_FAILED,
-                        message: `Failed to read migration file for checksum validation: ${script.name}`,
-                        details: (error as Error).message
-                    });
-                }
-            }
+            this.validateSingleMigratedFile(script, config, issues);
         }
 
         if (issues.length === 0) {
@@ -429,5 +385,70 @@ export class MigrationValidationService implements IMigrationValidationService {
         }
 
         return issues;
+    }
+
+    private validateSingleMigratedFile(
+        script: MigrationScript,
+        config: Config,
+        issues: IValidationIssue[]
+    ): void {
+        const fileExists = fs.existsSync(script.filepath);
+
+        if (!fileExists) {
+            this.handleMissingMigratedFile(script, config, issues);
+            return;
+        }
+
+        this.validateMigratedFileChecksum(script, config, issues);
+    }
+
+    private handleMissingMigratedFile(
+        script: MigrationScript,
+        config: Config,
+        issues: IValidationIssue[]
+    ): void {
+        if (config.validateMigratedFilesLocation) {
+            issues.push({
+                type: ValidationIssueType.ERROR,
+                code: ValidationErrorCode.MIGRATED_FILE_MISSING,
+                message: `Previously-executed migration file is missing: ${script.name}`,
+                details: `Expected at: ${script.filepath}`
+            });
+        } else {
+            this.logger.warn(`⚠️  Migration file missing (allowed): ${script.name}`);
+        }
+    }
+
+    private validateMigratedFileChecksum(
+        script: MigrationScript,
+        config: Config,
+        issues: IValidationIssue[]
+    ): void {
+        if (!script.checksum) {
+            return; // No checksum stored, nothing to validate
+        }
+
+        try {
+            const currentChecksum = ChecksumService.calculateChecksum(
+                script.filepath,
+                config.checksumAlgorithm
+            );
+
+            if (currentChecksum !== script.checksum) {
+                issues.push({
+                    type: ValidationIssueType.ERROR,
+                    code: ValidationErrorCode.MIGRATED_FILE_CHECKSUM_MISMATCH,
+                    message: `Migration file has been modified after execution: ${script.name}`,
+                    details: `Expected checksum: ${script.checksum}, Current: ${currentChecksum}`
+                });
+            }
+        } catch (error) {
+            issues.push({
+                type: ValidationIssueType.ERROR,
+                code: ValidationErrorCode.IMPORT_FAILED,
+                message: `Failed to read migration file for checksum validation: ${script.name}`,
+                details: (error as Error).message
+            });
+        }
     }
 }

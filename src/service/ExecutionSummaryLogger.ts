@@ -298,6 +298,19 @@ export class ExecutionSummaryLogger {
     private async saveTextSummary(filePath: string): Promise<void> {
         const lines: string[] = [];
 
+        this.addHeaderSection(lines);
+        this.addConfigSection(lines);
+        this.addMigrationsSection(lines);
+        this.addBackupSection(lines);
+        this.addRollbackSection(lines);
+        this.addResultSection(lines);
+
+        const text = lines.join('\n');
+        fs.writeFileSync(filePath, text, 'utf-8');
+        this.logger.info(`Execution summary saved: ${filePath}`);
+    }
+
+    private addHeaderSection(lines: string[]): void {
         lines.push('='.repeat(80));
         lines.push('MIGRATION EXECUTION SUMMARY');
         lines.push('='.repeat(80));
@@ -309,7 +322,9 @@ export class ExecutionSummaryLogger {
         lines.push(`Handler:         ${this.summary.handler}`);
         lines.push(`Status:          ${this.summary.result.success ? 'SUCCESS' : 'FAILED'}`);
         lines.push('');
+    }
 
+    private addConfigSection(lines: string[]): void {
         lines.push('-'.repeat(80));
         lines.push('CONFIGURATION');
         lines.push('-'.repeat(80));
@@ -319,63 +334,75 @@ export class ExecutionSummaryLogger {
         lines.push(`Dry Run:             ${this.summary.config.dryRun}`);
         lines.push(`Validate Before Run: ${this.summary.config.validateBeforeRun}`);
         lines.push('');
+    }
 
-        if (this.summary.migrations.length > 0) {
-            lines.push('-'.repeat(80));
-            lines.push('MIGRATIONS EXECUTED');
-            lines.push('-'.repeat(80));
+    private addMigrationsSection(lines: string[]): void {
+        if (this.summary.migrations.length === 0) return;
 
-            for (const migration of this.summary.migrations) {
-                lines.push('');
-                lines.push(`Name:      ${migration.name}`);
-                lines.push(`Timestamp: ${migration.timestamp}`);
-                lines.push(`Status:    ${migration.status}`);
-                lines.push(`Duration:  ${migration.duration}ms`);
-                lines.push(`Started:   ${migration.startTime}`);
-                lines.push(`Ended:     ${migration.endTime}`);
+        lines.push('-'.repeat(80));
+        lines.push('MIGRATIONS EXECUTED');
+        lines.push('-'.repeat(80));
 
-                if (migration.error) {
-                    lines.push(`Error:     ${migration.error}`);
-                    if (migration.stackTrace) {
-                        lines.push('Stack Trace:');
-                        lines.push(migration.stackTrace);
-                    }
-                }
-            }
-            lines.push('');
+        for (const migration of this.summary.migrations) {
+            this.addMigrationDetails(lines, migration);
         }
+        lines.push('');
+    }
 
-        if (this.summary.backup) {
-            lines.push('-'.repeat(80));
-            lines.push('BACKUP');
-            lines.push('-'.repeat(80));
-            lines.push(`Created: ${this.summary.backup.created}`);
-            if (this.summary.backup.path) {
-                lines.push(`Path:    ${this.summary.backup.path}`);
+    private addMigrationDetails(lines: string[], migration: any): void {
+        lines.push('');
+        lines.push(`Name:      ${migration.name}`);
+        lines.push(`Timestamp: ${migration.timestamp}`);
+        lines.push(`Status:    ${migration.status}`);
+        lines.push(`Duration:  ${migration.duration}ms`);
+        lines.push(`Started:   ${migration.startTime}`);
+        lines.push(`Ended:     ${migration.endTime}`);
+
+        if (migration.error) {
+            lines.push(`Error:     ${migration.error}`);
+            if (migration.stackTrace) {
+                lines.push('Stack Trace:');
+                lines.push(migration.stackTrace);
             }
-            if (this.summary.backup.size) {
-                lines.push(`Size:    ${this.summary.backup.size} bytes`);
-            }
-            lines.push('');
         }
+    }
 
-        if (this.summary.rollback) {
-            lines.push('-'.repeat(80));
-            lines.push('ROLLBACK');
-            lines.push('-'.repeat(80));
-            lines.push(`Triggered: ${this.summary.rollback.triggered}`);
-            if (this.summary.rollback.strategy) {
-                lines.push(`Strategy:  ${this.summary.rollback.strategy}`);
-            }
-            if (this.summary.rollback.success !== undefined) {
-                lines.push(`Success:   ${this.summary.rollback.success}`);
-            }
-            if (this.summary.rollback.error) {
-                lines.push(`Error:     ${this.summary.rollback.error}`);
-            }
-            lines.push('');
+    private addBackupSection(lines: string[]): void {
+        if (!this.summary.backup) return;
+
+        lines.push('-'.repeat(80));
+        lines.push('BACKUP');
+        lines.push('-'.repeat(80));
+        lines.push(`Created: ${this.summary.backup.created}`);
+        if (this.summary.backup.path) {
+            lines.push(`Path:    ${this.summary.backup.path}`);
         }
+        if (this.summary.backup.size) {
+            lines.push(`Size:    ${this.summary.backup.size} bytes`);
+        }
+        lines.push('');
+    }
 
+    private addRollbackSection(lines: string[]): void {
+        if (!this.summary.rollback) return;
+
+        lines.push('-'.repeat(80));
+        lines.push('ROLLBACK');
+        lines.push('-'.repeat(80));
+        lines.push(`Triggered: ${this.summary.rollback.triggered}`);
+        if (this.summary.rollback.strategy) {
+            lines.push(`Strategy:  ${this.summary.rollback.strategy}`);
+        }
+        if (this.summary.rollback.success !== undefined) {
+            lines.push(`Success:   ${this.summary.rollback.success}`);
+        }
+        if (this.summary.rollback.error) {
+            lines.push(`Error:     ${this.summary.rollback.error}`);
+        }
+        lines.push('');
+    }
+
+    private addResultSection(lines: string[]): void {
         lines.push('-'.repeat(80));
         lines.push('RESULT');
         lines.push('-'.repeat(80));
@@ -385,10 +412,6 @@ export class ExecutionSummaryLogger {
         lines.push(`Total Duration: ${this.summary.result.totalDuration}ms`);
         lines.push('');
         lines.push('='.repeat(80));
-
-        const text = lines.join('\n');
-        fs.writeFileSync(filePath, text, 'utf-8');
-        this.logger.info(`Execution summary saved: ${filePath}`);
     }
 
     /**

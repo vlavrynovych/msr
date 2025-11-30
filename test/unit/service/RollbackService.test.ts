@@ -326,8 +326,8 @@ describe('RollbackService', () => {
          * Validates that DOWN strategy handles empty array gracefully.
          */
         it('should handle empty script array', async () => {
-            await rollbackService.rollback([], undefined);
-            // Should complete without errors
+            // Should complete without errors when rolling back empty array
+            await expect(rollbackService.rollback([], undefined)).to.be.fulfilled;
         });
 
         /**

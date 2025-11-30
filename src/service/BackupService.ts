@@ -120,7 +120,7 @@ export class BackupService implements IBackupService {
 
     private async _restore(backupPath?: string): Promise<void> {
         if (!this.handler.backup) {
-            return Promise.reject('No backup interface provided - cannot restore');
+            throw new Error('No backup interface provided - cannot restore');
         }
 
         const pathToRestore = backupPath || this.backupFile;
@@ -130,7 +130,7 @@ export class BackupService implements IBackupService {
             return this.handler.backup.restore(data);
         }
 
-        return Promise.reject(`Cannot open ${pathToRestore}`);
+        throw new Error(`Cannot open ${pathToRestore}`);
     }
 
     private async _backup(): Promise<string> {
