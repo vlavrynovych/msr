@@ -55,7 +55,10 @@ docs/
 ├── api/                       # API reference (split by type)
 │   ├── index.md
 │   ├── core-classes.md
-│   └── interfaces.md
+│   └── interfaces/            # Interfaces organized by category
+│       ├── index.md
+│       ├── database-handler.md
+│       └── db.md
 ├── customization/             # Extension guides
 │   ├── index.md
 │   └── custom-logging.md
