@@ -146,7 +146,7 @@ Version 0.4.0 brings significant new features:
 - ✅ **Connection Validation** (#88) - Early connection checking with `checkConnection()`
 - ✅ **Loader Architecture** - Extensible file type support
 
-See the [v0.3 to v0.4 Migration Guide](version-migration/v0.3-to-v0.4) for upgrade instructions.
+See the [v0.3.x → v0.4.0 Migration Guide](version-migration/v0.3-to-v0.4) for upgrade instructions.
 
 ## Future Roadmap
 

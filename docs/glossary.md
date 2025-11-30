@@ -49,8 +49,8 @@ An implementation of `IDatabaseMigrationHandler` that provides database-specific
 ### down() Method
 An optional method in migration scripts that reverses the changes made by `up()`. Required when using `RollbackStrategy.DOWN` or `RollbackStrategy.BOTH`. See [Writing Migrations](user-guides/writing-migrations#writing-reversible-migrations).
 
-### downTo()
-A method that rolls back migrations to a specific version by calling `down()` methods in reverse chronological order. See [Version Control](user-guides/version-control#rolling-back-to-a-specific-version).
+### down(targetVersion)
+An executor method that rolls back migrations, optionally to a specific target version. When given a version number, it calls migration `down()` methods in reverse chronological order until reaching that version. See [Version Control](user-guides/version-control#rolling-back-to-a-specific-version).
 
 ---
 
@@ -106,8 +106,8 @@ See [Database Handler](#database-handler).
 ### MigrationScriptExecutor
 The main class for executing migrations. Orchestrates scanning, validation, execution, and rollback operations.
 
-### migrateTo()
-A method that executes migrations up to and including a specific version. Enables staged deployments and controlled rollouts. See [Version Control](user-guides/version-control#migrating-to-a-specific-version).
+### up(targetVersion)
+An executor method that executes migrations up to and including a specific target version. Enables staged deployments and controlled rollouts. See [Version Control](user-guides/version-control#migrating-to-a-specific-version).
 
 ---
 
@@ -170,7 +170,7 @@ The required method in migration scripts that applies database changes. Receives
 The process of checking migration scripts for correctness before execution. Validates file naming, checksums, and structural requirements.
 
 ### Version Control
-The ability to migrate to or rollback to specific database versions using `migrateTo()` and `downTo()` methods.
+The ability to migrate to or rollback to specific database versions using `up(targetVersion)` and `down(targetVersion)` methods.
 
 ---
 

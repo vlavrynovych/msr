@@ -1,6 +1,6 @@
 ---
 layout: default
-title: IDatabaseMigrationHandler
+title: Database Handler
 parent: Interfaces
 grand_parent: API Reference
 nav_order: 1

@@ -179,7 +179,7 @@ class MyHandler implements IDatabaseMigrationHandler {
 ## Breaking Changes (v0.4.0)
 
 {: .important }
-> Version 0.4.0 includes several interface changes. See the [v0.3 to v0.4 Migration Guide](../../version-migration/v0.3-to-v0.4) for upgrade instructions.
+> Version 0.4.0 includes several interface changes. See the [v0.3.x → v0.4.0 Migration Guide](../../version-migration/v0.3-to-v0.4) for upgrade instructions.
 
 **Summary:**
 - `IDB.checkConnection()` now required
