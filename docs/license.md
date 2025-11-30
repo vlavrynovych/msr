@@ -20,29 +20,51 @@ Understanding MSR's licensing terms and your rights.
 
 ## Overview
 
-Migration Script Runner is licensed under the **MIT License with Commons Clause and Attribution Requirements**. This means:
+Migration Script Runner is licensed under the **MIT License with Commons Clause and Attribution Requirements**. This is a source-available license that grants you broad permissions while protecting against commercial exploitation of the software itself.
 
-✅ **Free to use** in your applications
-✅ **Free to modify** and improve
-✅ **Free for commercial use** as a library
-❌ **Cannot sell** as a standalone product
-🔒 **Must attribute** when creating extensions
+### Quick Summary
+
+- ✅ **Free to use** in your applications (including commercial)
+- ✅ **Free to modify** and improve
+- ✅ **Free to fork** and contribute
+- ❌ **Cannot sell** as a standalone product
+- 🔒 **Must attribute** when creating adapters/extensions
 
 ---
 
-## License Type
+## License Type: MIT + Commons Clause + Attribution
 
-**MIT + Commons Clause + Attribution**
+This three-part license combines:
 
-This is a source-available license that grants you broad permissions while protecting against commercial exploitation of the software itself.
+1. **MIT License** - Permissive base license
+2. **Commons Clause** - Prevents selling the software itself
+3. **Attribution Requirement** - Ensures proper credit for derivatives
 
-### What This Means
+---
 
-- ✅ You can use MSR freely in your commercial applications
-- ✅ You can modify MSR for your needs
-- ✅ You can create and share database adapters
-- ❌ You cannot sell MSR or adapters as products
-- 🔒 Extensions require attribution to the original author
+## What You Can Do
+
+### ✅ Allowed Without Restrictions
+
+- Use MSR in commercial applications (SaaS, enterprise, startups)
+- Use MSR in internal company tools
+- Modify MSR for your specific needs
+- Fork and contribute improvements
+- Bundle MSR with your product
+- Deploy MSR in production
+
+### ✅ Allowed With Attribution
+
+- Create and share database adapters (PostgreSQL, MySQL, etc.)
+- Build extensions on top of MSR
+- Create forks with new features
+
+### ❌ Not Allowed
+
+- Sell MSR as a standalone product
+- Sell database adapters as products
+- Offer "MSR-as-a-Service" commercially
+- Create paid "Pro" versions of MSR
 
 ---
 

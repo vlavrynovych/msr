@@ -189,16 +189,20 @@ await executor.list(10);
 
 ---
 
-##### migrateTo()
+##### up()
 
-Execute migrations up to a specific target version.
+Execute all pending migrations or migrate to a specific target version.
 
 ```typescript
-await executor.migrateTo(targetVersion: number): Promise<IMigrationResult>
+// Execute all pending migrations
+await executor.up(): Promise<IMigrationResult>
+
+// Execute migrations up to a specific target version
+await executor.up(targetVersion: number): Promise<IMigrationResult>
 ```
 
 **Parameters:**
-- `targetVersion`: The target version timestamp to migrate to (inclusive)
+- `targetVersion` (optional): The target version timestamp to migrate to (inclusive). If omitted, executes all pending migrations.
 
 **Returns:** `Promise<IMigrationResult>` containing:
 - `success`: `boolean` - Whether all migrations completed successfully
@@ -208,18 +212,34 @@ await executor.migrateTo(targetVersion: number): Promise<IMigrationResult>
 - `errors?`: `Error[]` - Array of errors if any occurred (only present when success is false)
 
 **Behavior:**
-- Only executes migrations with timestamps <= targetVersion
+- Without parameter: Executes all pending migrations
+- With targetVersion: Only executes migrations with timestamps <= targetVersion
 - Skips if database is already at or beyond target version
 - Creates backup before execution (if rollback strategy requires it)
 - Executes beforeMigrate script if configured
 - Saves migration state immediately after each execution
 - Triggers rollback on failure according to configured strategy
 
+{: .important }
+> **v0.4.0 API Change:** This replaces `migrate()` and `migrateTo(targetVersion)`. The `migrate()` method still works as an alias.
+
+**Example (Execute All Migrations):**
+```typescript
+const result = await executor.up();
+
+if (result.success) {
+  console.log(`✅ Executed ${result.executed.length} migrations`);
+} else {
+  console.error('❌ Migration failed:', result.errors);
+  process.exit(1);
+}
+```
+
 **Example (Controlled Deployment):**
 ```typescript
 // Deploy up to specific version in production
 const targetVersion = 202501220100;
-const result = await executor.migrateTo(targetVersion);
+const result = await executor.up(targetVersion);
 
 if (result.success) {
   console.log(`✅ Database migrated to version ${targetVersion}`);
@@ -234,10 +254,10 @@ if (result.success) {
 ```typescript
 // Deploy only migrations up to a specific point
 // Useful for testing or staged deployments
-const result = await executor.migrateTo(202501220300);
+const result = await executor.up(202501220300);
 
 // Later, continue to next version
-const result2 = await executor.migrateTo(202501220500);
+const result2 = await executor.up(202501220500);
 ```
 
 {: .note }
@@ -306,7 +326,7 @@ const backupPath = await executor.createBackup();
 console.log(`Backup created: ${backupPath}`);
 
 try {
-  await executor.migrate();
+  await executor.up();
   executor.deleteBackup();
 } catch (error) {
   // Restore from backup on failure
@@ -360,7 +380,7 @@ await executor.restoreFromBackup(); // Uses backupPath automatically
 ```typescript
 const backupPath = await executor.createBackup();
 try {
-  await executor.migrate();
+  await executor.up();
 } catch (error) {
   // Only restore for certain error types
   if (shouldRestore(error)) {
@@ -387,7 +407,7 @@ executor.deleteBackup(): void
 **Example (Manual Cleanup):**
 ```typescript
 const backupPath = await executor.createBackup();
-await executor.migrate();
+await executor.up();
 executor.deleteBackup(); // Clean up after success
 ```
 
@@ -397,7 +417,7 @@ config.backup.deleteBackup = true;
 const backupPath = await executor.createBackup();
 
 try {
-  await executor.migrate();
+  await executor.up();
   executor.deleteBackup(); // Auto-respects config
 } catch (error) {
   // Keep backup for investigation
@@ -407,12 +427,12 @@ try {
 
 ---
 
-##### downTo()
+##### down()
 
 Roll back migrations to a specific target version.
 
 ```typescript
-await executor.downTo(targetVersion: number): Promise<IMigrationResult>
+await executor.down(targetVersion: number): Promise<IMigrationResult>
 ```
 
 **Parameters:**
@@ -422,7 +442,7 @@ await executor.downTo(targetVersion: number): Promise<IMigrationResult>
 - `success`: `boolean` - Whether rollback completed successfully
 - `executed`: `MigrationScript[]` - Migrations that were rolled back (empty after successful rollback)
 - `migrated`: `MigrationScript[]` - Remaining migrations after rollback
-- `ignored`: `MigrationScript[]` - Ignored migrations (typically empty for downTo)
+- `ignored`: `MigrationScript[]` - Ignored migrations (typically empty for down)
 - `errors?`: `Error[]` - Array of errors if any occurred (only present when success is false)
 
 **Behavior:**
@@ -436,11 +456,14 @@ await executor.downTo(targetVersion: number): Promise<IMigrationResult>
 - All migrations to be rolled back **must** implement the `down()` method
 - down() methods must be idempotent (safe to run multiple times)
 
+{: .important }
+> **v0.4.0 API Change:** This replaces `downTo(targetVersion)`. Method renamed to `down()` for clarity and consistency with `up()`.
+
 **Example (Rollback to Specific Version):**
 ```typescript
 // Current database version: 202501220300
 // Rollback to version 202501220100
-const result = await executor.downTo(202501220100);
+const result = await executor.down(202501220100);
 
 if (result.success) {
   console.log(`✅ Rolled back to version 202501220100`);
@@ -454,7 +477,7 @@ if (result.success) {
 **Example (Complete Rollback):**
 ```typescript
 // Rollback all migrations (return to empty database)
-const result = await executor.downTo(0);
+const result = await executor.down(0);
 
 if (result.success) {
   console.log('✅ All migrations rolled back');
@@ -465,14 +488,14 @@ if (result.success) {
 **Example (Round-trip Migration for Testing):**
 ```typescript
 // Test that migrations can be applied and rolled back
-const upResult = await executor.migrateTo(202501220300);
+const upResult = await executor.up(202501220300);
 console.log(`Applied ${upResult.executed.length} migrations`);
 
 // Verify database state
 await verifyDatabaseState();
 
 // Rollback
-const downResult = await executor.downTo(0);
+const downResult = await executor.down(0);
 console.log(`Rolled back ${downResult.executed.length} migrations`);
 ```
 
@@ -480,7 +503,7 @@ console.log(`Rolled back ${downResult.executed.length} migrations`);
 > The rollback process calls `down()` methods in reverse chronological order and removes migration records from the schema version table. Ensure your down() methods properly reverse all changes made by the corresponding up() methods.
 
 {: .important }
-> If a migration is missing a down() method, `downTo()` will throw an error and stop. All migrations must implement down() if you plan to use rollback functionality.
+> If a migration is missing a down() method, `down()` will throw an error and stop. All migrations must implement down() if you plan to use rollback functionality.
 
 ---
 

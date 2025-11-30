@@ -48,7 +48,7 @@ config.folder = './migrations';
 const handler = new MyDatabaseHandler();
 const executor = new MigrationScriptExecutor(handler, config);
 
-await executor.migrate();
+await executor.up();
 ```
 
 ---
@@ -109,7 +109,7 @@ Set where and how to find migration files:
 config.folder = './database/migrations';
 
 // File pattern
-config.filePattern = /^V(\d+)_(.+)\.ts$/;
+config.filePatterns = [/^V(\d+)_(.+)\.ts$/];
 
 // Enable recursive scanning
 config.recursive = true;
@@ -171,7 +171,7 @@ const config = new Config();
 
 // Migration settings
 config.folder = './database/migrations';
-config.filePattern = /^V(\d+)_(.+)\.ts$/;
+config.filePatterns = [/^V(\d+)_(.+)\.ts$/];
 config.tableName = 'migration_history';
 config.displayLimit = 20;
 config.beforeMigrateName = 'beforeMigrate';

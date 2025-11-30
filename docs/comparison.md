@@ -22,9 +22,9 @@ MSR is designed for **production safety, developer experience, and flexibility**
 
 | Feature | MSR | Typical Tools |
 |---------|-----|---------------|
-| **Hybrid Migrations** | ✅ Both TypeScript & SQL | Usually one or the other |
-| **Dry Run Mode** | ✅ Built-in, free | Often paid/enterprise only |
-| **Execution Summaries** | ✅ Detailed success/failure logs | Basic output only |
+| **Hybrid Migrations** | ✅ Both TypeScript & SQL (v0.4.0) | Usually one or the other |
+| **Dry Run Mode** | ✅ Built-in, free (v0.4.0) | Often paid/enterprise only |
+| **Execution Summaries** | ✅ Detailed success/failure logs (v0.4.0) | Basic output only |
 | **Lifecycle Hooks** | ✅ beforeMigrate, afterMigrate, onError | Rare |
 | **Flexible Rendering** | ✅ Table, JSON, Silent modes | Fixed format |
 | **TypeScript-First** | ✅ Full type safety | Varies |
@@ -34,9 +34,10 @@ MSR is designed for **production safety, developer experience, and flexibility**
 | Capability | MSR Status |
 |------------|-----------|
 | Up/Down Migrations | ✅ |
+| SQL Migrations | ✅ v0.4.0 |
 | Transaction Support | ✅ |
 | Rollback | ✅ |
-| CLI | 🔜 v0.4.0 (#59) |
+| Connection Validation | ✅ v0.4.0 |
 | Programmatic API | ✅ |
 | Multi-Database | ✅ PostgreSQL, MongoDB, MySQL, SQLite |
 | Migration Tracking | ✅ |
@@ -123,7 +124,7 @@ Testing migrations before production is critical but often requires:
 - Manual testing workflows
 - Hoping things work the same
 
-**MSR's dry run mode** (#73, coming in v0.4.0) shows exactly what will change before applying anything.
+**MSR's dry run mode** (v0.4.0) shows exactly what will change before applying anything.
 
 ### Why Execution Summaries?
 
@@ -132,19 +133,29 @@ When migrations fail in production, you need to know:
 - What was the exact error?
 - How do I recover?
 
-**MSR's execution summaries** (#72, coming in v0.4.0) provide a detailed trace of every step, making debugging and recovery straightforward.
+**MSR's execution summaries** (v0.4.0) provide a detailed trace of every step, making debugging and recovery straightforward.
 
-## Roadmap
+## v0.4.0 Release
 
-We're actively working on v0.4.0, which will bring:
+Version 0.4.0 brings significant new features:
+
+- ✅ **SQL File Support** (#58) - Native .sql migration files with ISqlDB interface
+- ✅ **Dry Run Mode** (#73) - Preview changes before applying
+- ✅ **Execution Summary Logging** (#72) - Detailed success/failure traces with file rotation
+- ✅ **Simplified API** (#81) - Industry-standard `up()`/`down()` pattern
+- ✅ **Connection Validation** (#88) - Early connection checking with `checkConnection()`
+- ✅ **Loader Architecture** - Extensible file type support
+
+See the [v0.3 to v0.4 Migration Guide](version-migration/v0.3-to-v0.4) for upgrade instructions.
+
+## Future Roadmap
+
+Upcoming features we're considering:
 
 - **CLI Commands** (#59) - Full command-line interface
-- **SQL File Support** (#58) - Native .sql migration files
-- **Dry Run Mode** (#73) - Preview changes before applying
-- **Execution Summary Logging** (#72) - Detailed success/failure traces
-- **Simplified Interface** (#81) - Industry-standard up/down pattern
 - **Template Generator** (#83) - Scaffold new migrations easily
 - **Environment Variables** (#84) - Secure configuration
+- **Migration Preview** - Visual diff of schema changes
 
 See our [GitHub milestones](https://github.com/migration-script-runner/msr-core/milestones) for details.
 

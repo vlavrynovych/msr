@@ -18,10 +18,17 @@ Best practices for creating migration scripts:
 - Database operations
 - Error handling
 
+### [SQL Migrations](sql-migrations)
+Complete guide to SQL migration files (v0.4.0+):
+- Using .up.sql and .down.sql files
+- ISqlDB interface implementation
+- Mixing TypeScript and SQL migrations
+- Database-specific SQL features
+
 ### [Version Control](version-control)
 Controlled migrations and rollbacks:
-- migrateTo() for specific versions
-- downTo() for rollbacks
+- up() for specific versions
+- down() for rollbacks
 - Version targeting strategies
 - Migration workflows
 

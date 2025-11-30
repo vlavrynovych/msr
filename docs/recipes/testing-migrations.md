@@ -273,7 +273,7 @@ describe('Migration Integration Tests', () => {
 
   describe('Forward Migrations', () => {
     it('should execute all pending migrations', async () => {
-      const result = await executor.migrate();
+      const result = await executor.up();
 
       expect(result.success).to.be.true;
       expect(result.executed.length).to.be.greaterThan(0);
@@ -281,22 +281,22 @@ describe('Migration Integration Tests', () => {
     });
 
     it('should track executed migrations', async () => {
-      await executor.migrate();
+      await executor.up();
 
       const migrated = await handler.schemaVersion.list();
       expect(migrated.length).to.be.greaterThan(0);
     });
 
     it('should be idempotent - running twice does nothing', async () => {
-      const result1 = await executor.migrate();
-      const result2 = await executor.migrate();
+      const result1 = await executor.up();
+      const result2 = await executor.up();
 
       expect(result1.executed.length).to.be.greaterThan(0);
       expect(result2.executed.length).to.equal(0); // No new migrations
     });
 
     it('should create expected database schema', async () => {
-      await executor.migrate();
+      await executor.up();
 
       // Verify users table exists
       const tables = await handler.db.query<{ tablename: string }>(`
@@ -322,7 +322,7 @@ describe('Migration Integration Tests', () => {
   describe('Rollback Tests', () => {
     it('should rollback all migrations using downTo(0)', async () => {
       // First, run migrations
-      await executor.migrate();
+      await executor.up();
 
       // Verify tables exist
       let tables = await handler.db.query<{ tablename: string }>(`
@@ -332,7 +332,7 @@ describe('Migration Integration Tests', () => {
       expect(tables.length).to.be.greaterThan(0);
 
       // Rollback all
-      const result = await executor.downTo(0);
+      const result = await executor.down(0);
 
       expect(result.success).to.be.true;
       expect(result.executed.length).to.be.greaterThan(0);
@@ -347,13 +347,13 @@ describe('Migration Integration Tests', () => {
 
     it('should rollback to specific version', async () => {
       // Run all migrations
-      await executor.migrate();
+      await executor.up();
 
       const allMigrations = await handler.schemaVersion.list();
       const targetVersion = allMigrations[1].timestamp; // Rollback to 2nd migration
 
       // Rollback to target
-      const result = await executor.downTo(targetVersion);
+      const result = await executor.down(targetVersion);
 
       expect(result.success).to.be.true;
 
@@ -373,7 +373,7 @@ describe('Migration Integration Tests', () => {
       `);
 
       // Migrate up
-      const upResult = await executor.migrate();
+      const upResult = await executor.up();
       expect(upResult.success).to.be.true;
 
       // Verify changes
@@ -384,7 +384,7 @@ describe('Migration Integration Tests', () => {
       expect(migratedTables.length).to.be.greaterThan(initialTables.length);
 
       // Migrate down
-      const downResult = await executor.downTo(0);
+      const downResult = await executor.down(0);
       expect(downResult.success).to.be.true;
 
       // Verify back to initial state
@@ -536,7 +536,7 @@ describe('Migrations with Mocks', () => {
       logger: new SilentLogger()
     });
 
-    const result = await executor.migrate();
+    const result = await executor.up();
 
     expect(result.success).to.be.true;
   });
@@ -679,7 +679,7 @@ async function validateMigrations() {
   const executor = new MigrationScriptExecutor(handler, config);
 
   try {
-    const result = await executor.migrate();
+    const result = await executor.up();
 
     if (!result.success) {
       console.error('❌ Migration validation failed');
@@ -749,13 +749,13 @@ describe('V202501220100_create_users', () => {
 ```typescript
 describe('Edge Cases', () => {
   it('should handle empty database', async () => {
-    const result = await executor.migrate();
+    const result = await executor.up();
     expect(result.success).to.be.true;
   });
 
   it('should handle already-migrated database', async () => {
-    await executor.migrate(); // First run
-    const result = await executor.migrate(); // Second run
+    await executor.up(); // First run
+    const result = await executor.up(); // Second run
     expect(result.executed.length).to.equal(0);
   });
 
@@ -798,7 +798,7 @@ describe('Migration Performance', () => {
     const executor = new MigrationScriptExecutor(handler, config);
 
     const startTime = Date.now();
-    await executor.migrate();
+    await executor.up();
     const duration = Date.now() - startTime;
 
     console.log(`Migrations completed in ${duration}ms`);
@@ -890,7 +890,7 @@ describe('Complete Migration Test Suite', () => {
       const config = new Config();
       const executor = new MigrationScriptExecutor(handler, config);
 
-      const result = await executor.migrate();
+      const result = await executor.up();
 
       expect(result.success).to.be.true;
       expect(result.executed.length).to.be.greaterThan(0);
@@ -920,7 +920,7 @@ describe('Complete Migration Test Suite', () => {
       const config = new Config();
       const executor = new MigrationScriptExecutor(handler, config);
 
-      const result = await executor.migrateTo(202501220200);
+      const result = await executor.up(202501220200);
 
       expect(result.success).to.be.true;
 

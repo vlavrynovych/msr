@@ -326,7 +326,7 @@ async function runMigrations() {
 
   try {
     console.log('Running migrations...');
-    const result = await executor.migrate();
+    const result = await executor.up();
 
     if (result.success) {
       console.log(`✅ Success! Executed ${result.executed.length} migrations`);
@@ -603,14 +603,14 @@ describe('MongoDB Migration Integration', () => {
   });
 
   it('should execute all migrations', async () => {
-    const result = await executor.migrate();
+    const result = await executor.up();
 
     expect(result.success).to.be.true;
     expect(result.executed.length).to.be.greaterThan(0);
   });
 
   it('should create collections with validation', async () => {
-    await executor.migrate();
+    await executor.up();
 
     const collections = await handler.db.db.listCollections({ name: 'users' }).toArray();
     expect(collections).to.have.lengthOf(1);
@@ -621,7 +621,7 @@ describe('MongoDB Migration Integration', () => {
   });
 
   it('should create indexes', async () => {
-    await executor.migrate();
+    await executor.up();
 
     const users = handler.db.collection('users');
     const indexes = await users.indexes();
@@ -630,7 +630,7 @@ describe('MongoDB Migration Integration', () => {
   });
 
   it('should rollback using down methods', async () => {
-    await executor.migrate();
+    await executor.up();
     await executor.downTo(0);
 
     const collections = await handler.db.db.listCollections().toArray();

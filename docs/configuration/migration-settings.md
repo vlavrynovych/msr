@@ -69,27 +69,48 @@ The folder must exist before running migrations. MSR will not create it automati
 
 ---
 
-## filePattern
+## filePatterns
 
-**Type:** `RegExp`
-**Default:** `/^V(\d{12})_/`
+**Type:** `RegExp[]` (array of regular expressions)
+**Default:**
+```typescript
+[
+  /^V(\d{12})_.*\.ts$/,
+  /^V(\d{12})_.*\.js$/,
+  /^V(\d{12})_.*\.up\.sql$/
+]
+```
 
-Regular expression pattern for matching migration file names. The pattern must capture two groups:
+{: .important }
+> **Breaking Change (v0.4.0):** Changed from singular `filePattern` to plural `filePatterns` array to support multiple file types (TypeScript, JavaScript, SQL).
+
+Array of regular expression patterns for matching migration file names. Each pattern must capture two groups:
 1. **Timestamp** (group 1): Numeric version identifier
 2. **Name** (group 2): Descriptive name
 
 ```typescript
-// Default pattern matches: V202501220100_initial_setup.ts
-config.filePattern = /^V(\d+)_(.+)\.ts$/;
+// Default patterns (TypeScript, JavaScript, SQL)
+config.filePatterns = [
+  /^V(\d+)_(.+)\.ts$/,
+  /^V(\d+)_(.+)\.js$/,
+  /^V(\d+)_(.+)\.up\.sql$/
+];
 
-// Custom pattern for JavaScript files
-config.filePattern = /^V(\d+)_(.+)\.js$/;
+// TypeScript only
+config.filePatterns = [
+  /^V(\d+)_(.+)\.ts$/
+];
 
 // Custom prefix
-config.filePattern = /^MIG_(\d+)_(.+)\.ts$/;
+config.filePatterns = [
+  /^MIG_(\d+)_(.+)\.ts$/,
+  /^MIG_(\d+)_(.+)\.up\.sql$/
+];
 
 // Different format
-config.filePattern = /^(\d+)[-_](.+)\.ts$/;
+config.filePatterns = [
+  /^(\d+)[-_](.+)\.ts$/
+];
 ```
 
 ### Pattern Requirements
@@ -111,40 +132,71 @@ The regex **must** have exactly 2 capture groups:
 
 ### Valid Examples
 
-With default pattern `/^V(\d+)_(.+)\.ts$/`:
+With default patterns:
 
+**TypeScript:**
 - `V202501220100_initial_setup.ts` ✅
 - `V20250122_add_users.ts` ✅
 - `V1_first_migration.ts` ✅
-- `V000000000001_test.ts` ✅
+
+**JavaScript:**
+- `V202501220100_initial_setup.js` ✅
+
+**SQL:**
+- `V202501220100_create_users.up.sql` ✅
+- `V202501220100_create_users.down.sql` ✅ (for rollback)
 
 ### Invalid Examples
 
 - `migration_202501220100.ts` ❌ (doesn't start with V)
 - `V202501220100.ts` ❌ (missing name after timestamp)
 - `202501220100_setup.ts` ❌ (missing V prefix)
-- `V202501220100_setup.js` ❌ (wrong extension with .ts pattern)
+- `V202501220100.sql` ❌ (missing .up or .down for SQL)
 
 ### Custom Patterns
 
 ```typescript
-// JavaScript files
-config.filePattern = /^V(\d+)_(.+)\.js$/;
+// TypeScript and SQL only
+config.filePatterns = [
+  /^V(\d+)_(.+)\.ts$/,
+  /^V(\d+)_(.+)\.up\.sql$/
+];
 
-// Both TypeScript and JavaScript
-config.filePattern = /^V(\d+)_(.+)\.(ts|js)$/;
-// Note: Use first capture group for timestamp, need to adjust if using this pattern
+// All three types with custom prefix
+config.filePatterns = [
+  /^MIG_(\d+)_(.+)\.ts$/,
+  /^MIG_(\d+)_(.+)\.js$/,
+  /^MIG_(\d+)_(.+)\.up\.sql$/
+];
 
 // Underscore prefix
-config.filePattern = /^_(\d+)_(.+)\.ts$/;
+config.filePatterns = [
+  /^_(\d+)_(.+)\.ts$/
+];
 
 // Date-based: YYYYMMDD format
-config.filePattern = /^(\d{8})_(.+)\.ts$/;
+config.filePatterns = [
+  /^(\d{8})_(.+)\.ts$/
+];
 // Example: 20250122_create_users.ts
 ```
 
+### Migration from v0.3.x
+
+If you were using custom `filePattern` in v0.3.x:
+
+```typescript
+// v0.3.x (old)
+config.filePattern = /^V(\d+)_(.+)\.ts$/;
+
+// v0.4.0 (new)
+config.filePatterns = [
+  /^V(\d+)_(.+)\.ts$/
+];
+```
+
 {: .warning }
-Changing `filePattern` after migrations have run may cause MSR to not recognize previously executed migrations.
+Changing `filePatterns` after migrations have run may cause MSR to not recognize previously executed migrations.
 
 ---
 

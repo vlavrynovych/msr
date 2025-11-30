@@ -414,7 +414,7 @@ async function runMigrations() {
 
   try {
     console.log('Running migrations...');
-    const result = await executor.migrate();
+    const result = await executor.up();
 
     if (result.success) {
       console.log(`✅ Success! Executed ${result.executed.length} migrations`);
@@ -601,7 +601,7 @@ describe('Migration Integration', () => {
   });
 
   it('should execute all migrations successfully', async () => {
-    const result = await executor.migrate();
+    const result = await executor.up();
 
     expect(result.success).to.be.true;
     expect(result.executed.length).to.be.greaterThan(0);
@@ -609,7 +609,7 @@ describe('Migration Integration', () => {
 
   it('should rollback on migration failure', async () => {
     // This test requires a migration that intentionally fails
-    const result = await executor.migrate();
+    const result = await executor.up();
 
     // Verify database was restored to previous state
     const tables = await handler.db.query(`

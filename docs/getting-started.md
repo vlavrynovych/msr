@@ -105,6 +105,34 @@ export class MyDatabaseHandler implements IDatabaseMigrationHandler {
 }
 ```
 
+### IDB Implementation Example
+
+Your `IDB` implementation must include a `checkConnection()` method (required in v0.4.0+):
+
+```typescript
+// Define your database type for type safety
+interface IMyDatabase extends IDB {
+  query(sql: string, params?: unknown[]): Promise<unknown[]>;
+}
+
+class MyDB implements IMyDatabase {
+  constructor(private connection: any) {}
+
+  // Required: Validate database connection
+  async checkConnection(): Promise<void> {
+    try {
+      await this.connection.ping();
+    } catch (error) {
+      throw new Error(`Database connection failed: ${error.message}`);
+    }
+  }
+
+  async query(sql: string, params?: unknown[]): Promise<unknown[]> {
+    return await this.connection.query(sql, params);
+  }
+}
+```
+
 **Note:** The backup interface is now **optional**. You only need to implement it if using BACKUP or BOTH rollback strategies. For DOWN or NONE strategies, you can omit the backup implementation entirely.
 
 ---
@@ -161,6 +189,58 @@ export default class InitialSetup implements IRunnableScript {
 
 ---
 
+## Creating SQL Migrations (v0.4.0+)
+
+In addition to TypeScript migrations, MSR v0.4.0+ supports SQL migration files:
+
+**SQL Migration Example:**
+
+```sql
+-- migrations/V202501220200_create_products.up.sql
+CREATE TABLE products (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    price DECIMAL(10, 2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_products_name ON products(name);
+```
+
+```sql
+-- migrations/V202501220200_create_products.down.sql
+DROP TABLE IF EXISTS products;
+```
+
+**ISqlDB Interface:**
+
+For SQL migrations, your database must implement `ISqlDB`:
+
+```typescript
+import { ISqlDB } from '@migration-script-runner/core';
+import { Pool } from 'pg';
+
+class PostgresDB implements ISqlDB {
+  constructor(private pool: Pool) {}
+
+  async query(sql: string): Promise<unknown> {
+    const result = await this.pool.query(sql);
+    return result.rows;
+  }
+
+  async checkConnection(): Promise<void> {
+    await this.pool.query('SELECT 1');
+  }
+}
+```
+
+{: .tip }
+> You can mix TypeScript and SQL migrations in the same project. Execution order is determined by timestamp only.
+
+**Learn More:** [SQL Migrations Guide](user-guides/sql-migrations)
+
+---
+
 ## Configuration
 
 Create a configuration object to customize MSR behavior:
@@ -173,8 +253,11 @@ const config = new Config();
 // Set migration scripts folder
 config.folder = './migrations';
 
-// Set filename pattern (optional)
-config.filePattern = /^V(\d+)_(.+)\.ts$/;
+// Set filename patterns (optional) - supports multiple file types
+config.filePatterns = [
+  /^V(\d+)_(.+)\.ts$/,      // TypeScript migrations
+  /^V(\d+)_(.+)\.up\.sql$/  // SQL migrations (v0.4.0+)
+];
 
 // Set schema version table name
 config.tableName = 'schema_version';
@@ -230,7 +313,7 @@ const handler = new MyDatabaseHandler();
 const executor = new MigrationScriptExecutor(handler, config);
 
 // Run migrations and get structured results
-const result: IMigrationResult = await executor.migrate();
+const result: IMigrationResult = await executor.up();
 
 if (result.success) {
   console.log(`✅ Successfully executed ${result.executed.length} migrations`);
@@ -263,7 +346,7 @@ const config = new Config();
 const handler = new MyDatabaseHandler();
 const executor = new MigrationScriptExecutor(handler, config);
 
-const result = await executor.migrate();
+const result = await executor.up();
 process.exit(result.success ? 0 : 1);
 ```
 
@@ -290,7 +373,7 @@ MSR supports controlled migration to specific versions, useful for:
 
 ```typescript
 // Migrate up to specific version
-const result = await executor.migrateTo(202501220300);
+const result = await executor.up(202501220300);
 
 if (result.success) {
   console.log(`✅ Database at version 202501220300`);
@@ -304,7 +387,7 @@ if (result.success) {
 
 ```typescript
 // Roll back to specific version (requires down() methods)
-const result = await executor.downTo(202501220100);
+const result = await executor.down(202501220100);
 
 if (result.success) {
   console.log(`✅ Rolled back to version 202501220100`);
@@ -321,14 +404,14 @@ if (result.success) {
 **Example Use Case - Staged Production Deployment:**
 ```typescript
 // Week 1: Deploy first batch of migrations
-await executor.migrateTo(202501220300);
+await executor.up(202501220300);
 
 // Week 2: Deploy second batch after monitoring
-await executor.migrateTo(202501290500);
+await executor.up(202501290500);
 
 // If issues arise, rollback to previous version
 if (issuesDetected) {
-  await executor.downTo(202501220300);
+  await executor.down(202501220300);
 }
 ```
 
@@ -561,11 +644,14 @@ config.beforeMigrateName = null;
 
 ### Migration files not found
 
-Make sure your `config.folder` points to the correct directory and your files match the `filePattern`:
+Make sure your `config.folder` points to the correct directory and your files match the `filePatterns`:
 
 ```typescript
 config.folder = './migrations';  // Relative or absolute path
-config.filePattern = /^V(\d+)_(.+)\.ts$/;  // Must match your naming
+config.filePatterns = [
+  /^V(\d+)_(.+)\.ts$/,      // TypeScript
+  /^V(\d+)_(.+)\.up\.sql$/  // SQL (v0.4.0+)
+];
 ```
 
 ### TypeScript compilation issues

@@ -34,12 +34,12 @@ const scripts = await service.readMigrationScripts(config);
 
 #### Methods
 
-##### readMigrationScripts()
+##### findMigrationScripts()
 
 Scan directory and load all migration scripts.
 
 ```typescript
-async readMigrationScripts(config: Config): Promise<MigrationScript[]>
+async findMigrationScripts(config: Config): Promise<MigrationScript[]>
 ```
 
 **Parameters:**
@@ -47,23 +47,29 @@ async readMigrationScripts(config: Config): Promise<MigrationScript[]>
 
 **Returns:** Array of `MigrationScript` objects sorted by timestamp
 
+{: .important }
+> **v0.4.0 API Change:** Method renamed from `readMigrationScripts()` to `findMigrationScripts()` for consistency.
+
 {: .note }
-The `beforeMigrate` file (if it exists) is NOT included in the results. It's handled separately via `getBeforeMigrateScript()`.
+The `beforeMigrate` file (if it exists) is NOT included in the results. It's handled separately via `findBeforeMigrateScript()`.
 
 ---
 
-##### getBeforeMigrateScript()
+##### findBeforeMigrateScript()
 
 Check if a `beforeMigrate` setup script exists.
 
 ```typescript
-async getBeforeMigrateScript(config: Config): Promise<string | undefined>
+async findBeforeMigrateScript(config: Config): Promise<string | undefined>
 ```
 
 **Parameters:**
 - `config`: Configuration object containing `beforeMigrateName` property
 
 **Returns:** Path to beforeMigrate script if found, `undefined` otherwise
+
+{: .important }
+> **v0.4.0 API Change:** Method renamed from `getBeforeMigrateScript()` to `findBeforeMigrateScript()` for consistency.
 
 **Behavior:**
 - Returns `undefined` if `config.beforeMigrateName` is `null` (feature disabled)
@@ -77,7 +83,7 @@ config.beforeMigrateName = 'beforeMigrate';  // default
 config.folder = './migrations';
 
 const service = new MigrationService();
-const path = await service.getBeforeMigrateScript(config);
+const path = await service.findBeforeMigrateScript(config);
 
 if (path) {
   console.log(`Found beforeMigrate script: ${path}`);
