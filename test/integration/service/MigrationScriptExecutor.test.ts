@@ -26,6 +26,41 @@ describe('MigrationScriptExecutor', () => {
     let handler:IDatabaseMigrationHandler
     let executor:MigrationScriptExecutor
 
+    /**
+     * Test: Constructor with automatic config loading
+     * Validates that config is automatically loaded when not provided.
+     */
+    it('should automatically load config when not provided', () => {
+        const mockHandler: IDatabaseMigrationHandler = {
+            getName(): string { return 'TestHandler'; },
+            getVersion(): string { return '1.0.0'; },
+            backup: {
+                backup(): Promise<string> { return Promise.resolve('content'); },
+                restore(_data: string): Promise<void> { return Promise.resolve(); }
+            },
+            schemaVersion: {
+                isInitialized(_tableName: string): Promise<boolean> { return Promise.resolve(true); },
+                createTable(_tableName: string): Promise<boolean> { return Promise.resolve(true); },
+                validateTable(_tableName: string): Promise<boolean> { return Promise.resolve(true); },
+                migrationRecords: {
+                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]); },
+                    save(_details: IMigrationInfo): Promise<void> { return Promise.resolve(); },
+                    remove(_timestamp: number): Promise<void> { return Promise.resolve(); }
+                }
+            },
+            db: {
+                checkConnection(): Promise<boolean> { return Promise.resolve(true); }
+            }
+        };
+
+        // Create executor without config - should auto-load via ConfigLoader
+        const testExecutor = new MigrationScriptExecutor(mockHandler);
+
+        // Verify config was loaded (check a default property)
+        expect(testExecutor['config']).to.not.be.undefined;
+        expect(testExecutor['config'].folder).to.be.a('string');
+    });
+
     before(() => {
         cfg = TestUtils.getConfig()
         const db:IDB = new class implements IDB {

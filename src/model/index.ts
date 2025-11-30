@@ -7,3 +7,4 @@ export * from "./DownMethodPolicy";
 export * from "./DuplicateTimestampMode";
 export * from "./ValidationErrorCode";
 export * from "./ValidationIssueType";
+export * from "./EnvironmentVariables";

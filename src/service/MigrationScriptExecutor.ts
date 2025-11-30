@@ -28,11 +28,13 @@ import {LoaderRegistry} from "../loader/LoaderRegistry";
 import {ILoaderRegistry} from "../interface/loader/ILoaderRegistry";
 import {CompositeHooks} from "../hooks/CompositeHooks";
 import {ExecutionSummaryHook} from "../hooks/ExecutionSummaryHook";
+import {ConfigLoader} from "../util/ConfigLoader";
 
 /**
  * Main executor class for running database migrations.
  *
  * Orchestrates the entire migration workflow including:
+ * - Automatic configuration loading (env vars → file → defaults)
  * - Creating backups before migrations
  * - Loading and tracking migration scripts
  * - Executing migrations in order
@@ -41,16 +43,22 @@ import {ExecutionSummaryHook} from "../hooks/ExecutionSummaryHook";
  *
  * @example
  * ```typescript
- * import { MigrationScriptExecutor, Config } from 'migration-script-runner';
+ * import { MigrationScriptExecutor } from '@migration-script-runner/core';
  *
- * const config = new Config();
  * const handler = new MyDatabaseHandler();
+ *
+ * // Option 1: No config - uses waterfall loading
+ * const executor = new MigrationScriptExecutor(handler);
+ * // Loads from: MSR_* env vars → ./msr.config.js → defaults
+ *
+ * // Option 2: With explicit config
+ * const config = new Config();
  * const executor = new MigrationScriptExecutor(handler, config);
  *
  * // Run all pending migrations
- * await executor.migrate();
+ * await executor.up();
  *
- * // Or list all migrations
+ * // List all migrations
  * await executor.list();
  * ```
  */
@@ -101,15 +109,29 @@ export class MigrationScriptExecutor {
      * Initializes all required services (backup, schema version tracking, console rendering,
      * migration discovery) and displays the application banner.
      *
+     * **Configuration Loading (Waterfall):**
+     * If no config provided, automatically loads using ConfigLoader.load():
+     * 1. Environment variables (MSR_*)
+     * 2. Config file (./msr.config.js, ./msr.config.json, or MSR_CONFIG_FILE)
+     * 3. Built-in defaults
+     *
      * @param handler - Database migration handler implementing database-specific operations
-     * @param config - Configuration for migrations (folder, pattern, table name, backup settings)
+     * @param config - Optional configuration for migrations. If not provided, uses waterfall loading.
      * @param dependencies - Optional service dependencies for dependency injection
      *
      * @example
      * ```typescript
-     * // Basic usage
+     * // No config - uses waterfall loading (env vars → file → defaults)
+     * const executor = new MigrationScriptExecutor(handler);
+     *
+     * // With explicit config
      * const config = new Config();
      * const executor = new MigrationScriptExecutor(handler, config);
+     *
+     * // With partial config overrides (merged with waterfall)
+     * const executor = new MigrationScriptExecutor(handler, ConfigLoader.load({
+     *     dryRun: true
+     * }));
      *
      * // With JSON output for CI/CD
      * const executor = new MigrationScriptExecutor(handler, config, {
@@ -118,11 +140,7 @@ export class MigrationScriptExecutor {
      *
      * // With silent output for testing
      * const executor = new MigrationScriptExecutor(handler, config, {
-     *     renderStrategy: new SilentRenderStrategy()
-     * });
-     *
-     * // With custom logger
-     * const executor = new MigrationScriptExecutor(handler, config, {
+     *     renderStrategy: new SilentRenderStrategy(),
      *     logger: new SilentLogger()
      * });
      *
@@ -135,10 +153,11 @@ export class MigrationScriptExecutor {
      */
     constructor(
         private readonly handler: IDatabaseMigrationHandler,
-        config: Config,
+        config?: Config,
         dependencies?: IMigrationExecutorDependencies
     ) {
-        this.config = config;
+        // Use provided config or load using waterfall approach
+        this.config = config ?? ConfigLoader.load();
         // Use provided logger or default to ConsoleLogger
         this.logger = dependencies?.logger ?? new ConsoleLogger();
 

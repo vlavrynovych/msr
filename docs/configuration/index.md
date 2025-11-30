@@ -211,9 +211,106 @@ await executor.migrate();
 
 ---
 
-## Environment-Specific Configuration
+## Waterfall Configuration Loading
 
-Use environment variables for different configurations:
+MSR supports automatic configuration loading using a waterfall approach with **environment variables** and **config files**. This follows [12-Factor App](https://12factor.net/config) principles for production-ready applications.
+
+### Loading Priority
+
+Configuration is loaded in this order (highest priority last):
+
+1. **Built-in defaults** - From `Config` class defaults
+2. **Config file** - From `msr.config.js`, `msr.config.json`, or `MSR_CONFIG_FILE`
+3. **Environment variables** - MSR_* environment variables
+4. **Constructor overrides** - Passed directly to MigrationScriptExecutor
+
+### Automatic Loading
+
+With v0.5.0+, configuration is loaded automatically if not provided:
+
+```typescript
+import { MigrationScriptExecutor } from '@migration-script-runner/core';
+import { MyDatabaseHandler } from './database-handler';
+
+// Automatically loads config from env vars, files, or defaults
+const handler = new MyDatabaseHandler();
+const executor = new MigrationScriptExecutor(handler);
+
+await executor.up();
+```
+
+### Manual Loading with ConfigLoader
+
+For more control, use `ConfigLoader.load()`:
+
+```typescript
+import { ConfigLoader, MigrationScriptExecutor } from '@migration-script-runner/core';
+
+// Load with waterfall approach
+const config = ConfigLoader.load();
+
+// Load with overrides (highest priority)
+const config = ConfigLoader.load({
+    folder: './migrations',
+    dryRun: true
+});
+
+// Load from specific directory
+const config = ConfigLoader.load({}, '/app');
+
+const handler = new MyDatabaseHandler();
+const executor = new MigrationScriptExecutor(handler, config);
+```
+
+---
+
+## Environment Variables
+
+Configure MSR using `MSR_*` environment variables - the **recommended approach** for production deployments following [12-Factor App](https://12factor.net/config) principles.
+
+**Quick Example:**
+```bash
+export MSR_FOLDER=./database/migrations
+export MSR_TABLE_NAME=migration_history
+export MSR_LOGGING_ENABLED=true
+export MSR_BACKUP_FOLDER=./backups
+```
+
+**Complete Documentation:**
+- 📖 **[Environment Variables User Guide](../user-guides/environment-variables)** - How-to guide with practical examples, platform-specific configs (Docker, Kubernetes, etc.), and troubleshooting
+- 📋 **[Environment Variables Reference](../reference/environment-variables)** - Complete table of all MSR_* variables with types and defaults
+- 🔧 **[ConfigLoader API](../api/ConfigLoader)** - API reference for programmatic configuration loading
+- 🏷️ **[EnvironmentVariables Enum](../../src/model/EnvironmentVariables.ts)** - Type-safe environment variable names
+
+---
+
+## Configuration Files
+
+Create `msr.config.js` or `msr.config.json` in your project root for file-based configuration (loaded automatically in waterfall).
+
+**Quick Example:**
+```javascript
+// msr.config.js
+module.exports = {
+    folder: './database/migrations',
+    tableName: 'migration_history',
+    validateBeforeRun: true,
+    logging: { enabled: true, path: './logs' },
+    backup: { folder: './backups', timestamp: true }
+};
+```
+
+**Complete Documentation:**
+- See [Environment Variables User Guide](../user-guides/environment-variables#configuration-files) for detailed config file examples (JavaScript and JSON)
+- See [ConfigLoader API](../api/ConfigLoader#loadfromfile) for programmatic file loading
+
+---
+
+## Environment-Specific Configuration (Legacy)
+
+**Note:** Using `ConfigLoader` and environment variables (above) is the recommended approach for v0.5.0+.
+
+For manual configuration in code:
 
 ```typescript
 const config = new Config();
@@ -232,7 +329,7 @@ config.rollbackStrategy = process.env.NODE_ENV === 'production'
     : RollbackStrategy.DOWN;
 
 // Environment-specific backup naming
-config.backup.filename = process.env.NODE_ENV || 'dev';
+config.backup.custom = process.env.NODE_ENV || 'dev';
 
 // Different backup retention
 config.backup.deleteBackup = process.env.NODE_ENV === 'production';
