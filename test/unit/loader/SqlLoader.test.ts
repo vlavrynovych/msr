@@ -84,7 +84,8 @@ describe('SqlLoader', () => {
                 query: async (sql: string) => {
                     expect(sql).to.include('CREATE TABLE users');
                     return [];
-                }
+                },
+                checkConnection: async () => true
             } as IDB;
 
             const result = await runnable.up(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler);
@@ -106,7 +107,8 @@ describe('SqlLoader', () => {
                 query: async (sql: string) => {
                     expect(sql).to.include('DROP TABLE');
                     return [];
-                }
+                },
+                checkConnection: async () => true
             } as IDB;
 
             const result = await runnable.down!(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler);
@@ -146,7 +148,8 @@ describe('SqlLoader', () => {
             const runnable = await loader.load(script);
 
             const db = {
-                query: async () => []
+                query: async () => [],
+                checkConnection: async () => true
             } as IDB;
 
             try {
@@ -185,7 +188,8 @@ describe('SqlLoader', () => {
             const db = {
                 query: async () => {
                     throw new Error('SQL syntax error');
-                }
+                },
+                checkConnection: async () => true
             } as IDB;
 
             try {
@@ -212,7 +216,8 @@ describe('SqlLoader', () => {
             const db = {
                 query: async () => {
                     throw new Error('Rollback failed: table not found');
-                }
+                },
+                checkConnection: async () => true
             } as IDB;
 
             try {
@@ -237,7 +242,8 @@ describe('SqlLoader', () => {
             const runnable = await loader.load(script);
 
             const db = {
-                query: async () => []
+                query: async () => [],
+                checkConnection: async () => true
             } as IDB;
 
             try {
@@ -283,7 +289,8 @@ describe('SqlLoader', () => {
                 query: async (sql: string) => {
                     capturedSql = sql;
                     return [];
-                }
+                },
+                checkConnection: async () => true
             } as IDB;
 
             await runnable.up(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler);
@@ -306,7 +313,8 @@ describe('SqlLoader', () => {
             const db = {
                 query: async () => {
                     throw new Error('SQL execution failed');
-                }
+                },
+                checkConnection: async () => true
             } as IDB;
 
             try {
@@ -332,7 +340,8 @@ describe('SqlLoader', () => {
             const db = {
                 query: async () => {
                     throw new Error('Rollback execution failed');
-                }
+                },
+                checkConnection: async () => true
             } as IDB;
 
             try {

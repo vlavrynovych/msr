@@ -225,6 +225,9 @@ export class MigrationScriptExecutor {
      * ```
      */
     public async up(targetVersion?: number): Promise<IMigrationResult> {
+        // Check database connection before proceeding
+        await this.checkDatabaseConnection();
+
         // If targetVersion provided, delegate to migrateTo logic
         if (targetVersion !== undefined) {
             return this.migrateToVersion(targetVersion);
@@ -232,6 +235,31 @@ export class MigrationScriptExecutor {
 
         // Otherwise, run all pending migrations
         return this.migrateAll();
+    }
+
+    /**
+     * Check database connection before performing operations.
+     *
+     * Calls the database handler's checkConnection() method to verify connectivity.
+     * Throws an error if the connection check fails, preventing wasted time and
+     * resources on migration operations that would fail anyway.
+     *
+     * @private
+     * @throws Error if database connection check fails
+     */
+    private async checkDatabaseConnection(): Promise<void> {
+        this.logger.debug('Checking database connection...');
+
+        const isConnected = await this.handler.db.checkConnection();
+
+        if (!isConnected) {
+            const errorMsg = 'Database connection check failed. Cannot proceed with migration operations. ' +
+                           'Please verify your database connection settings and ensure the database is accessible.';
+            this.logger.error(errorMsg);
+            throw new Error(errorMsg);
+        }
+
+        this.logger.debug('Database connection verified successfully');
     }
 
     /**
@@ -484,6 +512,9 @@ export class MigrationScriptExecutor {
      * ```
      */
     public async validate(): Promise<{pending: IValidationResult[], migrated: IValidationIssue[]}> {
+        // Check database connection before proceeding
+        await this.checkDatabaseConnection();
+
         this.logger.info('🔍 Starting migration validation...\n');
 
         // Initialize schema version table BEFORE scanning
@@ -823,6 +854,9 @@ export class MigrationScriptExecutor {
      * ```
      */
     public async down(targetVersion: number): Promise<IMigrationResult> {
+        // Check database connection before proceeding
+        await this.checkDatabaseConnection();
+
         this.logger.info(`Rolling back to version ${targetVersion}...`);
 
         // Initialize schema version table BEFORE scanning

@@ -22,6 +22,6 @@ describe('MigrationScript', () => {
         // Verify the script is now loaded and has a callable up() function
         expect(ms.script).not.undefined
         expect(typeof ms.script.up === 'function').is.true
-        expect(await ms.script.up({}, {} as IMigrationInfo, {} as IDatabaseMigrationHandler)).eq('result string')
+        expect(await ms.script.up({ checkConnection: async () => true } as any, {} as IMigrationInfo, {} as IDatabaseMigrationHandler)).eq('result string')
     })
 })

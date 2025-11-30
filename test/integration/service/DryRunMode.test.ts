@@ -30,7 +30,8 @@ describe('Dry Run Mode', () => {
                 execute: async (sql: string) => {
                     executed.push(`execute: ${sql}`);
                     return [];
-                }
+                },
+                checkConnection: async () => true
             } as IDB,
             backup: {
                 backup: async () => {

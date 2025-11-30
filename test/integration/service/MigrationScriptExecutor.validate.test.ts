@@ -32,7 +32,8 @@ describe('MigrationScriptExecutor - validate() method', () => {
         // Mock handler with minimal implementation
         handler = {
             db: {
-                query: sinon.stub().resolves([])
+                query: sinon.stub().resolves([]),
+                checkConnection: async () => true
             },
             init: sinon.stub().resolves(),
             schemaVersion: {

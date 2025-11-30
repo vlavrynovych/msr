@@ -25,6 +25,9 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
         const db: IDB = new class implements IDB {
             [key: string]: unknown;
             test() { throw new Error('Not implemented') }
+            async checkConnection(): Promise<boolean> {
+                return true;
+            }
         }
         handler = new class implements IDatabaseMigrationHandler {
             backup: IBackup = {

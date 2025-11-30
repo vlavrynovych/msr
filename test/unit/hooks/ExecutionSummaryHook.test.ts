@@ -41,7 +41,8 @@ describe('ExecutionSummaryHook', () => {
             db: {
                 execute: async (sql: string) => {
                     return [];
-                }
+                },
+                checkConnection: async () => true
             } as IDB,
             backup: {
                 backup: async () => {

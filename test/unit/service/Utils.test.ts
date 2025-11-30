@@ -171,7 +171,7 @@ describe('Utils', () => {
             // Verify the parsed script has the required up() function and can be executed
             expect(res).not.undefined
             expect(typeof res.up === 'function').is.true
-            expect(await res.up({}, {} as IMigrationInfo, {} as IDatabaseMigrationHandler)).eq('result string')
+            expect(await res.up({ checkConnection: async () => true } as any, {} as IMigrationInfo, {} as IDatabaseMigrationHandler)).eq('result string')
 
             // Parse a migration script with multiple exports (should still find the valid one)
             const res2 = await Utils.parseRunnable(TestUtils.prepareMigration('V202311062345_valid-multiple-exports.ts'), new SilentLogger());
@@ -179,7 +179,7 @@ describe('Utils', () => {
             // Verify the parsed script works correctly even with multiple exports
             expect(res2).not.undefined
             expect(typeof res2.up === 'function').is.true
-            expect(await res2.up({}, {} as IMigrationInfo, {} as IDatabaseMigrationHandler)).eq('result string')
+            expect(await res2.up({ checkConnection: async () => true } as any, {} as IMigrationInfo, {} as IDatabaseMigrationHandler)).eq('result string')
         })
 
         /**
@@ -195,7 +195,7 @@ describe('Utils', () => {
             // Verify the script was parsed successfully with default logger
             expect(res).not.undefined
             expect(typeof res.up === 'function').is.true
-            expect(await res.up({}, {} as IMigrationInfo, {} as IDatabaseMigrationHandler)).eq('result string')
+            expect(await res.up({ checkConnection: async () => true } as any, {} as IMigrationInfo, {} as IDatabaseMigrationHandler)).eq('result string')
         })
 
         /**
