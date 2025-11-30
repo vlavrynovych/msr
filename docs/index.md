@@ -49,7 +49,7 @@ A database-agnostic migration framework for TypeScript and JavaScript projects.
 - **🎨 Multiple Output Formats** - ASCII tables, JSON, or silent output via Strategy Pattern
 - **📝 Flexible Logging** - Built-in loggers (Console, File, Silent) or bring your own
 - **🪝 Lifecycle Hooks** - Extend behavior with beforeMigrate and custom hooks
-- **🎯 Version Control** - Target specific versions with `migrateTo()` and `downTo()`
+- **🎯 Version Control** - Target specific versions with `up(targetVersion)` and `down(targetVersion)`
 - **✅ Well Tested** - 100% code coverage with mutation testing
 
 ---
@@ -126,7 +126,7 @@ const handler = new MyDatabaseHandler();
 const executor = new MigrationScriptExecutor(handler, config);
 
 // Library usage - returns result object
-const result = await executor.migrate();
+const result = await executor.up();
 
 if (result.success) {
   console.log(`✅ Executed ${result.executed.length} migrations`);
