@@ -520,41 +520,15 @@ describe('ExecutionSummaryLogger', () => {
     });
 
     describe('Version Handling', () => {
-        it('should handle package.json read errors gracefully', () => {
-            // Create a custom handler that will trigger during getMsrVersion() in constructor
-            const warnings: string[] = [];
-            const testLogger = {
-                ...logger,
-                warn: (message: string) => warnings.push(message),
-                debug: () => {},
-                info: () => {},
-                error: () => {}
-            };
+        it('should read MSR version from package.json', () => {
+            // Verify that the logger is created successfully with the version from package.json
+            const summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            expect(summaryLogger).to.be.instanceOf(ExecutionSummaryLogger);
 
-            // Mock require to throw an error
-            const Module = require('module');
-            const originalRequire = Module.prototype.require;
-            Module.prototype.require = function(id: string) {
-                if (id === '../../package.json') {
-                    throw new Error('Cannot find module');
-                }
-                return originalRequire.apply(this, arguments);
-            };
-
-            try {
-                // This should trigger the catch block in getMsrVersion()
-                const loggerWithError = new ExecutionSummaryLogger(config, testLogger as any, mockHandler);
-
-                // Verify warning was logged
-                expect(warnings.length).to.be.greaterThan(0);
-                expect(warnings[0]).to.equal('Could not read MSR version from package.json');
-
-                // Verify it still created a valid logger (with fallback version)
-                expect(loggerWithError).to.be.instanceOf(ExecutionSummaryLogger);
-            } finally {
-                // Restore original require
-                Module.prototype.require = originalRequire;
-            }
+            // The version should be available in the summary (tested indirectly through summary creation)
+            const summary = (summaryLogger as any).createEmptySummary();
+            expect(summary.msrVersion).to.be.a('string');
+            expect(summary.msrVersion.length).to.be.greaterThan(0);
         });
     });
 });

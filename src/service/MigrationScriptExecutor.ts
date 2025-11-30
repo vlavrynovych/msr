@@ -894,7 +894,7 @@ export class MigrationScriptExecutor {
             return this.handleNoRollbackNeeded(scripts, targetVersion);
         }
 
-        await this.prepareRollbackScripts(toRollback, scripts);
+        await this.prepareRollbackScripts(toRollback);
         await this.hooks?.onStart?.(scripts.all.length, toRollback.length);
 
         this.logger.info(`Rolling back ${toRollback.length} migration(s)...`);
@@ -918,7 +918,7 @@ export class MigrationScriptExecutor {
         };
     }
 
-    private async prepareRollbackScripts(toRollback: MigrationScript[], scripts: IScripts): Promise<void> {
+    private async prepareRollbackScripts(toRollback: MigrationScript[]): Promise<void> {
         await Promise.all(toRollback.map(s => s.init(this.loaderRegistry)));
 
         if (this.config.validateBeforeRun && toRollback.length > 0) {

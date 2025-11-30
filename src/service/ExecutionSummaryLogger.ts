@@ -10,6 +10,7 @@ import {
 import {Config} from '../model/Config';
 import {ILogger} from '../interface/ILogger';
 import {IDatabaseMigrationHandler} from '../interface/IDatabaseMigrationHandler';
+import packageJson from '../../package.json';
 
 /**
  * Service for logging detailed execution summaries to files.
@@ -230,15 +231,7 @@ export class ExecutionSummaryLogger {
      * Get MSR Core version from package.json
      */
     private getMsrVersion(): string {
-        try {
-            // Using require here to dynamically load package.json at runtime
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            const pkg = require('../../package.json');
-            return pkg.version;
-        } catch (error) {
-            this.logger.warn('Could not read MSR version from package.json');
-            return '0.0.0';
-        }
+        return packageJson.version;
     }
 
     /**
@@ -354,7 +347,7 @@ export class ExecutionSummaryLogger {
         lines.push('');
     }
 
-    private addMigrationDetails(lines: string[], migration: any): void {
+    private addMigrationDetails(lines: string[], migration: IMigrationExecutionDetail): void {
         lines.push(
             '',
             `Name:      ${migration.name}`,
