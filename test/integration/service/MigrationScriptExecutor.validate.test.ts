@@ -50,7 +50,8 @@ describe('MigrationScriptExecutor - validate() method', () => {
             },
             backup: sinon.stub().resolves('backup-data'),
             restore: sinon.stub().resolves(),
-            getName: () => 'TestHandler'
+            getName: () => 'TestHandler',
+            getVersion: () => '1.0.0-test',
         } as any;
 
         // Note: executor creation is deferred to each test after migration files are created

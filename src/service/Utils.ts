@@ -1,6 +1,7 @@
 import {MigrationScript} from "../model";
 import {IRunnableScript, ILogger} from "../interface";
 import {ConsoleLogger} from "../logger";
+import {TypeScriptLoader} from "../loader/TypeScriptLoader";
 
 /**
  * Utility functions for the migration system.
@@ -52,6 +53,9 @@ export class Utils {
      * Loads the migration script file, finds the exported class that implements
      * {@link IRunnableScript}, instantiates it, and returns the instance.
      *
+     * This method delegates to {@link TypeScriptLoader} to maintain a single
+     * source of truth for script loading logic.
+     *
      * The script file must:
      * - Export exactly one class with an `up()` method
      * - Not export multiple executable classes
@@ -77,30 +81,8 @@ export class Utils {
      * // Now can call: await runnable.up(db, info, handler)
      * ```
      */
-    public static async parseRunnable(script:MigrationScript, logger: ILogger = new ConsoleLogger()):Promise<IRunnableScript> | never {
-        const exports = await import(script.filepath);
-        const runnable:IRunnableScript[] = [];
-        const errorPrefix:string = `${script.name}: Cannot parse migration script`
-
-        for(const key in exports) {
-            try {
-                const clazz = exports[key];
-                const instance = new clazz();
-                const hasUpFunction = instance.up && typeof instance.up === 'function'
-                if(hasUpFunction) {
-                    runnable.push(instance as IRunnableScript)
-                } else {
-                    logger.warn(`${errorPrefix}: the 'up()' function was not found`)
-                }
-            } catch (e) {
-                logger.error(e as string);
-                throw new Error(`${errorPrefix}: ${e}`)
-            }
-        }
-
-        if(!runnable.length) throw new Error(`${errorPrefix}: no executable content found`)
-        if(runnable.length > 1) throw new Error(`${errorPrefix}: multiple executable instances were found`)
-
-        return runnable[0];
+    public static async parseRunnable(script:MigrationScript, logger: ILogger = new ConsoleLogger()): Promise<IRunnableScript> {
+        const loader = new TypeScriptLoader(logger);
+        return loader.load(script);
     }
 }

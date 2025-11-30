@@ -18,7 +18,8 @@ describe('MigrationRunner', () => {
         handler = {
             db: { test: () => {} },
             cfg: cfg,
-            getName: () => 'Test Handler'
+            getName: () => 'Test Handler',
+            getVersion: () => '1.0.0-test',
         };
 
         schemaVersionService = {

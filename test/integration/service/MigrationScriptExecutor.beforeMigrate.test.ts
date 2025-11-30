@@ -64,7 +64,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" }
         };
 
         const executor = new MigrationScriptExecutor(handler, cfg, {logger: new SilentLogger()});
@@ -103,7 +104,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" }
         };
 
         const executor = new MigrationScriptExecutor(handler, cfg, {logger: new SilentLogger()});
@@ -161,7 +163,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" }
         };
 
         const executor = new MigrationScriptExecutor(handler, tempCfg, {logger: new SilentLogger()});
@@ -237,7 +240,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" }
         };
 
         const executor = new MigrationScriptExecutor(handler, tempCfg, {logger: new SilentLogger()});
@@ -289,7 +293,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" }
         };
 
         const executor = new MigrationScriptExecutor(handler, tempCfg, {logger: new SilentLogger()});
@@ -327,7 +332,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" }
         };
 
         const executor = new MigrationScriptExecutor(handler, cfg, {logger: new SilentLogger()});
@@ -364,7 +370,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" }
         };
 
         const executor = new MigrationScriptExecutor(handler, tempCfg, {logger: new SilentLogger()});
@@ -404,7 +411,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" }
         };
 
         const executor = new MigrationScriptExecutor(handler, cfg, {logger: mockLogger});
@@ -477,7 +485,8 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" }
         };
 
         const executor = new MigrationScriptExecutor(handler, tempCfg, {logger: mockLogger});

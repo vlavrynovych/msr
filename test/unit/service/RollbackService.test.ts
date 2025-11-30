@@ -37,7 +37,8 @@ describe('RollbackService', () => {
                 backup: sinon.stub().resolves('backup-data'),
                 restore: sinon.stub().resolves()
             },
-            getName: () => 'Test Handler'
+            getName: () => 'Test Handler',
+            getVersion: () => '1.0.0-test',
         } as any;
 
         // Mock backup service

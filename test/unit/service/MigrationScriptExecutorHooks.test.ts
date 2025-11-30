@@ -25,6 +25,7 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
         handler = {
             db: { test: () => {} },
             getName: () => 'Test Handler',
+            getVersion: () => '1.0.0-test',
             schemaVersion: {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),

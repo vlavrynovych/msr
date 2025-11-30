@@ -36,7 +36,8 @@ describe('BackupService - Optional Backup', () => {
             backup: mockBackup,
             db: {} as IDB,
             schemaVersion: {} as ISchemaVersion,
-            getName: () => 'Test Handler'
+            getName: () => 'Test Handler',
+            getVersion: () => '1.0.0-test',
         };
 
         const config = new Config();
@@ -62,7 +63,8 @@ describe('BackupService - Optional Backup', () => {
             // No backup interface
             db: {} as IDB,
             schemaVersion: {} as ISchemaVersion,
-            getName: () => 'Test Handler'
+            getName: () => 'Test Handler',
+            getVersion: () => '1.0.0-test',
         };
 
         const config = new Config();
@@ -85,7 +87,8 @@ describe('BackupService - Optional Backup', () => {
             // No backup interface
             db: {} as IDB,
             schemaVersion: {} as ISchemaVersion,
-            getName: () => 'Test Handler'
+            getName: () => 'Test Handler',
+            getVersion: () => '1.0.0-test',
         };
 
         const config = new Config();
@@ -122,7 +125,8 @@ describe('BackupService - Optional Backup', () => {
             backup: mockBackup,
             db: {} as IDB,
             schemaVersion: {} as ISchemaVersion,
-            getName: () => 'Test Handler'
+            getName: () => 'Test Handler',
+            getVersion: () => '1.0.0-test',
         };
 
         const config = new Config();

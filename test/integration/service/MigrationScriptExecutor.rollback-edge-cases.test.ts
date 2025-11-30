@@ -87,7 +87,8 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" }
             // No backup interface
         };
 
@@ -154,7 +155,8 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" }
         };
 
         const executor = new MigrationScriptExecutor(handler, config, {logger: testLogger});
@@ -234,7 +236,8 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" }
         };
 
         const executor = new MigrationScriptExecutor(handler, config, {logger: testLogger});
@@ -298,7 +301,8 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" }
         };
 
         const executor = new MigrationScriptExecutor(handler, config, {logger: testLogger});
@@ -355,7 +359,8 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" }
         };
 
         const executor = new MigrationScriptExecutor(handler, config, {logger: testLogger});

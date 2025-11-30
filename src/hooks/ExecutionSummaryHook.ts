@@ -4,6 +4,7 @@ import {IMigrationResult} from '../interface/IMigrationResult';
 import {ExecutionSummaryLogger} from '../service/ExecutionSummaryLogger';
 import {Config} from '../model/Config';
 import {ILogger} from '../interface/ILogger';
+import {IDatabaseMigrationHandler} from '../interface/IDatabaseMigrationHandler';
 
 /**
  * Hook implementation that logs detailed execution summaries.
@@ -26,7 +27,7 @@ import {ILogger} from '../interface/ILogger';
  * @example
  * ```typescript
  * // Manual usage with CompositeHooks
- * const summaryHook = new ExecutionSummaryHook(config, logger, 'PostgreSQL');
+ * const summaryHook = new ExecutionSummaryHook(config, logger, handler);
  * const customHooks = new CompositeHooks([summaryHook, myCustomHook]);
  * const executor = new MigrationScriptExecutor(handler, config, {
  *     hooks: customHooks
@@ -41,9 +42,9 @@ export class ExecutionSummaryHook implements IMigrationHooks {
     constructor(
         config: Config,
         logger: ILogger,
-        handlerName: string
+        handler: IDatabaseMigrationHandler
     ) {
-        this.summaryLogger = new ExecutionSummaryLogger(config, logger, handlerName);
+        this.summaryLogger = new ExecutionSummaryLogger(config, logger, handler);
     }
 
     /**

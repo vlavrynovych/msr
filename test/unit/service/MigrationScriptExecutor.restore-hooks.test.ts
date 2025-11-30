@@ -48,7 +48,8 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
                     }
                 }
             } as ISchemaVersion,
-            getName: () => 'TestHandler'
+            getName: () => 'TestHandler',
+            getVersion: () => '1.0.0-test',
         } as IDatabaseMigrationHandler;
     });
 

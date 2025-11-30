@@ -133,5 +133,21 @@ describe('TypeScriptLoader', () => {
             expect(runnable.constructor).to.exist;
             expect(runnable.constructor.name).to.not.equal('Object');
         });
+
+        it('should handle non-Error exceptions during loading', async () => {
+            const script = new MigrationScript(
+                'V202311062345_throws_string.ts',
+                path.join(fixturesPath, 'V202311062345_throws_string.ts'),
+                202311062345
+            );
+
+            try {
+                await loader.load(script);
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                // Should handle string exceptions that are not Error objects
+                expect((error as Error).message).to.include('Cannot parse migration script');
+            }
+        });
     });
 });

@@ -246,7 +246,7 @@ describe('Utils', () => {
                 expect.fail('Should have thrown');
             } catch (e: any) {
                 // Verify the error includes parse error details
-                expect(e.message).to.eq("V202311062345_invalid-parse-error.ts: Cannot parse migration script: TypeError: clazz is not a constructor");
+                expect(e.message).to.eq("V202311062345_invalid-parse-error.ts: Cannot parse migration script: clazz is not a constructor");
                 expect(e).to.be.instanceOf(Error);
             }
         })

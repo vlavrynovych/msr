@@ -145,7 +145,7 @@ export class MigrationScriptExecutor {
         // Setup hooks with automatic execution summary logging
         const hooks: IMigrationHooks[] = [];
         if (dependencies?.hooks) hooks.push(dependencies.hooks);
-        if (this.config.logging.enabled) hooks.push(new ExecutionSummaryHook(this.config, this.logger, handler.getName()));
+        if (this.config.logging.enabled) hooks.push(new ExecutionSummaryHook(this.config, this.logger, handler));
         this.hooks = hooks.length > 0 ? new CompositeHooks(hooks) : undefined;
 
         // Use provided loader registry or create default (TypeScript + SQL)

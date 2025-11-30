@@ -223,9 +223,14 @@ export interface IExecutionSummary {
     timestamp: string;
 
     /**
-     * MSR version
+     * MSR Core version
      */
     msrVersion: string;
+
+    /**
+     * Database adapter version
+     */
+    adapterVersion: string;
 
     /**
      * Database handler name

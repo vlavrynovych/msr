@@ -70,7 +70,8 @@ describe('MigrationScriptExecutor - Version Control', () => {
                 }
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Implementation" }
+            getName(): string { return "Test Implementation" },
+            getVersion(): string { return "1.0.0-test" }
         } as IDatabaseMigrationHandler;
     });
 

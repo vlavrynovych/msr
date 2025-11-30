@@ -74,6 +74,7 @@ describe('Dry Run Mode', () => {
                 }
             },
             getName: () => 'TestHandler',
+            getVersion: () => '1.0.0-test',
             createTable: async () => true,
             isInitialized: async () => true,
             validateTable: async () => true

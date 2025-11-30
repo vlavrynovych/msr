@@ -20,10 +20,9 @@ export default class BeforeMigrate implements IRunnableScript {
         handler: IDatabaseMigrationHandler
     ): Promise<string> {
 
-        console.log('BeforeMigrate: Setting up test environment...');
-
+        // BeforeMigrate: Setting up test environment...
         // Example: Load test data, create extensions, validate environment, etc.
-        // For this test fixture, we just log and return
+        // For this test fixture, we just return success message
 
         return 'BeforeMigrate setup completed successfully';
     }

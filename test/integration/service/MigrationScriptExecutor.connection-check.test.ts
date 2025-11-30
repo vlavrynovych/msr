@@ -35,7 +35,8 @@ describe('MigrationScriptExecutor - Connection Check', () => {
                     remove: async (timestamp: number) => {}
                 }
             } as ISchemaVersion,
-            getName: () => 'TestHandler'
+            getName: () => 'TestHandler',
+            getVersion: () => '1.0.0-test',
         };
     });
 

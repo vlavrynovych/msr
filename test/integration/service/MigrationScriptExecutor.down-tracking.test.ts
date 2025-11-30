@@ -123,7 +123,8 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" }
         };
 
         // Clear global tracker
@@ -211,7 +212,8 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" }
         };
 
         (global as any).__testDownCalls2 = [];
@@ -286,7 +288,8 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" }
         };
 
         (global as any).__testDownCalls3 = [];

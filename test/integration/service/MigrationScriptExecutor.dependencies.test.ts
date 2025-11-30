@@ -48,6 +48,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             };
             db: IDB = db;
             getName(): string { return "Test Implementation" }
+            getVersion(): string { return "1.0.0-test" }
         }
     });
 

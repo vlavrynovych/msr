@@ -17,7 +17,7 @@ describe('MigrationRenderer', () => {
             ]
             const scripts = {migrated: list, all: list} as IScripts
             const config = new Config();
-            const renderer = new MigrationRenderer({getName: () => 'TestHandler'} as IDatabaseMigrationHandler, config)
+            const renderer = new MigrationRenderer({getName: () => 'TestHandler', getVersion: () => '1.0.0-test'} as IDatabaseMigrationHandler, config);
 
             // when: capture console output
             const sinon = require('sinon');
@@ -46,7 +46,7 @@ describe('MigrationRenderer', () => {
             ]
             const scripts = {migrated: list, all: list} as IScripts
             const config = new Config();
-            const renderer = new MigrationRenderer({getName: () => 'TestHandler'} as IDatabaseMigrationHandler, config)
+            const renderer = new MigrationRenderer({getName: () => 'TestHandler', getVersion: () => '1.0.0-test'} as IDatabaseMigrationHandler, config);
 
             // when: capture console output
             const sinon = require('sinon');
@@ -79,7 +79,7 @@ describe('MigrationRenderer', () => {
 
             const scripts = {migrated: list, all: list} as IScripts
             const config = new Config();
-            const renderer = new MigrationRenderer({getName: () => 'TestHandler'} as IDatabaseMigrationHandler, config)
+            const renderer = new MigrationRenderer({getName: () => 'TestHandler', getVersion: () => '1.0.0-test'} as IDatabaseMigrationHandler, config);
 
             // when: render large array
             expect(() => renderer.drawMigrated(scripts)).to.not.throw()
@@ -104,7 +104,7 @@ describe('MigrationRenderer', () => {
             ]
             const scripts = {migrated: list, all: all} as IScripts
             const config = new Config();
-            const renderer = new MigrationRenderer({getName: () => 'TestHandler'} as IDatabaseMigrationHandler, config)
+            const renderer = new MigrationRenderer({getName: () => 'TestHandler', getVersion: () => '1.0.0-test'} as IDatabaseMigrationHandler, config);
 
             // when: capture output
             const sinon = require('sinon');
@@ -135,7 +135,7 @@ describe('MigrationRenderer', () => {
             // all array is undefined
             const scripts = {migrated: list, all: undefined} as unknown as IScripts
             const config = new Config();
-            const renderer = new MigrationRenderer({getName: () => 'TestHandler'} as IDatabaseMigrationHandler, config)
+            const renderer = new MigrationRenderer({getName: () => 'TestHandler', getVersion: () => '1.0.0-test'} as IDatabaseMigrationHandler, config);
 
             // when: capture output
             const sinon = require('sinon');
@@ -164,7 +164,7 @@ describe('MigrationRenderer', () => {
                 {timestamp: 2, name: 'Test2', startedAt: 0, finishedAt: 1000, username: 'user', result: undefined} as IMigrationInfo,
             ]
             const config = new Config();
-            const renderer = new MigrationRenderer({getName: () => 'TestHandler'} as IDatabaseMigrationHandler, config)
+            const renderer = new MigrationRenderer({getName: () => 'TestHandler', getVersion: () => '1.0.0-test'} as IDatabaseMigrationHandler, config);
 
             // when: capture console output
             const sinon = require('sinon');
@@ -192,7 +192,7 @@ describe('MigrationRenderer', () => {
          */
         it('should include version and handler name', () => {
             const handler = {
-                getName: () => 'Test Implementation'
+                getName: () => 'Test Implementation',
             } as IDatabaseMigrationHandler;
             const config = new Config();
 
@@ -226,7 +226,7 @@ describe('MigrationRenderer', () => {
                 {timestamp: 2, name: 'Ignored2', filepath: '/path/to/ignored2.ts'} as MigrationScript,
             ]
             const config = new Config();
-            const renderer = new MigrationRenderer({getName: () => 'TestHandler'} as IDatabaseMigrationHandler, config)
+            const renderer = new MigrationRenderer({getName: () => 'TestHandler', getVersion: () => '1.0.0-test'} as IDatabaseMigrationHandler, config);
 
             // when: capture console.warn output
             const sinon = require('sinon');
@@ -263,7 +263,7 @@ describe('MigrationRenderer', () => {
 
             // Create renderer
             const config = new Config();
-            const renderer = new MigrationRenderer({getName: () => 'TestHandler'} as IDatabaseMigrationHandler, config)
+            const renderer = new MigrationRenderer({getName: () => 'TestHandler', getVersion: () => '1.0.0-test'} as IDatabaseMigrationHandler, config);
 
             // Test with displayLimit of 2 and 0 (should not throw)
             renderer.drawMigrated({migrated: list} as IScripts)
@@ -285,7 +285,7 @@ describe('MigrationRenderer', () => {
             ]
             const scripts = {migrated: list} as IScripts
             const config = new Config();
-            const renderer = new MigrationRenderer({getName: () => 'TestHandler'} as IDatabaseMigrationHandler, config)
+            const renderer = new MigrationRenderer({getName: () => 'TestHandler', getVersion: () => '1.0.0-test'} as IDatabaseMigrationHandler, config);
 
             // Render with displayLimit=0
             renderer.drawMigrated(scripts)
@@ -309,7 +309,7 @@ describe('MigrationRenderer', () => {
             ]
             const scripts = {migrated: [...list]} as IScripts
             const config = new Config();
-            const renderer = new MigrationRenderer({getName: () => 'TestHandler'} as IDatabaseMigrationHandler, config)
+            const renderer = new MigrationRenderer({getName: () => 'TestHandler', getVersion: () => '1.0.0-test'} as IDatabaseMigrationHandler, config);
 
             // Render with displayLimit=2
             renderer.drawMigrated(scripts)
@@ -332,7 +332,7 @@ describe('MigrationRenderer', () => {
             ]
             const scripts = {migrated: [...list]} as IScripts
             const config = new Config();
-            const renderer = new MigrationRenderer({getName: () => 'TestHandler'} as IDatabaseMigrationHandler, config)
+            const renderer = new MigrationRenderer({getName: () => 'TestHandler', getVersion: () => '1.0.0-test'} as IDatabaseMigrationHandler, config);
 
             // Render with displayLimit=1
             renderer.drawMigrated(scripts)
@@ -355,7 +355,7 @@ describe('MigrationRenderer', () => {
             ]
             const scripts = {migrated: [...list]} as IScripts
             const config = new Config();
-            const renderer = new MigrationRenderer({getName: () => 'TestHandler'} as IDatabaseMigrationHandler, config)
+            const renderer = new MigrationRenderer({getName: () => 'TestHandler', getVersion: () => '1.0.0-test'} as IDatabaseMigrationHandler, config);
 
             // Render with displayLimit=10 (more than available)
             renderer.drawMigrated(scripts)
@@ -374,7 +374,7 @@ describe('MigrationRenderer', () => {
             const list: MigrationScript[] = []
             const scripts = {migrated: list} as IScripts
             const config = new Config();
-            const renderer = new MigrationRenderer({getName: () => 'TestHandler'} as IDatabaseMigrationHandler, config)
+            const renderer = new MigrationRenderer({getName: () => 'TestHandler', getVersion: () => '1.0.0-test'} as IDatabaseMigrationHandler, config);
 
             // Render with displayLimit=5
             renderer.drawMigrated(scripts)
@@ -408,7 +408,7 @@ describe('MigrationRenderer', () => {
 
             // Create renderer
             const config = new Config();
-            const renderer = new MigrationRenderer({getName: () => 'TestHandler'} as IDatabaseMigrationHandler, config)
+            const renderer = new MigrationRenderer({getName: () => 'TestHandler', getVersion: () => '1.0.0-test'} as IDatabaseMigrationHandler, config);
 
             // Call all rendering methods (should not throw)
             renderer.drawExecuted(list)
@@ -431,7 +431,7 @@ describe('MigrationRenderer', () => {
          */
         it('should handle empty arrays without rendering', () => {
             const config = new Config();
-            const renderer = new MigrationRenderer({getName: () => 'TestHandler'} as IDatabaseMigrationHandler, config)
+            const renderer = new MigrationRenderer({getName: () => 'TestHandler', getVersion: () => '1.0.0-test'} as IDatabaseMigrationHandler, config);
 
             // These should all return early without rendering (and not throw)
             renderer.drawExecuted([])

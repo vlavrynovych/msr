@@ -44,7 +44,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                     }
                 }
             } as ISchemaVersion,
-            getName: () => 'TestHandler'
+            getName: () => 'TestHandler',
+            getVersion: () => '1.0.0-test',
         } as IDatabaseMigrationHandler;
     });
 

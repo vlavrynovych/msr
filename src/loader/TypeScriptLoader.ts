@@ -62,8 +62,9 @@ export class TypeScriptLoader implements IMigrationScriptLoader {
                     this.logger.warn(`${errorPrefix}: the 'up()' function was not found`);
                 }
             } catch (e) {
-                this.logger.error(e as string);
-                throw new Error(`${errorPrefix}: ${e}`);
+                const errorMsg = e instanceof Error ? e.message : String(e);
+                this.logger.error(errorMsg);
+                throw new Error(`${errorPrefix}: ${errorMsg}`);
             }
         }
 

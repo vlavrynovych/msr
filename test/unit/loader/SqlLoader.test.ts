@@ -127,7 +127,7 @@ describe('SqlLoader', () => {
             const runnable = await loader.load(script);
 
             const db = {} as IDB; // No query method
-            const handler = { getName: () => 'TestHandler' } as IDatabaseMigrationHandler;
+            const handler = { getName: () => 'TestHandler', getVersion: () => '1.0.0-test' } as IDatabaseMigrationHandler;
 
             try {
                 await runnable.up(db, {} as IMigrationInfo, handler);
@@ -264,7 +264,7 @@ describe('SqlLoader', () => {
             const runnable = await loader.load(script);
 
             const db = {} as IDB; // No query method
-            const handler = { getName: () => 'TestHandler' } as IDatabaseMigrationHandler;
+            const handler = { getName: () => 'TestHandler', getVersion: () => '1.0.0-test' } as IDatabaseMigrationHandler;
 
             try {
                 await runnable.down!(db, {} as IMigrationInfo, handler);

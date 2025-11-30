@@ -46,19 +46,34 @@ import {IBackup, IDB, ISchemaVersion} from "./dao";
  */
 export interface IDatabaseMigrationHandler {
     /**
-     * Get the name and version of the database handler.
-     * Used for display in console output.
+     * Get the name of the database handler.
+     * Used for display in console output and logging.
      *
-     * @returns Human-readable name of the handler (e.g., "PostgreSQL Handler v1.0")
+     * @returns Human-readable name of the handler (e.g., "PostgreSQL Handler")
      *
      * @example
      * ```typescript
      * getName(): string {
-     *   return 'PostgreSQL Handler v1.0';
+     *   return 'PostgreSQL Handler';
      * }
      * ```
      */
     getName(): string
+
+    /**
+     * Get the version of the database adapter/handler.
+     * Used in execution summary logging to track which adapter version was used.
+     *
+     * @returns Semantic version string (e.g., "1.2.3")
+     *
+     * @example
+     * ```typescript
+     * getVersion(): string {
+     *   return '1.2.3';
+     * }
+     * ```
+     */
+    getVersion(): string
 
     /**
      * Database connection/client interface.

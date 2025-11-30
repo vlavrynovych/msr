@@ -62,7 +62,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" },
         };
 
         const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
@@ -97,7 +98,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" },
         };
 
         const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
@@ -135,7 +137,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" },
         };
 
         const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
@@ -173,7 +176,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" },
         };
 
         const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
@@ -206,7 +210,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" },
         };
 
         const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
@@ -245,7 +250,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" },
         };
 
         const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
@@ -279,7 +285,8 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
                 validateTable: sinon.stub().resolves(true)
             } as ISchemaVersion,
             db,
-            getName(): string { return "Test Handler" }
+            getName(): string { return "Test Handler" },
+            getVersion(): string { return "1.0.0-test" },
         };
 
         const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});

@@ -6,11 +6,16 @@ import { ExecutionSummaryLogger } from '../../../src/service/ExecutionSummaryLog
 import { Config } from '../../../src/model/Config';
 import { SilentLogger } from '../../../src/logger';
 import { SummaryFormat } from '../../../src/interface/logging/IExecutionSummary';
+import { IDatabaseMigrationHandler } from '../../../src/interface/IDatabaseMigrationHandler';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packageJson = require('../../../package.json');
 
 describe('ExecutionSummaryLogger', () => {
     let config: Config;
     let logger: SilentLogger;
     let summaryLogger: ExecutionSummaryLogger;
+    let mockHandler: IDatabaseMigrationHandler;
     const testLogDir = './test-logs/migrations';
 
     beforeEach(() => {
@@ -19,7 +24,15 @@ describe('ExecutionSummaryLogger', () => {
         config.logging.path = testLogDir;
         config.logging.maxFiles = 0;
         logger = new SilentLogger();
-        summaryLogger = new ExecutionSummaryLogger(config, logger, 'TestHandler');
+
+        mockHandler = {
+            getName: () => 'TestHandler',
+            getVersion: () => '1.0.0',
+            db: {} as any,
+            schemaVersion: {} as any
+        };
+
+        summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
 
         // Clean up test log directory
         if (fs.existsSync(testLogDir)) {
@@ -110,7 +123,7 @@ describe('ExecutionSummaryLogger', () => {
     describe('saveSummary()', () => {
         it('should not save when logging is disabled', async () => {
             config.logging.enabled = false;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, 'TestHandler');
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
             summaryLogger.startRun();
 
             await summaryLogger.saveSummary(true, 1, 0, 1000);
@@ -121,7 +134,7 @@ describe('ExecutionSummaryLogger', () => {
 
         it('should not save successful runs when logSuccessful is false', async () => {
             config.logging.logSuccessful = false;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, 'TestHandler');
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
             summaryLogger.startRun();
 
             await summaryLogger.saveSummary(true, 1, 0, 1000);
@@ -133,7 +146,7 @@ describe('ExecutionSummaryLogger', () => {
         it('should save failed runs even when logSuccessful is false', async () => {
             config.logging.logSuccessful = false;
             config.logging.format = SummaryFormat.JSON;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, 'TestHandler');
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
             summaryLogger.startRun();
 
             await summaryLogger.saveSummary(false, 0, 1, 1000);
@@ -149,7 +162,7 @@ describe('ExecutionSummaryLogger', () => {
         it('should save JSON format', async () => {
             config.logging.format = SummaryFormat.JSON;
             config.logging.logSuccessful = true; // Enable logging successful runs
-            summaryLogger = new ExecutionSummaryLogger(config, logger, 'TestHandler');
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
             summaryLogger.startRun();
             summaryLogger.recordMigrationStart('TestMigration', 202501010001);
             summaryLogger.recordMigrationSuccess('TestMigration', 202501010001, 1000);
@@ -167,7 +180,8 @@ describe('ExecutionSummaryLogger', () => {
             const content = fs.readFileSync(filePath, 'utf-8');
             const summary = JSON.parse(content);
 
-            expect(summary.msrVersion).to.equal('0.3.0');
+            expect(summary.msrVersion).to.equal(packageJson.version); // From package.json
+            expect(summary.adapterVersion).to.equal('1.0.0');
             expect(summary.handler).to.equal('TestHandler');
             expect(summary.result.success).to.be.true;
             expect(summary.result.executed).to.equal(1);
@@ -181,7 +195,7 @@ describe('ExecutionSummaryLogger', () => {
         it('should save TEXT format', async () => {
             config.logging.format = SummaryFormat.TEXT;
             config.logging.logSuccessful = true;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, 'TestHandler');
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
             summaryLogger.startRun();
             summaryLogger.recordMigrationStart('TestMigration', 202501010001);
             summaryLogger.recordMigrationSuccess('TestMigration', 202501010001, 1000);
@@ -207,7 +221,7 @@ describe('ExecutionSummaryLogger', () => {
         it('should save BOTH formats', async () => {
             config.logging.format = SummaryFormat.BOTH;
             config.logging.logSuccessful = true;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, 'TestHandler');
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
             summaryLogger.startRun();
             summaryLogger.recordMigrationStart('TestMigration', 202501010001);
             summaryLogger.recordMigrationSuccess('TestMigration', 202501010001, 1000);
@@ -229,7 +243,7 @@ describe('ExecutionSummaryLogger', () => {
         it('should include backup information in summary', async () => {
             config.logging.format = SummaryFormat.JSON;
             config.logging.logSuccessful = true;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, 'TestHandler');
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
             summaryLogger.startRun();
             summaryLogger.recordBackup('/backups/test.bkp', 2048);
 
@@ -248,7 +262,7 @@ describe('ExecutionSummaryLogger', () => {
 
         it('should include rollback information in summary', async () => {
             config.logging.format = SummaryFormat.JSON;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, 'TestHandler');
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
             summaryLogger.startRun();
             summaryLogger.recordRollback('BACKUP', true);
 
@@ -269,7 +283,7 @@ describe('ExecutionSummaryLogger', () => {
     describe('Text Format with Errors', () => {
         it('should include error and stack trace in text format', async () => {
             config.logging.format = SummaryFormat.TEXT;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, 'TestHandler');
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
             summaryLogger.startRun();
             summaryLogger.recordMigrationStart('FailedMigration', 202501010001);
             const error = new Error('Test error');
@@ -292,7 +306,7 @@ describe('ExecutionSummaryLogger', () => {
         it('should include backup info in text format', async () => {
             config.logging.format = SummaryFormat.TEXT;
             config.logging.logSuccessful = true;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, 'TestHandler');
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
             summaryLogger.startRun();
             summaryLogger.recordBackup('/backups/test.bkp', 2048);
 
@@ -310,7 +324,7 @@ describe('ExecutionSummaryLogger', () => {
 
         it('should include rollback info with error in text format', async () => {
             config.logging.format = SummaryFormat.TEXT;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, 'TestHandler');
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
             summaryLogger.startRun();
             summaryLogger.recordRollback('BACKUP', false, 'Rollback failed: timeout');
 
@@ -332,7 +346,7 @@ describe('ExecutionSummaryLogger', () => {
         it('should use default log path when not configured', async () => {
             config.logging.logSuccessful = true;
             config.logging.path = undefined; // Test default path branch
-            summaryLogger = new ExecutionSummaryLogger(config, logger, 'TestHandler');
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
             summaryLogger.startRun();
 
             await summaryLogger.saveSummary(true, 1, 0, 1000);
@@ -352,7 +366,7 @@ describe('ExecutionSummaryLogger', () => {
         it('should use default format (JSON) when not configured', async () => {
             config.logging.logSuccessful = true;
             config.logging.format = undefined; // Test default format branch
-            summaryLogger = new ExecutionSummaryLogger(config, logger, 'TestHandler');
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
             summaryLogger.startRun();
 
             await summaryLogger.saveSummary(true, 1, 0, 1000);
@@ -369,7 +383,7 @@ describe('ExecutionSummaryLogger', () => {
             config.logging.format = SummaryFormat.JSON;
             config.logging.logSuccessful = true;
             config.logging.maxFiles = 3;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, 'TestHandler');
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
 
             // Create 5 summary files
             for (let i = 0; i < 5; i++) {
@@ -388,7 +402,7 @@ describe('ExecutionSummaryLogger', () => {
             config.logging.format = SummaryFormat.JSON;
             config.logging.logSuccessful = true;
             config.logging.maxFiles = 0; // No limit
-            summaryLogger = new ExecutionSummaryLogger(config, logger, 'TestHandler');
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
 
             // Create 5 summary files
             for (let i = 0; i < 5; i++) {
@@ -406,7 +420,7 @@ describe('ExecutionSummaryLogger', () => {
             config.logging.format = SummaryFormat.JSON;
             config.logging.logSuccessful = true;
             config.logging.maxFiles = 2;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, 'TestHandler');
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
 
             // Create some migration summary files
             summaryLogger.startRun();
@@ -451,7 +465,7 @@ describe('ExecutionSummaryLogger', () => {
                 debug: () => {}, // Silent debug
                 info: () => {} // Silent info
             };
-            summaryLogger = new ExecutionSummaryLogger(config, testLogger as any, 'TestHandler');
+            summaryLogger = new ExecutionSummaryLogger(config, testLogger as any, mockHandler);
 
             // Create test directory
             if (!fs.existsSync(testDir)) {
@@ -501,6 +515,45 @@ describe('ExecutionSummaryLogger', () => {
                     }
                 }
                 fs.rmdirSync(testDir, { recursive: true });
+            }
+        });
+    });
+
+    describe('Version Handling', () => {
+        it('should handle package.json read errors gracefully', () => {
+            // Create a custom handler that will trigger during getMsrVersion() in constructor
+            const warnings: string[] = [];
+            const testLogger = {
+                ...logger,
+                warn: (message: string) => warnings.push(message),
+                debug: () => {},
+                info: () => {},
+                error: () => {}
+            };
+
+            // Mock require to throw an error
+            const Module = require('module');
+            const originalRequire = Module.prototype.require;
+            Module.prototype.require = function(id: string) {
+                if (id === '../../package.json') {
+                    throw new Error('Cannot find module');
+                }
+                return originalRequire.apply(this, arguments);
+            };
+
+            try {
+                // This should trigger the catch block in getMsrVersion()
+                const loggerWithError = new ExecutionSummaryLogger(config, testLogger as any, mockHandler);
+
+                // Verify warning was logged
+                expect(warnings.length).to.be.greaterThan(0);
+                expect(warnings[0]).to.equal('Could not read MSR version from package.json');
+
+                // Verify it still created a valid logger (with fallback version)
+                expect(loggerWithError).to.be.instanceOf(ExecutionSummaryLogger);
+            } finally {
+                // Restore original require
+                Module.prototype.require = originalRequire;
             }
         });
     });

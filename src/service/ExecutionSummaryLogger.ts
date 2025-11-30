@@ -9,6 +9,7 @@ import {
 } from '../interface/logging/IExecutionSummary';
 import {Config} from '../model/Config';
 import {ILogger} from '../interface/ILogger';
+import {IDatabaseMigrationHandler} from '../interface/IDatabaseMigrationHandler';
 
 /**
  * Service for logging detailed execution summaries to files.
@@ -23,7 +24,7 @@ import {ILogger} from '../interface/ILogger';
  *
  * @example
  * ```typescript
- * const logger = new ExecutionSummaryLogger(config, consoleLogger, 'PostgreSQL');
+ * const logger = new ExecutionSummaryLogger(config, consoleLogger, handler);
  *
  * // Start tracking
  * logger.startRun();
@@ -44,14 +45,16 @@ export class ExecutionSummaryLogger {
     private summary: IExecutionSummary;
     private migrationDetails: Map<string, IMigrationExecutionDetail>;
     private runStartTime: Date;
+    private msrVersion: string;
 
     constructor(
         private config: Config,
         private logger: ILogger,
-        private handlerName: string
+        private handler: IDatabaseMigrationHandler
     ) {
         this.migrationDetails = new Map();
         this.runStartTime = new Date();
+        this.msrVersion = this.getMsrVersion();
         this.summary = this.createEmptySummary();
     }
 
@@ -224,13 +227,29 @@ export class ExecutionSummaryLogger {
     }
 
     /**
+     * Get MSR Core version from package.json
+     */
+    private getMsrVersion(): string {
+        try {
+            // Using require here to dynamically load package.json at runtime
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const pkg = require('../../package.json');
+            return pkg.version;
+        } catch (error) {
+            this.logger.warn('Could not read MSR version from package.json');
+            return '0.0.0';
+        }
+    }
+
+    /**
      * Create an empty execution summary with initial values.
      */
     private createEmptySummary(): IExecutionSummary {
         return {
             timestamp: this.runStartTime.toISOString(),
-            msrVersion: '0.3.0', // TODO: Get from package.json
-            handler: this.handlerName,
+            msrVersion: this.msrVersion,
+            adapterVersion: this.handler.getVersion(),
+            handler: this.handler.getName(),
             config: this.createConfigSnapshot(),
             migrations: [],
             result: {
@@ -284,10 +303,11 @@ export class ExecutionSummaryLogger {
         lines.push('='.repeat(80));
         lines.push('');
 
-        lines.push(`Timestamp:    ${this.summary.timestamp}`);
-        lines.push(`MSR Version:  ${this.summary.msrVersion}`);
-        lines.push(`Handler:      ${this.summary.handler}`);
-        lines.push(`Status:       ${this.summary.result.success ? 'SUCCESS' : 'FAILED'}`);
+        lines.push(`Timestamp:       ${this.summary.timestamp}`);
+        lines.push(`MSR Version:     ${this.summary.msrVersion}`);
+        lines.push(`Adapter Version: ${this.summary.adapterVersion}`);
+        lines.push(`Handler:         ${this.summary.handler}`);
+        lines.push(`Status:          ${this.summary.result.success ? 'SUCCESS' : 'FAILED'}`);
         lines.push('');
 
         lines.push('-'.repeat(80));

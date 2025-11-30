@@ -57,6 +57,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
             };
             db: IDB = db;
             getName(): string { return "Test Implementation" }
+            getVersion(): string { return "1.0.0-test" }
         }
         executor = new MigrationScriptExecutor(handler, cfg, {logger: new SilentLogger()});
     });
@@ -189,6 +190,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
         const failingHandler: IDatabaseMigrationHandler = {
             db: handler.db,
             getName: handler.getName.bind(handler),
+            getVersion: handler.getVersion.bind(handler),
             backup: handler.backup,
             schemaVersion: {
                 isInitialized: handler.schemaVersion.isInitialized,
@@ -305,6 +307,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
         const allMigratedHandler: IDatabaseMigrationHandler = {
             db: handler.db,
             getName: handler.getName.bind(handler),
+            getVersion: handler.getVersion.bind(handler),
             backup: handler.backup,
             schemaVersion: {
                 isInitialized: handler.schemaVersion.isInitialized,
