@@ -1,5 +1,6 @@
 import {BackupConfig, RollbackStrategy, DownMethodPolicy, BackupMode, DuplicateTimestampMode} from "./index";
 import {IMigrationValidator} from "../interface/validation/IMigrationValidator";
+import {IExecutionSummaryConfig, SummaryFormat} from "../interface/logging/IExecutionSummary";
 
 /**
  * Configuration for the migration system.
@@ -467,6 +468,58 @@ export class Config {
      * ```
      */
     duplicateTimestampMode: DuplicateTimestampMode = DuplicateTimestampMode.WARN
+
+    /**
+     * Configuration for execution summary logging.
+     *
+     * Controls whether and how to log detailed execution summaries to files.
+     * Summaries include complete trace of migration executions, errors, and actions taken.
+     *
+     * @default { enabled: true, logSuccessful: false, path: './logs/migrations', format: 'json', maxFiles: 0 }
+     *
+     * @example
+     * ```typescript
+     * import { Config, SummaryFormat } from '@migration-script-runner/core';
+     *
+     * const config = new Config();
+     * config.logging = {
+     *     enabled: true,              // Enable summary logging
+     *     logSuccessful: true,        // Log successful runs too
+     *     path: './logs/migrations',  // Where to save summaries
+     *     format: SummaryFormat.BOTH, // JSON and text formats
+     *     maxFiles: 10                // Keep last 10 summaries
+     * };
+     * ```
+     *
+     * @example
+     * ```typescript
+     * // Production audit trail
+     * config.logging = {
+     *     enabled: true,
+     *     logSuccessful: true,  // Log all runs for audit
+     *     format: SummaryFormat.JSON,
+     *     maxFiles: 100         // Keep 100 most recent
+     * };
+     * ```
+     *
+     * @example
+     * ```typescript
+     * // Debug failures only
+     * config.logging = {
+     *     enabled: true,
+     *     logSuccessful: false,  // Only log failures
+     *     format: SummaryFormat.BOTH,
+     *     path: './debug/migrations'
+     * };
+     * ```
+     */
+    logging: IExecutionSummaryConfig = {
+        enabled: false,
+        logSuccessful: false,
+        path: './logs/migrations',
+        format: SummaryFormat.JSON,
+        maxFiles: 0
+    }
 
     /**
      * Enable dry run mode to preview migrations without executing them.

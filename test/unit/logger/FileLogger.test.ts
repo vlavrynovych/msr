@@ -8,12 +8,35 @@ describe('FileLogger', () => {
     const testLogDir = './test-logs';
     const testLogPath = path.join(testLogDir, 'test.log');
 
+    beforeEach(() => {
+        // Clean up test logs before each test to ensure clean state
+        if (fs.existsSync(testLogDir)) {
+            const files = fs.readdirSync(testLogDir);
+            files.forEach(file => {
+                const filePath = path.join(testLogDir, file);
+                const stat = fs.statSync(filePath);
+                if (stat.isDirectory()) {
+                    fs.rmSync(filePath, { recursive: true, force: true });
+                } else {
+                    fs.unlinkSync(filePath);
+                }
+            });
+            fs.rmdirSync(testLogDir);
+        }
+    });
+
     afterEach(() => {
         // Clean up test logs after each test
         if (fs.existsSync(testLogDir)) {
             const files = fs.readdirSync(testLogDir);
             files.forEach(file => {
-                fs.unlinkSync(path.join(testLogDir, file));
+                const filePath = path.join(testLogDir, file);
+                const stat = fs.statSync(filePath);
+                if (stat.isDirectory()) {
+                    fs.rmSync(filePath, { recursive: true, force: true });
+                } else {
+                    fs.unlinkSync(filePath);
+                }
             });
             fs.rmdirSync(testLogDir);
         }

@@ -1,0 +1,228 @@
+import { expect } from 'chai';
+import * as fs from 'fs';
+import * as path from 'path';
+import {
+    MigrationScriptExecutor,
+    Config,
+    SilentLogger,
+    IDatabaseMigrationHandler,
+    IDB,
+    IMigrationInfo,
+    RollbackStrategy,
+    SummaryFormat
+} from '../../../src';
+import { TestUtils } from '../../helpers';
+
+describe('Execution Summary Logging Integration', () => {
+    let config: Config;
+    let handler: IDatabaseMigrationHandler;
+    const testLogDir = './test-logs/integration';
+
+    beforeEach(() => {
+        config = TestUtils.getConfig();
+        // Explicitly configure logging for tests
+        config.logging = {
+            enabled: true,
+            logSuccessful: true,
+            path: testLogDir,
+            format: SummaryFormat.JSON,
+            maxFiles: 0
+        };
+
+        // Clean up test log directory
+        if (fs.existsSync(testLogDir)) {
+            const files = fs.readdirSync(testLogDir);
+            for (const file of files) {
+                fs.unlinkSync(path.join(testLogDir, file));
+            }
+            fs.rmdirSync(testLogDir, { recursive: true });
+        }
+
+        // Mock handler
+        handler = {
+            db: {
+                execute: async (sql: string) => {
+                    return [];
+                }
+            } as IDB,
+            backup: {
+                backup: async () => {
+                    return './test-backup.bkp';
+                },
+                restore: async (backupPath: string) => {
+                    // Restore simulation
+                }
+            },
+            migrationRecords: {
+                save: async (details: IMigrationInfo) => {
+                    // Save simulation
+                },
+                getAllExecuted: async () => [],
+                remove: async (timestamp: number) => {
+                    // Remove simulation
+                }
+            },
+            schemaVersion: {
+                save: async (details: IMigrationInfo) => {
+                    // Save simulation
+                },
+                getAllExecuted: async () => [],
+                remove: async (timestamp: number) => {
+                    // Remove simulation
+                },
+                isInitialized: async () => true,
+                createTable: async () => true,
+                validateTable: async () => true,
+                migrationRecords: {
+                    save: async (details: IMigrationInfo) => {
+                        // Save simulation
+                    },
+                    getAllExecuted: async () => [],
+                    remove: async (timestamp: number) => {
+                        // Remove simulation
+                    }
+                }
+            },
+            getName: () => 'TestHandler',
+            createTable: async () => true,
+            isInitialized: async () => true,
+            validateTable: async () => true
+        } as IDatabaseMigrationHandler;
+    });
+
+    afterEach(() => {
+        // Clean up test log directory
+        if (fs.existsSync(testLogDir)) {
+            const files = fs.readdirSync(testLogDir);
+            for (const file of files) {
+                fs.unlinkSync(path.join(testLogDir, file));
+            }
+            fs.rmdirSync(testLogDir, { recursive: true });
+        }
+    });
+
+    it('should create execution summary file for successful migration', async () => {
+        const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+
+        const result = await executor.up();
+
+        // Verify migration succeeded
+        expect(result.success).to.be.true;
+
+        // Verify summary file was created
+        expect(fs.existsSync(testLogDir)).to.be.true;
+        const files = fs.readdirSync(testLogDir);
+        expect(files.length).to.equal(1);
+        expect(files[0]).to.include('migration-success');
+        expect(files[0]).to.include('.json');
+
+        // Verify summary content
+        const filePath = path.join(testLogDir, files[0]);
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const summary = JSON.parse(content);
+
+        expect(summary.handler).to.equal('TestHandler');
+        expect(summary.result.success).to.be.true;
+        expect(summary.config.folder).to.exist;
+        expect(summary.config.rollbackStrategy).to.exist;
+    });
+
+    it('should not create summary file when logging is disabled', async () => {
+        config.logging.enabled = false;
+        const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+
+        await executor.up();
+
+        // No summary file should be created
+        expect(fs.existsSync(testLogDir)).to.be.false;
+    });
+
+    it('should not create summary for successful runs when logSuccessful is false', async () => {
+        config.logging.logSuccessful = false;
+        const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+
+        await executor.up();
+
+        // No summary file should be created
+        expect(fs.existsSync(testLogDir)).to.be.false;
+    });
+
+    it('should create summary in both JSON and TEXT formats', async () => {
+        config.logging.format = SummaryFormat.BOTH;
+        const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+
+        await executor.up();
+
+        // Verify both files were created
+        expect(fs.existsSync(testLogDir)).to.be.true;
+        const files = fs.readdirSync(testLogDir);
+        expect(files.length).to.equal(2);
+
+        const jsonFile = files.find(f => f.endsWith('.json'));
+        const textFile = files.find(f => f.endsWith('.txt'));
+
+        expect(jsonFile).to.exist;
+        expect(textFile).to.exist;
+    });
+
+    it('should work with user-provided hooks', async () => {
+        let onStartCalled = false;
+        let onCompleteCalled = false;
+
+        const customHooks = {
+            onStart: async () => {
+                onStartCalled = true;
+            },
+            onComplete: async () => {
+                onCompleteCalled = true;
+            }
+        };
+
+        const executor = new MigrationScriptExecutor(handler, config, {
+            logger: new SilentLogger(),
+            hooks: customHooks
+        });
+
+        await executor.up();
+
+        // Verify custom hooks were called
+        expect(onStartCalled).to.be.true;
+        expect(onCompleteCalled).to.be.true;
+
+        // Verify summary file was still created
+        expect(fs.existsSync(testLogDir)).to.be.true;
+        const files = fs.readdirSync(testLogDir);
+        expect(files.length).to.equal(1);
+    });
+
+    it('should include migration details in summary', async () => {
+        const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+
+        await executor.up();
+
+        // Verify summary has migration details
+        const files = fs.readdirSync(testLogDir);
+        const filePath = path.join(testLogDir, files[0]);
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const summary = JSON.parse(content);
+
+        expect(summary.handler).to.equal('TestHandler');
+        expect(summary.config).to.exist;
+        expect(summary.config.folder).to.exist;
+        expect(summary.result).to.exist;
+    });
+
+    it('should work without hooks when logging disabled and no user hooks', async () => {
+        config.logging.enabled = false;
+        // Don't provide hooks in dependencies - this makes this.hooks undefined
+        const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+
+        // This should work fine even with this.hooks being undefined
+        // All the optional chaining (?.) branches should handle undefined gracefully
+        const result = await executor.up();
+
+        // Should complete successfully
+        expect(result.success).to.be.true;
+    });
+
+});

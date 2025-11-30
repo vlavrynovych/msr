@@ -26,6 +26,8 @@ import {RollbackService} from "./RollbackService";
 import {IRollbackService} from "../interface/service/IRollbackService";
 import {LoaderRegistry} from "../loader/LoaderRegistry";
 import {ILoaderRegistry} from "../interface/loader/ILoaderRegistry";
+import {CompositeHooks} from "../hooks/CompositeHooks";
+import {ExecutionSummaryHook} from "../hooks/ExecutionSummaryHook";
 
 /**
  * Main executor class for running database migrations.
@@ -140,8 +142,11 @@ export class MigrationScriptExecutor {
         // Use provided logger or default to ConsoleLogger
         this.logger = dependencies?.logger ?? new ConsoleLogger();
 
-        // Use provided hooks if available
-        this.hooks = dependencies?.hooks;
+        // Setup hooks with automatic execution summary logging
+        const hooks: IMigrationHooks[] = [];
+        if (dependencies?.hooks) hooks.push(dependencies.hooks);
+        if (this.config.logging.enabled) hooks.push(new ExecutionSummaryHook(this.config, this.logger, handler.getName()));
+        this.hooks = hooks.length > 0 ? new CompositeHooks(hooks) : undefined;
 
         // Use provided loader registry or create default (TypeScript + SQL)
         this.loaderRegistry = dependencies?.loaderRegistry ?? LoaderRegistry.createDefault(this.logger);
