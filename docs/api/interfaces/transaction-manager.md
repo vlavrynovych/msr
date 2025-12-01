@@ -1,8 +1,19 @@
+---
+layout: default
+title: ITransactionManager
+parent: Interfaces
+grand_parent: API Reference
+nav_order: 6
+---
+
 # ITransactionManager Interface
+{: .no_toc }
 
 The `ITransactionManager` interface provides transaction orchestration with automatic retry logic for transient failures. It wraps database transaction operations with resilience patterns.
+{: .fs-6 .fw-300 }
 
 ## Table of Contents
+{: .no_toc .text-delta }
 
 - [Overview](#overview)
 - [Interface Definition](#interface-definition)

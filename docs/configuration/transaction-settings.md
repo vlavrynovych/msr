@@ -1,8 +1,18 @@
+---
+layout: default
+title: Transaction Settings
+parent: Configuration
+nav_order: 5
+---
+
 # Transaction Settings
+{: .no_toc }
 
 Configure transaction management for migration execution. Transaction settings control how migrations are wrapped in database transactions and how they behave on failure.
+{: .fs-6 .fw-300 }
 
 ## Table of Contents
+{: .no_toc .text-delta }
 
 - [Overview](#overview)
 - [Transaction Configuration](#transaction-configuration)

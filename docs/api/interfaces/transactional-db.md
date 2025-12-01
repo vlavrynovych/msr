@@ -1,8 +1,19 @@
+---
+layout: default
+title: ITransactionalDB
+parent: Interfaces
+grand_parent: API Reference
+nav_order: 5
+---
+
 # ITransactionalDB Interface
+{: .no_toc }
 
 The `ITransactionalDB` interface extends the base `IDB` interface to add transaction management capabilities for SQL databases.
+{: .fs-6 .fw-300 }
 
 ## Table of Contents
+{: .no_toc .text-delta }
 
 - [Overview](#overview)
 - [Interface Definition](#interface-definition)
