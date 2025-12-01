@@ -395,8 +395,8 @@ config.backup.existingBackupPath = './backups/backup-2024-01-15.bkp';
 - Environment synchronization
 
 **See Also:**
-- [Backup & Restore Guide](../../user-guides/backup-restore-workflows)
-- [Restore Operations](../../user-guides/backup-restore-workflows#restore-operations)
+- [Backup & Restore Guide](../../guides/backup-restore-workflows)
+- [Restore Operations](../../guides/backup-restore-workflows#restore-operations)
 
 ---
 
@@ -514,7 +514,7 @@ export MSR_BACKUP_EXISTING_BACKUP_PATH=./backups/backup-2024-01-15.bkp
 ```
 
 **See Also:**
-- [Backup & Restore Workflows](../../user-guides/backup-restore-workflows)
+- [Backup & Restore Workflows](../../guides/backup-restore-workflows)
 
 ---
 
@@ -522,7 +522,7 @@ export MSR_BACKUP_EXISTING_BACKUP_PATH=./backups/backup-2024-01-15.bkp
 
 - **[Environment Variables Index](index)** - All environment variables
 - **[Backup Settings](../../configuration/backup-settings)** - Complete backup config
-- **[Backup & Restore Guide](../../user-guides/backup-restore-workflows)** - Usage guide
+- **[Backup & Restore Guide](../../guides/backup-restore-workflows)** - Usage guide
 - **[Rollback Strategies](../../configuration/rollback-settings)** - When backups are used
 - **[BackupService API](../../api/services#backupservice)** - Backup service
 

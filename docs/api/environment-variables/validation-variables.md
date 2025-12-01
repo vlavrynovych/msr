@@ -70,7 +70,7 @@ config.validateBeforeRun = true;
 
 **See Also:**
 - [Validation Settings](../../configuration/validation-settings)
-- [Validation Guide](../../user-guides/validation)
+- [Validation Guide](../../guides/validation)
 - [Built-in Validators](../../customization/validation/built-in-validation)
 
 ---
@@ -215,7 +215,7 @@ graph TD
 
 - **[Environment Variables Index](index)** - All environment variables
 - **[Validation Settings](../../configuration/validation-settings)** - Complete validation config
-- **[Validation Guide](../../user-guides/validation)** - How to use validation
+- **[Validation Guide](../../guides/validation)** - How to use validation
 - **[Built-in Validators](../../customization/validation/built-in-validation)** - Default validation rules
 - **[Custom Validators](../../customization/validation/custom-validators)** - Extend validation
 

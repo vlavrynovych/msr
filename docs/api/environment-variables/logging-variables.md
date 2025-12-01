@@ -380,7 +380,7 @@ Example log entry:
 - **[Environment Variables Index](index)** - All environment variables
 - **[Logging Customization](../../customization/loggers/)** - Custom loggers
 - **[FileLogger API](../../api/services#filelogger)** - FileLogger service
-- **[Execution Summary](../../user-guides/execution-summary)** - Summary output
+- **[Execution Summary](../../guides/execution-summary)** - Summary output
 
 ---
 

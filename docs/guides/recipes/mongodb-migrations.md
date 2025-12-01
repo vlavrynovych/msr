@@ -2,6 +2,7 @@
 layout: default
 title: MongoDB Migrations
 parent: Recipes
+grand_parent: Guides
 nav_order: 2
 ---
 
@@ -800,5 +801,5 @@ await db.db.command({
 
 - [PostgreSQL Recipe](postgres-with-backup) - SQL database migrations
 - [Testing Migrations](testing-migrations) - Testing strategies
-- [Writing Migrations](../user-guides/writing-migrations) - Best practices
+- [Writing Migrations](../guides/writing-migrations) - Best practices
 - [Configuration](../configuration/) - MSR configuration options

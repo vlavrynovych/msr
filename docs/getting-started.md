@@ -237,7 +237,7 @@ class PostgresDB implements ISqlDB {
 {: .tip }
 > You can mix TypeScript and SQL migrations in the same project. Execution order is determined by timestamp only.
 
-**Learn More:** [SQL Migrations Guide](user-guides/sql-migrations)
+**Learn More:** [SQL Migrations Guide](guides/sql-migrations)
 
 ---
 
@@ -363,7 +363,7 @@ class FirestoreDB implements ICallbackTransactionalDB<Transaction> {
 {: .note }
 > If your database doesn't implement transaction interfaces, set `config.transaction.mode = TransactionMode.NONE` to avoid validation errors.
 
-**Learn More:** [Transaction Management Guide](user-guides/transaction-management)
+**Learn More:** [Transaction Management Guide](guides/transaction-management)
 
 ---
 

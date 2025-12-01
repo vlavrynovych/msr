@@ -634,7 +634,7 @@ const host = ConfigLoader.loadFromEnv('HOST', 'localhost');
 
 ## See Also
 
-- **[Environment Variables Guide](../user-guides/environment-variables)** - How-to guide with examples
+- **[Environment Variables Guide](../guides/environment-variables)** - How-to guide with examples
 - **[Environment Variables API Reference](environment-variables/)** - Complete reference organized by category (Core, Validation, Logging, Backup, Transaction)
 - **[Configuration Overview](../configuration/)** - Config class documentation
 - **[Getting Started](../getting-started)** - Quick start guide

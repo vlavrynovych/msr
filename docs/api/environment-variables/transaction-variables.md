@@ -169,7 +169,7 @@ Run Migration 2 (no transaction)
 
 **See Also:**
 - [Transaction Settings](../../configuration/transaction-settings#transaction-modes)
-- [Transaction Management Guide](../../user-guides/transaction-management)
+- [Transaction Management Guide](../../guides/transaction-management)
 
 ---
 
@@ -569,7 +569,7 @@ MSR_TRANSACTION_RETRY_BACKOFF=false
 
 - **[Environment Variables Index](index)** - All environment variables
 - **[Transaction Settings](../../configuration/transaction-settings)** - Complete configuration
-- **[Transaction Management Guide](../../user-guides/transaction-management)** - Usage guide
+- **[Transaction Management Guide](../../guides/transaction-management)** - Usage guide
 - **[ITransactionalDB Interface](../interfaces/transactional-db)** - Database interface
 - **[ITransactionManager Interface](../interfaces/transaction-manager)** - Transaction manager
 

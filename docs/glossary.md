@@ -24,7 +24,7 @@ Common terms and concepts used in Migration Script Runner.
 A snapshot of the database state created before running migrations. Used to restore the database if migrations fail. See [Backup Settings](configuration/backup-settings).
 
 ### beforeMigrate
-A special migration script that runs before MSR scans for pending migrations. Used for one-time setup tasks like loading snapshots or creating extensions. See [Writing Migrations](user-guides/writing-migrations#special-beforemigrate-setup-script).
+A special migration script that runs before MSR scans for pending migrations. Used for one-time setup tasks like loading snapshots or creating extensions. See [Writing Migrations](guides/writing-migrations#special-beforemigrate-setup-script).
 
 ---
 
@@ -47,10 +47,10 @@ The default logger that outputs messages to the terminal using standard console 
 An implementation of `IDatabaseMigrationHandler` that provides database-specific operations. Must implement database connection, backup/restore, and schema version tracking.
 
 ### down() Method
-An optional method in migration scripts that reverses the changes made by `up()`. Required when using `RollbackStrategy.DOWN` or `RollbackStrategy.BOTH`. See [Writing Migrations](user-guides/writing-migrations#writing-reversible-migrations).
+An optional method in migration scripts that reverses the changes made by `up()`. Required when using `RollbackStrategy.DOWN` or `RollbackStrategy.BOTH`. See [Writing Migrations](guides/writing-migrations#writing-reversible-migrations).
 
 ### down(targetVersion)
-An executor method that rolls back migrations, optionally to a specific target version. When given a version number, it calls migration `down()` methods in reverse chronological order until reaching that version. See [Version Control](user-guides/version-control#rolling-back-to-a-specific-version).
+An executor method that rolls back migrations, optionally to a specific target version. When given a version number, it calls migration `down()` methods in reverse chronological order until reaching that version. See [Version Control](guides/version-control#rolling-back-to-a-specific-version).
 
 ---
 
@@ -107,7 +107,7 @@ See [Database Handler](#database-handler).
 The main class for executing migrations. Orchestrates scanning, validation, execution, and rollback operations.
 
 ### up(targetVersion)
-An executor method that executes migrations up to and including a specific target version. Enables staged deployments and controlled rollouts. See [Version Control](user-guides/version-control#migrating-to-a-specific-version).
+An executor method that executes migrations up to and including a specific target version. Enables staged deployments and controlled rollouts. See [Version Control](guides/version-control#migrating-to-a-specific-version).
 
 ---
 
@@ -187,6 +187,6 @@ The ability to migrate to or rollback to specific database versions using `up(ta
 ## Related Documentation
 
 - [Getting Started](getting-started) - Basic setup and usage
-- [Guides](user-guides/) - Comprehensive guides and practical examples
+- [Guides](guides/) - Comprehensive guides and practical examples
 - [API Reference](api/) - Detailed API documentation
 - [Configuration](configuration/) - All configuration options

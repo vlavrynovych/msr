@@ -81,6 +81,6 @@ See the [Contributing Guide](../development/contributing) for how to submit reci
 
 ## Next Steps
 
-- [Guides](../user-guides/) - Learn core MSR concepts
+- [Guides](../guides/) - Learn core MSR concepts
 - [API Reference](../api/) - Detailed API documentation
 - [Extending MSR](../customization/) - Extend MSR with custom loggers, renderers, and more

@@ -638,6 +638,6 @@ console.log(`Latest: V${latest.timestamp}_${latest.name}`);
 
 ## See Also
 
-- [PostgreSQL Recipe](../../recipes/postgres-with-backup) - Full implementation
-- [MongoDB Recipe](../../recipes/mongodb-migrations) - Full implementation
-- [Version Control](../../user-guides/version-control) - Using migration history
+- [PostgreSQL Recipe](../../guides/recipes/postgres-with-backup) - Full implementation
+- [MongoDB Recipe](../../guides/recipes/mongodb-migrations) - Full implementation
+- [Version Control](../../guides/version-control) - Using migration history

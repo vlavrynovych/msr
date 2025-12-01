@@ -696,7 +696,7 @@ const executor = new MigrationScriptExecutor(handler, config);
 
 ## See Also
 
-- [Transaction Management Guide](../../user-guides/transaction-management.md)
+- [Transaction Management Guide](../../guides/transaction-management.md)
 - [Transaction Configuration](../../configuration/transaction-settings.md)
 - [Transaction Hooks](../../customization/hooks.md#transaction-hooks)
 - [Custom Transaction Managers](../../customization/hooks.md#custom-transaction-managers)

@@ -310,7 +310,7 @@ export MSR_BACKUP_FOLDER=./backups
 ```
 
 **Complete Documentation:**
-- 📖 **[Environment Variables User Guide](../user-guides/environment-variables)** - How-to guide with practical examples, platform-specific configs (Docker, Kubernetes, etc.), and troubleshooting
+- 📖 **[Environment Variables User Guide](../guides/environment-variables)** - How-to guide with practical examples, platform-specific configs (Docker, Kubernetes, etc.), and troubleshooting
 - 📋 **[Environment Variables API Reference](../api/environment-variables/)** - Complete reference with detailed descriptions for all MSR_* variables (Core, Validation, Logging, Backup, Transaction)
 - 🔧 **[ConfigLoader API](../api/ConfigLoader)** - API reference for programmatic configuration loading
 - 🏷️ **[EnvironmentVariables Type](../../src/model/env/index.ts)** - Type-safe environment variable names
@@ -334,7 +334,7 @@ module.exports = {
 ```
 
 **Complete Documentation:**
-- See [Environment Variables User Guide](../user-guides/environment-variables#configuration-files) for detailed config file examples (JavaScript and JSON)
+- See [Environment Variables User Guide](../guides/environment-variables#configuration-files) for detailed config file examples (JavaScript and JSON)
 - See [ConfigLoader API](../api/ConfigLoader#loadfromfile) for programmatic file loading
 
 ---
@@ -463,7 +463,7 @@ Explore detailed configuration options:
 - [Migration Settings](migration-settings) - Configure file discovery
 - [Validation Settings](validation-settings) - Configure validation
 - [Transaction Settings](transaction-settings) - Configure transactions
-- [Writing Migrations](../user-guides/writing-migrations) - Best practices
+- [Writing Migrations](../guides/writing-migrations) - Best practices
 - [Getting Started](../getting-started) - Quick start guide
 
 ---

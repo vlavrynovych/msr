@@ -39,7 +39,7 @@ This document defines the standards for creating and maintaining documentation i
 - Use `.md` extension for all documentation files
 
 **Directories:**
-- Use kebab-case: `user-guides/`, `version-migration/`
+- Use kebab-case: `guides/`, `version-migration/`
 - Use plural for collections: `loggers/`, `render-strategies/`
 - Keep directory depth to 3 levels maximum
 
@@ -49,7 +49,7 @@ This document defines the standards for creating and maintaining documentation i
 docs/
 ├── index.md                    # Home page
 ├── getting-started.md          # Quick start guide
-├── user-guides/               # Core usage guides
+├── guides/               # Core usage guides
 │   ├── index.md
 │   └── writing-migrations.md
 ├── api/                       # API reference (split by type)

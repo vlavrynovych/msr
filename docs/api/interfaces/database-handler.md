@@ -328,6 +328,6 @@ const result = await executor.up();
 ## See Also
 
 - [Getting Started](../../getting-started) - Basic setup guide
-- [Recipes](../../recipes/) - Complete implementation examples
-- [PostgreSQL Recipe](../../recipes/postgres-with-backup) - Full PostgreSQL example
-- [MongoDB Recipe](../../recipes/mongodb-migrations) - Full MongoDB example
+- [Recipes](../../guides/recipes/) - Complete implementation examples
+- [PostgreSQL Recipe](../../guides/recipes/postgres-with-backup) - Full PostgreSQL example
+- [MongoDB Recipe](../../guides/recipes/mongodb-migrations) - Full MongoDB example

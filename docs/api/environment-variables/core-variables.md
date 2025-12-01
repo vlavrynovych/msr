@@ -53,7 +53,7 @@ config.folder = './database/migrations';
 
 **See Also:**
 - [Migration Settings](../../configuration/migration-settings#folder)
-- [Writing Migrations](../../user-guides/writing-migrations)
+- [Writing Migrations](../../guides/writing-migrations)
 
 ---
 
@@ -78,7 +78,7 @@ config.tableName = 'migration_history';
 
 **See Also:**
 - [Migration Settings](../../configuration/migration-settings#tablename)
-- [Schema Versioning](../../user-guides/version-control)
+- [Schema Versioning](../../guides/version-control)
 
 ---
 
@@ -115,7 +115,7 @@ export async function up(db: IDB): Promise<void> {
 
 **See Also:**
 - [Migration Settings](../../configuration/migration-settings#beforemigratename)
-- [Writing Migrations](../../user-guides/writing-migrations#before-migrate-hook)
+- [Writing Migrations](../../guides/writing-migrations#before-migrate-hook)
 
 ---
 
@@ -144,8 +144,8 @@ config.dryRun = true;
 - Debug migration issues without affecting database
 
 **See Also:**
-- [Dry Run Mode](../../user-guides/dry-run)
-- [Testing Migrations](../../user-guides/testing-migrations)
+- [Dry Run Mode](../../guides/dry-run)
+- [Testing Migrations](../../guides/testing-migrations)
 
 ---
 
@@ -214,7 +214,7 @@ migrations/
 
 **See Also:**
 - [Migration Settings](../../configuration/migration-settings#recursive)
-- [File Organization](../../user-guides/writing-migrations#file-organization)
+- [File Organization](../../guides/writing-migrations#file-organization)
 
 ---
 
@@ -257,7 +257,7 @@ config.filePatterns = [/^V(\d+)_/, /^M(\d+)_/];
 
 **See Also:**
 - [Migration Settings](../../configuration/migration-settings#filepatterns)
-- [File Naming Conventions](../../user-guides/writing-migrations#naming-conventions)
+- [File Naming Conventions](../../guides/writing-migrations#naming-conventions)
 
 ---
 
@@ -319,7 +319,7 @@ export MSR_DRY_RUN=${CI:-false}
 - **[Environment Variables Index](index)** - All environment variables
 - **[Migration Settings](../../configuration/migration-settings)** - Complete configuration reference
 - **[ConfigLoader API](../core-classes#configloader)** - Programmatic loading
-- **[Writing Migrations](../../user-guides/writing-migrations)** - Migration file guide
+- **[Writing Migrations](../../guides/writing-migrations)** - Migration file guide
 
 ---
 

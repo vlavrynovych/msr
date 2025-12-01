@@ -43,7 +43,7 @@ Database backup and restore operations:
 
 ## Practical Examples
 
-### [Recipes](../recipes/)
+### [Recipes](recipes/)
 Complete, copy-paste-ready implementations for common scenarios:
 - PostgreSQL with backup/restore
 - MongoDB migrations

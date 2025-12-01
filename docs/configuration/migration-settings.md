@@ -855,4 +855,4 @@ config.displayLimit = 1;  // Can't see recent history
 - [Configuration Overview](index) - All configuration options
 - [Validation Settings](validation-settings) - Validation configuration
 - [Rollback Settings](rollback-settings) - Rollback strategies
-- [Writing Migrations](../user-guides/writing-migrations) - Migration best practices
+- [Writing Migrations](../guides/writing-migrations) - Migration best practices

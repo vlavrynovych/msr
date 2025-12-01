@@ -147,7 +147,7 @@ if (result.success) {
 ### Getting Started
 
 - **[Getting Started](getting-started)** - Installation, basic usage, and quick start
-- **[Guides](user-guides/)** - Comprehensive guides and practical examples
+- **[Guides](guides/)** - Comprehensive guides and practical examples
 
 ### Reference
 

@@ -2,6 +2,7 @@
 layout: default
 title: PostgreSQL with Backup
 parent: Recipes
+grand_parent: Guides
 nav_order: 1
 ---
 
@@ -776,7 +777,7 @@ Before deploying to production:
 
 ## Related
 
-- [Writing Migrations](../user-guides/writing-migrations) - Best practices for migration scripts
-- [Backup & Restore Workflows](../user-guides/backup-restore-workflows) - Advanced backup patterns
+- [Writing Migrations](../guides/writing-migrations) - Best practices for migration scripts
+- [Backup & Restore Workflows](../guides/backup-restore-workflows) - Advanced backup patterns
 - [Configuration](../configuration/) - MSR configuration options
 - [Testing Migrations Recipe](testing-migrations) - Testing strategies

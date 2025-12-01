@@ -1,7 +1,7 @@
 ---
 layout: default
 title: SQL Migrations
-parent: User Guides
+parent: Guides
 nav_order: 4
 ---
 

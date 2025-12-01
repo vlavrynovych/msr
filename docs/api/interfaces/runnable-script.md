@@ -672,13 +672,13 @@ describe('V001_CreateUsers', () => {
 - [IDB](db) - Database connection interface
 - [IMigrationInfo](migration-info) - Migration metadata
 - [IDatabaseMigrationHandler](database-handler) - Handler interface
-- [Writing Migrations Guide](../../user-guides/writing-migrations) - Best practices
-- [SQL Migrations Guide](../../user-guides/sql-migrations) - SQL file alternative
+- [Writing Migrations Guide](../../guides/writing-migrations) - Best practices
+- [SQL Migrations Guide](../../guides/sql-migrations) - SQL file alternative
 
 ---
 
 ## See Also
 
 - [Getting Started](../../getting-started) - Basic migration setup
-- [Testing Migrations](../../recipes/testing-migrations) - Comprehensive testing guide
-- [Version Control](../../user-guides/version-control) - Rollback strategies
+- [Testing Migrations](../../guides/recipes/testing-migrations) - Comprehensive testing guide
+- [Version Control](../../guides/version-control) - Rollback strategies

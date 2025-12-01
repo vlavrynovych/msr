@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Backup & Restore Workflows
-parent: User Guides
+parent: Guides
 nav_order: 6
 ---
 

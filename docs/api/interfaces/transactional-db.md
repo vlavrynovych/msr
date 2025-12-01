@@ -530,7 +530,7 @@ await executor.up();
 
 ## See Also
 
-- [Transaction Management Guide](../../user-guides/transaction-management.md)
+- [Transaction Management Guide](../../guides/transaction-management.md)
 - [Transaction Configuration](../../configuration/transaction-settings.md)
 - [IDB Interface Documentation](./db.md)
 - [Custom Transaction Managers](../../customization/hooks.md#transaction-hooks)

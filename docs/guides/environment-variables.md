@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Environment Variables
-parent: User Guides
+parent: Guides
 nav_order: 5
 ---
 
