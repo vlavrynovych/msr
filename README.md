@@ -20,16 +20,31 @@ MSR provides a lightweight, flexible framework for managing database migrations 
 
 ---
 
+## 🎉 What's New in v0.5.0
+
+**Production-grade transaction management and cloud-native configuration:**
+
+- **🔒 Transaction Management** - Configurable modes (per-migration, per-batch, none) with automatic retry logic and isolation level control
+- **⚙️ Environment Variables** - Complete MSR_* configuration support following 12-factor app principles for Docker, Kubernetes, and CI/CD
+- **📊 Enhanced Hooks** - Transaction lifecycle hooks for monitoring and metrics collection
+- **🚀 100% Backward Compatible** - Zero breaking changes from v0.4.x
+
+**[→ View migration guide](https://migration-script-runner.github.io/msr-core/version-migration/v0.4-to-v0.5)**
+
+---
+
 ## ✨ Features
 
 - **🔌 Database Agnostic** - Works with any database (SQL, NoSQL, NewSQL) by implementing a simple interface
 - **🛡️ Type Safe** - Full TypeScript support with complete type definitions
 - **💾 Smart Rollback** - Multiple strategies: backup/restore, down() methods, both, or none
+- **🔒 Transaction Control** - Configurable transaction modes with automatic retry and isolation levels (v0.5.0)
+- **⚙️ Environment Variables** - Full 12-factor app configuration support with MSR_* variables (v0.5.0)
 - **📊 Migration Tracking** - Maintains execution history in your database with checksums
 - **✅ Built-in Validation** - Detects conflicts, missing files, and integrity issues
 - **🎨 Multiple Output Formats** - ASCII tables, JSON, or silent output
 - **📝 Flexible Logging** - Console, file, or custom loggers
-- **🪝 Lifecycle Hooks** - Extend behavior at key migration points
+- **🪝 Lifecycle Hooks** - Process, script, backup, and transaction lifecycle hooks (v0.5.0)
 - **📦 Library-First Design** - Returns structured results, safe for web servers and long-running apps
 
 ---
@@ -140,9 +155,9 @@ if (result.success) {
 
 ### Getting Started
 - **[Getting Started Guide](https://migration-script-runner.github.io/msr-core/getting-started)** - Complete setup walkthrough
-- **[Writing Migrations](https://migration-script-runner.github.io/msr-core/user-guides/writing-migrations)** - Best practices and patterns
-- **[SQL Migrations](https://migration-script-runner.github.io/msr-core/user-guides/sql-migrations)** - Using .sql migration files
-- **[Version Control](https://migration-script-runner.github.io/msr-core/user-guides/version-control)** - Target specific versions
+- **[Writing Migrations](https://migration-script-runner.github.io/msr-core/guides/writing-migrations)** - Best practices and patterns
+- **[SQL Migrations](https://migration-script-runner.github.io/msr-core/guides/sql-migrations)** - Using .sql migration files
+- **[Version Control](https://migration-script-runner.github.io/msr-core/guides/version-control)** - Target specific versions
 
 ### Configuration & Customization
 - **[Configuration](https://migration-script-runner.github.io/msr-core/configuration/)** - Migration settings, validation, rollback strategies
@@ -152,7 +167,7 @@ if (result.success) {
 
 ### Reference
 - **[API Reference](https://migration-script-runner.github.io/msr-core/api/)** - Complete API documentation
-- **[Recipes](https://migration-script-runner.github.io/msr-core/recipes/)** - Common patterns (PostgreSQL, MongoDB, testing)
+- **[Recipes](https://migration-script-runner.github.io/msr-core/guides/recipes/)** - Common patterns (PostgreSQL, MongoDB, testing)
 - **[Comparison](https://migration-script-runner.github.io/msr-core/comparison)** - Compare with other migration tools
 
 ### Upgrading
@@ -170,10 +185,13 @@ if (result.success) {
 - 🛡️ Type-safe migrations with full TypeScript support
 - 📦 Library or CLI usage in web servers, workers, or serverless functions
 - ⚡ Flexible workflows with multiple rollback strategies and lifecycle hooks
+- 🐳 Container deployments with environment variable configuration (v0.5.0)
 
 **What makes MSR different:**
 - **Library-first design** - Safe for web servers and long-running applications
 - **True database agnosticism** - No SQL assumptions, works with any database
+- **Production-grade transactions** - Configurable modes with automatic retry and isolation control (v0.5.0)
+- **Cloud-native configuration** - Complete environment variable support for Docker/Kubernetes (v0.5.0)
 - **Multiple rollback strategies** - Choose backup, down() methods, both, or none
 - **SQL file support** - Use `.up.sql` and `.down.sql` files alongside TypeScript migrations
 - **Well tested** - 100% code coverage with mutation testing
