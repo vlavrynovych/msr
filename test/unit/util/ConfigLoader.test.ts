@@ -464,6 +464,39 @@ describe('ConfigLoader', () => {
                 expect(config.backup.folder).to.equal('./json/backup');
             }
         });
+
+        /**
+         * Test: Apply transaction config from JSON environment variable
+         * Validates that transaction config can be loaded from MSR_TRANSACTION JSON.
+         */
+        it('should apply transaction config from JSON environment variable', () => {
+            process.env.MSR_TRANSACTION = JSON.stringify({
+                mode: 'PER_BATCH',
+                retries: 5
+            });
+
+            const config = new Config();
+            ConfigLoader.applyEnvironmentVariables(config);
+
+            expect(config.transaction.mode).to.equal('PER_BATCH');
+            expect(config.transaction.retries).to.equal(5);
+        });
+
+        /**
+         * Test: Handle invalid transaction JSON gracefully
+         * Validates that invalid MSR_TRANSACTION JSON doesn't crash the loader.
+         */
+        it('should handle invalid transaction JSON gracefully', () => {
+            process.env.MSR_TRANSACTION = 'invalid-json';
+
+            const config = new Config();
+
+            // Should not throw
+            ConfigLoader.applyEnvironmentVariables(config);
+
+            // Should keep default values
+            expect(config.transaction.mode).to.equal('PER_MIGRATION');
+        });
     });
 
     describe('findConfigFile', () => {

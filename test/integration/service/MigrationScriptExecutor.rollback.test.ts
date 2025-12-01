@@ -10,7 +10,8 @@ import {
     ISchemaVersion,
     SilentLogger,
     RollbackStrategy,
-    MigrationScript
+    MigrationScript,
+    TransactionMode
 } from "../../../src";
 import {TestUtils} from "../../helpers/TestUtils";
 
@@ -45,6 +46,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         config.folder = cfg.folder;
         config.rollbackStrategy = RollbackStrategy.BACKUP;
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         const handler: IDatabaseMigrationHandler = {
             backup: {
@@ -84,6 +86,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         config.folder = cfg.folder;
         config.rollbackStrategy = RollbackStrategy.DOWN;
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         // Handler without backup (down() only)
         const handler: IDatabaseMigrationHandler = {
@@ -120,6 +123,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         config.folder = cfg.folder;
         config.rollbackStrategy = RollbackStrategy.BOTH;
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         const handler: IDatabaseMigrationHandler = {
             backup: {
@@ -159,6 +163,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         config.folder = cfg.folder;
         config.rollbackStrategy = RollbackStrategy.NONE;
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         const handler: IDatabaseMigrationHandler = {
             backup: {
@@ -196,6 +201,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         config.folder = cfg.folder;
         config.rollbackStrategy = RollbackStrategy.DOWN;
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         // No backup property
         const handler: IDatabaseMigrationHandler = {
@@ -236,6 +242,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         config.folder = cfg.folder;
         config.rollbackStrategy = RollbackStrategy.BACKUP;
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         // No backup property
         const handler: IDatabaseMigrationHandler = {
@@ -268,6 +275,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         const config = new Config();
         config.folder = cfg.folder;
         // Don't set rollbackStrategy - should use default (BACKUP)
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         const handler: IDatabaseMigrationHandler = {
             backup: {

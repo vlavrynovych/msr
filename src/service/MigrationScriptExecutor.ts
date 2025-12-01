@@ -29,6 +29,11 @@ import {ILoaderRegistry} from "../interface/loader/ILoaderRegistry";
 import {CompositeHooks} from "../hooks/CompositeHooks";
 import {ExecutionSummaryHook} from "../hooks/ExecutionSummaryHook";
 import {ConfigLoader} from "../util/ConfigLoader";
+import {ITransactionManager} from "../interface/service/ITransactionManager";
+import {DefaultTransactionManager} from "./DefaultTransactionManager";
+import {CallbackTransactionManager} from "./CallbackTransactionManager";
+import {isImperativeTransactional, isCallbackTransactional} from "../interface/dao/ITransactionalDB";
+import {TransactionMode} from "../model/TransactionMode";
 
 /**
  * Main executor class for running database migrations.
@@ -37,9 +42,11 @@ import {ConfigLoader} from "../util/ConfigLoader";
  * - Automatic configuration loading (env vars → file → defaults)
  * - Creating backups before migrations
  * - Loading and tracking migration scripts
- * - Executing migrations in order
+ * - Executing migrations in order with transaction support (v0.5.0)
  * - Restoring from backup on failure
  * - Displaying migration status and results
+ *
+ * **New in v0.5.0:** Automatic transaction management with configurable modes
  *
  * @example
  * ```typescript
@@ -92,7 +99,7 @@ export class MigrationScriptExecutor {
     private readonly selector: MigrationScriptSelector;
 
     /** Service for executing migration scripts */
-    private readonly runner: MigrationRunner;
+    private runner: MigrationRunner;
 
     /** Service for validating migration scripts before execution */
     public readonly validationService: IMigrationValidationService;
@@ -102,6 +109,12 @@ export class MigrationScriptExecutor {
 
     /** Registry for loading migration scripts of different types (TypeScript, SQL, etc.) */
     private readonly loaderRegistry: ILoaderRegistry;
+
+    /**
+     * Transaction manager for database transactions (v0.5.0).
+     * Auto-created if handler provides transactionManager or db implements ITransactionalDB.
+     */
+    private readonly transactionManager?: ITransactionManager;
 
     /**
      * Creates a new MigrationScriptExecutor instance.
@@ -193,7 +206,18 @@ export class MigrationScriptExecutor {
                 this.config
             );
 
-        this.runner = new MigrationRunner(handler, this.schemaVersionService, this.config, this.logger);
+        // Create transaction manager if transactions are enabled (v0.5.0)
+        this.transactionManager = this.createTransactionManager(handler);
+
+        // Create MigrationRunner with transaction support (v0.5.0)
+        this.runner = new MigrationRunner(
+            handler,
+            this.schemaVersionService,
+            this.config,
+            this.logger,
+            this.transactionManager,
+            this.hooks
+        );
 
         this.validationService = dependencies?.validationService
             ?? new MigrationValidationService(this.logger, this.config.customValidators);
@@ -202,6 +226,145 @@ export class MigrationScriptExecutor {
             ?? new RollbackService(handler, this.config, this.backupService, this.logger, this.hooks);
 
         this.migrationRenderer.drawFiglet();
+    }
+
+    /**
+     * Create transaction manager if transactions are enabled.
+     *
+     * Auto-creates appropriate transaction manager based on database interface:
+     * - **Imperative (SQL)**: Creates {@link DefaultTransactionManager} for `ITransactionalDB`
+     * - **Callback (NoSQL)**: Creates {@link CallbackTransactionManager} for `ICallbackTransactionalDB`
+     *
+     * **New in v0.5.0**
+     *
+     * @param handler - Database migration handler
+     * @returns Transaction manager or undefined
+     *
+     * @example
+     * ```typescript
+     * // Automatic detection for PostgreSQL
+     * const handler = {
+     *   db: postgresDB,  // implements ITransactionalDB
+     *   // ... other properties
+     * };
+     * // Creates DefaultTransactionManager automatically
+     *
+     * // Automatic detection for Firestore
+     * const handler = {
+     *   db: firestoreDB,  // implements ICallbackTransactionalDB
+     *   // ... other properties
+     * };
+     * // Creates CallbackTransactionManager automatically
+     * ```
+     */
+    private createTransactionManager(handler: IDatabaseMigrationHandler): ITransactionManager | undefined {
+        // If transaction mode is NONE, don't create transaction manager
+        if (this.config.transaction.mode === TransactionMode.NONE) {
+            return undefined;
+        }
+
+        // If handler provides custom transaction manager, use it
+        if (handler.transactionManager) {
+            this.logger.debug('Using custom transaction manager from handler');
+            return handler.transactionManager;
+        }
+
+        // Check for imperative transaction support (SQL-style)
+        if (isImperativeTransactional(handler.db)) {
+            this.logger.debug('Auto-creating DefaultTransactionManager (db implements ITransactionalDB)');
+            return new DefaultTransactionManager(
+                handler.db,
+                this.config.transaction,
+                this.logger
+            );
+        }
+
+        // Check for callback transaction support (NoSQL-style)
+        if (isCallbackTransactional(handler.db)) {
+            this.logger.debug('Auto-creating CallbackTransactionManager (db implements ICallbackTransactionalDB)');
+            return new CallbackTransactionManager(
+                handler.db,
+                this.config.transaction,
+                this.logger
+            );
+        }
+
+        // No transaction support available
+        this.logger.warn(
+            'Transaction mode is configured but database does not support transactions. ' +
+            'Either implement ITransactionalDB (SQL) or ICallbackTransactionalDB (NoSQL), ' +
+            'or provide a custom transactionManager in the handler.'
+        );
+        return undefined;
+    }
+
+    /**
+     * Check for hybrid SQL + TypeScript migrations and fail if transactions are enabled.
+     *
+     * When both SQL (.up.sql) and TypeScript (.ts/.js) migrations are present in the
+     * pending batch, automatic transaction management cannot be used because:
+     * - SQL files may contain their own BEGIN/COMMIT statements
+     * - This creates conflicting transaction boundaries
+     * - Each migration must manage its own transactions
+     *
+     * **New in v0.5.0**
+     *
+     * @param scripts - All migration scripts (pending migrations will be checked)
+     * @throws Error if hybrid migrations detected with transaction mode enabled
+     * @private
+     *
+     * @example
+     * ```typescript
+     * // Pending migrations:
+     * // - V001_CreateTable.sql (contains: BEGIN; CREATE TABLE...; COMMIT;)
+     * // - V002_InsertData.ts (TypeScript migration)
+     *
+     * // This method will:
+     * // 1. Detect hybrid migrations (both SQL and TS)
+     * // 2. Throw error if transaction mode is enabled
+     * // → User must set config.transaction.mode = TransactionMode.NONE
+     * ```
+     */
+    private async checkHybridMigrationsAndDisableTransactions(scripts: IScripts): Promise<void> {
+        // Only check if we have pending migrations and transaction mode is not NONE
+        if (scripts.pending.length === 0 || this.config.transaction.mode === TransactionMode.NONE) {
+            return;
+        }
+
+        // Detect if pending migrations contain both SQL and TypeScript files
+        const hasSqlMigrations = scripts.pending.some(script =>
+            script.filepath.endsWith('.up.sql')
+        );
+        const hasTsMigrations = scripts.pending.some(script =>
+            script.filepath.endsWith('.ts') || script.filepath.endsWith('.js')
+        );
+
+        // If hybrid migrations detected, fail with error
+        if (hasSqlMigrations && hasTsMigrations) {
+            const sqlFiles = scripts.pending
+                .filter(s => s.filepath.endsWith('.up.sql'))
+                .map(s => s.name)
+                .join(', ');
+            const tsFiles = scripts.pending
+                .filter(s => s.filepath.endsWith('.ts') || s.filepath.endsWith('.js'))
+                .map(s => s.name)
+                .join(', ');
+
+            throw new Error(
+                `❌ Hybrid migrations detected: Cannot use automatic transaction management.\n\n` +
+                `Pending migrations contain both SQL and TypeScript files:\n` +
+                `  SQL files: ${sqlFiles}\n` +
+                `  TypeScript/JavaScript files: ${tsFiles}\n\n` +
+                `SQL files may contain their own BEGIN/COMMIT statements, which creates\n` +
+                `conflicting transaction boundaries with automatic transaction management.\n\n` +
+                `To fix this, choose ONE of these options:\n\n` +
+                `1. Set transaction mode to NONE (each migration manages its own transactions):\n` +
+                `   config.transaction.mode = TransactionMode.NONE;\n\n` +
+                `2. Separate SQL and TypeScript migrations into different batches\n\n` +
+                `3. Convert all migrations to use the same format (either all SQL or all TS)\n\n` +
+                `Current transaction mode: ${this.config.transaction.mode}`
+            );
+        }
     }
 
     /**
@@ -327,6 +490,9 @@ export class MigrationScriptExecutor {
             scripts = await this.scanAndValidate();
             backupPath = await this.createBackupIfNeeded();
 
+            // Check for hybrid migrations and disable transactions if needed
+            await this.checkHybridMigrationsAndDisableTransactions(scripts);
+
             this.renderMigrationStatus(scripts);
             await this.hooks?.onStart?.(scripts.all.length, scripts.pending.length);
 
@@ -373,6 +539,11 @@ export class MigrationScriptExecutor {
 
         if (this.config.validateMigratedFiles && scripts.migrated.length > 0) {
             await this.validateMigratedFileIntegrity(scripts.migrated);
+        }
+
+        // Validate transaction configuration (v0.5.0)
+        if (this.config.transaction.mode !== TransactionMode.NONE && scripts.pending.length > 0) {
+            await this.validateTransactionConfiguration(scripts.pending);
         }
 
         return scripts;
@@ -436,6 +607,58 @@ export class MigrationScriptExecutor {
             this.logger.info('Migration finished successfully!');
             this.backupService.deleteBackup();
         } else {
+            await this.executeDryRun(scripts);
+        }
+    }
+
+    /**
+     * Execute migrations in dry run mode with transaction testing.
+     *
+     * In dry run mode:
+     * 1. Execute migrations inside real transactions (if enabled)
+     * 2. Always rollback at the end (never commit)
+     * 3. Mark all executed scripts with dryRun flag
+     * 4. Test transaction logic without making permanent changes
+     *
+     * This allows testing:
+     * - Migration logic works correctly
+     * - Migrations work inside transactions
+     * - Transaction timeout issues
+     * - Potential deadlocks or conflicts
+     *
+     * **New in v0.5.0**
+     *
+     * @param scripts - Migration scripts to test
+     * @private
+     */
+    private async executeDryRun(scripts: IScripts): Promise<void> {
+        // If transactions are enabled, execute in transaction and rollback
+        if (this.transactionManager) {
+            this.logger.info(`\n🔍 Testing migrations inside ${this.config.transaction.mode} transaction(s)...\n`);
+
+            try {
+                // Execute migrations with transaction wrapping
+                // MigrationRunner will automatically rollback instead of commit in dry run mode
+                await this.executeWithHooks(scripts.pending, scripts.executed);
+
+                // Mark all as dry run
+                scripts.executed.forEach(s => s.dryRun = true);
+
+                this.migrationRenderer.drawExecuted(scripts.executed);
+                this.logger.info('\n✓ Dry run completed - all transactions rolled back');
+                this.logger.info(`  Tested: ${scripts.executed.length} migration(s) inside transactions`);
+                this.logger.info(`  Transaction mode: ${this.config.transaction.mode}`);
+                if (this.config.transaction.isolation) {
+                    this.logger.info(`  Isolation level: ${this.config.transaction.isolation}`);
+                }
+            } catch (error) {
+                // Migration failed - rollback already happened in MigrationRunner
+                this.logger.error('\n✗ Dry run failed - migrations would fail in production');
+                this.logger.error(`  Failed at: ${scripts.executed[scripts.executed.length - 1]?.name || 'unknown'}`);
+                throw error;
+            }
+        } else {
+            // No transactions - just show what would execute
             this.logDryRunResults(scripts.pending.length, scripts.ignored.length);
         }
     }
@@ -1170,6 +1393,71 @@ export class MigrationScriptExecutor {
             }));
 
             throw new ValidationError('Migration file integrity check failed', errorResults);
+        }
+    }
+
+    /**
+     * Validate transaction configuration and compatibility.
+     *
+     * Checks:
+     * - Database supports transactions
+     * - Isolation level compatibility
+     * - Rollback strategy compatibility with transaction mode
+     * - Transaction timeout warnings
+     *
+     * **New in v0.5.0**
+     *
+     * @param scripts - Pending migration scripts to execute
+     * @throws {ValidationError} If transaction configuration is invalid
+     */
+    private async validateTransactionConfiguration(scripts: MigrationScript[]): Promise<void> {
+        const issues = this.validationService.validateTransactionConfiguration(
+            this.handler,
+            this.config,
+            scripts
+        );
+
+        if (issues.length === 0) {
+            return; // No issues
+        }
+
+        // Log all issues (errors and warnings)
+        const hasErrors = issues.some((i: IValidationIssue) => i.type === ValidationIssueType.ERROR);
+        const hasWarnings = issues.some((i: IValidationIssue) => i.type === ValidationIssueType.WARNING);
+
+        if (hasErrors) {
+            this.logger.error('❌ Transaction configuration validation failed:\n');
+        } else if (hasWarnings) {
+            this.logger.warn('⚠️  Transaction configuration warnings:\n');
+        }
+
+        for (const issue of issues) {
+            if (issue.type === ValidationIssueType.ERROR) {
+                this.logger.error(`  ❌ ${issue.message}`);
+                if (issue.details) {
+                    this.logger.error(`     ${issue.details}`);
+                }
+            } else if (issue.type === ValidationIssueType.WARNING) {
+                this.logger.warn(`  ⚠️  ${issue.message}`);
+                if (issue.details) {
+                    this.logger.warn(`     ${issue.details}`);
+                }
+            }
+        }
+
+        this.logger.log(''); // Empty line
+
+        // Throw error only if there are actual errors (not warnings)
+        if (hasErrors) {
+            const errorResults: IValidationResult[] = issues
+                .filter((i: IValidationIssue) => i.type === ValidationIssueType.ERROR)
+                .map((issue: IValidationIssue) => ({
+                    valid: false,
+                    issues: [issue],
+                    script: scripts[0] // Placeholder
+                }));
+
+            throw new ValidationError('Transaction configuration validation failed', errorResults);
         }
     }
 

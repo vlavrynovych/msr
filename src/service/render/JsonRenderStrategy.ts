@@ -74,15 +74,21 @@ export class JsonRenderStrategy implements IRenderStrategy {
         }
 
         const output = {
-            migrated: migrated.map(m => ({
-                timestamp: m.timestamp,
-                name: m.name,
-                executed: moment(m.finishedAt).toISOString(),
-                executedAgo: moment(m.finishedAt).fromNow(),
-                duration: moment.duration(moment(m.finishedAt).diff(moment(m.startedAt))).asSeconds(),
-                username: m.username,
-                foundLocally: (scripts.all || []).some(s => s.timestamp === m.timestamp)
-            }))
+            migrated: migrated.map(m => {
+                const duration = (m.startedAt !== undefined && m.startedAt !== null &&
+                                m.finishedAt !== undefined && m.finishedAt !== null)
+                    ? moment.duration(moment(m.finishedAt).diff(moment(m.startedAt))).asSeconds()
+                    : 0;
+                return {
+                    timestamp: m.timestamp,
+                    name: m.name,
+                    executed: moment(m.finishedAt).toISOString(),
+                    executedAgo: moment(m.finishedAt).fromNow(),
+                    duration: Math.max(0, duration),
+                    username: m.username,
+                    foundLocally: (scripts.all || []).some(s => s.timestamp === m.timestamp)
+                };
+            })
         };
 
         this.logger.log(JSON.stringify(output, null, this.pretty ? 2 : 0));
@@ -143,12 +149,18 @@ export class JsonRenderStrategy implements IRenderStrategy {
         if (!scripts.length) return;
 
         const output = {
-            executed: scripts.map(m => ({
-                timestamp: m.timestamp,
-                name: m.name,
-                duration: moment.duration(moment(m.finishedAt).diff(moment(m.startedAt))).asSeconds(),
-                result: m.result
-            }))
+            executed: scripts.map(m => {
+                const duration = (m.startedAt !== undefined && m.startedAt !== null &&
+                                m.finishedAt !== undefined && m.finishedAt !== null)
+                    ? moment.duration(moment(m.finishedAt).diff(moment(m.startedAt))).asSeconds()
+                    : 0;
+                return {
+                    timestamp: m.timestamp,
+                    name: m.name,
+                    duration: Math.max(0, duration),
+                    result: m.result
+                };
+            })
         };
 
         this.logger.log(JSON.stringify(output, null, this.pretty ? 2 : 0));

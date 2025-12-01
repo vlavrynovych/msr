@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Config } from '../model/Config';
-import { EnvironmentVariables as ENV } from '../model/EnvironmentVariables';
+import { ENV } from '../model/env';
 
 /**
  * Utility class for loading configuration using a waterfall approach.
@@ -157,13 +157,13 @@ export class ConfigLoader {
     static applyEnvironmentVariables(config: Config): void {
         // Simple properties
         if (process.env[ENV.MSR_FOLDER]) {
-            config.folder = process.env[ENV.MSR_FOLDER];
+            config.folder = process.env[ENV.MSR_FOLDER]!;
         }
         if (process.env[ENV.MSR_TABLE_NAME]) {
-            config.tableName = process.env[ENV.MSR_TABLE_NAME];
+            config.tableName = process.env[ENV.MSR_TABLE_NAME]!;
         }
         if (process.env[ENV.MSR_BEFORE_MIGRATE_NAME]) {
-            config.beforeMigrateName = process.env[ENV.MSR_BEFORE_MIGRATE_NAME];
+            config.beforeMigrateName = process.env[ENV.MSR_BEFORE_MIGRATE_NAME]!;
         }
         if (process.env[ENV.MSR_DRY_RUN] !== undefined) {
             config.dryRun = this.parseBoolean(process.env[ENV.MSR_DRY_RUN]!);
@@ -218,6 +218,18 @@ export class ConfigLoader {
         if (config.backup) {
             config.backup = this.loadNestedFromEnv(ENV.MSR_BACKUP, config.backup);
         }
+
+        // Transaction config (v0.5.0)
+        if (process.env[ENV.MSR_TRANSACTION]) {
+            try {
+                const transaction = JSON.parse(process.env[ENV.MSR_TRANSACTION]!);
+                Object.assign(config.transaction, transaction);
+            } catch {
+                console.warn(`Warning: Invalid ${ENV.MSR_TRANSACTION} JSON. Using dot-notation if available.`);
+            }
+        }
+        // Override with dot-notation env vars (takes precedence)
+        config.transaction = this.loadNestedFromEnv(ENV.MSR_TRANSACTION, config.transaction);
     }
 
     /**
@@ -383,7 +395,7 @@ export class ConfigLoader {
             const resolvedPath = path.resolve(filePath);
 
             // Use require to load JSON or JS files
-            // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
             const loaded = require(resolvedPath);
 
             // Handle ES modules default export

@@ -9,7 +9,8 @@ import {
     ISchemaVersion,
     SilentLogger,
     RollbackStrategy,
-    MigrationScript
+    MigrationScript,
+    TransactionMode
 } from "../../../src";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -68,6 +69,7 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
         config.folder = testDir;
         config.rollbackStrategy = RollbackStrategy.BACKUP;
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
@@ -136,6 +138,7 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
         config.folder = testDir;
         config.rollbackStrategy = RollbackStrategy.DOWN;
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
@@ -210,6 +213,7 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
         config.folder = testDir;
         config.rollbackStrategy = RollbackStrategy.BOTH;
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         const backupStub = sinon.stub().resolves('backup-data');
         const restoreStub = sinon.stub().resolves();
@@ -282,6 +286,7 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
         config.folder = testDir;
         config.rollbackStrategy = RollbackStrategy.DOWN;
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
@@ -340,6 +345,7 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
         config.folder = testDir;
         config.rollbackStrategy = RollbackStrategy.NONE;
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {

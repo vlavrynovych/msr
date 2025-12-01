@@ -7,4 +7,7 @@ export * from "./DownMethodPolicy";
 export * from "./DuplicateTimestampMode";
 export * from "./ValidationErrorCode";
 export * from "./ValidationIssueType";
-export * from "./EnvironmentVariables";
+export * from "./env";  // Organized env var structure (v0.5.0+)
+export * from "./TransactionMode";
+export * from "./IsolationLevel";
+export * from "./TransactionConfig";

@@ -5,7 +5,8 @@ import {
     IMigrationExecutionDetail,
     IConfigSnapshot,
     MigrationExecutionStatus,
-    SummaryFormat
+    SummaryFormat,
+    ITransactionMetrics
 } from '../interface/logging/IExecutionSummary';
 import {Config} from '../model/Config';
 import {ILogger} from '../interface/ILogger';
@@ -47,6 +48,8 @@ export class ExecutionSummaryLogger {
     private migrationDetails: Map<string, IMigrationExecutionDetail>;
     private runStartTime: Date;
     private msrVersion: string;
+    private transactionMetrics: ITransactionMetrics;
+    private transactionStartTimes: Map<string, number>;
 
     constructor(
         private readonly config: Config,
@@ -56,6 +59,8 @@ export class ExecutionSummaryLogger {
         this.migrationDetails = new Map();
         this.runStartTime = new Date();
         this.msrVersion = this.getMsrVersion();
+        this.transactionMetrics = this.createEmptyTransactionMetrics();
+        this.transactionStartTimes = new Map();
         this.summary = this.createEmptySummary();
     }
 
@@ -67,6 +72,8 @@ export class ExecutionSummaryLogger {
         this.runStartTime = new Date();
         this.summary = this.createEmptySummary();
         this.migrationDetails.clear();
+        this.transactionMetrics = this.createEmptyTransactionMetrics();
+        this.transactionStartTimes.clear();
     }
 
     /**
@@ -164,6 +171,61 @@ export class ExecutionSummaryLogger {
     }
 
     /**
+     * Record transaction begin.
+     * **New in v0.5.0**
+     *
+     * @param transactionId - Transaction identifier
+     */
+    recordTransactionBegin(transactionId: string): void {
+        this.transactionMetrics.transactionsStarted++;
+        this.transactionStartTimes.set(transactionId, Date.now());
+    }
+
+    /**
+     * Record successful transaction commit.
+     * **New in v0.5.0**
+     *
+     * @param transactionId - Transaction identifier
+     */
+    recordTransactionCommit(transactionId: string): void {
+        this.transactionMetrics.transactionsCommitted++;
+        this.recordTransactionDuration(transactionId);
+    }
+
+    /**
+     * Record transaction rollback.
+     * **New in v0.5.0**
+     *
+     * @param transactionId - Transaction identifier
+     */
+    recordTransactionRollback(transactionId: string): void {
+        this.transactionMetrics.transactionsRolledBack++;
+        this.recordTransactionDuration(transactionId);
+    }
+
+    /**
+     * Record transaction commit retry attempt.
+     * **New in v0.5.0**
+     */
+    recordCommitRetry(): void {
+        this.transactionMetrics.commitRetries++;
+    }
+
+    /**
+     * Record transaction duration and remove start time.
+     *
+     * @param transactionId - Transaction identifier
+     */
+    private recordTransactionDuration(transactionId: string): void {
+        const startTime = this.transactionStartTimes.get(transactionId);
+        if (startTime) {
+            const duration = Date.now() - startTime;
+            this.transactionMetrics.totalTransactionDuration += duration;
+            this.transactionStartTimes.delete(transactionId);
+        }
+    }
+
+    /**
      * Save the execution summary to file(s).
      *
      * @param success - Overall success status
@@ -197,6 +259,11 @@ export class ExecutionSummaryLogger {
             failed,
             totalDuration
         };
+
+        // Include transaction metrics if any transactions were used
+        if (this.transactionMetrics.transactionsStarted > 0) {
+            this.summary.transactions = this.transactionMetrics;
+        }
 
         // Ensure log directory exists
         const logDir = loggingConfig.path || './logs/migrations';
@@ -263,7 +330,23 @@ export class ExecutionSummaryLogger {
             rollbackStrategy: this.config.rollbackStrategy,
             backupMode: this.config.backupMode,
             dryRun: this.config.dryRun,
-            validateBeforeRun: this.config.validateBeforeRun
+            validateBeforeRun: this.config.validateBeforeRun,
+            transactionMode: this.config.transaction.mode,
+            transactionIsolation: this.config.transaction.isolation,
+            transactionRetries: this.config.transaction.retries
+        };
+    }
+
+    /**
+     * Create empty transaction metrics.
+     */
+    private createEmptyTransactionMetrics(): ITransactionMetrics {
+        return {
+            transactionsStarted: 0,
+            transactionsCommitted: 0,
+            transactionsRolledBack: 0,
+            commitRetries: 0,
+            totalTransactionDuration: 0
         };
     }
 
@@ -296,6 +379,7 @@ export class ExecutionSummaryLogger {
         this.addMigrationsSection(lines);
         this.addBackupSection(lines);
         this.addRollbackSection(lines);
+        this.addTransactionSection(lines);
         this.addResultSection(lines);
 
         const text = lines.join('\n');
@@ -327,9 +411,21 @@ export class ExecutionSummaryLogger {
             `Rollback Strategy:   ${this.summary.config.rollbackStrategy}`,
             `Backup Mode:         ${this.summary.config.backupMode}`,
             `Dry Run:             ${this.summary.config.dryRun}`,
-            `Validate Before Run: ${this.summary.config.validateBeforeRun}`,
-            ''
+            `Validate Before Run: ${this.summary.config.validateBeforeRun}`
         );
+
+        // Add transaction configuration if present
+        if (this.summary.config.transactionMode) {
+            lines.push(`Transaction Mode:    ${this.summary.config.transactionMode}`);
+        }
+        if (this.summary.config.transactionIsolation) {
+            lines.push(`Transaction Isolation: ${this.summary.config.transactionIsolation}`);
+        }
+        if (this.summary.config.transactionRetries !== undefined) {
+            lines.push(`Transaction Retries: ${this.summary.config.transactionRetries}`);
+        }
+
+        lines.push('');
     }
 
     private addMigrationsSection(lines: string[]): void {
@@ -403,6 +499,22 @@ export class ExecutionSummaryLogger {
             lines.push(`Error:     ${this.summary.rollback.error}`);
         }
         lines.push('');
+    }
+
+    private addTransactionSection(lines: string[]): void {
+        if (!this.summary.transactions) return;
+
+        lines.push(
+            '-'.repeat(80),
+            'TRANSACTIONS',
+            '-'.repeat(80),
+            `Started:        ${this.summary.transactions.transactionsStarted}`,
+            `Committed:      ${this.summary.transactions.transactionsCommitted}`,
+            `Rolled Back:    ${this.summary.transactions.transactionsRolledBack}`,
+            `Commit Retries: ${this.summary.transactions.commitRetries}`,
+            `Total Duration: ${this.summary.transactions.totalTransactionDuration}ms`,
+            ''
+        );
     }
 
     private addResultSection(lines: string[]): void {

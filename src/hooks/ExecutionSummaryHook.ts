@@ -1,4 +1,6 @@
 import {IMigrationHooks} from '../interface/IMigrationHooks';
+import {ITransactionHooks} from '../interface/ITransactionHooks';
+import {ITransactionContext} from '../interface/service/ITransactionContext';
 import {MigrationScript} from '../model/MigrationScript';
 import {IMigrationResult} from '../interface/IMigrationResult';
 import {ExecutionSummaryLogger} from '../service/ExecutionSummaryLogger';
@@ -9,11 +11,13 @@ import {IDatabaseMigrationHandler} from '../interface/IDatabaseMigrationHandler'
 /**
  * Hook implementation that logs detailed execution summaries.
  *
- * Automatically tracks migration executions, errors, backups, and rollbacks,
- * saving detailed summaries to files based on configuration.
+ * Automatically tracks migration executions, errors, backups, rollbacks,
+ * and transaction events, saving detailed summaries to files based on configuration.
  *
  * This hook is automatically added to MigrationScriptExecutor when
  * `config.logging.enabled` is true.
+ *
+ * **New in v0.5.0**: Transaction lifecycle tracking with metrics
  *
  * @example
  * ```typescript
@@ -34,7 +38,7 @@ import {IDatabaseMigrationHandler} from '../interface/IDatabaseMigrationHandler'
  * });
  * ```
  */
-export class ExecutionSummaryHook implements IMigrationHooks {
+export class ExecutionSummaryHook implements IMigrationHooks, ITransactionHooks {
     private readonly summaryLogger: ExecutionSummaryLogger;
     private startTime: number = 0;
     private readonly migrationStartTimes: Map<string, number> = new Map();
@@ -128,5 +132,40 @@ export class ExecutionSummaryHook implements IMigrationHooks {
         // We don't have direct access to executed count here, so we save with 0,1
         // The actual migration details are already recorded via onBeforeMigrate/onMigrationError
         await this.summaryLogger.saveSummary(false, 0, 1, totalDuration);
+    }
+
+    // ==================== Transaction Hooks (v0.5.0) ====================
+
+    /**
+     * Called after transaction begins.
+     * Records transaction start for metrics.
+     */
+    async afterTransactionBegin?(context: ITransactionContext): Promise<void> {
+        this.summaryLogger.recordTransactionBegin(context.transactionId);
+    }
+
+    /**
+     * Called after transaction commits successfully.
+     * Records transaction commit for metrics.
+     */
+    async afterCommit?(context: ITransactionContext): Promise<void> {
+        this.summaryLogger.recordTransactionCommit(context.transactionId);
+    }
+
+    /**
+     * Called when commit is retried.
+     * Records retry attempt for metrics.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async onCommitRetry?(context: ITransactionContext, _attempt: number, _error: Error): Promise<void> {
+        this.summaryLogger.recordCommitRetry();
+    }
+
+    /**
+     * Called after transaction rolls back.
+     * Records transaction rollback for metrics.
+     */
+    async afterRollback?(context: ITransactionContext): Promise<void> {
+        this.summaryLogger.recordTransactionRollback(context.transactionId);
     }
 }

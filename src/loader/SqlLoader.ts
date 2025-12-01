@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import {IMigrationScriptLoader} from '../interface/loader/IMigrationScriptLoader';
 import {IRunnableScript} from '../interface/IRunnableScript';
 import {MigrationScript} from '../model/MigrationScript';
-import {IDB, ISqlDB} from '../interface/dao/IDB';
+import {IDB, ISqlDB} from '../interface/dao';
 import {IMigrationInfo} from '../interface/IMigrationInfo';
 import {IDatabaseMigrationHandler} from '../interface/IDatabaseMigrationHandler';
 import {ILogger} from '../interface/ILogger';

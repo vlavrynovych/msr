@@ -209,6 +209,41 @@ describe('JsonRenderStrategy', () => {
             const parsed = JSON.parse(output);
             expect(parsed.migrated).to.have.lengthOf(1);
         });
+
+        it('should handle null timestamps and show 0 duration', () => {
+            const strategy = new JsonRenderStrategy();
+            const now = Date.now();
+            const scripts = {
+                migrated: [
+                    {
+                        timestamp: 202501220100,
+                        name: 'V202501220100_null_start.ts',
+                        startedAt: null as any,
+                        finishedAt: now,
+                        username: 'developer',
+                    } as MigrationScript,
+                    {
+                        timestamp: 202501220200,
+                        name: 'V202501220200_null_finish.ts',
+                        startedAt: now,
+                        finishedAt: null as any,
+                        username: 'developer',
+                    } as MigrationScript
+                ],
+                all: []
+            } as unknown as IScripts;
+            const config = new Config();
+
+            strategy.renderMigrated(scripts, config);
+
+            const output = logStub.firstCall.args[0];
+            const parsed = JSON.parse(output);
+
+            expect(parsed.migrated).to.have.lengthOf(2);
+            // Both should have 0 duration when timestamps are null
+            expect(parsed.migrated[0].duration).to.equal(0);
+            expect(parsed.migrated[1].duration).to.equal(0);
+        });
     });
 
     describe('renderPending', () => {
@@ -321,6 +356,39 @@ describe('JsonRenderStrategy', () => {
             expect(output.trim()).to.not.include('\n');
             const parsed = JSON.parse(output);
             expect(parsed.executed).to.have.lengthOf(1);
+        });
+
+        it('should handle null timestamps in executed migrations', () => {
+            const strategy = new JsonRenderStrategy();
+            const now = Date.now();
+            const scripts = [
+                {
+                    timestamp: 202501220100,
+                    name: 'V202501220100_null_start.ts',
+                    startedAt: null as any,
+                    finishedAt: now,
+                    username: 'developer',
+                    result: 'Completed'
+                },
+                {
+                    timestamp: 202501220200,
+                    name: 'V202501220200_null_finish.ts',
+                    startedAt: now,
+                    finishedAt: null as any,
+                    username: 'developer',
+                    result: 'Completed'
+                },
+            ];
+
+            strategy.renderExecuted(scripts);
+
+            const output = logStub.firstCall.args[0];
+            const parsed = JSON.parse(output);
+
+            expect(parsed.executed).to.have.lengthOf(2);
+            // Both should have 0 duration when timestamps are null
+            expect(parsed.executed[0].duration).to.equal(0);
+            expect(parsed.executed[1].duration).to.equal(0);
         });
     });
 

@@ -531,4 +531,153 @@ describe('ExecutionSummaryLogger', () => {
             expect(summary.msrVersion.length).to.be.greaterThan(0);
         });
     });
+
+    describe('Transaction Metrics Recording', () => {
+        let summaryLogger: ExecutionSummaryLogger;
+        const testDir = './test-logs/transaction-metrics';
+
+        beforeEach(() => {
+            config.logging.enabled = true;
+            config.logging.logSuccessful = true;
+            config.logging.path = testDir;
+            config.logging.format = SummaryFormat.JSON;
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger.startRun();
+        });
+
+        afterEach(() => {
+            if (fs.existsSync(testDir)) {
+                const files = fs.readdirSync(testDir);
+                for (const file of files) {
+                    fs.unlinkSync(path.join(testDir, file));
+                }
+                fs.rmdirSync(testDir, { recursive: true });
+            }
+        });
+
+        it('should record transaction begin', () => {
+            summaryLogger.recordTransactionBegin('tx-1');
+            summaryLogger.recordTransactionBegin('tx-2');
+
+            const metrics = (summaryLogger as any).transactionMetrics;
+            expect(metrics.transactionsStarted).to.equal(2);
+        });
+
+        it('should record transaction commit and duration', () => {
+            summaryLogger.recordTransactionBegin('tx-1');
+            summaryLogger.recordTransactionCommit('tx-1');
+
+            const metrics = (summaryLogger as any).transactionMetrics;
+            expect(metrics.transactionsCommitted).to.equal(1);
+            expect(metrics.totalTransactionDuration).to.be.greaterThanOrEqual(0);
+        });
+
+        it('should record transaction rollback and duration', () => {
+            summaryLogger.recordTransactionBegin('tx-1');
+            summaryLogger.recordTransactionRollback('tx-1');
+
+            const metrics = (summaryLogger as any).transactionMetrics;
+            expect(metrics.transactionsRolledBack).to.equal(1);
+            expect(metrics.totalTransactionDuration).to.be.greaterThanOrEqual(0);
+        });
+
+        it('should record commit retries', () => {
+            summaryLogger.recordCommitRetry();
+            summaryLogger.recordCommitRetry();
+            summaryLogger.recordCommitRetry();
+
+            const metrics = (summaryLogger as any).transactionMetrics;
+            expect(metrics.commitRetries).to.equal(3);
+        });
+
+        it('should include transaction metrics in JSON summary when transactions were used', async () => {
+            summaryLogger.recordTransactionBegin('tx-1');
+            summaryLogger.recordTransactionCommit('tx-1');
+            summaryLogger.recordCommitRetry();
+
+            await summaryLogger.saveSummary(true, 0, 0, 1000);
+
+            const files = fs.readdirSync(testDir);
+            const jsonFile = files.find(f => f.endsWith('.json'));
+            expect(jsonFile).to.exist;
+
+            const content = fs.readFileSync(path.join(testDir, jsonFile!), 'utf-8');
+            const summary = JSON.parse(content);
+
+            expect(summary.transactions).to.exist;
+            expect(summary.transactions.transactionsStarted).to.equal(1);
+            expect(summary.transactions.transactionsCommitted).to.equal(1);
+            expect(summary.transactions.commitRetries).to.equal(1);
+        });
+
+        it('should NOT include transaction metrics in summary when no transactions were used', async () => {
+            await summaryLogger.saveSummary(true, 0, 0, 1000);
+
+            const files = fs.readdirSync(testDir);
+            const jsonFile = files.find(f => f.endsWith('.json'));
+            expect(jsonFile).to.exist;
+
+            const content = fs.readFileSync(path.join(testDir, jsonFile!), 'utf-8');
+            const summary = JSON.parse(content);
+
+            expect(summary.transactions).to.be.undefined;
+        });
+
+        it('should include transaction section in TEXT format when transactions were used', async () => {
+            config.logging.format = SummaryFormat.TEXT;
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger.startRun();
+
+            summaryLogger.recordTransactionBegin('tx-1');
+            summaryLogger.recordTransactionCommit('tx-1');
+            summaryLogger.recordCommitRetry();
+
+            await summaryLogger.saveSummary(true, 0, 0, 1000);
+
+            const files = fs.readdirSync(testDir);
+            const textFile = files.find(f => f.endsWith('.txt'));
+            expect(textFile).to.exist;
+
+            const content = fs.readFileSync(path.join(testDir, textFile!), 'utf-8');
+
+            expect(content).to.include('TRANSACTIONS');
+            expect(content).to.include('Started:');
+            expect(content).to.include('Committed:');
+            expect(content).to.include('Rolled Back:');
+            expect(content).to.include('Commit Retries:');
+        });
+
+        it('should NOT include transaction section in TEXT format when no transactions were used', async () => {
+            config.logging.format = SummaryFormat.TEXT;
+            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger.startRun();
+
+            await summaryLogger.saveSummary(true, 0, 0, 1000);
+
+            const files = fs.readdirSync(testDir);
+            const textFile = files.find(f => f.endsWith('.txt'));
+            expect(textFile).to.exist;
+
+            const content = fs.readFileSync(path.join(testDir, textFile!), 'utf-8');
+
+            expect(content).to.not.include('TRANSACTIONS');
+        });
+
+        it('should accumulate transaction duration across multiple transactions', () => {
+            summaryLogger.recordTransactionBegin('tx-1');
+            summaryLogger.recordTransactionCommit('tx-1');
+
+            summaryLogger.recordTransactionBegin('tx-2');
+            summaryLogger.recordTransactionCommit('tx-2');
+
+            summaryLogger.recordTransactionBegin('tx-3');
+            summaryLogger.recordTransactionRollback('tx-3');
+
+            const metrics = (summaryLogger as any).transactionMetrics;
+            expect(metrics.transactionsStarted).to.equal(3);
+            expect(metrics.transactionsCommitted).to.equal(2);
+            expect(metrics.transactionsRolledBack).to.equal(1);
+            expect(metrics.totalTransactionDuration).to.be.greaterThanOrEqual(0);
+        });
+    });
 });

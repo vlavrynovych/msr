@@ -1,4 +1,4 @@
-import {BackupConfig, RollbackStrategy, DownMethodPolicy, BackupMode, DuplicateTimestampMode} from "./index";
+import {BackupConfig, RollbackStrategy, DownMethodPolicy, BackupMode, DuplicateTimestampMode, TransactionConfig} from "./index";
 import {IMigrationValidator} from "../interface/validation/IMigrationValidator";
 import {IExecutionSummaryConfig, SummaryFormat} from "../interface/logging/IExecutionSummary";
 
@@ -97,6 +97,42 @@ export class Config {
      * ```
      */
     backup:BackupConfig = new BackupConfig()
+
+    /**
+     * Transaction management configuration.
+     *
+     * Controls how migrations are executed within database transactions, including
+     * transaction mode (per-migration, per-batch, or none), isolation level, timeout,
+     * and automatic retry behavior on transient failures.
+     *
+     * **New in v0.5.0**
+     *
+     * @default new TransactionConfig()
+     *
+     * @example
+     * ```typescript
+     * // Default configuration (recommended)
+     * config.transaction = new TransactionConfig();
+     * // mode: PER_MIGRATION, isolation: READ_COMMITTED, retries: 3
+     *
+     * // All migrations in single transaction
+     * config.transaction.mode = TransactionMode.PER_BATCH;
+     *
+     * // Increase retries for high-contention databases
+     * config.transaction.retries = 10;
+     *
+     * // Maximum consistency (slower, more deadlocks)
+     * config.transaction.isolation = IsolationLevel.SERIALIZABLE;
+     *
+     * // No automatic transactions
+     * config.transaction.mode = TransactionMode.NONE;
+     * ```
+     *
+     * @see {@link TransactionConfig} for all configuration options
+     * @see {@link TransactionMode} for detailed explanation of each mode
+     * @see {@link IsolationLevel} for isolation level details
+     */
+    transaction:TransactionConfig = new TransactionConfig()
 
     /**
      * Limits the number of migrated scripts displayed in console output.

@@ -63,4 +63,12 @@ export class IMigrationInfo {
      * @example 'a3c9f8e2b1d4c7e6f5a8b9c0d1e2f3a4'
      */
     checksum?:string
+
+    /**
+     * Indicates whether this migration was executed in dry run mode.
+     * When true, the migration was tested but all changes were rolled back.
+     * **New in v0.5.0**
+     * @default false
+     */
+    dryRun?:boolean
 }

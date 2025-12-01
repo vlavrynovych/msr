@@ -10,7 +10,8 @@ import {
     SilentLogger,
     SummaryFormat,
     IMigrationHooks,
-    RollbackStrategy
+    RollbackStrategy,
+    TransactionMode
 } from '../../../src';
 import { TestUtils } from '../../helpers';
 
@@ -26,6 +27,7 @@ describe('ExecutionSummaryHook', () => {
         config.logging.path = testLogDir;
         config.logging.format = SummaryFormat.JSON;
         config.logging.maxFiles = 0;
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         // Clean up test log directory
         if (fs.existsSync(testLogDir)) {

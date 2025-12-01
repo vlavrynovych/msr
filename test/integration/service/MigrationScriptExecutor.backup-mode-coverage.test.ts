@@ -11,7 +11,8 @@ import {
     SilentLogger,
     RollbackStrategy,
     MigrationScript,
-    BackupMode
+    BackupMode,
+    TransactionMode
 } from "../../../src";
 import {TestUtils} from "../../helpers/TestUtils";
 import fs from 'node:fs';
@@ -31,6 +32,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
 
     before(() => {
         cfg = TestUtils.getConfig();
+        cfg.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
         db = new class implements IDB {
             [key: string]: unknown;
             test() { throw new Error('Not implemented') }
@@ -66,6 +68,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         config.rollbackStrategy = RollbackStrategy.BACKUP;
         config.backupMode = BackupMode.CREATE_ONLY;
         config.validateBeforeRun = false;
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         // Create handler with failing migration
         const failingMigration = new MigrationScript('failing', './test/integration/data/V202001010000_test.ts', 202001010000);
@@ -131,6 +134,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         config.backupMode = BackupMode.RESTORE_ONLY;
         // Intentionally NOT setting config.backup.existingBackupPath
         config.validateBeforeRun = false;
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         // Create handler with failing migration
         const failingMigration = new MigrationScript('failing', './test/integration/data/V202001010000_test.ts', 202001010000);
@@ -195,6 +199,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         config.rollbackStrategy = RollbackStrategy.DOWN; // DOWN strategy
         config.backupMode = BackupMode.FULL; // Even with FULL mode
         config.validateBeforeRun = false;
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         // Create handler with failing migration that has down()
         const failingMigration = new MigrationScript('failing', './test/integration/data/V202001010000_test.ts', 202001010000);
@@ -265,6 +270,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         config.rollbackStrategy = RollbackStrategy.BOTH;
         config.backupMode = BackupMode.MANUAL; // MANUAL mode
         config.validateBeforeRun = false;
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         // Create handler with failing migration that has a failing down() method
         const failingMigration = new MigrationScript('failing', './test/integration/data/V202001010000_test.ts', 202001010000);

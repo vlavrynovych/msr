@@ -11,13 +11,16 @@ import {
     ValidationWarningCode,
     ValidationIssueType,
     DownMethodPolicy,
-    RollbackStrategy
+    RollbackStrategy,
+    TransactionMode
 } from "../model";
 import {ILogger} from "../interface/ILogger";
 import {ConsoleLogger} from "../logger";
 import fs from "node:fs";
 import {ChecksumService} from "./ChecksumService";
 import {ILoaderRegistry} from "../interface/loader/ILoaderRegistry";
+import {IDatabaseMigrationHandler} from "../interface/IDatabaseMigrationHandler";
+import {isImperativeTransactional, isTransactionalDB} from "../interface/dao/ITransactionalDB";
 
 /**
  * Service for validating migration scripts before execution.
@@ -448,6 +451,168 @@ export class MigrationValidationService implements IMigrationValidationService {
                 code: ValidationErrorCode.IMPORT_FAILED,
                 message: `Failed to read migration file for checksum validation: ${script.name}`,
                 details: (error as Error).message
+            });
+        }
+    }
+
+    /**
+     * Validate transaction configuration and compatibility.
+     *
+     * Checks:
+     * - Database supports transactions when transaction mode is enabled
+     * - Isolation level is supported (warning if database doesn't support setIsolationLevel)
+     * - Rollback strategy is compatible with transaction mode
+     * - Long migrations may exceed transaction timeout (warning)
+     *
+     * **New in v0.5.0**
+     *
+     * @param handler - Database migration handler
+     * @param config - Migration configuration
+     * @param scripts - Migration scripts to execute
+     * @returns Array of validation issues found
+     *
+     * @example
+     * ```typescript
+     * const issues = validator.validateTransactionConfiguration(handler, config, pendingScripts);
+     * if (issues.some(i => i.type === ValidationIssueType.ERROR)) {
+     *   console.error('Transaction configuration invalid!');
+     * }
+     * ```
+     */
+    public validateTransactionConfiguration(
+        handler: IDatabaseMigrationHandler,
+        config: Config,
+        scripts: MigrationScript[]
+    ): IValidationIssue[] {
+        const issues: IValidationIssue[] = [];
+
+        // Skip validation if transactions are disabled
+        if (config.transaction.mode === TransactionMode.NONE) {
+            return issues;
+        }
+
+        // Validate database supports transactions
+        this.validateDatabaseSupportsTransactions(handler, config, issues);
+
+        // Validate isolation level compatibility
+        this.validateIsolationLevelSupport(handler, config, issues);
+
+        // Validate rollback strategy compatibility
+        this.validateRollbackStrategyCompatibility(config, issues);
+
+        // Warn about potential transaction timeouts
+        this.validateTransactionTimeout(scripts, config, issues);
+
+        return issues;
+    }
+
+    /**
+     * Validate that database supports transactions.
+     */
+    private validateDatabaseSupportsTransactions(
+        handler: IDatabaseMigrationHandler,
+        config: Config,
+        issues: IValidationIssue[]
+    ): void {
+        if (!isTransactionalDB(handler.db)) {
+            issues.push({
+                type: ValidationIssueType.ERROR,
+                code: ValidationErrorCode.IMPORT_FAILED,
+                message: `Database does not support transactions, but transaction mode is ${config.transaction.mode}`,
+                details: 'Database must implement ITransactionalDB or ICallbackTransactionalDB. Set transaction.mode to NONE or implement transaction methods.'
+            });
+        }
+    }
+
+    /**
+     * Validate isolation level is supported by database.
+     */
+    private validateIsolationLevelSupport(
+        handler: IDatabaseMigrationHandler,
+        config: Config,
+        issues: IValidationIssue[]
+    ): void {
+        if (!config.transaction.isolation) {
+            return; // No isolation level configured
+        }
+
+        // Check if database supports setIsolationLevel
+        const db = handler.db;
+        const supportsIsolation =
+            isImperativeTransactional(db) &&
+            'setIsolationLevel' in db &&
+            typeof db.setIsolationLevel === 'function';
+
+        if (!supportsIsolation) {
+            issues.push({
+                type: ValidationIssueType.WARNING,
+                code: ValidationWarningCode.MISSING_DOWN_WITH_BOTH_STRATEGY,
+                message: `Isolation level ${config.transaction.isolation} is configured, but database may not support setIsolationLevel()`,
+                details: 'Verify your database adapter implements setIsolationLevel() method. Isolation level may be ignored.'
+            });
+        }
+    }
+
+    /**
+     * Validate rollback strategy is compatible with transaction mode.
+     */
+    private validateRollbackStrategyCompatibility(
+        config: Config,
+        issues: IValidationIssue[]
+    ): void {
+        const mode = config.transaction.mode;
+        const strategy = config.rollbackStrategy;
+
+        // PER_BATCH with DOWN strategy: DOWN methods won't work inside batch transaction
+        if (mode === TransactionMode.PER_BATCH && strategy === RollbackStrategy.DOWN) {
+            issues.push({
+                type: ValidationIssueType.WARNING,
+                code: ValidationWarningCode.MISSING_DOWN_WITH_BOTH_STRATEGY,
+                message: 'Rollback strategy DOWN is not fully compatible with PER_BATCH transaction mode',
+                details: 'If a migration fails in PER_BATCH mode, the entire batch transaction will rollback. Individual migration down() methods cannot rollback within the batch. Consider using BACKUP or BOTH strategy with PER_BATCH mode.'
+            });
+        }
+
+        // NONE transaction mode with transaction-dependent rollback
+        if (mode === TransactionMode.NONE && strategy === RollbackStrategy.BACKUP) {
+            // This is actually fine - just note it in debug logs
+            this.logger.debug('Transaction mode is NONE with BACKUP rollback strategy - each migration manages its own transactions');
+        }
+    }
+
+    /**
+     * Warn about migrations that may exceed transaction timeout.
+     */
+    private validateTransactionTimeout(
+        scripts: MigrationScript[],
+        config: Config,
+        issues: IValidationIssue[]
+    ): void {
+        // Only relevant for PER_BATCH mode with many migrations
+        if (config.transaction.mode !== TransactionMode.PER_BATCH) {
+            return;
+        }
+
+        const migrationCount = scripts.length;
+        const timeout = config.transaction.timeout;
+
+        // Warn if timeout is set and many migrations will execute in one transaction
+        if (timeout && migrationCount > 10) {
+            issues.push({
+                type: ValidationIssueType.WARNING,
+                code: ValidationWarningCode.MISSING_DOWN_WITH_BOTH_STRATEGY,
+                message: `${migrationCount} migrations will execute in a single transaction (PER_BATCH mode)`,
+                details: `Transaction timeout is ${timeout}ms. If migrations take too long, transaction may timeout. Consider using PER_MIGRATION mode or increasing timeout.`
+            });
+        }
+
+        // Warn if no timeout is set with many migrations
+        if (!timeout && migrationCount > 20) {
+            issues.push({
+                type: ValidationIssueType.WARNING,
+                code: ValidationWarningCode.MISSING_DOWN_WITH_BOTH_STRATEGY,
+                message: `${migrationCount} migrations will execute in a single long-running transaction`,
+                details: 'Consider setting transaction.timeout or using PER_MIGRATION mode to avoid holding locks for extended periods.'
             });
         }
     }

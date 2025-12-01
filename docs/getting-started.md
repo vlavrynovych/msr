@@ -270,6 +270,11 @@ config.backup = new BackupConfig();
 config.backup.folder = './backups';
 config.backup.deleteBackup = true;
 config.backup.timestamp = true;
+
+// Configure transactions (v0.5.0+)
+config.transaction.mode = TransactionMode.PER_MIGRATION;  // Per-migration transactions
+config.transaction.isolation = IsolationLevel.READ_COMMITTED;
+config.transaction.retries = 3;  // Retry on transient errors
 ```
 
 ### Rollback Strategies
@@ -292,6 +297,73 @@ config.rollbackStrategy = RollbackStrategy.BOTH;
 // No rollback (dangerous - use only in development)
 config.rollbackStrategy = RollbackStrategy.NONE;
 ```
+
+---
+
+## Transaction Management (v0.5.0+)
+
+MSR v0.5.0+ provides automatic transaction management for both SQL and NoSQL databases. Transactions ensure migrations are executed reliably with ACID guarantees.
+
+### Basic Transaction Configuration
+
+```typescript
+import { Config, TransactionMode, IsolationLevel } from '@migration-script-runner/core';
+
+const config = new Config();
+
+// Enable per-migration transactions (default)
+config.transaction.mode = TransactionMode.PER_MIGRATION;
+
+// Set isolation level (SQL databases only)
+config.transaction.isolation = IsolationLevel.READ_COMMITTED;
+
+// Configure automatic retry on transient errors
+config.transaction.retries = 3;
+config.transaction.retryDelay = 100;  // ms
+config.transaction.retryBackoff = true;  // Exponential backoff
+```
+
+### Transaction Modes
+
+MSR supports three transaction modes:
+
+- **`PER_MIGRATION`** (default): Each migration runs in its own transaction
+- **`PER_BATCH`**: All migrations run in a single transaction
+- **`NONE`**: No transaction wrapping (manual transaction management)
+
+### Database Requirements
+
+To use transactions, your database handler must implement either:
+
+**SQL Databases:** `ITransactionalDB`
+```typescript
+import { ITransactionalDB } from '@migration-script-runner/core';
+
+class MyDB implements ITransactionalDB {
+  async checkConnection(): Promise<boolean> { /* ... */ }
+  async beginTransaction(): Promise<void> { /* ... */ }
+  async commit(): Promise<void> { /* ... */ }
+  async rollback(): Promise<void> { /* ... */ }
+  async setIsolationLevel(level: string): Promise<void> { /* ... */ }
+}
+```
+
+**NoSQL Databases:** `ICallbackTransactionalDB`
+```typescript
+import { ICallbackTransactionalDB } from '@migration-script-runner/core';
+
+class FirestoreDB implements ICallbackTransactionalDB<Transaction> {
+  async checkConnection(): Promise<boolean> { /* ... */ }
+  async runTransaction<T>(callback: (tx: Transaction) => Promise<T>): Promise<T> {
+    return this.firestore.runTransaction(callback);
+  }
+}
+```
+
+{: .note }
+> If your database doesn't implement transaction interfaces, set `config.transaction.mode = TransactionMode.NONE` to avoid validation errors.
+
+**Learn More:** [Transaction Management Guide](user-guides/transaction-management)
 
 ---
 

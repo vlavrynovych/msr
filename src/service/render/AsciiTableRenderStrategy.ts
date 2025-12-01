@@ -177,6 +177,7 @@ export class AsciiTableRenderStrategy implements IRenderStrategy {
      *
      * @param m - Migration info with start and finish timestamps
      * @returns Duration formatted as "{seconds}s" (e.g., "2.5s", "0.123s")
+     *          Returns "0s" if timestamps are invalid or duration is negative
      *
      * @example
      * ```typescript
@@ -185,7 +186,17 @@ export class AsciiTableRenderStrategy implements IRenderStrategy {
      * ```
      */
     public static getDuration(m: IMigrationInfo): string {
+        // Validate that both timestamps are present (check for undefined/null, not truthiness)
+        if (m.startedAt === undefined || m.startedAt === null ||
+            m.finishedAt === undefined || m.finishedAt === null) {
+            return '0s';
+        }
+
         const duration = moment.duration(moment(m.finishedAt).diff(moment(m.startedAt))).asSeconds();
-        return `${duration}s`;
+
+        // Ensure duration is never negative (could happen if timestamps are out of order)
+        const safeDuration = Math.max(0, duration);
+
+        return `${safeDuration}s`;
     }
 }

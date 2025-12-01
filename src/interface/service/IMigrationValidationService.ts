@@ -1,6 +1,7 @@
 import {IValidationResult, IValidationIssue} from "../validation";
 import {MigrationScript, Config} from "../../model";
 import {ILoaderRegistry} from "../loader/ILoaderRegistry";
+import {IDatabaseMigrationHandler} from "../IDatabaseMigrationHandler";
 
 /**
  * Interface for migration validation service.
@@ -36,4 +37,16 @@ export interface IMigrationValidationService {
      * @returns Array of validation issues found
      */
     validateMigratedFileIntegrity(migratedScripts: MigrationScript[], config: Config): Promise<IValidationIssue[]>;
+
+    /**
+     * Validate transaction configuration and compatibility.
+     *
+     * **New in v0.5.0**
+     *
+     * @param handler - Database migration handler
+     * @param config - Migration configuration
+     * @param scripts - Migration scripts to execute
+     * @returns Array of validation issues found
+     */
+    validateTransactionConfiguration(handler: IDatabaseMigrationHandler, config: Config, scripts: MigrationScript[]): IValidationIssue[];
 }

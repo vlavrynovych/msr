@@ -12,6 +12,7 @@ import {
     IBackup, ISchemaVersion, IMigrationScript,
     IMigrationResult,
     SilentLogger,
+    TransactionMode,
 } from "../../../src";
 import {TestUtils} from "../../helpers/TestUtils";
 
@@ -63,6 +64,7 @@ describe('MigrationScriptExecutor', () => {
 
     before(() => {
         cfg = TestUtils.getConfig()
+        cfg.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
         const db:IDB = new class implements IDB {
             [key: string]: unknown;
             test(){throw new Error('Not implemented')}
@@ -567,6 +569,224 @@ describe('MigrationScriptExecutor', () => {
             expect(executor.execute).have.been.called;
             expect(executor.backupService.deleteBackup).have.been.called;
         })
+    })
+
+    describe('Hybrid Migrations (SQL + TypeScript)', () => {
+        let db: IDB;
+        let handler: IDatabaseMigrationHandler;
+        let config: Config;
+        let executor: MigrationScriptExecutor;
+
+        beforeEach(() => {
+            // Create mock database
+            db = {
+                checkConnection: async () => true
+            };
+
+            // Create handler with transaction support
+            handler = {
+                getName: () => 'TestHandler',
+                getVersion: () => '1.0.0',
+                db,
+                backup: {
+                    backup: async () => 'backup-content',
+                    restore: async () => {}
+                },
+                schemaVersion: {
+                    isInitialized: async () => true,
+                    createTable: async () => true,
+                    validateTable: async () => true,
+                    migrationRecords: {
+                        getAllExecuted: async () => [],
+                        save: async () => {},
+                        remove: async () => {}
+                    }
+                }
+            };
+
+            // Create config with transaction mode enabled
+            config = new Config();
+            config.transaction.mode = TransactionMode.PER_MIGRATION;
+            config.folder = './test/fixtures/hybrid-migrations';
+        });
+
+        it('should throw error when hybrid migrations detected with transactions enabled', async () => {
+            // Create executor with transaction mode enabled
+            executor = new MigrationScriptExecutor(handler, config);
+
+            // Mock pending migrations (both SQL and TS)
+            const mockScripts = {
+                all: [],
+                migrated: [],
+                pending: [
+                    new MigrationScript('V001_CreateTable.up.sql', '/path/V001_CreateTable.up.sql', 1),
+                    new MigrationScript('V002_InsertData.ts', '/path/V002_InsertData.ts', 2)
+                ],
+                ignored: [],
+                executed: []
+            };
+
+            // Call the hybrid detection method - should throw error
+            try {
+                await executor['checkHybridMigrationsAndDisableTransactions'](mockScripts);
+                // Should not reach here
+                expect.fail('Expected error to be thrown');
+            } catch (error) {
+                const err = error as Error;
+                expect(err.message).to.include('Hybrid migrations detected');
+                expect(err.message).to.include('V001_CreateTable.up.sql');
+                expect(err.message).to.include('V002_InsertData.ts');
+                expect(err.message).to.include('Cannot use automatic transaction management');
+                expect(err.message).to.include('TransactionMode.NONE');
+            }
+        });
+
+        it('should NOT throw error when only SQL migrations', async () => {
+            executor = new MigrationScriptExecutor(handler, config);
+
+            const mockScripts = {
+                all: [],
+                migrated: [],
+                pending: [
+                    new MigrationScript('V001_CreateTable.up.sql', '/path/V001_CreateTable.up.sql', 1),
+                    new MigrationScript('V002_AlterTable.up.sql', '/path/V002_AlterTable.up.sql', 2)
+                ],
+                ignored: [],
+                executed: []
+            };
+
+            // Should not throw error
+            await executor['checkHybridMigrationsAndDisableTransactions'](mockScripts);
+            // If we reach here, test passes
+        });
+
+        it('should NOT throw error when only TypeScript migrations', async () => {
+            executor = new MigrationScriptExecutor(handler, config);
+
+            const mockScripts = {
+                all: [],
+                migrated: [],
+                pending: [
+                    new MigrationScript('V001_CreateTable.ts', '/path/V001_CreateTable.ts', 1),
+                    new MigrationScript('V002_InsertData.js', '/path/V002_InsertData.js', 2)
+                ],
+                ignored: [],
+                executed: []
+            };
+
+            // Should not throw error
+            await executor['checkHybridMigrationsAndDisableTransactions'](mockScripts);
+            // If we reach here, test passes
+        });
+
+        it('should NOT throw error when transaction mode is NONE', async () => {
+            config.transaction.mode = TransactionMode.NONE;
+            executor = new MigrationScriptExecutor(handler, config);
+
+            const mockScripts = {
+                all: [],
+                migrated: [],
+                pending: [
+                    new MigrationScript('V001_CreateTable.up.sql', '/path/V001_CreateTable.up.sql', 1),
+                    new MigrationScript('V002_InsertData.ts', '/path/V002_InsertData.ts', 2)
+                ],
+                ignored: [],
+                executed: []
+            };
+
+            // Should not throw error even with hybrid migrations
+            await executor['checkHybridMigrationsAndDisableTransactions'](mockScripts);
+            // If we reach here, test passes
+        });
+
+        it('should NOT check when no pending migrations', async () => {
+            executor = new MigrationScriptExecutor(handler, config);
+
+            const mockScripts = {
+                all: [],
+                migrated: [],
+                pending: [],
+                ignored: [],
+                executed: []
+            };
+
+            // Should not throw error
+            await executor['checkHybridMigrationsAndDisableTransactions'](mockScripts);
+            // If we reach here, test passes
+        });
+
+        it('should throw error for hybrid with .js files', async () => {
+            executor = new MigrationScriptExecutor(handler, config);
+
+            const mockScripts = {
+                all: [],
+                migrated: [],
+                pending: [
+                    new MigrationScript('V001_CreateTable.up.sql', '/path/V001_CreateTable.up.sql', 1),
+                    new MigrationScript('V002_InsertData.js', '/path/V002_InsertData.js', 2)
+                ],
+                ignored: [],
+                executed: []
+            };
+
+            try {
+                await executor['checkHybridMigrationsAndDisableTransactions'](mockScripts);
+                expect.fail('Expected error to be thrown');
+            } catch (error) {
+                const err = error as Error;
+                expect(err.message).to.include('Hybrid migrations detected');
+                expect(err.message).to.include('V002_InsertData.js');
+            }
+        });
+
+        it('should include transaction mode in error message', async () => {
+            config.transaction.mode = TransactionMode.PER_BATCH;
+            executor = new MigrationScriptExecutor(handler, config);
+
+            const mockScripts = {
+                all: [],
+                migrated: [],
+                pending: [
+                    new MigrationScript('V001_CreateTable.up.sql', '/path/V001_CreateTable.up.sql', 1),
+                    new MigrationScript('V002_InsertData.ts', '/path/V002_InsertData.ts', 2)
+                ],
+                ignored: [],
+                executed: []
+            };
+
+            try {
+                await executor['checkHybridMigrationsAndDisableTransactions'](mockScripts);
+                expect.fail('Expected error to be thrown');
+            } catch (error) {
+                const err = error as Error;
+                expect(err.message).to.include('Current transaction mode: PER_BATCH');
+            }
+        });
+
+        it('should provide helpful solutions in error message', async () => {
+            executor = new MigrationScriptExecutor(handler, config);
+
+            const mockScripts = {
+                all: [],
+                migrated: [],
+                pending: [
+                    new MigrationScript('V001_CreateTable.up.sql', '/path/V001_CreateTable.up.sql', 1),
+                    new MigrationScript('V002_InsertData.ts', '/path/V002_InsertData.ts', 2)
+                ],
+                ignored: [],
+                executed: []
+            };
+
+            try {
+                await executor['checkHybridMigrationsAndDisableTransactions'](mockScripts);
+                expect.fail('Expected error to be thrown');
+            } catch (error) {
+                const err = error as Error;
+                expect(err.message).to.include('config.transaction.mode = TransactionMode.NONE');
+                expect(err.message).to.include('Separate SQL and TypeScript migrations into different batches');
+                expect(err.message).to.include('Convert all migrations to use the same format');
+            }
+        });
     })
 
 });

@@ -69,11 +69,13 @@ describe('MigrationRenderer', () => {
          * and does not mutate the original array
          */
         it('should handle large arrays without errors', () => {
-            // having: 1000 migrations
+            // having: 1000 migrations with proper timestamps
+            const now = Date.now();
             const list = Array.from({length: 1000}, (_, i) => ({
                 timestamp: i,
                 name: `Migration${i}`,
-                finishedAt: Date.now(),
+                startedAt: now + i * 1000,           // Each migration starts 1s after previous
+                finishedAt: now + i * 1000 + 500,   // Each takes 0.5s
                 username: 'user'
             } as MigrationScript))
 
@@ -94,9 +96,10 @@ describe('MigrationRenderer', () => {
          */
         it('should indicate locally missing migrations', () => {
             // Test validates the "Found Locally" column shows N for missing files
+            const now = Date.now();
             const list = [
-                {timestamp: 1, name: 'Migration1', finishedAt: Date.now(), username: 'user'} as MigrationScript,
-                {timestamp: 2, name: 'Migration2', finishedAt: Date.now(), username: 'user'} as MigrationScript,
+                {timestamp: 1, name: 'Migration1', startedAt: now, finishedAt: now + 100, username: 'user'} as MigrationScript,
+                {timestamp: 2, name: 'Migration2', startedAt: now + 1000, finishedAt: now + 1100, username: 'user'} as MigrationScript,
             ]
             // all array only contains Migration1, so Migration2 should show N
             const all = [

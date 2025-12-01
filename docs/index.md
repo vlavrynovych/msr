@@ -16,6 +16,7 @@ A database-agnostic migration framework for TypeScript and JavaScript projects.
 {: .fs-6 .fw-300 }
 
 [Get started now](getting-started){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[View all features](features){: .btn .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [View on GitHub](https://github.com/migration-script-runner/msr-core){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
@@ -51,6 +52,9 @@ A database-agnostic migration framework for TypeScript and JavaScript projects.
 - **🪝 Lifecycle Hooks** - Extend behavior with beforeMigrate and custom hooks
 - **🎯 Version Control** - Target specific versions with `up(targetVersion)` and `down(targetVersion)`
 - **✅ Well Tested** - 100% code coverage with mutation testing
+
+**[→ View all features](features)** - Complete feature list with detailed descriptions
+{: .fs-5 }
 
 ---
 

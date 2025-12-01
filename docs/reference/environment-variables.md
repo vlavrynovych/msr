@@ -135,6 +135,50 @@ export MSR_BACKUP_PREFIX=db-backup
 
 ---
 
+## Transaction Configuration
+
+All transaction variables use the `MSR_TRANSACTION_` prefix.
+
+| Environment Variable | Type | Default | Description |
+|---------------------|------|---------|-------------|
+| `MSR_TRANSACTION` | JSON object | - | Complete transaction configuration as JSON (alternative to dot-notation) |
+| `MSR_TRANSACTION_MODE` | string | `PER_MIGRATION` | Transaction boundary scope: `PER_MIGRATION`, `PER_BATCH`, or `NONE` |
+| `MSR_TRANSACTION_ISOLATION` | string | `READ_COMMITTED` | SQL isolation level: `READ_UNCOMMITTED`, `READ_COMMITTED`, `REPEATABLE_READ`, or `SERIALIZABLE` |
+| `MSR_TRANSACTION_TIMEOUT` | number | `30000` | Transaction timeout in milliseconds |
+| `MSR_TRANSACTION_RETRIES` | number | `3` | Number of retry attempts for transient failures (deadlocks, serialization) |
+| `MSR_TRANSACTION_RETRY_DELAY` | number | `100` | Base delay between retries in milliseconds |
+| `MSR_TRANSACTION_RETRY_BACKOFF` | boolean | `true` | Use exponential backoff for retries |
+
+**JSON Example:**
+```bash
+export MSR_TRANSACTION='{"mode":"PER_MIGRATION","isolation":"READ_COMMITTED","retries":3}'
+```
+
+**Dot-Notation Example (Recommended):**
+```bash
+export MSR_TRANSACTION_MODE=PER_MIGRATION
+export MSR_TRANSACTION_ISOLATION=READ_COMMITTED
+export MSR_TRANSACTION_TIMEOUT=30000
+export MSR_TRANSACTION_RETRIES=3
+export MSR_TRANSACTION_RETRY_DELAY=100
+export MSR_TRANSACTION_RETRY_BACKOFF=true
+```
+
+**Transaction Modes:**
+- `PER_MIGRATION` - Each migration in its own transaction (default, recommended)
+- `PER_BATCH` - All migrations in a single transaction (all-or-nothing)
+- `NONE` - No automatic transactions (for NoSQL or custom transaction logic)
+
+**Isolation Levels:**
+- `READ_UNCOMMITTED` - Lowest isolation, allows dirty reads
+- `READ_COMMITTED` - Default, prevents dirty reads (recommended)
+- `REPEATABLE_READ` - Prevents non-repeatable reads
+- `SERIALIZABLE` - Highest isolation, full serializability
+
+See [Transaction Configuration](../configuration/transaction-settings.md) for detailed information.
+
+---
+
 ## Config File Location
 
 | Environment Variable | Type | Default | Description |

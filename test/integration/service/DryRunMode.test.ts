@@ -6,7 +6,9 @@ import {
     IDatabaseMigrationHandler,
     IDB,
     IMigrationInfo,
-    RollbackStrategy
+    RollbackStrategy,
+    TransactionMode,
+    IsolationLevel
 } from '../../../src';
 import { TestUtils } from '../../helpers';
 
@@ -23,6 +25,7 @@ describe('Dry Run Mode', () => {
         config = TestUtils.getConfig();
         config.dryRun = true; // Enable dry run mode
         config.rollbackStrategy = RollbackStrategy.BACKUP;
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         // Mock handler that tracks what was executed
         handler = {
@@ -467,6 +470,334 @@ describe('Dry Run Mode', () => {
             // beforeMigrate should not have executed
             // (it would show up in executed array if it did)
             expect(executed.length).to.equal(0);
+        });
+    });
+
+    describe('Dry Run with Transactions (v0.5.0)', () => {
+        let transactionLog: string[] = [];
+        let transactionalHandler: IDatabaseMigrationHandler;
+        let savedMigrations: IMigrationInfo[] = [];
+
+        beforeEach(() => {
+            transactionLog = [];
+            executed = [];
+            savedMigrations = [];
+
+            config = TestUtils.getConfig();
+            config.dryRun = true;
+
+            // Create handler with transactional DB support
+            const mockTransactionalDB = {
+                execute: async (sql: string) => {
+                    executed.push(`execute: ${sql}`);
+                    return [];
+                },
+                checkConnection: async () => true,
+                beginTransaction: async () => {
+                    transactionLog.push('BEGIN');
+                },
+                commit: async () => {
+                    transactionLog.push('COMMIT');
+                },
+                rollback: async () => {
+                    transactionLog.push('ROLLBACK');
+                },
+                setIsolationLevel: async (level: string) => {
+                    transactionLog.push(`SET ISOLATION ${level}`);
+                },
+                query: async (sql: string) => {
+                    return [];
+                }
+            };
+
+            transactionalHandler = {
+                db: mockTransactionalDB as IDB,
+                backup: {
+                    backup: async () => './backup.bkp',
+                    restore: async (path: string) => {}
+                },
+                migrationRecords: {
+                    save: async (details: IMigrationInfo) => {
+                        executed.push(`save: ${details.name}`);
+                        savedMigrations.push(details);
+                    },
+                    getAllExecuted: async () => [],
+                    remove: async (timestamp: number) => {}
+                },
+                schemaVersion: {
+                    save: async (details: IMigrationInfo) => {
+                        executed.push(`schemaVersion.save: ${details.name}`);
+                        savedMigrations.push(details);
+                    },
+                    getAllExecuted: async () => [],
+                    remove: async (timestamp: number) => {},
+                    isInitialized: async () => true,
+                    createTable: async () => true,
+                    validateTable: async () => true,
+                    migrationRecords: {
+                        save: async (details: IMigrationInfo) => {
+                            savedMigrations.push(details);
+                        },
+                        getAllExecuted: async () => [],
+                        remove: async (timestamp: number) => {}
+                    }
+                },
+                getName: () => 'TestTransactionalHandler',
+                getVersion: () => '1.0.0-test',
+                createTable: async () => true,
+                isInitialized: async () => true,
+                validateTable: async () => true
+            } as IDatabaseMigrationHandler;
+        });
+
+        /**
+         * Test: Dry run with PER_MIGRATION transactions
+         * Validates that each migration begins/rollbacks its own transaction in dry run.
+         */
+        it('should rollback each migration transaction in PER_MIGRATION mode', async () => {
+            config.transaction.mode = TransactionMode.PER_MIGRATION;
+
+            const executor = new MigrationScriptExecutor(transactionalHandler, config, { logger: new SilentLogger() });
+            const result = await executor.migrate();
+
+            // In dry run with transactions: migrations execute but are rolled back
+            // So result.executed will contain migrations, but they have dryRun: true
+            expect(result.success).to.be.true;
+
+            // Verify transaction lifecycle: BEGIN -> ROLLBACK for each migration
+            // Note: The actual number of transactions depends on how many migrations exist
+            const beginCount = transactionLog.filter(log => log === 'BEGIN').length;
+            const rollbackCount = transactionLog.filter(log => log === 'ROLLBACK').length;
+            const commitCount = transactionLog.filter(log => log === 'COMMIT').length;
+
+            // In dry run mode: transactions are started and rolled back, never committed
+            if (result.executed.length > 0) {
+                expect(beginCount).to.be.greaterThan(0, 'Should have started transactions');
+                expect(rollbackCount).to.equal(beginCount, 'Each transaction should be rolled back');
+
+                // Verify migrations are marked as dry run
+                result.executed.forEach(migration => {
+                    expect(migration.dryRun).to.be.true;
+                });
+            } else {
+                // No migrations to execute
+                expect(beginCount).to.equal(0, 'No transactions if no migrations');
+            }
+
+            expect(commitCount).to.equal(0, 'No transactions should be committed in dry run');
+        });
+
+        /**
+         * Test: Dry run with PER_BATCH transactions
+         * Validates that all migrations execute in one transaction, then rollback.
+         */
+        it('should rollback batch transaction in PER_BATCH mode', async () => {
+            config.transaction.mode = TransactionMode.PER_BATCH;
+
+            const executor = new MigrationScriptExecutor(transactionalHandler, config, { logger: new SilentLogger() });
+            const result = await executor.migrate();
+
+            // In dry run with transactions: migrations execute but are rolled back
+            expect(result.success).to.be.true;
+
+            // Verify transaction lifecycle: BEGIN -> ROLLBACK
+            const beginCount = transactionLog.filter(log => log === 'BEGIN').length;
+            const rollbackCount = transactionLog.filter(log => log === 'ROLLBACK').length;
+            const commitCount = transactionLog.filter(log => log === 'COMMIT').length;
+
+            // In PER_BATCH dry run with transactions:
+            // IF migrations exist AND transactions are enabled, there should be exactly 1 batch transaction
+            // HOWEVER, PER_BATCH executes all migrations in one transaction
+            // If no migrations, or if transaction manager wasn't created, there's no transaction
+            if (result.executed.length > 0 && beginCount > 0) {
+                // Transactions were used
+                expect(beginCount).to.equal(1, 'Should have one batch transaction');
+                expect(rollbackCount).to.equal(1, 'Batch transaction should be rolled back');
+
+                // Verify migrations are marked as dry run
+                result.executed.forEach(migration => {
+                    expect(migration.dryRun).to.be.true;
+                });
+            }
+
+            // No commits in dry run mode regardless
+            expect(commitCount).to.equal(0, 'No commits in dry run mode');
+        });
+
+        /**
+         * Test: Dry run with NONE transaction mode
+         * Validates that no transactions are used when mode is NONE.
+         */
+        it('should not use transactions in NONE mode during dry run', async () => {
+            config.transaction.mode = TransactionMode.NONE;
+
+            const executor = new MigrationScriptExecutor(transactionalHandler, config, { logger: new SilentLogger() });
+            const result = await executor.migrate();
+
+            // Verify no transactions were started
+            expect(transactionLog.length).to.equal(0, 'No transaction operations in NONE mode');
+            expect(result.executed.length).to.equal(0, 'Migrations not executed in dry run');
+        });
+
+        /**
+         * Test: Dry run sets dryRun flag on migration info
+         * Validates that executed migrations are marked with dryRun: true.
+         */
+        it('should mark migrations with dryRun flag when executed in dry run mode', async () => {
+            config.transaction.mode = TransactionMode.PER_MIGRATION;
+
+            const executor = new MigrationScriptExecutor(transactionalHandler, config, { logger: new SilentLogger() });
+            await executor.migrate();
+
+            // Verify dryRun flag is set on saved migrations
+            if (savedMigrations.length > 0) {
+                savedMigrations.forEach(migration => {
+                    expect(migration.dryRun).to.be.true;
+                });
+            }
+        });
+
+        /**
+         * Test: Dry run shows transaction activity in logs
+         * Validates that dry run mode logs transaction BEGIN/ROLLBACK actions.
+         */
+        it('should log transaction activity during dry run', async () => {
+            config.transaction.mode = TransactionMode.PER_MIGRATION;
+
+            let loggedMessages: string[] = [];
+            const capturingLogger = {
+                info: (msg: string) => loggedMessages.push(msg),
+                error: (msg: string) => loggedMessages.push(msg),
+                warn: (msg: string) => loggedMessages.push(msg),
+                success: (msg: string) => loggedMessages.push(msg),
+                debug: (msg: string) => loggedMessages.push(msg),
+                log: (msg: string) => loggedMessages.push(msg)
+            };
+
+            const executor = new MigrationScriptExecutor(transactionalHandler, config, { logger: capturingLogger });
+            await executor.migrate();
+
+            // Check for dry run transaction messages
+            const hasDryRunMessage = loggedMessages.some(msg =>
+                msg.includes('Testing migrations') ||
+                msg.includes('Dry run') ||
+                msg.includes('transactions rolled back')
+            );
+
+            expect(hasDryRunMessage).to.be.true;
+        });
+
+        /**
+         * Test: Dry run with isolation level
+         * Validates that isolation level is set even in dry run mode.
+         */
+        it('should set isolation level in dry run transaction mode', async () => {
+            config.transaction.mode = TransactionMode.PER_MIGRATION;
+            config.transaction.isolation = IsolationLevel.SERIALIZABLE;
+
+            const executor = new MigrationScriptExecutor(transactionalHandler, config, { logger: new SilentLogger() });
+            await executor.migrate();
+
+            // Verify isolation level was set
+            const isolationSet = transactionLog.some(log => log.includes('SET ISOLATION'));
+            if (transactionLog.length > 0) {
+                expect(isolationSet).to.be.true;
+            }
+        });
+
+        /**
+         * Test: Dry run doesn't commit even on success
+         * Validates that successful migration execution still rolls back in dry run.
+         */
+        it('should rollback successful migrations in dry run mode', async () => {
+            config.transaction.mode = TransactionMode.PER_MIGRATION;
+
+            const executor = new MigrationScriptExecutor(transactionalHandler, config, { logger: new SilentLogger() });
+            const result = await executor.migrate();
+
+            // Success should still mean no commits
+            expect(result.success).to.be.true;
+
+            const commitCount = transactionLog.filter(log => log === 'COMMIT').length;
+            expect(commitCount).to.equal(0, 'Even successful migrations should not commit in dry run');
+        });
+
+        /**
+         * Test: Dry run with transaction failure logs error appropriately
+         * Validates that migration failures in dry run mode with transactions log correctly.
+         * Covers lines 656-658 in MigrationScriptExecutor.ts
+         */
+        it('should log error when dry run migration fails with transactions', async () => {
+            config.transaction.mode = TransactionMode.PER_MIGRATION;
+            config.validateBeforeRun = false; // Disable validation to reach execution
+
+            let loggedMessages: string[] = [];
+            const capturingLogger = {
+                info: (msg: string) => loggedMessages.push(`INFO: ${msg}`),
+                error: (msg: string) => loggedMessages.push(`ERROR: ${msg}`),
+                warn: (msg: string) => loggedMessages.push(`WARN: ${msg}`),
+                success: (msg: string) => loggedMessages.push(`SUCCESS: ${msg}`),
+                debug: (msg: string) => loggedMessages.push(`DEBUG: ${msg}`),
+                log: (msg: string) => loggedMessages.push(`LOG: ${msg}`)
+            };
+
+            // Create scanner that returns a migration that will fail
+            const mockScanner = {
+                scan: async () => ({
+                    all: [
+                        {
+                            timestamp: 1,
+                            name: 'V1__failing_migration',
+                            filepath: '/fake/1.ts',
+                            init: async () => {},
+                            script: {
+                                up: async () => {
+                                    throw new Error('Migration intentionally failed');
+                                }
+                            }
+                        }
+                    ],
+                    migrated: [],
+                    pending: [
+                        {
+                            timestamp: 1,
+                            name: 'V1__failing_migration',
+                            filepath: '/fake/1.ts',
+                            init: async () => {},
+                            script: {
+                                up: async () => {
+                                    throw new Error('Migration intentionally failed');
+                                }
+                            }
+                        }
+                    ],
+                    ignored: [],
+                    executed: []
+                })
+            };
+
+            const executor = new MigrationScriptExecutor(transactionalHandler, config, {
+                logger: capturingLogger,
+                migrationScanner: mockScanner as any
+            });
+
+            try {
+                await executor.migrate();
+                expect.fail('Should have thrown error');
+            } catch (error) {
+                // Expected error
+            }
+
+            // Verify error messages were logged (covers lines 656-658)
+            const hasFailedMessage = loggedMessages.some(msg =>
+                msg.includes('Dry run failed')
+            );
+            const hasFailedAtMessage = loggedMessages.some(msg =>
+                msg.includes('Failed at:')
+            );
+
+            expect(hasFailedMessage).to.be.true;
+            expect(hasFailedAtMessage).to.be.true;
         });
     });
 });

@@ -10,7 +10,8 @@ import {
     MigrationScriptExecutor,
     IBackup,
     ISchemaVersion,
-    SilentLogger
+    SilentLogger,
+    TransactionMode
 } from "../../../src";
 import {TestUtils} from "../../helpers/TestUtils";
 
@@ -34,6 +35,7 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
 
     before(() => {
         cfg = TestUtils.getConfig();
+        cfg.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
         db = new class implements IDB {
             [key: string]: unknown;
             test() { throw new Error('Not implemented') }
@@ -146,6 +148,7 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
         const tempCfg = new Config();
         tempCfg.folder = tempFolder;
         tempCfg.recursive = false;
+        tempCfg.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         const handler: IDatabaseMigrationHandler = {
             backup: {
@@ -223,6 +226,7 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
         tempCfg.folder = tempFolder;
         tempCfg.recursive = false;
         tempCfg.validateBeforeRun = false; // Disable validation so migration execution is attempted
+        tempCfg.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         const handler: IDatabaseMigrationHandler = {
             backup: {
@@ -276,6 +280,7 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
         const tempCfg = new Config();
         tempCfg.folder = tempFolder;
         tempCfg.recursive = false;
+        tempCfg.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         const handler: IDatabaseMigrationHandler = {
             backup: {
@@ -353,6 +358,7 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
         const tempCfg = new Config();
         tempCfg.folder = cfg.folder;
         tempCfg.beforeMigrateName = null; // Disable beforeMigrate
+        tempCfg.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         const handler: IDatabaseMigrationHandler = {
             backup: {
@@ -468,6 +474,7 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
         const tempCfg = new Config();
         tempCfg.folder = tempFolder;
         tempCfg.recursive = false;
+        tempCfg.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         const handler: IDatabaseMigrationHandler = {
             backup: {

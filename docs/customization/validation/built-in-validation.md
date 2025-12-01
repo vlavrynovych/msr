@@ -409,6 +409,239 @@ export default class AddNameToUsers {
 
 ---
 
+### 5. Transaction Configuration Validation
+
+**New in v0.5.0**
+
+Validates transaction configuration compatibility and warns about potential issues.
+
+#### Database Does Not Support Transactions
+
+**Error Code:** `IMPORT_FAILED`
+**Type:** ERROR
+**When:** Transaction mode is enabled but database doesn't implement transaction interfaces
+
+**Cause:**
+- Database handler doesn't implement `ITransactionalDB` or `ICallbackTransactionalDB`
+- Transaction mode is set to `PER_MIGRATION` or `PER_BATCH`
+
+**Example Problem:**
+```typescript
+const config = new Config();
+config.transaction.mode = TransactionMode.PER_MIGRATION;  // Requires ITransactionalDB
+
+class MyDB implements IDB {
+  async checkConnection(): Promise<boolean> { return true; }
+  // ❌ Missing: beginTransaction(), commit(), rollback()
+}
+```
+
+**Error Message:**
+```
+❌ Transaction configuration validation failed:
+
+  ❌ Database does not support transactions, but transaction mode is PER_MIGRATION
+     Database must implement ITransactionalDB or ICallbackTransactionalDB.
+     Set transaction.mode to NONE or implement transaction methods.
+```
+
+**Solution:**
+```typescript
+import { ITransactionalDB } from '@migration-script-runner/core';
+
+// Option 1: Implement ITransactionalDB
+class MyDB implements ITransactionalDB {
+  async checkConnection(): Promise<boolean> { return true; }
+
+  async beginTransaction(): Promise<void> {
+    await this.client.query('BEGIN');
+  }
+
+  async commit(): Promise<void> {
+    await this.client.query('COMMIT');
+  }
+
+  async rollback(): Promise<void> {
+    await this.client.query('ROLLBACK');
+  }
+}
+
+// Option 2: Disable transaction mode
+config.transaction.mode = TransactionMode.NONE;
+```
+
+---
+
+#### Isolation Level Not Supported
+
+**Error Code:** `MISSING_DOWN_WITH_BOTH_STRATEGY` (repurposed for warnings)
+**Type:** WARNING
+**When:** Isolation level configured but database may not support `setIsolationLevel()`
+
+**Cause:**
+- `config.transaction.isolation` is set
+- Database doesn't have `setIsolationLevel()` method
+
+**Example Scenario:**
+```typescript
+const config = new Config();
+config.transaction.mode = TransactionMode.PER_MIGRATION;
+config.transaction.isolation = IsolationLevel.SERIALIZABLE;
+
+class MyDB implements ITransactionalDB {
+  async beginTransaction(): Promise<void> { /* ... */ }
+  async commit(): Promise<void> { /* ... */ }
+  async rollback(): Promise<void> { /* ... */ }
+  // ⚠️  Missing: setIsolationLevel(level: string): Promise<void>
+}
+```
+
+**Warning Message:**
+```
+⚠️  Transaction configuration warnings:
+
+  ⚠️  Isolation level SERIALIZABLE is configured, but database may not support setIsolationLevel()
+      Verify your database adapter implements setIsolationLevel() method.
+      Isolation level may be ignored.
+```
+
+**Solution:**
+```typescript
+class MyDB implements ITransactionalDB {
+  // ... other methods ...
+
+  async setIsolationLevel(level: string): Promise<void> {
+    if (!this.client) throw new Error('Call beginTransaction() first');
+    await this.client.query(`SET TRANSACTION ISOLATION LEVEL ${level}`);
+  }
+}
+```
+
+---
+
+#### Rollback Strategy Incompatibility
+
+**Error Code:** `MISSING_DOWN_WITH_BOTH_STRATEGY` (repurposed for warnings)
+**Type:** WARNING
+**When:** Using `PER_BATCH` mode with `DOWN` rollback strategy
+
+**Cause:**
+- Transaction mode is `PER_BATCH`
+- Rollback strategy is `DOWN`
+- Individual migration `down()` methods cannot rollback within a batch transaction
+
+**Example Problem:**
+```typescript
+const config = new Config();
+config.transaction.mode = TransactionMode.PER_BATCH;
+config.rollbackStrategy = RollbackStrategy.DOWN;
+// ⚠️  Incompatible combination
+```
+
+**Warning Message:**
+```
+⚠️  Transaction configuration warnings:
+
+  ⚠️  Rollback strategy DOWN is not fully compatible with PER_BATCH transaction mode
+      If a migration fails in PER_BATCH mode, the entire batch transaction will rollback.
+      Individual migration down() methods cannot rollback within the batch.
+      Consider using BACKUP or BOTH strategy with PER_BATCH mode.
+```
+
+**Explanation:**
+```
+PER_BATCH transaction:
+BEGIN
+  Migration 1 ✓
+  Migration 2 ✓
+  Migration 3 ✗ (fails)
+ROLLBACK  ← Database automatically rolls back entire batch
+          ← down() methods cannot execute inside rolled-back transaction
+```
+
+**Solutions:**
+```typescript
+// Option 1: Use BACKUP strategy with PER_BATCH
+config.transaction.mode = TransactionMode.PER_BATCH;
+config.rollbackStrategy = RollbackStrategy.BACKUP;
+
+// Option 2: Use BOTH strategy (backup + down)
+config.transaction.mode = TransactionMode.PER_BATCH;
+config.rollbackStrategy = RollbackStrategy.BOTH;
+
+// Option 3: Use PER_MIGRATION with DOWN
+config.transaction.mode = TransactionMode.PER_MIGRATION;
+config.rollbackStrategy = RollbackStrategy.DOWN;
+```
+
+---
+
+#### Transaction Timeout Warning
+
+**Error Code:** `MISSING_DOWN_WITH_BOTH_STRATEGY` (repurposed for warnings)
+**Type:** WARNING
+**When:** Many migrations in `PER_BATCH` mode with timeout configured, or very long batch without timeout
+
+**Causes:**
+- **With timeout:** > 10 migrations in `PER_BATCH` mode with `transaction.timeout` set
+- **Without timeout:** > 20 migrations in `PER_BATCH` mode without timeout
+
+**Example Scenarios:**
+
+**Scenario 1: Timeout Risk**
+```typescript
+const config = new Config();
+config.transaction.mode = TransactionMode.PER_BATCH;
+config.transaction.timeout = 5000;  // 5 seconds
+
+// 15 pending migrations to execute in single transaction
+```
+
+**Warning Message:**
+```
+⚠️  Transaction configuration warnings:
+
+  ⚠️  15 migrations will execute in a single transaction (PER_BATCH mode)
+      Transaction timeout is 5000ms. If migrations take too long, transaction may timeout.
+      Consider using PER_MIGRATION mode or increasing timeout.
+```
+
+**Scenario 2: Long-Running Transaction**
+```typescript
+const config = new Config();
+config.transaction.mode = TransactionMode.PER_BATCH;
+// No timeout configured
+
+// 25 pending migrations to execute in single transaction
+```
+
+**Warning Message:**
+```
+⚠️  Transaction configuration warnings:
+
+  ⚠️  25 migrations will execute in a single long-running transaction
+      Consider setting transaction.timeout or using PER_MIGRATION mode
+      to avoid holding locks for extended periods.
+```
+
+**Solutions:**
+```typescript
+// Option 1: Use PER_MIGRATION mode for many migrations
+config.transaction.mode = TransactionMode.PER_MIGRATION;
+
+// Option 2: Increase timeout
+config.transaction.timeout = 30000;  // 30 seconds
+
+// Option 3: Set reasonable timeout
+config.transaction.timeout = 10000;  // 10 seconds
+
+// Option 4: Run migrations in smaller batches
+await executor.up(202501220500);  // First batch
+await executor.up(202501220800);  // Second batch
+```
+
+---
+
 ## Validation Flow
 
 Built-in validation runs in this order:
@@ -432,7 +665,13 @@ Built-in validation runs in this order:
    - MIGRATED_FILE_MISSING
    - MIGRATED_FILE_MODIFIED
    ↓
-6. Custom Validators (if configured)
+6. Transaction Configuration Validation (v0.5.0+)
+   - Database transaction support check
+   - Isolation level compatibility
+   - Rollback strategy compatibility
+   - Transaction timeout warnings
+   ↓
+7. Custom Validators (if configured)
 ```
 
 If any validation fails with an ERROR:
@@ -741,3 +980,5 @@ git checkout -- migrations/
 | `MISSING_DOWN_METHOD` | ERROR/WARNING | No down() method (policy-based) |
 | `MIGRATED_FILE_MISSING` | ERROR | Executed migration file deleted |
 | `MIGRATED_FILE_MODIFIED` | ERROR | Executed migration file changed |
+| `IMPORT_FAILED` | ERROR | Database doesn't support transactions (v0.5.0+) |
+| `MISSING_DOWN_WITH_BOTH_STRATEGY` | WARNING | Transaction configuration warnings (v0.5.0+) |

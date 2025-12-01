@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { MigrationScriptExecutor, Config, SilentLogger, IDatabaseMigrationHandler, ValidationError, ISchemaVersion, IMigrationInfo, IDB } from '../../../src';
+import { MigrationScriptExecutor, Config, SilentLogger, IDatabaseMigrationHandler, ValidationError, ISchemaVersion, IMigrationInfo, IDB, TransactionMode } from '../../../src';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -18,11 +18,12 @@ describe('MigrationScriptExecutor - Validation Error Paths Coverage', () => {
 
     beforeEach(() => {
         tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'validation-coverage-'));
-        
+
         config = new Config();
         config.folder = tempDir;
         config.validateBeforeRun = true;
-        
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
+
         handler = {
             db,
             schemaVersion: {
@@ -205,5 +206,91 @@ describe('MigrationScriptExecutor - Validation Error Paths Coverage', () => {
         expect(result.errors).to.have.lengthOf(1);
         expect(result.errors![0]).to.be.instanceOf(ValidationError);
         expect(result.errors![0].message).to.include('integrity check failed');
+    });
+
+    /**
+     * Test: Transaction validation warnings are logged
+     * Covers lines 1430-1431 in MigrationScriptExecutor.ts
+     * Validates that transaction configuration warnings (not errors) are logged appropriately.
+     */
+    it('should log transaction validation warnings when isolation level not supported', async () => {
+        config.validateBeforeRun = false;
+        config.transaction.mode = 'PER_MIGRATION' as any;
+        config.transaction.isolation = 'SERIALIZABLE' as any;
+
+        // Create handler with transactional DB that doesn't support setIsolationLevel
+        // This will generate a WARNING (not an ERROR)
+        const transactionalDB = {
+            query: () => Promise.resolve([]),
+            checkConnection: () => Promise.resolve(true),
+            beginTransaction: () => Promise.resolve(),
+            commit: () => Promise.resolve(),
+            rollback: () => Promise.resolve()
+            // No setIsolationLevel method - this triggers the warning
+        };
+
+        handler.db = transactionalDB as any;
+
+        // Mock scanner that returns a pending migration
+        const mockScanner = {
+            scan: async () => ({
+                all: [
+                    {
+                        timestamp: 1,
+                        name: 'V1__test',
+                        filepath: '/fake/V1__test.ts',
+                        init: async () => {},
+                        script: {
+                            up: async () => {},
+                            down: async () => {}
+                        }
+                    }
+                ],
+                migrated: [],
+                pending: [
+                    {
+                        timestamp: 1,
+                        name: 'V1__test',
+                        filepath: '/fake/V1__test.ts',
+                        init: async () => {},
+                        script: {
+                            up: async () => {},
+                            down: async () => {}
+                        }
+                    }
+                ],
+                ignored: [],
+                executed: []
+            })
+        };
+
+        // Create a capturing logger to verify warning messages
+        let loggedMessages: string[] = [];
+        const capturingLogger = {
+            info: (msg: string) => loggedMessages.push(`INFO: ${msg}`),
+            error: (msg: string) => loggedMessages.push(`ERROR: ${msg}`),
+            warn: (msg: string) => loggedMessages.push(`WARN: ${msg}`),
+            success: (msg: string) => loggedMessages.push(`SUCCESS: ${msg}`),
+            debug: (msg: string) => loggedMessages.push(`DEBUG: ${msg}`),
+            log: (msg: string) => loggedMessages.push(`LOG: ${msg}`)
+        };
+
+        const executor = new MigrationScriptExecutor(handler, config, {
+            logger: capturingLogger,
+            migrationScanner: mockScanner as any
+        });
+
+        try {
+            await executor.migrate();
+        } catch (error) {
+            // Migration may fail, but validation should run first
+        }
+
+        // Verify warning messages were logged (covers lines 1430-1431)
+        const hasWarningHeader = loggedMessages.some(msg =>
+            msg.includes('Transaction configuration warnings')
+        );
+
+        expect(hasWarningHeader).to.be.true;
     });
 });

@@ -27,6 +27,7 @@ Migration Script Runner uses the `Config` class to control all aspects of migrat
 - **✅ [Validation Settings](validation-settings)** - Validation rules and policies
 - **🔄 [Rollback Settings](rollback-settings)** - Rollback strategies and behavior
 - **💾 [Backup Settings](backup-settings)** - Backup configuration for BACKUP strategy
+- **🔒 [Transaction Settings](transaction-settings)** - Transaction management and retry configuration
 
 ---
 
@@ -73,6 +74,7 @@ const config = new Config();
 | ✅ [Validation Settings](validation-settings) | `validateBeforeRun`, `strictValidation`, `downMethodPolicy`, `customValidators` | Control validation behavior and rules |
 | 🔄 [Rollback Settings](rollback-settings) | `rollbackStrategy` | Choose backup, down(), both, or none |
 | 💾 [Backup Settings](backup-settings) | `backup` (BackupConfig) | Configure backup file naming and storage |
+| 🔒 [Transaction Settings](transaction-settings) | `transaction` (TransactionConfig) | Configure transaction mode, isolation level, and retry behavior |
 
 ---
 
@@ -136,7 +138,28 @@ config.customValidators = [new MyValidator()];
 
 See [Validation Settings](validation-settings) for validation options.
 
-### 4. Configure Backup (if using BACKUP strategy)
+### 4. Configure Transactions
+
+Control how migrations are wrapped in database transactions:
+
+```typescript
+import { TransactionMode, IsolationLevel } from '@migration-script-runner/core';
+
+// Standard approach: Each migration in its own transaction
+config.transaction.mode = TransactionMode.PER_MIGRATION;
+config.transaction.isolation = IsolationLevel.READ_COMMITTED;
+config.transaction.retries = 3;
+
+// Batch mode: All migrations in one transaction
+config.transaction.mode = TransactionMode.PER_BATCH;
+
+// No automatic transactions (for NoSQL or custom logic)
+config.transaction.mode = TransactionMode.NONE;
+```
+
+See [Transaction Settings](transaction-settings) for all transaction options.
+
+### 5. Configure Backup (if using BACKUP strategy)
 
 If using `BACKUP` or `BOTH` strategies:
 
@@ -162,6 +185,8 @@ import {
     BackupConfig,
     RollbackStrategy,
     DownMethodPolicy,
+    TransactionMode,
+    IsolationLevel,
     MigrationScriptExecutor
 } from '@migration-script-runner/core';
 import { MyDatabaseHandler } from './database-handler';
@@ -181,6 +206,13 @@ config.recursive = true;
 config.validateBeforeRun = true;
 config.strictValidation = process.env.CI === 'true';
 config.downMethodPolicy = DownMethodPolicy.AUTO;
+
+// Transaction settings
+config.transaction.mode = TransactionMode.PER_MIGRATION;
+config.transaction.isolation = IsolationLevel.READ_COMMITTED;
+config.transaction.retries = 3;
+config.transaction.retryDelay = 100;
+config.transaction.retryBackoff = true;
 
 // Rollback strategy
 config.rollbackStrategy = RollbackStrategy.BOTH;
@@ -421,6 +453,7 @@ Explore detailed configuration options:
 - **✅ [Validation Settings](validation-settings)** - Validation rules and policies
 - **🔄 [Rollback Settings](rollback-settings)** - Rollback strategies explained
 - **💾 [Backup Settings](backup-settings)** - Backup file configuration
+- **🔒 [Transaction Settings](transaction-settings)** - Transaction modes, isolation levels, and retry behavior
 
 ---
 
@@ -428,6 +461,7 @@ Explore detailed configuration options:
 
 - [Migration Settings](migration-settings) - Configure file discovery
 - [Validation Settings](validation-settings) - Configure validation
+- [Transaction Settings](transaction-settings) - Configure transactions
 - [Writing Migrations](../user-guides/writing-migrations) - Best practices
 - [Getting Started](../getting-started) - Quick start guide
 

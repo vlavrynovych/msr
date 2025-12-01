@@ -3,7 +3,9 @@ import sinon from 'sinon';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { IRunnableScript, MigrationRunner, MigrationScript, SilentLogger, ConsoleLogger, Config } from "../../../src";
+import { IRunnableScript, MigrationRunner, MigrationScript, SilentLogger, ConsoleLogger, Config, SummaryFormat } from "../../../src";
+const { ExecutionSummaryHook } = require('../../../src/hooks/ExecutionSummaryHook');
+const { ExecutionSummaryLogger } = require('../../../src/service/ExecutionSummaryLogger');
 
 describe('MigrationRunner', () => {
     let runner: MigrationRunner;
@@ -524,3 +526,1041 @@ function createScript(timestamp: number, name: string): MigrationScript {
     } as IRunnableScript;
     return script;
 }
+
+describe('Transaction Management (v0.5.0)', () => {
+    let runner: MigrationRunner;
+    let handler: any;
+    let schemaVersionService: any;
+    let logger: any;
+
+    beforeEach(() => {
+        const cfg = new Config();
+
+        handler = {
+            db: { test: () => {} },
+            cfg: cfg,
+            getName: () => 'Test Handler',
+            getVersion: () => '1.0.0-test',
+        };
+
+        schemaVersionService = {
+            save: sinon.stub().resolves()
+        };
+
+        logger = new SilentLogger();
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    describe('PER_MIGRATION Mode', () => {
+
+        it('should wrap each migration in its own transaction', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_MIGRATION' as any;
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().resolves()
+            };
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger,
+                transactionManager as any
+            );
+
+            const scripts = [
+                createScript(1, 'first'),
+                createScript(2, 'second'),
+                createScript(3, 'third')
+            ];
+
+            await runner.execute(scripts);
+
+            // Should call begin/commit for each migration (3 times)
+            expect(transactionManager.begin.callCount).to.equal(3);
+            expect(transactionManager.commit.callCount).to.equal(3);
+            expect(transactionManager.rollback.callCount).to.equal(0);
+        });
+
+        it('should rollback failed migration transaction', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_MIGRATION' as any;
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().resolves()
+            };
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger,
+                transactionManager as any
+            );
+
+            const script1 = createScript(1, 'first');
+            const script2 = createScript(2, 'second');
+            script2.script = {
+                up: async () => { throw new Error('Migration failed'); }
+            } as IRunnableScript;
+
+            const scripts = [script1, script2];
+
+            let error: Error | undefined;
+            try {
+                await runner.execute(scripts);
+            } catch (e) {
+                error = e as Error;
+            }
+
+            expect(error).to.exist;
+            // First migration: begin + commit
+            // Second migration: begin + rollback (on failure)
+            expect(transactionManager.begin.callCount).to.equal(2);
+            expect(transactionManager.commit.callCount).to.equal(1);
+            expect(transactionManager.rollback.callCount).to.equal(1);
+        });
+
+        it('should call transaction hooks for each migration', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_MIGRATION' as any;
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().resolves()
+            };
+
+            const hooks = {
+                beforeTransactionBegin: sinon.stub().resolves(),
+                afterTransactionBegin: sinon.stub().resolves(),
+                beforeCommit: sinon.stub().resolves(),
+                afterCommit: sinon.stub().resolves()
+            };
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger,
+                transactionManager as any,
+                hooks as any
+            );
+
+            const scripts = [createScript(1, 'test'), createScript(2, 'test2')];
+            await runner.execute(scripts);
+
+            // Hooks should be called for each migration
+            expect(hooks.beforeTransactionBegin.callCount).to.equal(2);
+            expect(hooks.afterTransactionBegin.callCount).to.equal(2);
+            expect(hooks.beforeCommit.callCount).to.equal(2);
+            expect(hooks.afterCommit.callCount).to.equal(2);
+        });
+
+        it('should record transaction metrics through ExecutionSummaryHook', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_MIGRATION' as any;
+            cfg.logging = {
+                enabled: true,
+                logSuccessful: true,
+                path: './test-logs/summary-hook',
+                format: SummaryFormat.JSON,
+                maxFiles: 0
+            };
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().resolves()
+            };
+
+            // Create a proper handler for ExecutionSummaryHook
+            const testHandler = {
+                db: { test: () => {} },
+                getName: () => 'TestHandler',
+                getVersion: () => '1.0.0-test'
+            };
+
+            // Create ExecutionSummaryHook (it creates its own ExecutionSummaryLogger)
+            const executionSummaryHook = new ExecutionSummaryHook(cfg, logger, testHandler as any);
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger,
+                transactionManager as any,
+                executionSummaryHook as any
+            );
+
+            const scripts = [createScript(1, 'test1'), createScript(2, 'test2')];
+            await runner.execute(scripts);
+
+            // Verify transactions were called
+            expect(transactionManager.begin.callCount).to.equal(2);
+            expect(transactionManager.commit.callCount).to.equal(2);
+
+            // Verify ExecutionSummaryHook recorded transaction metrics (covers lines 144, 152)
+            const summaryLogger = (executionSummaryHook as any).summaryLogger;
+            const metrics = (summaryLogger as any).transactionMetrics;
+            expect(metrics.transactionsStarted).to.equal(2);
+            expect(metrics.transactionsCommitted).to.equal(2);
+        });
+
+        it('should record transaction rollback through ExecutionSummaryHook', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_MIGRATION' as any;
+            cfg.logging = {
+                enabled: true,
+                logSuccessful: false, // Only log failures
+                path: './test-logs/summary-hook',
+                format: SummaryFormat.JSON,
+                maxFiles: 0
+            };
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().resolves()
+            };
+
+            // Create a proper handler for ExecutionSummaryHook
+            const testHandler = {
+                db: { test: () => {} },
+                getName: () => 'TestHandler',
+                getVersion: () => '1.0.0-test'
+            };
+
+            // Create ExecutionSummaryHook (it creates its own ExecutionSummaryLogger)
+            const executionSummaryHook = new ExecutionSummaryHook(cfg, logger, testHandler as any);
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger,
+                transactionManager as any,
+                executionSummaryHook as any
+            );
+
+            const script1 = createScript(1, 'first');
+            const script2 = createScript(2, 'second');
+            script2.script = {
+                up: async () => { throw new Error('Migration failed'); }
+            } as IRunnableScript;
+
+            const scripts = [script1, script2];
+
+            let error: Error | undefined;
+            try {
+                await runner.execute(scripts);
+            } catch (e) {
+                error = e as Error;
+            }
+
+            expect(error).to.exist;
+
+            // Verify ExecutionSummaryHook recorded rollback (covers line 169)
+            const summaryLogger = (executionSummaryHook as any).summaryLogger;
+            const metrics = (summaryLogger as any).transactionMetrics;
+            expect(metrics.transactionsStarted).to.equal(2);
+            expect(metrics.transactionsCommitted).to.equal(1);
+            expect(metrics.transactionsRolledBack).to.equal(1);
+        });
+
+        it('should record commit retries through ExecutionSummaryHook', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_MIGRATION' as any;
+            cfg.transaction.retries = 3;
+            cfg.logging = {
+                enabled: true,
+                logSuccessful: true,
+                path: './test-logs/summary-hook',
+                format: SummaryFormat.JSON,
+                maxFiles: 0
+            };
+
+            let commitAttempts = 0;
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().callsFake(async () => {
+                    commitAttempts++;
+                    if (commitAttempts === 1) {
+                        const error: any = new Error('Commit failed');
+                        error.code = 'SQLITE_BUSY'; // Retriable error
+                        throw error;
+                    }
+                }),
+                rollback: sinon.stub().resolves()
+            };
+
+            // Create a proper handler for ExecutionSummaryHook
+            const testHandler = {
+                db: { test: () => {} },
+                getName: () => 'TestHandler',
+                getVersion: () => '1.0.0-test'
+            };
+
+            // Create ExecutionSummaryHook (it creates its own ExecutionSummaryLogger)
+            const executionSummaryHook = new ExecutionSummaryHook(cfg, logger, testHandler as any);
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger,
+                transactionManager as any,
+                executionSummaryHook as any
+            );
+
+            const scripts = [createScript(1, 'test1')];
+            await runner.execute(scripts);
+
+            // Verify commit was retried
+            expect(commitAttempts).to.equal(2);
+
+            // Verify ExecutionSummaryHook recorded retry (covers line 161)
+            const summaryLogger = (executionSummaryHook as any).summaryLogger;
+            const metrics = (summaryLogger as any).transactionMetrics;
+            expect(metrics.transactionsStarted).to.equal(1);
+            expect(metrics.transactionsCommitted).to.equal(1);
+            expect(metrics.commitRetries).to.equal(1);
+        });
+
+        it('should rollback each transaction in dry run mode', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_MIGRATION' as any;
+            cfg.dryRun = true; // Enable dry run mode
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().resolves()
+            };
+
+            const hooks = {
+                afterTransactionBegin: sinon.stub().resolves(),
+                afterRollback: sinon.stub().resolves()
+            };
+
+            const loggerStub = {
+                log: sinon.stub(),
+                error: sinon.stub(),
+                warn: sinon.stub(),
+                info: sinon.stub(),
+                debug: sinon.stub()
+            };
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                loggerStub as any,
+                transactionManager as any,
+                hooks as any
+            );
+
+            const scripts = [
+                createScript(1, 'test1'),
+                createScript(2, 'test2')
+            ];
+
+            await runner.execute(scripts);
+
+            // Should begin transaction for each migration
+            expect(transactionManager.begin.callCount).to.equal(2);
+
+            // Should NOT commit in dry run mode
+            expect(transactionManager.commit.callCount).to.equal(0);
+
+            // Should rollback each transaction in dry run mode (covers line 323)
+            expect(transactionManager.rollback.callCount).to.equal(2);
+
+            // Should call afterRollback hook for each migration (covers line 324)
+            expect(hooks.afterRollback.callCount).to.equal(2);
+
+            // Should log dry run rollback for each migration (covers line 322)
+            expect(loggerStub.debug.calledWith(sinon.match(/Dry run: Rolling back transaction for/))).to.be.true;
+        });
+
+        it('should rollback each transaction in dry run mode without logger', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_MIGRATION' as any;
+            cfg.dryRun = true; // Enable dry run mode
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().resolves()
+            };
+
+            const hooks = {
+                afterTransactionBegin: sinon.stub().resolves(),
+                afterRollback: sinon.stub().resolves()
+            };
+
+            // No logger provided - covers optional chaining branch at line 322
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                undefined, // No logger
+                transactionManager as any,
+                hooks as any
+            );
+
+            const scripts = [createScript(1, 'test1')];
+
+            await runner.execute(scripts);
+
+            // Should rollback in dry run mode even without logger
+            expect(transactionManager.rollback.callCount).to.equal(1);
+            expect(hooks.afterRollback.callCount).to.equal(1);
+        });
+    });
+
+    describe('PER_BATCH Mode', () => {
+
+        it('should wrap all migrations in single transaction', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_BATCH' as any;
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().resolves()
+            };
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger,
+                transactionManager as any
+            );
+
+            const scripts = [
+                createScript(1, 'first'),
+                createScript(2, 'second'),
+                createScript(3, 'third')
+            ];
+
+            await runner.execute(scripts);
+
+            // Should call begin/commit once for entire batch
+            expect(transactionManager.begin.callCount).to.equal(1);
+            expect(transactionManager.commit.callCount).to.equal(1);
+            expect(transactionManager.rollback.callCount).to.equal(0);
+        });
+
+        it('should rollback entire batch if any migration fails', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_BATCH' as any;
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().resolves()
+            };
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger,
+                transactionManager as any
+            );
+
+            const script1 = createScript(1, 'first');
+            const script2 = createScript(2, 'second');
+            const script3 = createScript(3, 'third');
+            
+            // Second migration fails
+            script2.script = {
+                up: async () => { throw new Error('Migration failed'); }
+            } as IRunnableScript;
+
+            const scripts = [script1, script2, script3];
+
+            let error: Error | undefined;
+            try {
+                await runner.execute(scripts);
+            } catch (e) {
+                error = e as Error;
+            }
+
+            expect(error).to.exist;
+            // One transaction for entire batch
+            expect(transactionManager.begin.callCount).to.equal(1);
+            expect(transactionManager.commit.callCount).to.equal(0);
+            expect(transactionManager.rollback.callCount).to.equal(1);
+        });
+
+        it('should call transaction hooks once for entire batch', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_BATCH' as any;
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().resolves()
+            };
+
+            const hooks = {
+                beforeTransactionBegin: sinon.stub().resolves(),
+                afterTransactionBegin: sinon.stub().resolves(),
+                beforeCommit: sinon.stub().resolves(),
+                afterCommit: sinon.stub().resolves()
+            };
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger,
+                transactionManager as any,
+                hooks as any
+            );
+
+            const scripts = [createScript(1, 'test'), createScript(2, 'test2'), createScript(3, 'test3')];
+            await runner.execute(scripts);
+
+            // Hooks should be called once for entire batch
+            expect(hooks.beforeTransactionBegin.callCount).to.equal(1);
+            expect(hooks.afterTransactionBegin.callCount).to.equal(1);
+            expect(hooks.beforeCommit.callCount).to.equal(1);
+            expect(hooks.afterCommit.callCount).to.equal(1);
+        });
+
+        it('should call rollback hooks when batch fails', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_BATCH' as any;
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().resolves()
+            };
+
+            const hooks = {
+                beforeTransactionBegin: sinon.stub().resolves(),
+                afterTransactionBegin: sinon.stub().resolves(),
+                beforeRollback: sinon.stub().resolves(),
+                afterRollback: sinon.stub().resolves()
+            };
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger,
+                transactionManager as any,
+                hooks as any
+            );
+
+            const script = createScript(1, 'test');
+            script.script = {
+                up: async () => { throw new Error('Failed'); }
+            } as IRunnableScript;
+
+            try {
+                await runner.execute([script]);
+            } catch {
+                // Expected
+            }
+
+            expect(hooks.beforeRollback.callCount).to.equal(1);
+            expect(hooks.afterRollback.callCount).to.equal(1);
+        });
+
+        it('should handle rollback failure and log error', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_BATCH' as any;
+
+            const rollbackError = new Error('Rollback failed');
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().rejects(rollbackError)
+            };
+
+            const loggerStub = {
+                log: sinon.stub(),
+                error: sinon.stub(),
+                warn: sinon.stub(),
+                info: sinon.stub(),
+                debug: sinon.stub()
+            };
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                loggerStub as any,
+                transactionManager as any
+            );
+
+            const script = createScript(1, 'test');
+            script.script = {
+                up: async () => { throw new Error('Migration failed'); }
+            } as IRunnableScript;
+
+            let error: Error | undefined;
+            try {
+                await runner.execute([script]);
+            } catch (e) {
+                error = e as Error;
+            }
+
+            // Should log the rollback error
+            expect(loggerStub.error.called).to.be.true;
+            expect(loggerStub.error.firstCall.args[0]).to.include('Rollback failed');
+
+            // Should throw the rollback error
+            expect(error).to.exist;
+            expect(error).to.equal(rollbackError);
+        });
+
+        it('should handle rollback failure without logger', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_BATCH' as any;
+
+            const rollbackError = new Error('Rollback failed');
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().rejects(rollbackError)
+            };
+
+            // Create runner WITHOUT logger
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                undefined,  // No logger
+                transactionManager as any
+            );
+
+            const script = createScript(1, 'test');
+            script.script = {
+                up: async () => { throw new Error('Migration failed'); }
+            } as IRunnableScript;
+
+            let error: Error | undefined;
+            try {
+                await runner.execute([script]);
+            } catch (e) {
+                error = e as Error;
+            }
+
+            // Should throw the rollback error (no logger to verify)
+            expect(error).to.exist;
+            expect(error).to.equal(rollbackError);
+        });
+
+        it('should rollback batch transaction in dry run mode', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_BATCH' as any;
+            cfg.dryRun = true; // Enable dry run mode
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().resolves()
+            };
+
+            const hooks = {
+                afterTransactionBegin: sinon.stub().resolves(),
+                afterRollback: sinon.stub().resolves()
+            };
+
+            const loggerStub = {
+                log: sinon.stub(),
+                error: sinon.stub(),
+                warn: sinon.stub(),
+                info: sinon.stub(),
+                debug: sinon.stub()
+            };
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                loggerStub as any,
+                transactionManager as any,
+                hooks as any
+            );
+
+            const scripts = [
+                createScript(1, 'test1'),
+                createScript(2, 'test2')
+            ];
+
+            await runner.execute(scripts);
+
+            // Should begin transaction
+            expect(transactionManager.begin.callCount).to.equal(1);
+
+            // Should NOT commit in dry run mode
+            expect(transactionManager.commit.callCount).to.equal(0);
+
+            // Should rollback in dry run mode (covers line 185)
+            expect(transactionManager.rollback.callCount).to.equal(1);
+
+            // Should call afterRollback hook (covers line 186)
+            expect(hooks.afterRollback.callCount).to.equal(1);
+
+            // Should log dry run rollback (covers line 184)
+            expect(loggerStub.debug.calledWith(sinon.match(/Dry run: Rolling back batch transaction/))).to.be.true;
+        });
+
+        it('should rollback batch transaction in dry run mode without logger', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_BATCH' as any;
+            cfg.dryRun = true; // Enable dry run mode
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().resolves()
+            };
+
+            const hooks = {
+                afterTransactionBegin: sinon.stub().resolves(),
+                afterRollback: sinon.stub().resolves()
+            };
+
+            // No logger provided - covers optional chaining branch at line 184
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                undefined, // No logger
+                transactionManager as any,
+                hooks as any
+            );
+
+            const scripts = [
+                createScript(1, 'test1'),
+                createScript(2, 'test2')
+            ];
+
+            await runner.execute(scripts);
+
+            // Should rollback in dry run mode even without logger
+            expect(transactionManager.rollback.callCount).to.equal(1);
+            expect(hooks.afterRollback.callCount).to.equal(1);
+        });
+
+        it('should rollback batch transaction in dry run mode without hooks', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_BATCH' as any;
+            cfg.dryRun = true; // Enable dry run mode
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().resolves()
+            };
+
+            // No hooks provided - covers optional chaining branch at line 186
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger,
+                transactionManager as any,
+                undefined // No hooks
+            );
+
+            const scripts = [
+                createScript(1, 'test1'),
+                createScript(2, 'test2')
+            ];
+
+            await runner.execute(scripts);
+
+            // Should rollback in dry run mode even without hooks
+            expect(transactionManager.rollback.callCount).to.equal(1);
+        });
+    });
+
+    describe('NONE Mode', () => {
+
+        it('should not use transactions when mode is NONE', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'NONE' as any;
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().resolves()
+            };
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger,
+                transactionManager as any
+            );
+
+            const scripts = [createScript(1, 'test'), createScript(2, 'test2')];
+            await runner.execute(scripts);
+
+            // No transaction methods should be called
+            expect(transactionManager.begin.callCount).to.equal(0);
+            expect(transactionManager.commit.callCount).to.equal(0);
+            expect(transactionManager.rollback.callCount).to.equal(0);
+        });
+
+        it('should execute without transaction manager', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'NONE' as any;
+
+            // No transaction manager provided
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger
+            );
+
+            const scripts = [createScript(1, 'test'), createScript(2, 'test2')];
+            const executed = await runner.execute(scripts);
+
+            expect(executed).to.have.lengthOf(2);
+        });
+    });
+
+    describe('Commit Retry Integration', () => {
+
+        it('should retry commit on retriable errors', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_MIGRATION' as any;
+            cfg.transaction.retries = 3;
+
+            let commitAttempts = 0;
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: async () => {
+                    commitAttempts++;
+                    if (commitAttempts < 2) {
+                        throw new Error('deadlock detected');
+                    }
+                    // Success on 2nd attempt
+                },
+                rollback: sinon.stub().resolves()
+            };
+
+            const hooks = {
+                onCommitRetry: sinon.stub().resolves()
+            };
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger,
+                transactionManager as any,
+                hooks as any
+            );
+
+            const scripts = [createScript(1, 'test')];
+            await runner.execute(scripts);
+
+            expect(commitAttempts).to.equal(2);
+            expect(hooks.onCommitRetry.callCount).to.equal(1);
+        });
+
+        it('should rollback when commit fails after max retries', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_MIGRATION' as any;
+            cfg.transaction.retries = 3;
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: async () => {
+                    throw new Error('deadlock detected');
+                },
+                rollback: sinon.stub().resolves()
+            };
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger,
+                transactionManager as any
+            );
+
+            const scripts = [createScript(1, 'test')];
+
+            let error: Error | undefined;
+            try {
+                await runner.execute(scripts);
+            } catch (e) {
+                error = e as Error;
+            }
+
+            expect(error).to.exist;
+            expect(transactionManager.rollback.callCount).to.equal(1);
+        });
+
+        it('should use default retries (3) when config.transaction.retries is undefined', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_MIGRATION' as any;
+            cfg.transaction.retries = undefined;  // Test the ?? 3 fallback
+
+            let commitAttempts = 0;
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: async () => {
+                    commitAttempts++;
+                    if (commitAttempts < 2) {
+                        throw new Error('deadlock detected');
+                    }
+                },
+                rollback: sinon.stub().resolves()
+            };
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger,
+                transactionManager as any
+            );
+
+            const scripts = [createScript(1, 'test')];
+            await runner.execute(scripts);
+
+            // Should use default of 3 retries
+            expect(commitAttempts).to.equal(2);
+        });
+    });
+
+    describe('Transaction Context', () => {
+
+        it('should pass correct context to hooks in PER_MIGRATION mode', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_MIGRATION' as any;
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().resolves()
+            };
+
+            const hooks = {
+                afterTransactionBegin: sinon.stub().resolves()
+            };
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger,
+                transactionManager as any,
+                hooks as any
+            );
+
+            const scripts = [createScript(1, 'test')];
+            await runner.execute(scripts);
+
+            expect(hooks.afterTransactionBegin.callCount).to.equal(1);
+            const context = hooks.afterTransactionBegin.getCall(0).args[0];
+
+            expect(context).to.have.property('transactionId');
+            expect(context).to.have.property('mode');
+            expect(context).to.have.property('migrations');
+            expect(context).to.have.property('startTime');
+            expect(context).to.have.property('attempt');
+            expect(context.migrations).to.have.lengthOf(1);
+        });
+
+        it('should pass correct context to hooks in PER_BATCH mode', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_BATCH' as any;
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().resolves()
+            };
+
+            const hooks = {
+                afterTransactionBegin: sinon.stub().resolves()
+            };
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger,
+                transactionManager as any,
+                hooks as any
+            );
+
+            const scripts = [createScript(1, 'test1'), createScript(2, 'test2'), createScript(3, 'test3')];
+            await runner.execute(scripts);
+
+            expect(hooks.afterTransactionBegin.callCount).to.equal(1);
+            const context = hooks.afterTransactionBegin.getCall(0).args[0];
+
+            expect(context.migrations).to.have.lengthOf(3);
+        });
+    });
+
+    describe('Backward Compatibility', () => {
+
+        it('should work without transaction manager', async () => {
+            const cfg = new Config();
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger
+            );
+
+            const scripts = [createScript(1, 'test'), createScript(2, 'test2')];
+            const executed = await runner.execute(scripts);
+
+            expect(executed).to.have.lengthOf(2);
+        });
+
+        it('should work without hooks', async () => {
+            const cfg = new Config();
+            cfg.transaction.mode = 'PER_MIGRATION' as any;
+
+            const transactionManager = {
+                begin: sinon.stub().resolves(),
+                commit: sinon.stub().resolves(),
+                rollback: sinon.stub().resolves()
+            };
+
+            runner = new MigrationRunner(
+                handler,
+                schemaVersionService,
+                cfg,
+                logger,
+                transactionManager as any
+                // No hooks
+            );
+
+            const scripts = [createScript(1, 'test')];
+            const executed = await runner.execute(scripts);
+
+            expect(executed).to.have.lengthOf(1);
+        });
+    });
+});

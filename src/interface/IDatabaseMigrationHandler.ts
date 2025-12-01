@@ -1,4 +1,5 @@
 import {IBackup, IDB, ISchemaVersion} from "./dao";
+import {ITransactionManager} from "./service/ITransactionManager";
 
 /**
  * Main interface for database-specific migration handling.
@@ -97,4 +98,55 @@ export interface IDatabaseMigrationHandler {
      * @see Config.rollbackStrategy for available rollback strategies
      */
     backup?: IBackup
+
+    /**
+     * Transaction manager for advanced transaction control (optional).
+     *
+     * If provided, MSR will use this custom transaction manager instead of creating
+     * a default one. This allows complete control over transaction behavior including
+     * custom retry logic, savepoints, distributed transactions, etc.
+     *
+     * **If not provided:**
+     * - MSR automatically creates {@link DefaultTransactionManager} if `db` implements {@link ITransactionalDB}
+     * - No transactions if `db` does not implement {@link ITransactionalDB} and mode is NONE
+     *
+     * **New in v0.5.0**
+     *
+     * @see {@link ITransactionManager} for interface documentation
+     * @see {@link ITransactionalDB} for database capability requirements
+     * @see {@link Config.transaction} for transaction configuration
+     *
+     * @example
+     * ```typescript
+     * // Most users don't need this - just implement ITransactionalDB
+     * class PostgresDB implements ITransactionalDB {
+     *   async beginTransaction(): Promise<void> { await this.pool.query('BEGIN'); }
+     *   async commit(): Promise<void> { await this.pool.query('COMMIT'); }
+     *   async rollback(): Promise<void> { await this.pool.query('ROLLBACK'); }
+     * }
+     * // MSR automatically creates DefaultTransactionManager
+     *
+     * // Advanced: Custom transaction manager for special needs
+     * class DistributedTransactionManager implements ITransactionManager {
+     *   async begin(): Promise<void> {
+     *     // Begin transactions across multiple databases
+     *   }
+     *   async commit(): Promise<void> {
+     *     // Two-phase commit protocol
+     *   }
+     *   async rollback(): Promise<void> {
+     *     // Rollback all databases
+     *   }
+     * }
+     *
+     * const handler: IDatabaseMigrationHandler = {
+     *   db: myDB,
+     *   schemaVersion: schemaVersionImpl,
+     *   transactionManager: new DistributedTransactionManager(),  // Override default
+     *   getName: () => 'Custom Handler',
+     *   getVersion: () => '1.0.0'
+     * };
+     * ```
+     */
+    transactionManager?: ITransactionManager
 }

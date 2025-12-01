@@ -174,6 +174,17 @@ export MSR_BACKUP_PREFIX=db-backup
 export MSR_BACKUP_TIMESTAMP_FORMAT=YYYY-MM-DD-HH-mm-ss
 ```
 
+#### Transaction Configuration
+
+```bash
+export MSR_TRANSACTION_MODE=PER_MIGRATION  # or PER_BATCH, NONE
+export MSR_TRANSACTION_ISOLATION=READ_COMMITTED  # or READ_UNCOMMITTED, REPEATABLE_READ, SERIALIZABLE
+export MSR_TRANSACTION_TIMEOUT=30000  # milliseconds
+export MSR_TRANSACTION_RETRIES=3  # number of retry attempts
+export MSR_TRANSACTION_RETRY_DELAY=100  # milliseconds
+export MSR_TRANSACTION_RETRY_BACKOFF=true  # exponential backoff
+```
+
 **Naming Convention:**
 - `MSR_` prefix for all variables
 - Nested properties use `_` separator
@@ -192,6 +203,9 @@ export MSR_LOGGING='{"enabled":true,"path":"./logs","maxFiles":30}'
 
 # Backup as JSON
 export MSR_BACKUP='{"folder":"./backups","timestamp":true,"deleteBackup":true}'
+
+# Transaction as JSON
+export MSR_TRANSACTION='{"mode":"PER_MIGRATION","isolation":"READ_COMMITTED","retries":3}'
 ```
 
 **Note:** Dot-notation variables take precedence over JSON if both are set.

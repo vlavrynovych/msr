@@ -194,6 +194,135 @@ class MetricsHooks implements IMigrationHooks {
 
 ---
 
+### Transaction Metrics (v0.5.0+)
+
+Track transaction-specific metrics when using transaction modes:
+
+```typescript
+import { metrics } from './metrics-client'; // Your metrics library
+
+class TransactionMetricsHooks implements IMigrationHooks {
+    private transactionStartTime?: number;
+
+    async onStart(total: number, pending: number): Promise<void> {
+        metrics.gauge('migration.transaction.pending_count', pending);
+    }
+
+    async onBeforeMigrate(script: MigrationScript): Promise<void> {
+        // Track when transaction begins
+        this.transactionStartTime = Date.now();
+
+        // Track transaction mode from script metadata
+        const txMode = (script as any).transactionMode;
+        if (txMode) {
+            metrics.increment('migration.transaction.mode', {
+                mode: txMode
+            });
+        }
+    }
+
+    async onAfterMigrate(script: MigrationScript, result: string): Promise<void> {
+        // Calculate transaction duration
+        if (this.transactionStartTime) {
+            const duration = Date.now() - this.transactionStartTime;
+            metrics.timing('migration.transaction.duration', duration, {
+                script: script.name,
+                mode: (script as any).transactionMode || 'NONE'
+            });
+        }
+
+        // Track successful transaction commits
+        metrics.increment('migration.transaction.commit.success', {
+            script: script.name
+        });
+
+        // Track if transaction used retry mechanism
+        const retryCount = (script as any).retryCount || 0;
+        if (retryCount > 0) {
+            metrics.increment('migration.transaction.retries', {
+                script: script.name,
+                retry_count: retryCount
+            });
+        }
+    }
+
+    async onMigrationError(script: MigrationScript, error: Error): Promise<void> {
+        // Track transaction rollbacks
+        metrics.increment('migration.transaction.rollback', {
+            script: script.name,
+            error_type: error.name
+        });
+
+        // Track specific transaction errors
+        if (error.message.includes('deadlock')) {
+            metrics.increment('migration.transaction.error.deadlock');
+        } else if (error.message.includes('timeout')) {
+            metrics.increment('migration.transaction.error.timeout');
+        } else if (error.message.includes('conflict')) {
+            metrics.increment('migration.transaction.error.conflict');
+        }
+    }
+}
+
+// Usage with transaction configuration
+const config = new Config();
+config.transaction.mode = TransactionMode.PER_MIGRATION;
+config.transaction.isolation = IsolationLevel.READ_COMMITTED;
+config.transaction.retries = 3;
+
+const hooks = new TransactionMetricsHooks();
+const executor = new MigrationScriptExecutor(handler, config, { hooks });
+
+await executor.migrate();
+```
+
+**Key Metrics Tracked:**
+- **Transaction duration** - How long each transaction takes
+- **Commit success rate** - Percentage of successful commits
+- **Rollback frequency** - How often transactions are rolled back
+- **Retry count** - Number of transaction retries due to conflicts/deadlocks
+- **Error types** - Categorized transaction errors (deadlock, timeout, conflict)
+- **Transaction mode usage** - Which transaction modes are being used
+
+**Integration with Popular Monitoring Tools:**
+
+```typescript
+// Datadog
+class DatadogTransactionMetrics extends TransactionMetricsHooks {
+    async onAfterMigrate(script: MigrationScript, result: string): Promise<void> {
+        await super.onAfterMigrate(script, result);
+
+        // Send custom metric to Datadog
+        const statsd = require('hot-shots');
+        const client = new statsd();
+
+        client.timing('migration.transaction.duration',
+            Date.now() - this.transactionStartTime!,
+            ['script:' + script.name]
+        );
+    }
+}
+
+// Prometheus
+class PrometheusTransactionMetrics extends TransactionMetricsHooks {
+    private commitCounter = new promClient.Counter({
+        name: 'migration_transaction_commits_total',
+        help: 'Total number of transaction commits',
+        labelNames: ['script', 'status']
+    });
+
+    async onAfterMigrate(script: MigrationScript, result: string): Promise<void> {
+        this.commitCounter.inc({ script: script.name, status: 'success' });
+    }
+
+    async onMigrationError(script: MigrationScript, error: Error): Promise<void> {
+        this.commitCounter.inc({ script: script.name, status: 'rollback' });
+    }
+}
+```
+
+---
+
 ### Custom File Logger
 
 ```typescript

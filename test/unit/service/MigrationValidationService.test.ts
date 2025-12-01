@@ -17,6 +17,7 @@ import {
     LoaderRegistry,
     ILoaderRegistry
 } from "../../../src";
+const { TransactionMode } = require('../../../src');
 
 describe('MigrationValidationService', () => {
     let validator: MigrationValidationService;
@@ -674,6 +675,45 @@ describe('MigrationValidationService', () => {
             expect(issues[0].code).to.equal(ValidationErrorCode.MIGRATED_FILE_MISSING);
 
             checksumStub.restore();
+        });
+    });
+
+    describe('Reflection-based coverage tests', () => {
+        /**
+         * Test: Covers line 579 in MigrationValidationService.ts
+         * Uses reflection to directly call validateRollbackStrategyCompatibility
+         * with NONE transaction mode and BACKUP rollback strategy.
+         * This triggers the debug log on line 579.
+         */
+        it('should log debug message for NONE mode with BACKUP strategy (line 579)', () => {
+            const debugMessages: string[] = [];
+            const capturingLogger = {
+                info: (_msg: string) => {},
+                error: (_msg: string) => {},
+                warn: (_msg: string) => {},
+                success: (_msg: string) => {},
+                debug: (msg: string) => debugMessages.push(msg),
+                log: (_msg: string) => {}
+            };
+
+            const testConfig = new Config();
+            testConfig.transaction.mode = TransactionMode.NONE;
+            testConfig.rollbackStrategy = RollbackStrategy.BACKUP;
+
+            // MigrationValidationService constructor only takes logger and customValidators
+            const testValidator = new MigrationValidationService(capturingLogger, []);
+
+            // Call private method using reflection
+            const issues: any[] = [];
+            (testValidator as any).validateRollbackStrategyCompatibility(testConfig, issues);
+
+            // Verify debug message was logged (covers line 579)
+            expect(debugMessages).to.have.lengthOf(1);
+            expect(debugMessages[0]).to.include('Transaction mode is NONE with BACKUP rollback strategy');
+            expect(debugMessages[0]).to.include('each migration manages its own transactions');
+
+            // Verify no issues were added (this is a valid configuration)
+            expect(issues).to.have.lengthOf(0);
         });
     });
 });

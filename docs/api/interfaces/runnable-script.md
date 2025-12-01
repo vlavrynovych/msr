@@ -419,8 +419,9 @@ async down(db: IDB, info: IMigrationInfo): Promise<string> {
 
 ### 5. Use Transactions for Atomicity
 
+**SQL Databases (ITransactionalDB):**
 ```typescript
-// ✅ Good - All or nothing
+// ✅ Good - All or nothing (SQL)
 async up(db: ITransactionalDB): Promise<string> {
   await db.transaction(async () => {
     await db.query('CREATE TABLE users ...');
@@ -435,6 +436,187 @@ async up(db: IDB): Promise<string> {
   await db.query('CREATE TABLE users ...');  // Succeeds
   await db.query('CREATE TABLE roles ...');  // Fails
   // users table exists, roles doesn't - inconsistent state
+}
+```
+
+**NoSQL Databases (ICallbackTransactionalDB):**
+```typescript
+// ✅ Good - All or nothing (NoSQL)
+async up(db: ICallbackTransactionalDB<Transaction>, info: IMigrationInfo): Promise<string> {
+  const firestore = (db as FirestoreDB).firestore;
+
+  await db.runTransaction!(async (tx: Transaction) => {
+    // All operations execute atomically within transaction
+    const userRef = firestore.collection('users').doc('user1');
+    const roleRef = firestore.collection('roles').doc('role1');
+
+    tx.set(userRef, { name: 'John', migrated: true });
+    tx.set(roleRef, { name: 'admin' });
+  });
+
+  return 'Migration completed atomically';
+}
+
+// ❌ Bad - Not using transaction (partial completion possible)
+async up(db: IDB): Promise<string> {
+  const firestore = (db as FirestoreDB).firestore;
+
+  await firestore.collection('users').doc('user1').set({ name: 'John' });  // Succeeds
+  await firestore.collection('roles').doc('role1').set({ name: 'admin' }); // Fails
+  // Inconsistent state
+}
+```
+
+---
+
+## NoSQL Examples
+
+### Firestore Document Migration
+
+```typescript
+import { IRunnableScript, IMigrationInfo, IDB } from '@migration-script-runner/core';
+import { Transaction } from '@google-cloud/firestore';
+
+interface IFirestoreDB extends IDB {
+  runTransaction<T>(callback: (tx: Transaction) => Promise<T>): Promise<T>;
+  firestore: Firestore;
+}
+
+export default class V202501280500_MigrateUserProfiles implements IRunnableScript {
+  async up(db: IFirestoreDB, info: IMigrationInfo): Promise<string> {
+    const firestore = db.firestore;
+    let migratedCount = 0;
+
+    // Get users to migrate (outside transaction)
+    const usersSnapshot = await firestore
+      .collection('users')
+      .where('profileMigrated', '==', false)
+      .get();
+
+    // Migrate in transaction
+    await db.runTransaction!(async (tx: Transaction) => {
+      for (const doc of usersSnapshot.docs) {
+        const userData = doc.data();
+
+        // Create new profile document
+        const profileRef = firestore.collection('profiles').doc(doc.id);
+        tx.set(profileRef, {
+          userId: doc.id,
+          bio: userData.bio || '',
+          avatar: userData.avatar || null,
+          createdAt: new Date(),
+          migratedFrom: info.version
+        });
+
+        // Update user document
+        tx.update(doc.ref, {
+          profileMigrated: true,
+          migratedAt: new Date()
+        });
+
+        migratedCount++;
+      }
+    });
+
+    return `Migrated ${migratedCount} user profiles`;
+  }
+
+  async down(db: IFirestoreDB, info: IMigrationInfo): Promise<string> {
+    const firestore = db.firestore;
+    let rolledBackCount = 0;
+
+    // Get migrated users
+    const usersSnapshot = await firestore
+      .collection('users')
+      .where('profileMigrated', '==', true)
+      .get();
+
+    // Rollback in transaction
+    await db.runTransaction!(async (tx: Transaction) => {
+      for (const doc of usersSnapshot.docs) {
+        // Delete profile
+        const profileRef = firestore.collection('profiles').doc(doc.id);
+        tx.delete(profileRef);
+
+        // Update user
+        tx.update(doc.ref, {
+          profileMigrated: false,
+          migratedAt: null
+        });
+
+        rolledBackCount++;
+      }
+    });
+
+    return `Rolled back ${rolledBackCount} user profiles`;
+  }
+}
+```
+
+### MongoDB Collection Migration
+
+```typescript
+import { IRunnableScript, IMigrationInfo, IDB } from '@migration-script-runner/core';
+import { ClientSession, MongoClient } from 'mongodb';
+
+interface IMongoDatabase extends IDB {
+  runTransaction<T>(callback: (session: ClientSession) => Promise<T>): Promise<T>;
+  client: MongoClient;
+}
+
+export default class V202501280600_AddUserTimestamps implements IRunnableScript {
+  async up(db: IMongoDatabase, info: IMigrationInfo): Promise<string> {
+    const database = db.client.db('myapp');
+    let updatedCount = 0;
+
+    await db.runTransaction!(async (session: ClientSession) => {
+      // Find users without timestamps
+      const users = await database.collection('users')
+        .find({ createdAt: { $exists: false } }, { session })
+        .toArray();
+
+      // Update each user
+      for (const user of users) {
+        await database.collection('users').updateOne(
+          { _id: user._id },
+          {
+            $set: {
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              migratedBy: info.version
+            }
+          },
+          { session }  // ← Important: pass session for transaction
+        );
+        updatedCount++;
+      }
+    });
+
+    return `Added timestamps to ${updatedCount} users`;
+  }
+
+  async down(db: IMongoDatabase, info: IMigrationInfo): Promise<string> {
+    const database = db.client.db('myapp');
+    let revertedCount = 0;
+
+    await db.runTransaction!(async (session: ClientSession) => {
+      const result = await database.collection('users').updateMany(
+        { migratedBy: info.version },
+        {
+          $unset: {
+            createdAt: '',
+            updatedAt: '',
+            migratedBy: ''
+          }
+        },
+        { session }
+      );
+
+      revertedCount = result.modifiedCount;
+    });
+
+    return `Reverted timestamps from ${revertedCount} users`;
+  }
 }
 ```
 

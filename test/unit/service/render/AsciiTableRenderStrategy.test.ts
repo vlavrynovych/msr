@@ -74,17 +74,17 @@ describe('AsciiTableRenderStrategy', () => {
         })
 
         /**
-         * Test: getDuration handles negative durations
+         * Test: getDuration prevents negative durations
          * Edge case test for when finishedAt is before startedAt. While this
          * shouldn't happen in normal operation, the formatter should handle it
-         * gracefully by showing a negative duration.
+         * gracefully by preventing negative durations and showing "0s" instead.
          */
         it('should handle negative durations', () => {
             // Calculate duration where finish time is before start time
             const res = AsciiTableRenderStrategy.getDuration({startedAt: 4000, finishedAt: 1000} as IMigrationInfo);
 
-            // Verify negative duration is shown
-            expect(res).eq("-3s", 'Should be negative = -3s')
+            // Verify negative duration is prevented and shows 0s
+            expect(res).eq("0s", 'Should prevent negative duration and show 0s')
         })
 
         /**
@@ -113,11 +113,11 @@ describe('AsciiTableRenderStrategy', () => {
             // Verify calculation is still correct (1000 - (-2000) = 3000ms = 3s)
             expect(res).eq("3s", 'It is weird but should be 3s')
 
-            // Test with both negative times
+            // Test with both negative times (finishedAt before startedAt)
             const res2 = AsciiTableRenderStrategy.getDuration({startedAt: 3000, finishedAt: -2000} as IMigrationInfo);
 
-            // Verify negative result (-2000 - 3000 = -5000ms = -5s)
-            expect(res2).eq("-5s", 'It is weird but should be -5s')
+            // Verify negative duration is prevented and shows 0s
+            expect(res2).eq("0s", 'Should prevent negative duration and show 0s')
         })
 
         /**

@@ -186,6 +186,55 @@ export interface IConfigSnapshot {
      * Validation enabled
      */
     validateBeforeRun: boolean;
+
+    /**
+     * Transaction mode
+     * **New in v0.5.0**
+     */
+    transactionMode?: string;
+
+    /**
+     * Transaction isolation level
+     * **New in v0.5.0**
+     */
+    transactionIsolation?: string;
+
+    /**
+     * Maximum transaction commit retries
+     * **New in v0.5.0**
+     */
+    transactionRetries?: number;
+}
+
+/**
+ * Transaction metrics summary
+ * **New in v0.5.0**
+ */
+export interface ITransactionMetrics {
+    /**
+     * Total number of transactions started
+     */
+    transactionsStarted: number;
+
+    /**
+     * Number of transactions committed successfully
+     */
+    transactionsCommitted: number;
+
+    /**
+     * Number of transactions rolled back
+     */
+    transactionsRolledBack: number;
+
+    /**
+     * Total number of commit retry attempts
+     */
+    commitRetries: number;
+
+    /**
+     * Total transaction duration in milliseconds
+     */
+    totalTransactionDuration: number;
 }
 
 /**
@@ -256,6 +305,12 @@ export interface IExecutionSummary {
      * Rollback information
      */
     rollback?: IRollbackInfo;
+
+    /**
+     * Transaction metrics
+     * **New in v0.5.0**
+     */
+    transactions?: ITransactionMetrics;
 
     /**
      * Final result

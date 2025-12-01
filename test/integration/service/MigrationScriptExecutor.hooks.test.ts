@@ -10,7 +10,8 @@ import {
     ISchemaVersion,
     SilentLogger,
     IMigrationHooks,
-    CompositeHooks
+    CompositeHooks,
+    TransactionMode
 } from "../../../src";
 import {TestUtils} from "../../helpers/TestUtils";
 
@@ -27,6 +28,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
 
     before(() => {
         cfg = TestUtils.getConfig();
+        cfg.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
         const db: IDB = new class implements IDB {
             [key: string]: unknown;
             test() { throw new Error('Not implemented') }

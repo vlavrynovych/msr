@@ -9,7 +9,8 @@ import {
     ISchemaVersion,
     SilentLogger,
     RollbackStrategy,
-    MigrationScript
+    MigrationScript,
+    TransactionMode
 } from "../../../src";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -104,6 +105,7 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
         config.folder = testDir;
         config.rollbackStrategy = RollbackStrategy.DOWN;
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
@@ -193,6 +195,7 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
         config.folder = testDir;
         config.rollbackStrategy = RollbackStrategy.DOWN;
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         const handler: IDatabaseMigrationHandler = {
             schemaVersion: {
@@ -260,6 +263,7 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
         config.folder = testDir;
         config.rollbackStrategy = RollbackStrategy.DOWN;
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         const infoMessages: string[] = [];
         const testLogger = {

@@ -64,7 +64,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             const customValidationService: IMigrationValidationService = {
                 validateAll: sinon.stub().resolves([]),
                 validateOne: sinon.stub().resolves({} as any),
-                validateMigratedFileIntegrity: sinon.stub().resolves([])
+                validateMigratedFileIntegrity: sinon.stub().resolves([]),
+                validateTransactionConfiguration: sinon.stub().returns([])
             };
 
             const executor = new MigrationScriptExecutor(handler, config, {
@@ -173,6 +174,189 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             const loaderNames = registry.getLoaders().map(l => l.getName());
             expect(loaderNames).to.include('TypeScriptLoader');
             expect(loaderNames).to.include('SqlLoader');
+        });
+    });
+
+    describe('Transaction Manager Creation', () => {
+        /**
+         * Test: Returns undefined when transaction mode is NONE
+         * Covers line 245 in MigrationScriptExecutor.ts
+         * Validates that no transaction manager is created when mode is NONE.
+         */
+        it('should return undefined when transaction mode is NONE', () => {
+            config.transaction.mode = 'NONE' as any;
+
+            const executor = new MigrationScriptExecutor(handler, config, {
+                logger: new SilentLogger()
+            });
+
+            // Access private method via reflection
+            const transactionManager = (executor as any).createTransactionManager(handler);
+
+            expect(transactionManager).to.be.undefined;
+        });
+
+        /**
+         * Test: Uses custom transaction manager from handler
+         * Covers lines 250-251 in MigrationScriptExecutor.ts
+         * Validates that when handler provides a custom transaction manager, it is used.
+         */
+        it('should use custom transaction manager from handler', () => {
+            const customTxManager = {
+                begin: () => Promise.resolve(),
+                commit: () => Promise.resolve(),
+                rollback: () => Promise.resolve()
+            };
+
+            const handlerWithTx = {
+                ...handler,
+                transactionManager: customTxManager
+            };
+
+            const executor = new MigrationScriptExecutor(handlerWithTx as any, config, {
+                logger: new SilentLogger()
+            });
+
+            const transactionManager = (executor as any).createTransactionManager(handlerWithTx);
+
+            expect(transactionManager).to.equal(customTxManager);
+        });
+
+        /**
+         * Test: Auto-creates DefaultTransactionManager for ITransactionalDB
+         * Covers lines 256-257 in MigrationScriptExecutor.ts
+         * Validates that DefaultTransactionManager is auto-created when db implements ITransactionalDB.
+         */
+        it('should auto-create DefaultTransactionManager when db implements ITransactionalDB', () => {
+            const transactionalDB = {
+                query: () => Promise.resolve([]),
+                checkConnection: () => Promise.resolve(true),
+                beginTransaction: () => Promise.resolve(),
+                commit: () => Promise.resolve(),
+                rollback: () => Promise.resolve()
+            };
+
+            const handlerWithTransactionalDB = {
+                ...handler,
+                db: transactionalDB
+            };
+
+            const executor = new MigrationScriptExecutor(handlerWithTransactionalDB as any, config, {
+                logger: new SilentLogger()
+            });
+
+            const transactionManager = (executor as any).createTransactionManager(handlerWithTransactionalDB);
+
+            expect(transactionManager).to.exist;
+            expect(transactionManager.begin).to.be.a('function');
+            expect(transactionManager.commit).to.be.a('function');
+            expect(transactionManager.rollback).to.be.a('function');
+        });
+
+        /**
+         * Test: Auto-creates CallbackTransactionManager for ICallbackTransactionalDB
+         * Covers lines 284-285 in MigrationScriptExecutor.ts
+         * Validates that CallbackTransactionManager is auto-created when db implements ICallbackTransactionalDB.
+         */
+        it('should auto-create CallbackTransactionManager when db implements ICallbackTransactionalDB', () => {
+            const callbackTransactionalDB = {
+                query: () => Promise.resolve([]),
+                checkConnection: () => Promise.resolve(true),
+                runTransaction: async <T>(callback: (tx: unknown) => Promise<T>): Promise<T> => {
+                    return callback({});
+                }
+            };
+
+            const handlerWithCallbackDB = {
+                ...handler,
+                db: callbackTransactionalDB
+            };
+
+            config.transaction.mode = 'PER_MIGRATION' as any; // Enable transactions
+
+            const executor = new MigrationScriptExecutor(handlerWithCallbackDB as any, config, {
+                logger: new SilentLogger()
+            });
+
+            const transactionManager = (executor as any).createTransactionManager(handlerWithCallbackDB);
+
+            expect(transactionManager).to.exist;
+            expect(transactionManager.begin).to.be.a('function');
+            expect(transactionManager.commit).to.be.a('function');
+            expect(transactionManager.rollback).to.be.a('function');
+        });
+    });
+
+    describe('Optional chaining coverage', () => {
+        /**
+         * Test: Covers optional chaining branch at line 657 in MigrationScriptExecutor.ts
+         * Uses reflection to directly test the executeDryRun private method with empty executed array.
+         * This covers the `?.name` optional chaining when scripts.executed has no elements.
+         */
+        it('should handle empty scripts.executed array in error logging (line 657)', async () => {
+            config.transaction.mode = 'PER_MIGRATION' as any;
+
+            // Create handler with transactional DB
+            const transactionalDB = {
+                query: () => Promise.resolve([]),
+                checkConnection: () => Promise.resolve(true),
+                beginTransaction: () => Promise.resolve(),
+                commit: () => Promise.resolve(),
+                rollback: () => Promise.resolve()
+            };
+
+            handler.db = transactionalDB as any;
+
+            // Capture logger messages
+            let errorMessages: string[] = [];
+            const capturingLogger = {
+                info: (msg: string) => {},
+                error: (msg: string) => errorMessages.push(msg),
+                warn: (msg: string) => {},
+                success: (msg: string) => {},
+                debug: (msg: string) => {},
+                log: (msg: string) => {}
+            };
+
+            const executor = new MigrationScriptExecutor(handler, config, {
+                logger: capturingLogger
+            });
+
+            // Mock executeWithHooks to throw error immediately
+            (executor as any).executeWithHooks = sinon.stub().rejects(new Error('Execution failed'));
+
+            // Create scripts object with empty executed array
+            const scripts = {
+                all: [],
+                migrated: [],
+                pending: [{
+                    timestamp: 1,
+                    name: 'V1__test',
+                    filepath: '/fake/V1__test.ts',
+                    init: async () => {},
+                    script: {
+                        up: async () => {},
+                        down: async () => {}
+                    }
+                }],
+                ignored: [],
+                executed: [] // Empty array - this triggers the optional chaining
+            };
+
+            // Call private method directly using reflection
+            try {
+                await (executor as any).executeDryRun(scripts);
+                expect.fail('Should have thrown error');
+            } catch (error) {
+                // Expected error
+            }
+
+            // Verify error message with 'unknown' was logged (covers line 657 optional chaining)
+            const hasUnknownMessage = errorMessages.some(msg =>
+                msg.includes('Failed at:') && msg.includes('unknown')
+            );
+
+            expect(hasUnknownMessage).to.be.true;
         });
     });
 });

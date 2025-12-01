@@ -9,7 +9,9 @@ import {
     IDB,
     IMigrationInfo,
     RollbackStrategy,
-    SummaryFormat
+    SummaryFormat,
+    TransactionMode,
+    IsolationLevel
 } from '../../../src';
 import { TestUtils } from '../../helpers';
 
@@ -20,6 +22,7 @@ describe('Execution Summary Logging Integration', () => {
 
     beforeEach(() => {
         config = TestUtils.getConfig();
+        config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
         // Explicitly configure logging for tests
         config.logging = {
             enabled: true,
@@ -225,6 +228,49 @@ describe('Execution Summary Logging Integration', () => {
 
         // Should complete successfully
         expect(result.success).to.be.true;
+    });
+
+    it('should include transaction configuration in summary when transactions are configured', async () => {
+        // Enable transactions
+        config.transaction.mode = TransactionMode.PER_MIGRATION;
+        config.transaction.isolation = IsolationLevel.SERIALIZABLE;
+        config.transaction.retries = 5;
+
+        const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+
+        await executor.up();
+
+        // Verify summary includes transaction configuration
+        const files = fs.readdirSync(testLogDir);
+        const filePath = path.join(testLogDir, files[0]);
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const summary = JSON.parse(content);
+
+        // Verify transaction config is included in summary
+        expect(summary.config.transactionMode).to.equal(TransactionMode.PER_MIGRATION);
+        expect(summary.config.transactionIsolation).to.equal(IsolationLevel.SERIALIZABLE);
+        expect(summary.config.transactionRetries).to.equal(5);
+
+        // Note: Transaction metrics tracking requires a proper transactional DB implementation
+        // which is tested separately in the MigrationScriptExecutor transaction tests
+    });
+
+    it('should NOT include transaction metrics when transactions are disabled', async () => {
+        // Ensure transactions are disabled
+        config.transaction.mode = TransactionMode.NONE;
+
+        const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+
+        await executor.up();
+
+        // Verify summary does NOT include transaction metrics
+        const files = fs.readdirSync(testLogDir);
+        const filePath = path.join(testLogDir, files[0]);
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const summary = JSON.parse(content);
+
+        // Transaction metrics should not be present
+        expect(summary.transactions).to.be.undefined;
     });
 
 });
