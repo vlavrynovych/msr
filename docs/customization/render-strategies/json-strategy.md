@@ -501,8 +501,3 @@ Renders ignored migrations as JSON (uses logger.warn).
 
 Renders banner information as JSON.
 
-## Related
-
-- [AsciiTableRenderStrategy](ascii-table-strategy.md) - For human-readable terminal output
-- [SilentRenderStrategy](silent-strategy.md) - For suppressing output
-- [Custom Rendering Guide](../customization/custom-rendering.md) - Creating custom strategies

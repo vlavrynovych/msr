@@ -535,15 +535,6 @@ await service.executeMigrations(config);
 
 ---
 
-## Related Documentation
-
-- [ConsoleLogger](console-logger.md) - Default console output
-- [SilentLogger](silent-logger.md) - Suppress all output
-- [FileLogger](file-logger.md) - File-based logging with rotation
-- [Custom Logging Guide](../customization/custom-logging.md) - ILogger interface basics
-
----
-
 ## Next Steps
 
 1. Choose your cloud provider

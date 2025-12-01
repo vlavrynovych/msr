@@ -549,15 +549,6 @@ For high-security environments, consider:
 
 ---
 
-## Related Documentation
-
-- [Built-in Validation](built-in-validation) - All validation rules including checksum errors
-- [Configuration](../configuration) - Full config reference
-- [Migration Lifecycle](../guides/migration-lifecycle) - When validation runs
-- [Error Handling](../guides/error-handling) - Handling validation errors
-
----
-
 ## Next Steps
 
 - **Understand validation** → [Built-in Validation Guide](built-in-validation)

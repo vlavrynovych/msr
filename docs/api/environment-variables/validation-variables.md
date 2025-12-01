@@ -211,16 +211,6 @@ graph TD
 
 ---
 
-## Related Documentation
-
-- **[Environment Variables Index](index)** - All environment variables
-- **[Validation Settings](../../configuration/validation-settings)** - Complete validation config
-- **[Validation Guide](../../guides/validation)** - How to use validation
-- **[Built-in Validators](../../customization/validation/built-in-validation)** - Default validation rules
-- **[Custom Validators](../../customization/validation/custom-validators)** - Extend validation
-
----
-
 ## Source Code
 
 TypeScript enum definition: [`src/model/env/ValidationEnvVars.ts`](../../../src/model/env/ValidationEnvVars.ts)

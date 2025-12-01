@@ -429,16 +429,6 @@ try {
 
 ---
 
-## Related Documentation
-
-- [Built-in Validation](built-in-validation) - Detailed guide to built-in validation rules
-- [Custom Validation](custom-validation) - Creating custom validators with examples
-- [Checksum & Integrity Checking](checksum-integrity) - Protect executed migrations from modification
-- [Configuration](../configuration) - All configuration options
-- [Error Handling](../guides/error-handling) - Handling validation and migration errors
-
----
-
 ## Next Steps
 
 - **Learn about built-in validation** → [Built-in Validation Guide](built-in-validation)

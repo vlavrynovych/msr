@@ -321,8 +321,3 @@ Logs a debug message using `console.debug()`.
 
 Logs a general message using `console.log()`.
 
-## Related
-
-- [SilentLogger](silent-logger.md) - For suppressing all output
-- [FileLogger](file-logger.md) - For persistent file-based logging
-- [Custom Logging Guide](../customization/custom-logging.md) - Creating custom loggers

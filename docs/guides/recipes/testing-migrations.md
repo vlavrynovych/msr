@@ -934,9 +934,3 @@ describe('Complete Migration Test Suite', () => {
 
 ---
 
-## Related
-
-- [Writing Migrations](../guides/writing-migrations) - Best practices for migrations
-- [PostgreSQL Recipe](postgres-with-backup) - Production handler implementation
-- [Development Workflow](../development/workflow) - Testing standards
-- [CI/CD Integration](../guides/backup-restore-workflows#cicd-integration) - Pipeline examples

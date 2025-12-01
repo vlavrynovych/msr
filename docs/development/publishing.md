@@ -404,14 +404,6 @@ npm publish
 
 ---
 
-## Related Documentation
-
-- [Development Workflow](workflow) - Contributing process
-- [Testing Guide](testing/) - Testing standards
-- [Migration Guides](../version-migration/) - Version upgrade guides
-
----
-
 ## Quick Reference
 
 | Task | Command |

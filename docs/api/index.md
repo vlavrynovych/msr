@@ -76,15 +76,6 @@ Type definitions and aliases for TypeScript users
 
 ---
 
-## Related Documentation
-
-- [Getting Started](../getting-started) - Quick start guide
-- [Configuration](../configuration/) - Configuration reference
-- [Architecture](../development/architecture/) - System design and components
-- [Guides](../guides/) - Usage guides and best practices
-
----
-
 ## API Versioning
 
 MSR follows [Semantic Versioning](https://semver.org/). This documentation reflects:

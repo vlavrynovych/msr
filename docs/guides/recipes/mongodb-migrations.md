@@ -797,9 +797,3 @@ await db.db.command({
 
 ---
 
-## Related
-
-- [PostgreSQL Recipe](postgres-with-backup) - SQL database migrations
-- [Testing Migrations](testing-migrations) - Testing strategies
-- [Writing Migrations](../guides/writing-migrations) - Best practices
-- [Configuration](../configuration/) - MSR configuration options

@@ -350,8 +350,3 @@ Helper method to calculate and format migration duration.
 
 **Returns:** Duration string in format "{seconds}s" (e.g., "2.5s")
 
-## Related
-
-- [JsonRenderStrategy](json-strategy.md) - For CI/CD and automation
-- [SilentRenderStrategy](silent-strategy.md) - For suppressing output
-- [Custom Rendering Guide](../customization/custom-rendering.md) - Creating custom strategies

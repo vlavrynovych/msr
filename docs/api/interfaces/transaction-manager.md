@@ -685,18 +685,3 @@ const handler: IDatabaseMigrationHandler = {
 const executor = new MigrationScriptExecutor(handler, config);
 // Uses custom transaction manager instead of default
 ```
-
-## Related Interfaces
-
-- **[ITransactionalDB](./transactional-db.md)** - Database transaction interface
-- **[ICallbackTransactionalDB](./db.md#icallbacktransactionaldb)** - Alternative transaction pattern (NoSQL)
-- **[IDatabaseMigrationHandler](./database-handler.md)** - Handler interface with optional transaction manager
-- **[ITransactionHooks](./db.md#itransactionhooks)** - Transaction lifecycle hooks
-- **[ITransactionContext](./db.md#itransactioncontext)** - Context passed to hooks
-
-## See Also
-
-- [Transaction Management Guide](../../guides/transaction-management.md)
-- [Transaction Configuration](../../configuration/transaction-settings.md)
-- [Transaction Hooks](../../customization/hooks.md#transaction-hooks)
-- [Custom Transaction Managers](../../customization/hooks.md#custom-transaction-managers)

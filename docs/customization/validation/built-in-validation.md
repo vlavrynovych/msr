@@ -957,15 +957,6 @@ git checkout -- migrations/
 
 ---
 
-## Related Documentation
-
-- [Custom Validation](custom-validation) - Creating custom validators
-- [Validation Overview](index) - Validation system overview
-- [Configuration](../configuration) - All configuration options
-- [Error Handling](../guides/error-handling) - Handling validation errors
-
----
-
 ## Reference
 
 ### All Built-in Validation Error Codes

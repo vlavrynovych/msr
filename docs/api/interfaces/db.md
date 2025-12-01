@@ -480,18 +480,3 @@ describe('Migration V001', () => {
 ```
 
 ---
-
-## Related Documentation
-
-- [IDatabaseMigrationHandler](database-handler) - Main handler interface
-- [SQL Migrations Guide](../../guides/sql-migrations) - Complete SQL migration guide
-- [IRunnableScript](runnable-script) - Migration script interface
-- [Getting Started](../../getting-started) - Basic setup
-
----
-
-## See Also
-
-- [PostgreSQL Recipe](../../guides/recipes/postgres-with-backup) - Full PostgreSQL implementation
-- [MongoDB Recipe](../../guides/recipes/mongodb-migrations) - Full MongoDB implementation
-- [Custom Database Example](../../guides/recipes/custom-database) - Generic SQL database

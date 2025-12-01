@@ -861,10 +861,3 @@ config.customValidators = validators;
 
 ---
 
-## Related Documentation
-
-- [Validation Overview](../customization/validation/) - Complete validation guide
-- [Built-in Validation](../customization/validation/built-in-validation) - Built-in rules
-- [Custom Validation](../customization/validation/custom-validation) - Creating validators
-- [Configuration Overview](index) - All configuration options
-- [Rollback Settings](rollback-settings) - Rollback strategies

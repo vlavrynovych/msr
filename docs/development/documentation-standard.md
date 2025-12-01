@@ -778,13 +778,6 @@ npm test
 
 {: .warning }
 > Watch out for X when doing Y.
-
----
-
-## Related
-
-- [Related Topic 1](link)
-- [Related Topic 2](link)
 ````
 
 ### API Reference Template
@@ -878,13 +871,6 @@ Description of the property.
 ```typescript
 instance.propertyName = 'value';
 ```
-
----
-
-## Related
-
-- [Related Class](link)
-- [Related Guide](link)
 ````
 
 ---

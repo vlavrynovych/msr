@@ -998,15 +998,6 @@ import {
 
 ---
 
-## Related Documentation
-
-- [Built-in Validation](built-in-validation) - MSR's built-in validation rules
-- [Validation Overview](index) - Validation system overview
-- [Configuration](../configuration) - Configuration options
-- [API Reference](../api/) - Complete API documentation
-
----
-
 ## Complete Example
 
 Production-ready custom validator setup:

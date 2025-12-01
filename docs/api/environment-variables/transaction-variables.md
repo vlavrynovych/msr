@@ -565,16 +565,6 @@ MSR_TRANSACTION_RETRY_BACKOFF=false
 
 ---
 
-## Related Documentation
-
-- **[Environment Variables Index](index)** - All environment variables
-- **[Transaction Settings](../../configuration/transaction-settings)** - Complete configuration
-- **[Transaction Management Guide](../../guides/transaction-management)** - Usage guide
-- **[ITransactionalDB Interface](../interfaces/transactional-db)** - Database interface
-- **[ITransactionManager Interface](../interfaces/transaction-manager)** - Transaction manager
-
----
-
 ## Source Code
 
 TypeScript enum definition: [`src/model/env/TransactionEnvVars.ts`](../../../src/model/env/TransactionEnvVars.ts)

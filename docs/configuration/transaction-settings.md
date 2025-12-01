@@ -337,18 +337,3 @@ Environment variables override default values but are overridden by programmatic
 // 2. Environment variable MSR_TRANSACTION_MODE=PER_MIGRATION
 // 3. Default value TransactionMode.PER_MIGRATION
 ```
-
-## Related Documentation
-
-- **[Transaction Management Guide](../guides/transaction-management.md)** - Comprehensive guide with examples
-- **[ITransactionalDB Interface](../api/interfaces/transactional-db.md)** - Database transaction interface
-- **[ITransactionManager Interface](../api/interfaces/transaction-manager.md)** - Transaction manager API
-- **[Environment Variables Reference](../api/environment-variables/)** - All environment variables
-- **[Rollback Settings](./rollback-settings.md)** - Rollback strategy configuration
-- **[Configuration Index](./index.md)** - All configuration options
-
-## See Also
-
-- [Transaction Management User Guide](../guides/transaction-management.md)
-- [Hooks Documentation](../customization/hooks.md) - Transaction lifecycle hooks
-- [Dry Run Mode](../guides/testing-migrations.md) - Testing with transactions

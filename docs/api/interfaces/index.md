@@ -192,9 +192,3 @@ class MyHandler implements IDatabaseMigrationHandler {
 
 ---
 
-## Related Documentation
-
-- [Core Classes](../core-classes) - MigrationScriptExecutor and other classes
-- [Services](../services) - Service implementations
-- [Getting Started](../../getting-started) - Basic setup guide
-- [Recipes](../../guides/recipes/) - Complete implementation examples

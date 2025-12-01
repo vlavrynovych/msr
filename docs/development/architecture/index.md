@@ -147,9 +147,3 @@ Architectural best practices and guidelines:
 
 ---
 
-## Related Documentation
-
-- [Development Setup](../setup) - Set up your environment
-- [Development Workflow](../workflow) - Contributing process
-- [Testing Guide](../testing/) - Testing standards
-- [API Reference](../../api/) - Complete API documentation

@@ -1092,9 +1092,3 @@ config.backup.folder = '/dev/shm/backups';  // RAM disk (temporary)
 
 ---
 
-## Related Documentation
-
-- [Rollback Settings](rollback-settings) - Configure rollback strategy
-- [Configuration Overview](index) - All configuration options
-- [Migration Settings](migration-settings) - Migration discovery settings
-- [Validation Settings](validation-settings) - Validation configuration

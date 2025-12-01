@@ -520,17 +520,3 @@ await executor.up();
 3. ✅ Wraps migrations in `beginTransaction()` / `commit()` / `rollback()`
 4. ✅ Sets isolation level if `setIsolationLevel()` is implemented
 5. ✅ Automatically retries on deadlocks and serialization failures
-
-## Related Interfaces
-
-- **[IDB](./db.md)** - Base database interface (extended by ITransactionalDB)
-- **[ITransactionManager](./transaction-manager.md)** - Transaction orchestration with retry logic
-- **[ICallbackTransactionalDB](./db.md#icallbacktransactionaldb)** - Alternative transaction interface for NoSQL
-- **[IDatabaseMigrationHandler](./database-handler.md)** - Main handler interface
-
-## See Also
-
-- [Transaction Management Guide](../../guides/transaction-management.md)
-- [Transaction Configuration](../../configuration/transaction-settings.md)
-- [IDB Interface Documentation](./db.md)
-- [Custom Transaction Managers](../../customization/hooks.md#transaction-hooks)

@@ -518,16 +518,6 @@ export MSR_BACKUP_EXISTING_BACKUP_PATH=./backups/backup-2024-01-15.bkp
 
 ---
 
-## Related Documentation
-
-- **[Environment Variables Index](index)** - All environment variables
-- **[Backup Settings](../../configuration/backup-settings)** - Complete backup config
-- **[Backup & Restore Guide](../../guides/backup-restore-workflows)** - Usage guide
-- **[Rollback Strategies](../../configuration/rollback-settings)** - When backups are used
-- **[BackupService API](../../api/services#backupservice)** - Backup service
-
----
-
 ## Source Code
 
 TypeScript enum definition: [`src/model/env/BackupEnvVars.ts`](../../../src/model/env/BackupEnvVars.ts)

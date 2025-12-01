@@ -680,8 +680,3 @@ Deletes all log files (current + rotated).
 logger.clearLogs();
 ```
 
-## Related
-
-- [ConsoleLogger](console-logger.md) - For development and debugging
-- [SilentLogger](silent-logger.md) - For suppressing all output
-- [Custom Logging Guide](../customization/custom-logging.md) - Creating custom loggers

@@ -209,8 +209,3 @@ Explore detailed documentation for each category:
 
 ---
 
-## Related Documentation
-
-- **[Configuration Guide](../../configuration/)** - Complete configuration reference
-- **[ConfigLoader API](../core-classes#configloader)** - Programmatic config loading
-- **[Getting Started](../../getting-started)** - Quick start guide

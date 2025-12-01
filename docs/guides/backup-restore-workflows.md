@@ -855,9 +855,3 @@ backup: {
 
 ---
 
-## Related Documentation
-
-- [Backup Settings](../configuration/backup-settings) - Detailed backup configuration
-- [API Reference](../api#createbackup) - Public backup methods
-- [Rollback Settings](../configuration/rollback-settings) - Rollback strategies
-- [Hooks](hooks) - Backup/restore lifecycle hooks

@@ -315,19 +315,3 @@ const result = await executor.up();
 ```
 
 ---
-
-## Related Interfaces
-
-- [IDB](db) - Database connection interface
-- [ISqlDB](db#isqldb) - SQL database interface (v0.4.0+)
-- [ISchemaVersion](schema-version) - Schema version tracking
-- [IBackup](backup) - Backup and restore operations
-
----
-
-## See Also
-
-- [Getting Started](../../getting-started) - Basic setup guide
-- [Recipes](../../guides/recipes/) - Complete implementation examples
-- [PostgreSQL Recipe](../../guides/recipes/postgres-with-backup) - Full PostgreSQL example
-- [MongoDB Recipe](../../guides/recipes/mongodb-migrations) - Full MongoDB example

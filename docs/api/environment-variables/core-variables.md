@@ -314,15 +314,6 @@ export MSR_DRY_RUN=${CI:-false}
 
 ---
 
-## Related Documentation
-
-- **[Environment Variables Index](index)** - All environment variables
-- **[Migration Settings](../../configuration/migration-settings)** - Complete configuration reference
-- **[ConfigLoader API](../core-classes#configloader)** - Programmatic loading
-- **[Writing Migrations](../../guides/writing-migrations)** - Migration file guide
-
----
-
 ## Source Code
 
 TypeScript enum definition: [`src/model/env/CoreEnvVars.ts`](../../../src/model/env/CoreEnvVars.ts)

@@ -847,15 +847,6 @@ See [IMigrationHooks API Documentation](../api/interfaces/IMigrationHooks) for c
 
 ---
 
-## Related Documentation
-
-- [Custom Logging](custom-logging.md) - Implementing custom loggers
-- [CompositeLogger](../customization/loggers/composite-logger.md) - Multi-destination logging
-- [Architecture](../development/architecture/) - System design and component relationships
-- [API Reference](../api/) - Complete API documentation
-
----
-
 ## Example: Production-Ready Hooks
 
 Complete example combining multiple patterns:

@@ -626,18 +626,3 @@ console.log(`Latest: V${latest.timestamp}_${latest.name}`);
 ```
 
 ---
-
-## Related Documentation
-
-- [IMigrationInfo](migration-info) - Migration metadata interface
-- [IDatabaseMigrationHandler](database-handler) - Main handler interface
-- [IDB](db) - Database connection interface
-- [Getting Started](../../getting-started) - Setup guide
-
----
-
-## See Also
-
-- [PostgreSQL Recipe](../../guides/recipes/postgres-with-backup) - Full implementation
-- [MongoDB Recipe](../../guides/recipes/mongodb-migrations) - Full implementation
-- [Version Control](../../guides/version-control) - Using migration history

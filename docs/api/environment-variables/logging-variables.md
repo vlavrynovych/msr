@@ -375,15 +375,6 @@ Example log entry:
 
 ---
 
-## Related Documentation
-
-- **[Environment Variables Index](index)** - All environment variables
-- **[Logging Customization](../../customization/loggers/)** - Custom loggers
-- **[FileLogger API](../../api/services#filelogger)** - FileLogger service
-- **[Execution Summary](../../guides/execution-summary)** - Summary output
-
----
-
 ## Source Code
 
 TypeScript enum definition: [`src/model/env/LoggingEnvVars.ts`](../../../src/model/env/LoggingEnvVars.ts)

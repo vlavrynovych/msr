@@ -416,9 +416,3 @@ No-op: Produces no output for ignored migrations.
 
 No-op: Produces no banner output.
 
-## Related
-
-- [AsciiTableRenderStrategy](ascii-table-strategy.md) - For human-readable terminal output
-- [JsonRenderStrategy](json-strategy.md) - For CI/CD and automation
-- [Custom Rendering Guide](../customization/custom-rendering.md) - Creating custom strategies
-- [SilentLogger](../customization/loggers/silent-logger.md) - For suppressing all log output

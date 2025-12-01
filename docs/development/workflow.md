@@ -452,9 +452,3 @@ If PR is open for a while:
 
 ---
 
-## Related Documentation
-
-- [Development Setup](setup) - Set up your environment
-- [Testing Guide](testing/) - Testing standards
-- [Architecture](architecture) - Understand the codebase
-- [Contributing Guide](contributing) - Contribution guidelines

@@ -775,9 +775,3 @@ Before deploying to production:
 
 ---
 
-## Related
-
-- [Writing Migrations](../guides/writing-migrations) - Best practices for migration scripts
-- [Backup & Restore Workflows](../guides/backup-restore-workflows) - Advanced backup patterns
-- [Configuration](../configuration/) - MSR configuration options
-- [Testing Migrations Recipe](testing-migrations) - Testing strategies

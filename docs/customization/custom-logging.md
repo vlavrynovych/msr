@@ -376,8 +376,3 @@ const migrationService = new MigrationService(logger);
 
 ---
 
-## Related Documentation
-
-- [Getting Started](../getting-started) - Basic setup and usage
-- [Configuration](../configuration) - Configure MSR behavior
-- [Testing](../testing) - Testing strategies and best practices

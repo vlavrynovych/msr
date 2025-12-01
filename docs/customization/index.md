@@ -115,8 +115,3 @@ const renderer = new MigrationRenderer(
 
 ---
 
-## Related Documentation
-
-- [Guides](../guides/) - Core usage guides and practical examples
-- [API Reference](../api/) - Complete API documentation
-- [Development](../development/) - Contributing to MSR

@@ -482,16 +482,6 @@ logger.info('message'); // Does nothing
 
 ---
 
-## Related Documentation
-
-- [ConsoleLogger](console-logger.md) - Default console output
-- [FileLogger](file-logger.md) - File-based logging with rotation
-- [SilentLogger](silent-logger.md) - Suppress all output
-- [Cloud Logger Guide](cloud-logger-guide.md) - Implementing cloud loggers
-- [Custom Logging Guide](../customization/custom-logging.md) - Create custom loggers
-
----
-
 ## Example: Complete Setup
 
 ```typescript

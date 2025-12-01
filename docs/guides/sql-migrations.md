@@ -812,10 +812,3 @@ npx ts-node src/migrate.ts
 
 ---
 
-## Related Documentation
-
-- [Getting Started](../getting-started) - Basic MSR setup
-- [Writing Migrations](writing-migrations) - TypeScript migration guide
-- [Rollback Settings](../configuration/rollback-settings) - Rollback strategy configuration
-- [API Reference - Interfaces](../api/interfaces#isqldb) - ISqlDB interface details
-- [Version Migration](../version-migration/v0.3-to-v0.4) - Upgrading to v0.4.0

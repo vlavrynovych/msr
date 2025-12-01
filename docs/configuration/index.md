@@ -468,9 +468,3 @@ Explore detailed configuration options:
 
 ---
 
-## Related Documentation
-
-- [Validation](../customization/validation/) - Validation system overview
-- [Rollback Strategies](rollback-settings) - Choosing the right strategy
-- [Architecture](../development/architecture/) - System design
-- [API Reference](../api/) - Complete API documentation

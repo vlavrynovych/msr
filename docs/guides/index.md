@@ -53,7 +53,3 @@ Complete, copy-paste-ready implementations for common scenarios:
 
 ---
 
-## Related Documentation
-
-- [API Reference](../api/) - Complete API documentation
-- [Extending MSR](../customization/) - Custom loggers, renderers, validators, and hooks

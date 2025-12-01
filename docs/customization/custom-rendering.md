@@ -623,9 +623,3 @@ describe('XmlRenderStrategy', () => {
 
 ---
 
-## Related
-
-- [AsciiTableRenderStrategy](/msr-core/rendering/ascii-table-strategy) - Default ASCII table strategy
-- [JsonRenderStrategy](/msr-core/rendering/json-strategy) - Built-in JSON strategy
-- [SilentRenderStrategy](/msr-core/rendering/silent-strategy) - Built-in silent strategy
-- [Custom Logging](/msr-co../customization/custom-logging) - Creating custom loggers
