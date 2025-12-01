@@ -1,11 +1,11 @@
 ---
 layout: default
-title: Customization
+title: Extending MSR
 nav_order: 6
 has_children: true
 ---
 
-# Customization
+# Extending MSR
 {: .no_toc }
 
 Extend and customize Migration Script Runner to fit your needs.
@@ -117,6 +117,6 @@ const renderer = new MigrationRenderer(
 
 ## Related Documentation
 
-- [User Guides](../user-guides/) - Core usage guides
+- [Guides](../user-guides/) - Core usage guides and practical examples
 - [API Reference](../api/) - Complete API documentation
 - [Development](../development/) - Contributing to MSR

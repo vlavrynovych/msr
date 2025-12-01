@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Glossary
-nav_order: 11
+nav_order: 10
 ---
 
 # Glossary
@@ -187,6 +187,6 @@ The ability to migrate to or rollback to specific database versions using `up(ta
 ## Related Documentation
 
 - [Getting Started](getting-started) - Basic setup and usage
-- [User Guides](user-guides/) - Comprehensive usage guides
+- [Guides](user-guides/) - Comprehensive guides and practical examples
 - [API Reference](api/) - Detailed API documentation
 - [Configuration](configuration/) - All configuration options

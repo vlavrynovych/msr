@@ -147,7 +147,7 @@ if (result.success) {
 ### Getting Started
 
 - **[Getting Started](getting-started)** - Installation, basic usage, and quick start
-- **[User Guides](user-guides/)** - Core usage guides for writing and managing migrations
+- **[Guides](user-guides/)** - Comprehensive guides and practical examples
 
 ### Reference
 
@@ -156,7 +156,7 @@ if (result.success) {
 
 ### Advanced
 
-- **[Customization](customization/)** - Extend MSR with custom loggers, renderers, and validators
+- **[Extending MSR](customization/)** - Extend MSR with custom loggers, renderers, and validators
 - **[Architecture](development/architecture/)** - System design, components, and data flow
 
 ### Project

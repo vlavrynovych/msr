@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Recipes
-nav_order: 7
+parent: Guides
+nav_order: 10
 has_children: true
 ---
 
@@ -80,6 +81,6 @@ See the [Contributing Guide](../development/contributing) for how to submit reci
 
 ## Next Steps
 
-- [User Guides](../user-guides/) - Learn core MSR concepts
+- [Guides](../user-guides/) - Learn core MSR concepts
 - [API Reference](../api/) - Detailed API documentation
-- [Customization](../customization/) - Extend MSR with custom loggers, renderers, and more
+- [Extending MSR](../customization/) - Extend MSR with custom loggers, renderers, and more

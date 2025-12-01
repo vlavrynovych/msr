@@ -216,7 +216,7 @@ Ready to use these features? Start here:
 
 - **[Getting Started Guide](./getting-started.md)** - Quick start in 5 minutes
 - **[Configuration](./configuration/)** - Configure MSR for your needs
-- **[User Guides](./user-guides/)** - In-depth guides for all features
+- **[Guides](./user-guides/)** - In-depth guides and practical examples
 - **[API Reference](./api/)** - Complete API documentation
 
 ---

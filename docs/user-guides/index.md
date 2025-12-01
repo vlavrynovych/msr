@@ -1,13 +1,13 @@
 ---
 layout: default
-title: User Guides
+title: Guides
 nav_order: 5
 has_children: true
 ---
 
-# User Guides
+# Guides
 
-Comprehensive guides for using Migration Script Runner effectively.
+Comprehensive guides and practical examples for using Migration Script Runner effectively.
 
 ## Core Usage
 
@@ -41,8 +41,19 @@ Database backup and restore operations:
 
 ---
 
+## Practical Examples
+
+### [Recipes](../recipes/)
+Complete, copy-paste-ready implementations for common scenarios:
+- PostgreSQL with backup/restore
+- MongoDB migrations
+- Testing patterns
+- Multi-database coordination
+- Custom validation
+
+---
+
 ## Related Documentation
 
-- [Configuration](../configuration/) - Configure migration behavior
 - [API Reference](../api/) - Complete API documentation
-- [Customization](../customization/) - Extend MSR with custom implementations
+- [Extending MSR](../customization/) - Custom loggers, renderers, validators, and hooks

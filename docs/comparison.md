@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Comparison
-nav_order: 10
+nav_order: 9
 ---
 
 # How MSR Compares
