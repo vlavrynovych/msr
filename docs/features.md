@@ -1,8 +1,89 @@
+---
+layout: default
+title: Features
+nav_order: 3
+---
+
 # Features
+{: .no_toc }
 
 Migration Script Runner is a production-ready migration framework packed with powerful features for safe, reliable database migrations.
+{: .fs-6 .fw-300 }
 
-## Core Migration Features
+## Table of Contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
+---
+
+## Complete Features List
+
+### Migration Execution
+- **[Multi-Format Migrations](user-guides/writing-migrations)** - TypeScript, JavaScript, and SQL migrations in the same project
+- **[Up/Down Methods](user-guides/writing-migrations#updown-methods)** - Reversible migrations with flexible down() policies
+- **[Batch Execution](user-guides/basic-usage#running-migrations)** - Execute multiple migrations with progress tracking
+- **[Target Version Migration](user-guides/basic-usage#target-version)** - Migrate up to specific version or down to a version
+- **[Selective Execution](configuration/migration-settings#file-patterns)** - Control which migrations run with file patterns
+
+### Safety & Rollback
+- **[Dry Run Mode](user-guides/dry-run)** - Test migrations in transactions without committing
+- **[Automatic Backups](user-guides/backup-restore)** - Create database backups before migration execution
+- **[Multiple Rollback Strategies](user-guides/rollback-strategies)** - BACKUP, DOWN, BOTH, or NONE strategies
+- **[Checksum Validation](user-guides/checksum-validation)** - Detect unauthorized changes to executed migrations
+- **[Pre-Migration Validation](user-guides/validation)** - Catch issues before execution starts
+
+### Transaction Management
+- **[Configurable Transaction Modes](user-guides/transaction-management)** - PER_MIGRATION, PER_BATCH, or NONE
+- **[SQL Isolation Levels](user-guides/transaction-management#isolation-levels)** - Full control over transaction isolation
+- **[Automatic Retry Logic](user-guides/transaction-management#retry-configuration)** - Built-in retry with exponential backoff
+- **[Transient Error Detection](user-guides/transaction-management#error-detection)** - Smart detection of retriable errors (deadlocks, serialization failures)
+- **[NoSQL Transaction Support](user-guides/transaction-management#nosql-databases)** - Callback-based transactions for DynamoDB, Firestore, MongoDB
+
+### Validation & Quality
+- **[Built-in Validators](customization/validation/built-in-validation)** - Structure, syntax, and convention validation
+- **[Custom Validators](customization/validation/custom-validators)** - Extend with your own validation rules
+- **[Strict Mode](customization/validation/built-in-validation#strict-mode)** - Treat warnings as errors in CI/CD
+- **[Duplicate Detection](customization/validation/built-in-validation#duplicate-timestamp-detection)** - Prevent timestamp collisions
+- **[Down Method Policies](customization/validation/built-in-validation#down-method-policy)** - Enforce reversible migrations
+
+### Monitoring & Logging
+- **[Execution Summary](user-guides/execution-summary)** - Detailed JSON/text summaries with metrics
+- **[Multiple Loggers](customization/loggers/)** - Console, File, Silent, or custom loggers
+- **[Lifecycle Hooks](customization/hooks)** - Monitor and extend migration lifecycle
+- **[Rich Metrics](user-guides/execution-summary#metrics)** - Track timing, retries, and performance
+- **[Custom Output Formats](customization/renderers)** - ASCII tables, JSON, or custom rendering
+
+### Configuration
+- **[Environment Variables](user-guides/environment-variables)** - 12-factor app configuration with MSR_* variables
+- **[Config Files](configuration/)** - msr.config.js or msr.config.json support
+- **[Programmatic API](api/)** - Full TypeScript API for application integration
+- **[Migration Settings](configuration/migration-settings)** - File patterns, display limits, folder configuration
+- **[Validation Settings](configuration/validation-settings)** - Control validation behavior and strictness
+- **[Rollback Settings](configuration/rollback-settings)** - Configure backup and rollback behavior
+- **[Transaction Settings](configuration/transaction-settings)** - Transaction modes, isolation, and retry settings
+
+### Extensibility
+- **[Custom Database Handlers](customization/database-handlers)** - Implement handlers for any database
+- **[Custom Loaders](customization/loaders)** - Add support for new file formats
+- **[Custom Validators](customization/validation/custom-validators)** - Extend validation with custom rules
+- **[Custom Loggers](customization/loggers/)** - Integrate with existing logging infrastructure
+- **[Custom Renderers](customization/renderers)** - Control migration output format
+- **[Custom Hooks](customization/hooks)** - Extend lifecycle for monitoring, metrics, or custom logic
+
+### Developer Experience
+- **[TypeScript First](getting-started)** - Written in TypeScript with full type definitions
+- **[100% Test Coverage](development/testing)** - Fully tested with mutation testing
+- **[Comprehensive Documentation](.)** - Complete guides, examples, and API reference
+- **[Zero Config Defaults](getting-started#quick-start)** - Works out of the box with sensible defaults
+- **Library-First Design** - Returns structured results instead of calling process.exit()
+
+---
+
+## Features by Category
+
+### Core Migration Features
 
 | Feature | Description |
 |---------|-------------|
