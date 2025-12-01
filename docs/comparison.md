@@ -22,10 +22,12 @@ MSR is designed for **production safety, developer experience, and flexibility**
 
 | Feature | MSR | Typical Tools |
 |---------|-----|---------------|
-| **Hybrid Migrations** | ✅ Both TypeScript & SQL (v0.4.0) | Usually one or the other |
-| **Dry Run Mode** | ✅ Built-in, free (v0.4.0) | Often paid/enterprise only |
-| **Execution Summaries** | ✅ Detailed success/failure logs (v0.4.0) | Basic output only |
-| **Lifecycle Hooks** | ✅ beforeMigrate, afterMigrate, onError | Rare |
+| **Hybrid Migrations** | ✅ Both TypeScript & SQL | Usually one or the other |
+| **Transaction Management** | ✅ Configurable modes with retry (v0.5.0) | Basic or none |
+| **Environment Variables** | ✅ Full 12-factor config (v0.5.0) | Limited |
+| **Dry Run Mode** | ✅ Built-in, free | Often paid/enterprise only |
+| **Execution Summaries** | ✅ Detailed success/failure logs | Basic output only |
+| **Lifecycle Hooks** | ✅ Process, script, backup, transaction (v0.5.0) | Rare |
 | **Flexible Rendering** | ✅ Table, JSON, Silent modes | Fixed format |
 | **TypeScript-First** | ✅ Full type safety | Varies |
 
@@ -35,7 +37,8 @@ MSR is designed for **production safety, developer experience, and flexibility**
 |------------|-----------|
 | Up/Down Migrations | ✅ |
 | SQL Migrations | ✅ v0.4.0 |
-| Transaction Support | ✅ |
+| Transaction Support | ✅ v0.5.0 - Configurable modes, isolation levels, auto-retry |
+| Environment Variables | ✅ v0.5.0 - 33 MSR_* variables |
 | Rollback | ✅ |
 | Connection Validation | ✅ v0.4.0 |
 | Programmatic API | ✅ |
@@ -92,6 +95,8 @@ MSR is a great fit when you:
 
 - ✅ Want flexibility to use TypeScript OR SQL migrations
 - ✅ Need production-ready safety features (dry run, summaries)
+- ✅ Need reliable transaction management with automatic retry
+- ✅ Deploy in containers/Kubernetes with environment variable config
 - ✅ Value developer experience and type safety
 - ✅ Want lifecycle hooks for custom logic
 - ✅ Need multi-database support in one tool
@@ -135,18 +140,21 @@ When migrations fail in production, you need to know:
 
 **MSR's execution summaries** (v0.4.0) provide a detailed trace of every step, making debugging and recovery straightforward.
 
-## v0.4.0 Release
+## Latest Release: v0.5.0
 
-Version 0.4.0 brings significant new features:
+Version 0.5.0 brings production-grade transaction management and cloud-native configuration:
 
-- ✅ **SQL File Support** (#58) - Native .sql migration files with ISqlDB interface
-- ✅ **Dry Run Mode** (#73) - Preview changes before applying
-- ✅ **Execution Summary Logging** (#72) - Detailed success/failure traces with file rotation
-- ✅ **Simplified API** (#81) - Industry-standard `up()`/`down()` pattern
-- ✅ **Connection Validation** (#88) - Early connection checking with `checkConnection()`
-- ✅ **Loader Architecture** - Extensible file type support
+- ✅ **Transaction Management** (#76) - Configurable modes (per-migration, per-batch, none) with automatic retry logic and isolation level control
+- ✅ **Environment Variables** (#84) - Complete MSR_* configuration support following 12-factor app principles
+- ✅ **Enhanced Hooks** - Transaction lifecycle hooks for monitoring and metrics
+- ✅ **NoSQL Transactions** - Support for callback-based transactions (MongoDB, Firestore, DynamoDB)
+- ✅ **100% Backward Compatible** - Zero breaking changes from v0.4.x
 
-See the [v0.3.x → v0.4.0 Migration Guide](version-migration/v0.3-to-v0.4) for upgrade instructions.
+See the [v0.4.x → v0.5.0 Migration Guide](version-migration/v0.4-to-v0.5) for upgrade instructions.
+
+## Previous Releases
+
+**v0.4.0** brought SQL migrations, dry run mode, and execution summaries. See [v0.3.x → v0.4.0 Migration Guide](version-migration/v0.3-to-v0.4) for details.
 
 ## Future Roadmap
 
@@ -154,7 +162,7 @@ Upcoming features we're considering:
 
 - **CLI Commands** (#59) - Full command-line interface
 - **Template Generator** (#83) - Scaffold new migrations easily
-- **Environment Variables** (#84) - Secure configuration
+- **Bash Script Adapter** (#99) - Use MSR patterns for infrastructure management
 - **Migration Preview** - Visual diff of schema changes
 
 See our [GitHub milestones](https://github.com/migration-script-runner/msr-core/milestones) for details.
@@ -172,4 +180,4 @@ Visit our [GitHub repository](https://github.com/migration-script-runner/msr-cor
 ---
 
 {: .note }
-This comparison is based on publicly available information and our research as of November 2025. Tool capabilities change over time, so please verify current features with official documentation.
+This comparison is based on publicly available information and our research as of December 2025. Tool capabilities change over time, so please verify current features with official documentation.

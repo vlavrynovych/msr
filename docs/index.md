@@ -51,9 +51,25 @@ A database-agnostic migration framework for TypeScript and JavaScript projects.
 - **📝 Flexible Logging** - Built-in loggers (Console, File, Silent) or bring your own
 - **🪝 Lifecycle Hooks** - Extend behavior with beforeMigrate and custom hooks
 - **🎯 Version Control** - Target specific versions with `up(targetVersion)` and `down(targetVersion)`
+- **🔒 Transaction Control** - Configurable transaction modes with automatic retry and isolation levels
+- **⚙️ Environment Variables** - Full 12-factor app configuration support with MSR_* variables
 - **✅ Well Tested** - 100% code coverage with mutation testing
 
 **[→ View all features](features)** - Complete feature list with detailed descriptions
+{: .fs-5 }
+
+---
+
+## What's New in v0.5.0
+
+🎉 Latest release brings powerful new capabilities:
+
+- **🔒 Transaction Management** - Configurable transaction modes (per-migration, per-batch, none) with automatic retry logic and isolation level control for both SQL and NoSQL databases
+- **⚙️ Environment Variables** - Complete MSR_* configuration support following 12-factor app principles - perfect for Docker, Kubernetes, and CI/CD pipelines
+- **📊 Enhanced Hooks** - New transaction lifecycle hooks for monitoring and metrics collection
+- **🚀 Production Ready** - 100% backward compatible with v0.4.x, zero breaking changes
+
+**[→ View v0.5.0 migration guide](version-migration/v0.4-to-v0.5)** | **[→ See full changelog](features#feature-highlights-by-version)**
 {: .fs-5 }
 
 ---
