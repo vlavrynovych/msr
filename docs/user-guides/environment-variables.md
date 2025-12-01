@@ -50,7 +50,7 @@ MSR loads configuration using a waterfall approach with clear priority:
 
 ## Type-Safe Environment Variables
 
-MSR provides a [`EnvironmentVariables`](../../src/model/EnvironmentVariables.ts) enum for type-safe access to all environment variable names. This is used internally by `ConfigLoader` and is available for your use:
+MSR provides organized enums for type-safe access to environment variable names. Variables are grouped by category (Core, Validation, Logging, Backup, Transaction) with a unified [`EnvironmentVariables`](../../src/model/env/index.ts) type combining all categories. This is used internally by `ConfigLoader` and is available for your use:
 
 ```typescript
 import { EnvironmentVariables as ENV } from '@migration-script-runner/core';
@@ -73,8 +73,8 @@ if (process.env[ENV.MSR_LOGGING_ENABLED] === 'true') {
 - **Single source of truth** - All environment variable names defined in one place
 
 **See Also:**
-- [Complete Environment Variables Table](../reference/environment-variables) - All MSR_* variables with types and defaults
-- [EnvironmentVariables.ts Source](../../src/model/EnvironmentVariables.ts) - Enum definition with JSDoc comments
+- [Environment Variables API Reference](../api/environment-variables/) - Complete reference with detailed descriptions for all MSR_* variables
+- [EnvironmentVariables Source](../../src/model/env/index.ts) - Type union and enum definitions with JSDoc comments
 
 ---
 
@@ -701,7 +701,7 @@ await executor.migrate();
 
 ## Reference
 
-- [Environment Variables Reference](../reference/environment-variables) - Complete table of all variables
+- [Environment Variables API Reference](../api/environment-variables/) - Complete reference organized by category (Core, Validation, Logging, Backup, Transaction)
 - [ConfigLoader API](../api/ConfigLoader) - API documentation
 - [Configuration Overview](../configuration/) - Config class documentation
 - [Getting Started](../getting-started) - Quick start guide
@@ -710,7 +710,7 @@ await executor.migrate();
 
 ## Next Steps
 
-- [Environment Variables Reference](../reference/environment-variables) - See all available variables
+- [Environment Variables API Reference](../api/environment-variables/) - Complete reference for all variables organized by category
 - [ConfigLoader API](../api/ConfigLoader) - Advanced usage
 - [Docker Deployment](../deployment/docker) - Container setup
 - [CI/CD Integration](../deployment/ci-cd) - Pipeline configuration

@@ -342,7 +342,7 @@ Environment variables override default values but are overridden by programmatic
 - **[Transaction Management Guide](../user-guides/transaction-management.md)** - Comprehensive guide with examples
 - **[ITransactionalDB Interface](../api/interfaces/transactional-db.md)** - Database transaction interface
 - **[ITransactionManager Interface](../api/interfaces/transaction-manager.md)** - Transaction manager API
-- **[Environment Variables Reference](../reference/environment-variables.md)** - All environment variables
+- **[Environment Variables Reference](../api/environment-variables/)** - All environment variables
 - **[Rollback Settings](./rollback-settings.md)** - Rollback strategy configuration
 - **[Configuration Index](./index.md)** - All configuration options
 

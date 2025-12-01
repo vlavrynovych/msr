@@ -38,7 +38,7 @@ import { ConfigLoader } from '@migration-script-runner/core';
 
 ## EnvironmentVariables Enum
 
-`ConfigLoader` uses the [`EnvironmentVariables`](../../src/model/EnvironmentVariables.ts) enum internally for type-safe access to environment variable names. This enum is also exported for your use:
+`ConfigLoader` uses the [`EnvironmentVariables`](../../src/model/env/index.ts) type union internally for type-safe access to environment variable names. This type and the underlying enums (CoreEnvVars, ValidationEnvVars, etc.) are also exported for your use:
 
 ```typescript
 import { EnvironmentVariables as ENV } from '@migration-script-runner/core';
@@ -56,8 +56,8 @@ const tableName = process.env[ENV.MSR_TABLE_NAME];
 - **Documentation** - Each enum value has JSDoc comments with defaults
 
 **See Also:**
-- [EnvironmentVariables.ts Source](../../src/model/EnvironmentVariables.ts) - Complete enum definition
-- [Environment Variables Reference](../reference/environment-variables) - Table of all MSR_* variables
+- [EnvironmentVariables Source](../../src/model/env/index.ts) - Type union and enum definitions organized by category
+- [Environment Variables API Reference](../api/environment-variables/) - Complete reference for all MSR_* variables
 
 ---
 
@@ -635,7 +635,7 @@ const host = ConfigLoader.loadFromEnv('HOST', 'localhost');
 ## See Also
 
 - **[Environment Variables Guide](../user-guides/environment-variables)** - How-to guide with examples
-- **[Environment Variables Reference](../reference/environment-variables)** - Complete table of all MSR_* variables
+- **[Environment Variables API Reference](environment-variables/)** - Complete reference organized by category (Core, Validation, Logging, Backup, Transaction)
 - **[Configuration Overview](../configuration/)** - Config class documentation
 - **[Getting Started](../getting-started)** - Quick start guide
 

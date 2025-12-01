@@ -310,9 +310,9 @@ export MSR_BACKUP_FOLDER=./backups
 
 **Complete Documentation:**
 - 📖 **[Environment Variables User Guide](../user-guides/environment-variables)** - How-to guide with practical examples, platform-specific configs (Docker, Kubernetes, etc.), and troubleshooting
-- 📋 **[Environment Variables Reference](../reference/environment-variables)** - Complete table of all MSR_* variables with types and defaults
+- 📋 **[Environment Variables API Reference](../api/environment-variables/)** - Complete reference with detailed descriptions for all MSR_* variables (Core, Validation, Logging, Backup, Transaction)
 - 🔧 **[ConfigLoader API](../api/ConfigLoader)** - API reference for programmatic configuration loading
-- 🏷️ **[EnvironmentVariables Enum](../../src/model/EnvironmentVariables.ts)** - Type-safe environment variable names
+- 🏷️ **[EnvironmentVariables Type](../../src/model/env/index.ts)** - Type-safe environment variable names
 
 ---
 
