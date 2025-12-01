@@ -61,13 +61,13 @@ Follow these steps to get started with MSR.
 Install MSR via npm:
 
 ```bash
-npm install migration-script-runner
+npm install @migration-script-runner/core
 ```
 
 Or with yarn:
 
 ```bash
-yarn add migration-script-runner
+yarn add @migration-script-runner/core
 ```
 
 ---

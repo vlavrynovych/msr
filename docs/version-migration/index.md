@@ -11,6 +11,7 @@ This section contains guides for upgrading between major versions of MSR. Each g
 
 ## Available Upgrade Guides
 
+- [**v0.4.x → v0.5.0**](v0.4-to-v0.5.md) - **Non-Breaking:** Transaction management, environment variables, enhanced hooks
 - [**v0.3.x → v0.4.0**](v0.3-to-v0.4.md) - **Breaking:** SQL migrations, API method renames (`up()`/`down()`), `filePatterns` array, `checkConnection()` required
 - [**v0.2.x → v0.3.0**](v0.2-to-v0.3.md) - **Breaking:** `migrate()` now returns `IMigrationResult`, no longer calls `process.exit()`
 - [**v0.1.x → v0.2.0**](v0.1-to-v0.2.md) - Package rename from `migration-script-runner` to `@migration-script-runner/core`
