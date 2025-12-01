@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Configuration
-nav_order: 4
+parent: API Reference
+nav_order: 2
 has_children: true
 ---
 

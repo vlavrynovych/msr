@@ -2,6 +2,7 @@
 layout: default
 title: Transaction Settings
 parent: Configuration
+grand_parent: API Reference
 nav_order: 5
 ---
 

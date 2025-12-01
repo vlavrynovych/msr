@@ -2,6 +2,7 @@
 layout: default
 title: Validation Settings
 parent: Configuration
+grand_parent: API Reference
 nav_order: 2
 ---
 
