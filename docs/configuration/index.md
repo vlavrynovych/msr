@@ -72,6 +72,7 @@ const config = new Config();
 | Category | Properties | Description |
 |----------|-----------|-------------|
 | 🎯 [Migration Settings](migration-settings) | `folder`, `filePattern`, `tableName`, `displayLimit`, `beforeMigrateName`, `recursive` | Control how migrations are discovered and tracked |
+| 🎚️ Logging Settings | `logLevel`, `showBanner` | Configure output verbosity and display options |
 | ✅ [Validation Settings](validation-settings) | `validateBeforeRun`, `strictValidation`, `downMethodPolicy`, `customValidators` | Control validation behavior and rules |
 | 🔄 [Rollback Settings](rollback-settings) | `rollbackStrategy` | Choose backup, down(), both, or none |
 | 💾 [Backup Settings](backup-settings) | `backup` (BackupConfig) | Configure backup file naming and storage |

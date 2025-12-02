@@ -76,6 +76,52 @@ Guide for implementing cloud logging services (AWS CloudWatch, Google Cloud Logg
 
 ---
 
+## Log Level Control
+
+MSR v0.6.0+ includes **automatic log level filtering** through the `LevelAwareLogger` wrapper. When you provide a logger to `MigrationScriptExecutor`, it's automatically wrapped to filter messages based on your configured log level.
+
+### Automatic Wrapping
+
+All loggers are automatically wrapped with level-aware filtering:
+
+```typescript
+// Your logger is automatically wrapped with log level filtering
+const executor = new MigrationScriptExecutor(handler, {
+    logLevel: 'error'  // Only errors will be shown
+}, {
+    logger: new ConsoleLogger()  // Automatically wrapped
+});
+```
+
+### Log Levels
+
+Control output verbosity with four levels (each includes higher priority levels):
+
+| Level | Shows | Environment |
+|-------|-------|-------------|
+| `error` | Errors only | Production (quiet) |
+| `warn` | Warnings + Errors | Production (monitoring) |
+| `info` | Info + Warnings + Errors | **Default** (standard operation) |
+| `debug` | All logs | Development (verbose) |
+
+### Configuration
+
+Set via configuration object or environment variable:
+
+```typescript
+// Programmatic
+config.logLevel = 'debug';
+
+// Environment variable
+export MSR_LOG_LEVEL=error
+```
+
+**See Also:**
+- [MSR_LOG_LEVEL Reference](../../api/environment-variables/core-variables#msr_log_level) - Complete documentation
+- [Environment Variables Guide](../../guides/environment-variables) - Configuration guide
+
+---
+
 ## Quick Comparison
 
 | Feature | ConsoleLogger | SilentLogger | FileLogger | CompositeLogger |

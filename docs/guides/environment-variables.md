@@ -142,11 +142,21 @@ export MSR_DRY_RUN=true
 export MSR_RECURSIVE=true
 export MSR_VALIDATE_BEFORE_RUN=true
 export MSR_STRICT_VALIDATION=false
+export MSR_SHOW_BANNER=false
+
+# Log level (error, warn, info, debug)
+export MSR_LOG_LEVEL=info
 ```
 
 **Boolean values** are case-insensitive:
 - `true`, `1`, `yes`, `on` → `true`
 - Everything else → `false`
+
+**Log levels** (in order of verbosity):
+- `error` - Only errors (production)
+- `warn` - Warnings + errors
+- `info` - Normal operation (default)
+- `debug` - All logs including debug output
 
 ---
 

@@ -45,7 +45,7 @@ constructor(
 - `handler`: Database migration handler that implements `IDatabaseMigrationHandler`
 - `config`: Configuration object (formerly accessed via `handler.cfg`)
 - `dependencies` (optional): Custom service implementations for dependency injection
-  - `logger?`: Custom logger implementation (defaults to `ConsoleLogger`)
+  - `logger?`: Custom logger implementation (defaults to `ConsoleLogger`). **Note:** Automatically wrapped with `LevelAwareLogger` for log level filtering based on `config.logLevel`
   - `backupService?`: Custom backup service (defaults to `BackupService`)
   - `rollbackService?`: Custom rollback service (defaults to `RollbackService`)
   - `schemaVersionService?`: Custom schema version service (defaults to `SchemaVersionService`)

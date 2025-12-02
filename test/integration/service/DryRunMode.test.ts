@@ -150,6 +150,8 @@ describe('Dry Run Mode', () => {
          * Validates that the "Would ignore" message appears when migrations are ignored.
          */
         it('should show ignored migrations count in dry run', async () => {
+            config.logLevel = 'info';  // Enable info logs to test logging behavior
+
             // Create a mock migration scanner that returns ignored migrations
             const mockScanner = {
                 scan: async () => ({
@@ -199,6 +201,7 @@ describe('Dry Run Mode', () => {
         it('should show ignored count with pending migrations in dry run', async () => {
             // Disable validation for this test since we're using fake files
             config.validateBeforeRun = false;
+            config.logLevel = 'info';  // Enable info logs to test logging behavior
 
             // Create scanner with both pending and ignored migrations
             const mockScanner = {
@@ -283,6 +286,7 @@ describe('Dry Run Mode', () => {
         it('should show both pending and ignored counts in migrateTo', async () => {
             // Disable validation for this test since we're using fake files
             config.validateBeforeRun = false;
+            config.logLevel = 'info';  // Enable info logs to test logging behavior
 
             // Create scanner where:
             // - migrations 1 & 2 are old (ignored)
@@ -344,6 +348,7 @@ describe('Dry Run Mode', () => {
         it('should show ignored migrations when already at target version', async () => {
             // Disable validation for this test since we're using fake files
             config.validateBeforeRun = false;
+            config.logLevel = 'info';  // Enable info logs to test logging behavior
 
             // Create scanner where:
             // - migrations 1 & 2 are old (ignored)
@@ -663,6 +668,7 @@ describe('Dry Run Mode', () => {
          */
         it('should log transaction activity during dry run', async () => {
             config.transaction.mode = TransactionMode.PER_MIGRATION;
+            config.logLevel = 'info';  // Enable info logs to test logging behavior
 
             let loggedMessages: string[] = [];
             const capturingLogger = {

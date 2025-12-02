@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Config } from '../model/Config';
 import { ENV } from '../model/env';
+import { LogLevel } from '../interface/ILogger';
 
 /**
  * Utility class for loading configuration using a waterfall approach.
@@ -182,6 +183,14 @@ export class ConfigLoader {
         }
         if (process.env[ENV.MSR_SHOW_BANNER] !== undefined) {
             config.showBanner = this.parseBoolean(process.env[ENV.MSR_SHOW_BANNER]!);
+        }
+        if (process.env[ENV.MSR_LOG_LEVEL]) {
+            const level = process.env[ENV.MSR_LOG_LEVEL]!;
+            if (['error', 'warn', 'info', 'debug'].includes(level)) {
+                config.logLevel = level as LogLevel;
+            } else {
+                console.warn(`Invalid MSR_LOG_LEVEL value: '${level}'. Valid values are: error, warn, info, debug. Using default 'info'.`);
+            }
         }
 
         // File patterns array

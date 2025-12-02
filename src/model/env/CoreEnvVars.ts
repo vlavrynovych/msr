@@ -51,6 +51,13 @@ export enum CoreEnvVars {
     MSR_SHOW_BANNER = 'MSR_SHOW_BANNER',
 
     /**
+     * Log level for output verbosity.
+     * Valid values: 'error', 'warn', 'info', 'debug'
+     * @default 'info'
+     */
+    MSR_LOG_LEVEL = 'MSR_LOG_LEVEL',
+
+    /**
      * Recursively scan subdirectories for migrations.
      * @default true
      */

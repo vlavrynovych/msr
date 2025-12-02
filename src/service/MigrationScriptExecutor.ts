@@ -14,6 +14,7 @@ import {IMigrationExecutorDependencies} from "../interface/IMigrationExecutorDep
 import {IMigrationRenderer} from "../interface/service/IMigrationRenderer";
 import {IMigrationHooks} from "../interface/IMigrationHooks";
 import {ConsoleLogger} from "../logger";
+import {LevelAwareLogger} from "../logger/LevelAwareLogger";
 import {MigrationScriptSelector} from "./MigrationScriptSelector";
 import {MigrationRunner} from "./MigrationRunner";
 import {MigrationScanner} from "./MigrationScanner";
@@ -171,8 +172,9 @@ export class MigrationScriptExecutor {
     ) {
         // Use provided config or load using waterfall approach
         this.config = config ?? ConfigLoader.load();
-        // Use provided logger or default to ConsoleLogger
-        this.logger = dependencies?.logger ?? new ConsoleLogger();
+        // Use provided logger or default to ConsoleLogger, wrapped with level awareness
+        const baseLogger = dependencies?.logger ?? new ConsoleLogger();
+        this.logger = new LevelAwareLogger(baseLogger, this.config.logLevel);
 
         // Setup hooks with automatic execution summary logging
         const hooks: IMigrationHooks[] = [];

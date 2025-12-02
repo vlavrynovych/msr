@@ -275,6 +275,10 @@ config.backup.timestamp = true;
 config.transaction.mode = TransactionMode.PER_MIGRATION;  // Per-migration transactions
 config.transaction.isolation = IsolationLevel.READ_COMMITTED;
 config.transaction.retries = 3;  // Retry on transient errors
+
+// Configure logging (v0.6.0+)
+config.logLevel = 'info';  // 'error' | 'warn' | 'info' | 'debug' (default: 'info')
+config.showBanner = true;  // Show version banner (default: true)
 ```
 
 ### Rollback Strategies

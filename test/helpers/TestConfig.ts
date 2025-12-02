@@ -13,5 +13,6 @@ export class TestConfig extends Config {
         super();
         this.folder = folder
         this.showBanner = false  // Disable banner in tests
+        this.logLevel = 'error'  // Only show errors in tests to reduce noise
     }
 }

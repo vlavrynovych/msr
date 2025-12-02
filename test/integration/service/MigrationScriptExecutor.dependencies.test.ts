@@ -7,7 +7,8 @@ import {
     MigrationScriptExecutor,
     IBackup,
     ISchemaVersion,
-    SilentLogger
+    SilentLogger,
+    LevelAwareLogger
 } from "../../../src";
 import {TestUtils} from "../../helpers";
 
@@ -64,14 +65,15 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
 
         /**
          * Test: Constructor accepts custom logger through dependencies
-         * Validates that custom logger is used instead of default
+         * Validates that custom logger is wrapped with LevelAwareLogger
          */
         it('should use custom logger when provided', () => {
             const customLogger = new SilentLogger();
             const executorWithCustomLogger = new MigrationScriptExecutor(handler, cfg, {
                 logger: customLogger
             });
-            expect(executorWithCustomLogger.logger).to.equal(customLogger);
+            // Logger should be wrapped with LevelAwareLogger for level filtering
+            expect(executorWithCustomLogger.logger).to.be.instanceOf(LevelAwareLogger);
         })
 
         /**
@@ -199,7 +201,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 migrationService: mockMigrationService
             });
 
-            expect(executorWithAllCustom.logger).to.equal(customLogger);
+            // Logger should be wrapped with LevelAwareLogger for level filtering
+            expect(executorWithAllCustom.logger).to.be.instanceOf(LevelAwareLogger);
             expect(executorWithAllCustom.backupService).to.equal(mockBackupService);
             expect(executorWithAllCustom.schemaVersionService).to.equal(mockSchemaVersionService);
             expect(executorWithAllCustom.migrationRenderer).to.equal(mockRenderer);

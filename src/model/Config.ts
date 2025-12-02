@@ -1,6 +1,7 @@
 import {BackupConfig, RollbackStrategy, DownMethodPolicy, BackupMode, DuplicateTimestampMode, TransactionConfig} from "./index";
 import {IMigrationValidator} from "../interface/validation/IMigrationValidator";
 import {IExecutionSummaryConfig, SummaryFormat} from "../interface/logging/IExecutionSummary";
+import {LogLevel} from "../interface/ILogger";
 
 /**
  * Configuration for the migration system.
@@ -617,4 +618,32 @@ export class Config {
      * ```
      */
     showBanner: boolean = true
+
+    /**
+     * Log level for controlling output verbosity.
+     *
+     * Controls which log messages are displayed during migration execution:
+     * - `'error'`: Only errors (highest priority)
+     * - `'warn'`: Errors and warnings
+     * - `'info'`: Normal operation logs (default)
+     * - `'debug'`: Detailed debugging information (lowest priority)
+     *
+     * Each level includes all higher priority levels.
+     * For example, `'warn'` will show both warnings and errors.
+     *
+     * @default 'info'
+     *
+     * @example
+     * ```typescript
+     * // Show debug logs for troubleshooting
+     * config.logLevel = 'debug';
+     *
+     * // Production: Only show errors
+     * config.logLevel = 'error';
+     *
+     * // Default behavior (info + warn + error)
+     * config.logLevel = 'info';
+     * ```
+     */
+    logLevel: LogLevel = 'info'
 }

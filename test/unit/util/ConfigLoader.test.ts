@@ -398,6 +398,55 @@ describe('ConfigLoader', () => {
         });
 
         /**
+         * Test: Parse valid MSR_LOG_LEVEL values
+         * Validates that all valid log levels are correctly parsed.
+         */
+        it('should parse valid MSR_LOG_LEVEL values', () => {
+            const validLevels = ['error', 'warn', 'info', 'debug'] as const;
+
+            validLevels.forEach((level) => {
+                process.env.MSR_LOG_LEVEL = level;
+
+                const config = new Config();
+                config.showBanner = false;
+                ConfigLoader.applyEnvironmentVariables(config);
+
+                expect(config.logLevel).to.equal(level);
+
+                // Clean up for next iteration
+                delete process.env.MSR_LOG_LEVEL;
+            });
+        });
+
+        /**
+         * Test: Handle invalid MSR_LOG_LEVEL gracefully
+         * Validates that invalid log level values trigger warning and use default.
+         */
+        it('should use default log level for invalid MSR_LOG_LEVEL', () => {
+            process.env.MSR_LOG_LEVEL = 'invalid-level';
+
+            const config = new Config();
+            config.showBanner = false;
+            ConfigLoader.applyEnvironmentVariables(config);
+
+            // Should keep default 'info' when invalid value provided
+            expect(config.logLevel).to.equal('info');
+        });
+
+        /**
+         * Test: MSR_LOG_LEVEL not set uses default
+         * Validates that default log level is used when env var not set.
+         */
+        it('should use default log level when MSR_LOG_LEVEL not set', () => {
+            const config = new Config();
+            config.showBanner = false;
+            ConfigLoader.applyEnvironmentVariables(config);
+
+            // Should use default 'info' from Config class
+            expect(config.logLevel).to.equal('info');
+        });
+
+        /**
          * Test: Handle invalid MSR_FILE_PATTERNS JSON
          * Validates that invalid JSON in MSR_FILE_PATTERNS is handled gracefully with warning.
          */

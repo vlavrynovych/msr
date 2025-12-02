@@ -51,6 +51,7 @@ Migration Script Runner is a production-ready migration framework packed with po
 ### Monitoring & Logging
 - **[Execution Summary](guides/execution-summary)** - Detailed JSON/text summaries with metrics
 - **[Multiple Loggers](customization/loggers/)** - Console, File, Silent, or custom loggers
+- **[Log Level Control](api/environment-variables/core-variables#msr_log_level)** - Configure output verbosity (error, warn, info, debug)
 - **[Lifecycle Hooks](customization/hooks)** - Monitor and extend migration lifecycle
 - **[Rich Metrics](guides/execution-summary#metrics)** - Track timing, retries, and performance
 - **[Custom Output Formats](customization/renderers)** - ASCII tables, JSON, or custom rendering
@@ -140,6 +141,7 @@ Migration Script Runner is a production-ready migration framework packed with po
 |---------|-------------|
 | **📊 Execution Summaries** | Detailed JSON and text summaries of migration runs with all metrics |
 | **🎭 Multiple Logger Support** | Console, file, silent, or custom loggers - use multiple simultaneously |
+| **🎚️ Log Level Control** | Configure output verbosity with error, warn, info, or debug levels |
 | **🪝 Lifecycle Hooks** | Hook into migration lifecycle for monitoring, alerting, or custom logic |
 | **📈 Rich Metrics** | Track execution time, transaction metrics, retry attempts, and more |
 | **🎨 Customizable Output** | ASCII tables, JSON, or silent rendering - choose your display format |
@@ -202,9 +204,9 @@ Compare MSR features across different use cases:
 
 | Use Case | Key Features |
 |----------|--------------|
-| **Development** | Fast iteration, down() methods, flexible validation, dry run testing |
+| **Development** | Fast iteration, down() methods, flexible validation, dry run testing, debug logging |
 | **CI/CD** | Strict validation, checksum verification, automated testing, environment variables |
-| **Production** | Automatic backups, transaction management, retry logic, execution summaries |
+| **Production** | Automatic backups, transaction management, retry logic, execution summaries, log level control |
 | **Enterprise** | Audit trails, custom validators, hooks for monitoring, comprehensive logging |
 | **Multi-Database** | Custom handlers, flexible loaders, both SQL and NoSQL support |
 
@@ -223,7 +225,10 @@ Ready to use these features? Start here:
 
 ## Feature Highlights by Version
 
-### v0.5.0 (Current)
+### v0.6.0 (Current)
+- ✨ **Log Level Control** - Configure output verbosity (error, warn, info, debug) via MSR_LOG_LEVEL
+
+### v0.5.0
 - ✨ **Transaction Management** - Full transaction control with retry logic
 - ✨ **Environment Variables** - 12-factor app configuration support
 - ✨ **Execution Summaries** - Detailed JSON/text summaries with metrics

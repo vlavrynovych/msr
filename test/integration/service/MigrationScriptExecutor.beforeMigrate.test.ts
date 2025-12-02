@@ -421,7 +421,12 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, cfg, {logger: mockLogger});
+        // Override log level to 'info' to test logging behavior
+        const testCfg = TestUtils.getConfig();
+        testCfg.logLevel = 'info';
+        testCfg.transaction.mode = TransactionMode.NONE;
+
+        const executor = new MigrationScriptExecutor(handler, testCfg, {logger: mockLogger});
         const result = await executor.migrate();
 
         // Verify migration succeeded
