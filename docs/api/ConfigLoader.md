@@ -23,11 +23,11 @@ Utility class for loading configuration using environment variables and config f
 
 `ConfigLoader` is a utility class that provides waterfall configuration loading with support for:
 - Environment variables (`MSR_*`)
-- Configuration files (`msr.config.js`, `msr.config.json`)
+- Configuration files in multiple formats (`.js`, `.json`, `.yaml`, `.yml`, `.toml`, `.xml`)
 - Built-in defaults
 - Constructor overrides
 
-**New in v0.5.0**
+**New in v0.6.0:** YAML, TOML, and XML configuration file support with optional peer dependencies
 
 **Import:**
 ```typescript
@@ -71,7 +71,7 @@ Load configuration using waterfall approach.
 ```typescript
 static load(
     overrides?: Partial<Config>,
-    baseDir?: string
+    optionsOrBaseDir?: string | ConfigLoaderOptions
 ): Config
 ```
 
@@ -79,7 +79,15 @@ static load(
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
 | `overrides` | `Partial<Config>` | `undefined` | Optional configuration overrides (highest priority) |
-| `baseDir` | `string` | `process.cwd()` | Base directory to search for config files |
+| `optionsOrBaseDir` | `string \| ConfigLoaderOptions` | `process.cwd()` | Base directory (string) or options object |
+
+**ConfigLoaderOptions:**
+```typescript
+interface ConfigLoaderOptions {
+    baseDir?: string;      // Where to search for default config files
+    configFile?: string;   // Specific config file to use (bypasses search)
+}
+```
 
 **Returns:** `Config` - Fully loaded configuration object
 
@@ -101,8 +109,19 @@ const config = ConfigLoader.load({
     dryRun: true
 });
 
-// From specific directory
+// From specific directory (string)
 const config = ConfigLoader.load({}, '/app');
+
+// Using options object
+const config = ConfigLoader.load({}, {
+    baseDir: '/app',
+    configFile: './config/production.config.json'
+});
+
+// Specify config file explicitly
+const config = ConfigLoader.load({}, {
+    configFile: './custom-config.yaml'
+});
 
 // Use with MigrationScriptExecutor
 const executor = new MigrationScriptExecutor(handler, config);
@@ -277,7 +296,7 @@ const backup = ConfigLoader.loadNestedFromEnv('MSR_BACKUP', {
 
 ### loadFromFile()
 
-Load configuration from a JSON or JavaScript file.
+Load configuration from a file in any supported format.
 
 **Signature:**
 ```typescript
@@ -291,24 +310,53 @@ static loadFromFile<T = any>(filePath: string): T
 
 **Returns:** `T` - Configuration object from file
 
-**Throws:** `Error` if file not found or invalid
+**Throws:** `Error` if file not found, format not supported, or parsing fails
 
 **Supported Formats:**
-- `.json` files
-- `.js` files (CommonJS: `module.exports`)
-- ES modules with `default` export
+
+| Format | Extensions | Dependency | Required |
+|--------|-----------|------------|----------|
+| JavaScript | `.js` | Built-in | ✅ Always available |
+| JSON | `.json` | Built-in | ✅ Always available |
+| YAML | `.yaml`, `.yml` | `js-yaml` | ⚠️ Optional peer dependency |
+| TOML | `.toml` | `@iarna/toml` | ⚠️ Optional peer dependency |
+| XML | `.xml` | `fast-xml-parser` | ⚠️ Optional peer dependency |
+
+**Installing Optional Dependencies:**
+```bash
+# For YAML support
+npm install js-yaml
+
+# For TOML support
+npm install @iarna/toml
+
+# For XML support
+npm install fast-xml-parser
+
+# Install all optional formats
+npm install js-yaml @iarna/toml fast-xml-parser
+```
 
 **Examples:**
 
 ```typescript
-// Load from JSON file
+// Load from JSON file (always available)
 const config = ConfigLoader.loadFromFile('./config/production.json');
 
-// Load from JS file
+// Load from JavaScript file (always available)
 const config = ConfigLoader.loadFromFile('./config/production.js');
 
+// Load from YAML file (requires js-yaml)
+const config = ConfigLoader.loadFromFile('./config/production.yaml');
+
+// Load from TOML file (requires @iarna/toml)
+const config = ConfigLoader.loadFromFile('./config/production.toml');
+
+// Load from XML file (requires fast-xml-parser)
+const config = ConfigLoader.loadFromFile('./config/production.xml');
+
 // With type parameter
-const config = ConfigLoader.loadFromFile<Partial<Config>>('./msr.config.js');
+const config = ConfigLoader.loadFromFile<Partial<Config>>('./msr.config.yaml');
 
 // Handle ES module default export automatically
 // File: module.exports = { default: { ... } }
@@ -317,7 +365,9 @@ const config = ConfigLoader.loadFromFile<Partial<Config>>('./msr.config.js');
 
 **Error Handling:**
 - Throws `Error` with detailed message if file not found
-- Throws `Error` if file cannot be parsed
+- Throws `Error` if file format not supported (unknown extension)
+- Throws `Error` if optional dependency not installed (with installation instructions)
+- Throws `Error` if file cannot be parsed (with parsing details)
 
 ---
 
@@ -341,6 +391,10 @@ static findConfigFile(baseDir?: string): string | undefined
 1. `MSR_CONFIG_FILE` environment variable (if set)
 2. `./msr.config.js` (if exists)
 3. `./msr.config.json` (if exists)
+4. `./msr.config.yaml` (if exists)
+5. `./msr.config.yml` (if exists)
+6. `./msr.config.toml` (if exists)
+7. `./msr.config.xml` (if exists)
 
 **Examples:**
 
@@ -459,6 +513,62 @@ class PostgreSQLAdapter {
 - Ensure required secrets are set
 - Fail-fast with clear error messages
 - Database adapter initialization
+
+---
+
+## Plugin Architecture (v0.6.0+)
+
+ConfigLoader uses a plugin-based architecture for loading different file formats:
+
+### ConfigFileLoaderRegistry
+
+Central registry managing all config file loaders.
+
+```typescript
+import { ConfigFileLoaderRegistry } from '@migration-script-runner/core';
+
+// Check supported extensions
+const extensions = ConfigFileLoaderRegistry.getSupportedExtensions();
+// Returns: ['.js', '.json', '.yaml', '.yml', '.toml', '.xml']
+
+// Check if format is supported
+const hasYaml = ConfigFileLoaderRegistry.hasLoaderForExtension('.yaml');
+// Returns: true (if js-yaml is installed)
+
+// Get loader for specific file
+const loader = ConfigFileLoaderRegistry.getLoader('config.yaml');
+if (loader) {
+    const config = loader.load('config.yaml');
+}
+```
+
+### Built-in Loaders
+
+| Loader | Extensions | Always Available |
+|--------|-----------|------------------|
+| `JsJsonLoader` | `.js`, `.json` | ✅ Yes |
+| `YamlLoader` | `.yaml`, `.yml` | ⚠️ Requires `js-yaml` |
+| `TomlLoader` | `.toml` | ⚠️ Requires `@iarna/toml` |
+| `XmlLoader` | `.xml` | ⚠️ Requires `fast-xml-parser` |
+
+### Error Messages
+
+Improved error handling with actionable messages:
+
+```typescript
+// If js-yaml not installed
+Error: Cannot load YAML file config.yaml: js-yaml is not installed.
+Install it with: npm install js-yaml
+Original error: Cannot find module 'js-yaml'
+
+// If format not supported
+Error: No loader registered for file type '.ini'.
+Supported extensions: .js, .json, .yaml, .yml, .toml, .xml
+
+// If file cannot be parsed
+Error: Failed to load configuration from config.yaml:
+Unexpected token at line 5, column 3
+```
 
 ---
 

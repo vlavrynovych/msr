@@ -3,6 +3,26 @@ import * as path from 'path';
 import { Config } from '../model/Config';
 import { ENV } from '../model/env';
 import { LogLevel } from '../interface/ILogger';
+import { ConfigFileLoaderRegistry } from './ConfigFileLoaderRegistry';
+import { JsJsonLoader, YamlLoader, TomlLoader, XmlLoader } from './loaders';
+
+/**
+ * Options for ConfigLoader.load() method.
+ */
+export interface ConfigLoaderOptions {
+    /**
+     * Base directory to search for default config files.
+     * @default process.cwd()
+     */
+    baseDir?: string;
+
+    /**
+     * Specific config file path to load (bypasses auto-detection).
+     * If provided, this file will be loaded instead of searching for default files.
+     * Takes precedence over baseDir and auto-detection.
+     */
+    configFile?: string;
+}
 
 /**
  * Utility class for loading configuration using a waterfall approach.
@@ -32,11 +52,32 @@ import { LogLevel } from '../interface/ILogger';
 export class ConfigLoader {
     /**
      * Default config file names to search for (in order).
+     * Priority: JS > JSON > YAML > TOML > XML
      */
     private static readonly DEFAULT_CONFIG_FILES = [
         'msr.config.js',
-        'msr.config.json'
+        'msr.config.json',
+        'msr.config.yaml',
+        'msr.config.yml',
+        'msr.config.toml',
+        'msr.config.xml'
     ];
+
+    /**
+     * Static initializer to register default loaders.
+     * Registers loaders in priority order.
+     */
+    private static initialized = (() => {
+        // Always register JS/JSON loader (no dependencies)
+        ConfigFileLoaderRegistry.register(new JsJsonLoader());
+
+        // Register optional format loaders (they handle missing dependencies gracefully)
+        ConfigFileLoaderRegistry.register(new YamlLoader());
+        ConfigFileLoaderRegistry.register(new TomlLoader());
+        ConfigFileLoaderRegistry.register(new XmlLoader());
+
+        return true;
+    })();
 
     /**
      * Load configuration using waterfall approach.
@@ -48,7 +89,7 @@ export class ConfigLoader {
      * 4. Merge with provided overrides
      *
      * @param overrides - Optional configuration overrides (highest priority)
-     * @param baseDir - Base directory to search for config files (default: process.cwd())
+     * @param optionsOrBaseDir - Options object or base directory string (for backward compatibility)
      * @returns Fully loaded configuration
      *
      * @example
@@ -62,16 +103,53 @@ export class ConfigLoader {
      *   dryRun: true
      * });
      *
-     * // Load from specific directory
+     * // Load from specific directory (backward compatible)
      * const config = ConfigLoader.load({}, '/app');
+     *
+     * // Load with options object
+     * const config = ConfigLoader.load({}, {
+     *   baseDir: '/app',
+     *   configFile: './config/custom.yaml'
+     * });
+     *
+     * // Load specific config file (bypasses auto-detection)
+     * const config = ConfigLoader.load({}, {
+     *   configFile: './production.yaml'
+     * });
      * ```
      */
-    static load(overrides?: Partial<Config>, baseDir: string = process.cwd()): Config {
+    static load(
+        overrides?: Partial<Config>,
+        optionsOrBaseDir?: string | ConfigLoaderOptions
+    ): Config {
+        // Normalize options parameter
+        const options: ConfigLoaderOptions = typeof optionsOrBaseDir === 'string'
+            ? { baseDir: optionsOrBaseDir }
+            : (optionsOrBaseDir || {});
+
+        const baseDir = options.baseDir || process.cwd();
+        const explicitConfigFile = options.configFile;
+
         // Step 1: Start with built-in defaults
         const config = new Config();
 
         // Step 2: Merge with config file (if exists)
-        const configFilePath = this.findConfigFile(baseDir);
+        let configFilePath: string | undefined;
+
+        if (explicitConfigFile) {
+            // Use explicitly provided config file
+            configFilePath = path.resolve(explicitConfigFile);
+            if (!fs.existsSync(configFilePath)) {
+                console.warn(
+                    `Warning: Specified config file does not exist: ${explicitConfigFile}`
+                );
+                configFilePath = undefined;
+            }
+        } else {
+            // Auto-detect config file in baseDir
+            configFilePath = this.findConfigFile(baseDir);
+        }
+
         if (configFilePath) {
             try {
                 const fileConfig = this.loadFromFile<Partial<Config>>(configFilePath);
@@ -381,44 +459,48 @@ export class ConfigLoader {
     }
 
     /**
-     * Load configuration from a JSON or JavaScript file.
+     * Load configuration from a file using registered loaders.
      *
-     * Supports:
-     * - .json files
-     * - .js files (CommonJS)
-     * - .ts files (if ts-node is available)
+     * Supports multiple formats via registered loaders:
+     * - `.js` / `.json` files (built-in, no dependencies)
+     * - `.yaml` / `.yml` files (requires `js-yaml`)
+     * - `.toml` files (requires `@iarna/toml`)
+     * - `.xml` files (requires `fast-xml-parser`)
      *
      * @param filePath - Path to configuration file (absolute or relative)
      * @returns Configuration object from file
-     * @throws Error if file not found or invalid
+     * @throws Error if file not found, no loader available, or parsing fails
      *
      * @example
      * ```typescript
      * // Load from JSON file
      * const config = ConfigLoader.loadFromFile('./config/production.json');
      *
-     * // Load from JS file
-     * const config = ConfigLoader.loadFromFile('./config/production.js');
+     * // Load from YAML file (requires js-yaml)
+     * const config = ConfigLoader.loadFromFile('./config/production.yaml');
+     *
+     * // Load from TOML file (requires @iarna/toml)
+     * const config = ConfigLoader.loadFromFile('./config/production.toml');
      * ```
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     static loadFromFile<T = any>(filePath: string): T {
-        try {
-            const resolvedPath = path.resolve(filePath);
+        const resolvedPath = path.resolve(filePath);
 
-            // Use require to load JSON or JS files
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            const loaded = require(resolvedPath);
+        // Find a loader that can handle this file
+        const loader = ConfigFileLoaderRegistry.getLoader(resolvedPath);
 
-            // Handle ES modules default export
-            return loaded.default || loaded;
-        } catch (error) {
+        if (!loader) {
+            const ext = path.extname(resolvedPath);
             throw new Error(
-                `Failed to load configuration from ${filePath}: ${
-                    error instanceof Error ? error.message : 'Unknown error'
-                }`
+                `No loader registered for file type '${ext}'. ` +
+                `File: ${filePath}\n` +
+                `Supported extensions: ${ConfigFileLoaderRegistry.getSupportedExtensions().join(', ')}`
             );
         }
+
+        // Use the loader to parse the file
+        return loader.load<T>(resolvedPath);
     }
 
     /**

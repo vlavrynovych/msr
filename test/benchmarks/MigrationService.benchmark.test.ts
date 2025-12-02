@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { MigrationService, SilentLogger } from '../../src';
+import { MigrationService, SilentLogger } from '../../src/index';
 import { TestUtils } from '../helpers';
 
 /**

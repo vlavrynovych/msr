@@ -254,8 +254,9 @@ MSR supports automatic configuration loading using a waterfall approach with **e
 Configuration is loaded in this order (highest priority last):
 
 1. **Built-in defaults** - From `Config` class defaults
-2. **Config file** - From `msr.config.js`, `msr.config.json`, or `MSR_CONFIG_FILE`
-3. **Environment variables** - MSR_* environment variables
+2. **Config file** - Auto-detected or from `MSR_CONFIG_FILE`
+   Supported formats: `.js`, `.json`, `.yaml`, `.yml`, `.toml`, `.xml`
+3. **Environment variables** - `MSR_*` environment variables
 4. **Constructor overrides** - Passed directly to MigrationScriptExecutor
 
 ### Automatic Loading
@@ -280,7 +281,7 @@ For more control, use `ConfigLoader.load()`:
 ```typescript
 import { ConfigLoader, MigrationScriptExecutor } from '@migration-script-runner/core';
 
-// Load with waterfall approach
+// Load with waterfall approach (auto-detect config file)
 const config = ConfigLoader.load();
 
 // Load with overrides (highest priority)
@@ -290,7 +291,12 @@ const config = ConfigLoader.load({
 });
 
 // Load from specific directory
-const config = ConfigLoader.load({}, '/app');
+const config = ConfigLoader.load({}, { baseDir: '/app' });
+
+// Use specific config file (any format)
+const config = ConfigLoader.load({}, {
+    configFile: './config/production.yaml'
+});
 
 const handler = new MyDatabaseHandler();
 const executor = new MigrationScriptExecutor(handler, config);
@@ -320,22 +326,155 @@ export MSR_BACKUP_FOLDER=./backups
 
 ## Configuration Files
 
-Create `msr.config.js` or `msr.config.json` in your project root for file-based configuration (loaded automatically in waterfall).
+MSR supports multiple configuration file formats to fit your project's ecosystem. Config files are loaded automatically from your project root using the waterfall approach.
 
-**Quick Example:**
+### Supported Formats
+
+MSR supports the following configuration file formats (searched in this priority order):
+
+| Format | Files | Status | Optional Dependency |
+|--------|-------|--------|---------------------|
+| **JavaScript** | `msr.config.js` | ✅ Always available | None |
+| **JSON** | `msr.config.json` | ✅ Always available | None |
+| **YAML** | `msr.config.yaml`, `msr.config.yml` | 📦 Optional | `js-yaml` |
+| **TOML** | `msr.config.toml` | 📦 Optional | `@iarna/toml` |
+| **XML** | `msr.config.xml` | 📦 Optional | `fast-xml-parser` |
+
+**Core is lightweight:** Format parsers for YAML, TOML, and XML are optional peer dependencies. Install only the ones you need.
+
+### JavaScript Configuration
+
 ```javascript
 // msr.config.js
 module.exports = {
     folder: './database/migrations',
     tableName: 'migration_history',
     validateBeforeRun: true,
-    logging: { enabled: true, path: './logs' },
-    backup: { folder: './backups', timestamp: true }
+    transaction: {
+        mode: 'PER_MIGRATION',
+        retries: 3
+    },
+    backup: {
+        folder: './backups',
+        timestamp: true
+    }
 };
 ```
 
+### JSON Configuration
+
+```json
+{
+    "folder": "./database/migrations",
+    "tableName": "migration_history",
+    "validateBeforeRun": true,
+    "transaction": {
+        "mode": "PER_MIGRATION",
+        "retries": 3
+    },
+    "backup": {
+        "folder": "./backups",
+        "timestamp": true
+    }
+}
+```
+
+### YAML Configuration
+
+**Installation:**
+```bash
+npm install js-yaml
+```
+
+**Configuration:**
+```yaml
+# msr.config.yaml
+folder: ./database/migrations
+tableName: migration_history
+validateBeforeRun: true
+
+transaction:
+  mode: PER_MIGRATION
+  retries: 3
+
+backup:
+  folder: ./backups
+  timestamp: true
+```
+
+### TOML Configuration
+
+**Installation:**
+```bash
+npm install @iarna/toml
+```
+
+**Configuration:**
+```toml
+# msr.config.toml
+folder = "./database/migrations"
+tableName = "migration_history"
+validateBeforeRun = true
+
+[transaction]
+mode = "PER_MIGRATION"
+retries = 3
+
+[backup]
+folder = "./backups"
+timestamp = true
+```
+
+### XML Configuration
+
+**Installation:**
+```bash
+npm install fast-xml-parser
+```
+
+**Configuration:**
+```xml
+<!-- msr.config.xml -->
+<msr>
+  <folder>./database/migrations</folder>
+  <tableName>migration_history</tableName>
+  <validateBeforeRun>true</validateBeforeRun>
+
+  <transaction>
+    <mode>PER_MIGRATION</mode>
+    <retries>3</retries>
+  </transaction>
+
+  <backup>
+    <folder>./backups</folder>
+    <timestamp>true</timestamp>
+  </backup>
+</msr>
+```
+
+### Specifying Config File
+
+You can specify a config file explicitly using `ConfigLoaderOptions`:
+
+```typescript
+import { ConfigLoader } from '@migration-script-runner/core';
+
+// Use specific config file
+const config = ConfigLoader.load({}, {
+    configFile: './config/production.yaml'
+});
+
+// Search in different directory
+const config = ConfigLoader.load({}, {
+    baseDir: './config'
+});
+
+// Backward compatible: baseDir as string
+const config = ConfigLoader.load({}, './config');
+```
+
 **Complete Documentation:**
-- See [Environment Variables User Guide](../guides/environment-variables#configuration-files) for detailed config file examples (JavaScript and JSON)
+- See [Environment Variables User Guide](../guides/environment-variables#configuration-files) for detailed config file examples
 - See [ConfigLoader API](../api/ConfigLoader#loadfromfile) for programmatic file loading
 
 ---

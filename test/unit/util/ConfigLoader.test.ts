@@ -876,6 +876,33 @@ describe('ConfigLoader', () => {
                 delete require.cache[configFile];
             }
         });
+
+        /**
+         * Test: Handle non-existent explicit config file
+         * Validates that specifying a non-existent config file falls back to defaults.
+         */
+        it('should warn and use defaults when explicit config file does not exist', () => {
+            const config = ConfigLoader.load(undefined, {
+                configFile: './non-existent-config.yaml'
+            });
+
+            // Should still return a valid Config with defaults
+            expect(config).to.be.instanceOf(Config);
+            expect(config.folder).to.be.a('string');
+        });
+
+        /**
+         * Test: Load with ConfigLoaderOptions object
+         * Validates that ConfigLoaderOptions with baseDir works correctly.
+         */
+        it('should accept ConfigLoaderOptions with baseDir', () => {
+            const testDir = process.cwd();
+            const config = ConfigLoader.load(undefined, {
+                baseDir: testDir
+            });
+
+            expect(config).to.be.instanceOf(Config);
+        });
     });
 
     describe('loadFromFile', () => {
@@ -987,6 +1014,26 @@ describe('ConfigLoader', () => {
                     fs.unlinkSync(testFile);
                 }
                 delete require.cache[testFile];
+            }
+        });
+
+        /**
+         * Test: Throw error for unsupported file extension
+         * Validates that files with unsupported extensions throw helpful error.
+         */
+        it('should throw error for unsupported file extension', () => {
+            const testFile = path.resolve(__dirname, 'test-config.txt');
+
+            fs.writeFileSync(testFile, 'folder: ./migrations');
+
+            try {
+                const thrower = () => ConfigLoader.loadFromFile(testFile);
+                expect(thrower).to.throw(/No loader registered for file type/);
+                expect(thrower).to.throw(/\.txt/);
+            } finally {
+                if (fs.existsSync(testFile)) {
+                    fs.unlinkSync(testFile);
+                }
             }
         });
     });

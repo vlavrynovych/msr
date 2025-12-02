@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { Utils } from '../../src';
+import { Utils } from '../../src/index';
 
 /**
  * Performance Benchmark Tests for Utils

@@ -58,7 +58,7 @@ Migration Script Runner is a production-ready migration framework packed with po
 
 ### Configuration
 - **[Environment Variables](guides/environment-variables)** - 12-factor app configuration with MSR_* variables
-- **[Config Files](configuration/)** - msr.config.js or msr.config.json support
+- **[Config Files](configuration/)** - Support for JS, JSON, YAML, TOML, and XML formats
 - **[Programmatic API](api/)** - Full TypeScript API for application integration
 - **[Migration Settings](configuration/migration-settings)** - File patterns, display limits, folder configuration
 - **[Validation Settings](configuration/validation-settings)** - Control validation behavior and strictness
@@ -130,7 +130,7 @@ Migration Script Runner is a production-ready migration framework packed with po
 | Feature | Description |
 |---------|-------------|
 | **🌍 Environment Variables** | Configure via MSR_* environment variables following 12-factor app principles |
-| **📄 Config Files** | Support for msr.config.js or msr.config.json with automatic discovery |
+| **📄 Config Files** | Support for JS, JSON, YAML, TOML, and XML config formats with automatic discovery and optional dependencies |
 | **⚙️ Programmatic API** | Full TypeScript API for integration into your applications |
 | **🔌 Extensible Loaders** | Add custom loaders for new file formats beyond TypeScript, JavaScript, SQL |
 | **🎨 Custom Handlers** | Implement your own database handlers for any database system |
