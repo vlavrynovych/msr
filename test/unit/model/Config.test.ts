@@ -30,6 +30,9 @@ describe('Config', () => {
 
         // Verify displayLimit defaults to 0 (show all)
         expect(config.displayLimit).to.eq(0);
+
+        // Verify showBanner defaults to true
+        expect(config.showBanner).to.eq(true);
     })
 
     /**
@@ -248,6 +251,35 @@ describe('Config', () => {
         // Set to negative (likely treated as 0 or ignored by consuming code)
         config.displayLimit = -5;
         expect(config.displayLimit).to.eq(-5);
+    })
+
+    /**
+     * Test: showBanner defaults to true
+     * Validates that the banner is displayed by default for discoverability.
+     * New users see version and handler information on startup.
+     */
+    it('should default showBanner to true', () => {
+        const config = new Config();
+
+        // Verify default is true (banner shown)
+        expect(config.showBanner).to.eq(true);
+    })
+
+    /**
+     * Test: showBanner can be disabled
+     * Validates that the banner can be disabled for cleaner console output.
+     * Useful in CI/CD environments or when embedding MSR in other tools.
+     */
+    it('should allow disabling showBanner', () => {
+        const config = new Config();
+
+        // Disable banner
+        config.showBanner = false;
+        expect(config.showBanner).to.eq(false);
+
+        // Re-enable banner
+        config.showBanner = true;
+        expect(config.showBanner).to.eq(true);
     })
 
     /**

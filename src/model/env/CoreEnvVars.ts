@@ -45,6 +45,12 @@ export enum CoreEnvVars {
     MSR_DISPLAY_LIMIT = 'MSR_DISPLAY_LIMIT',
 
     /**
+     * Display banner with version and handler information.
+     * @default true
+     */
+    MSR_SHOW_BANNER = 'MSR_SHOW_BANNER',
+
+    /**
      * Recursively scan subdirectories for migrations.
      * @default true
      */

@@ -598,4 +598,23 @@ export class Config {
      * ```
      */
     dryRun: boolean = false
+
+    /**
+     * Display banner with version and handler information.
+     *
+     * When enabled, shows application banner at the start of migration runs.
+     * Disable for cleaner console output in CI/CD or when embedding MSR in other tools.
+     *
+     * @default true
+     *
+     * @example
+     * ```typescript
+     * // Show banner (default)
+     * config.showBanner = true;
+     *
+     * // Hide banner for cleaner output
+     * config.showBanner = false;
+     * ```
+     */
+    showBanner: boolean = true
 }

@@ -173,6 +173,44 @@ config.displayLimit = 20;
 
 ---
 
+### MSR_SHOW_BANNER
+
+**Display banner with version information**
+
+- **Type**: `boolean`
+- **Default**: `true`
+- **Example**: `true`, `false`
+
+Controls whether the application banner (ASCII art with version and handler information) is displayed at startup.
+
+```bash
+# Show banner (default)
+export MSR_SHOW_BANNER=true
+
+# Hide banner for cleaner output
+export MSR_SHOW_BANNER=false
+```
+
+**Programmatic Equivalent:**
+```typescript
+config.showBanner = false;
+```
+
+**Use Cases:**
+- `true` (default): Discoverable version and handler info for new users
+- `false`: Cleaner console output in CI/CD pipelines or when embedding MSR
+
+**When to Disable:**
+- CI/CD environments where logs need to be concise
+- When embedding MSR as a library in other tools
+- Docker containers with centralized logging
+- Automated testing scenarios
+
+**See Also:**
+- [Migration Settings](../../configuration/migration-settings#showbanner)
+
+---
+
 ### MSR_RECURSIVE
 
 **Scan subdirectories recursively**
@@ -307,6 +345,7 @@ export MSR_BEFORE_MIGRATE_NAME=beforeMigrate
 
 # Display settings
 export MSR_DISPLAY_LIMIT=20
+export MSR_SHOW_BANNER=true
 
 # Testing (CI/CD only)
 export MSR_DRY_RUN=${CI:-false}

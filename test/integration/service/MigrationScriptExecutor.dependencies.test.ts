@@ -112,6 +112,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
          * Validates that custom migrationRenderer is used instead of default
          */
         it('should use custom migrationRenderer when provided', () => {
+            cfg.showBanner = true;  // Enable banner to test renderer is called
             const mockRenderer = {
                 drawFiglet: sinon.stub(),
                 drawMigrated: sinon.stub(),

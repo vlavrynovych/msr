@@ -180,6 +180,9 @@ export class ConfigLoader {
         if (process.env[ENV.MSR_STRICT_VALIDATION] !== undefined) {
             config.strictValidation = this.parseBoolean(process.env[ENV.MSR_STRICT_VALIDATION]!);
         }
+        if (process.env[ENV.MSR_SHOW_BANNER] !== undefined) {
+            config.showBanner = this.parseBoolean(process.env[ENV.MSR_SHOW_BANNER]!);
+        }
 
         // File patterns array
         if (process.env[ENV.MSR_FILE_PATTERNS]) {

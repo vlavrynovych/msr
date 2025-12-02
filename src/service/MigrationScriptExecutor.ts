@@ -225,7 +225,9 @@ export class MigrationScriptExecutor {
         this.rollbackService = dependencies?.rollbackService
             ?? new RollbackService(handler, this.config, this.backupService, this.logger, this.hooks);
 
-        this.migrationRenderer.drawFiglet();
+        if (this.config.showBanner) {
+            this.migrationRenderer.drawFiglet();
+        }
     }
 
     /**

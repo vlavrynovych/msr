@@ -29,6 +29,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
     beforeEach(() => {
         config = new Config();
         config.folder = '/test/path';
+        config.showBanner = false;  // Disable banner in tests
 
         handler = {
             db,
@@ -357,6 +358,56 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             );
 
             expect(hasUnknownMessage).to.be.true;
+        });
+    });
+
+    describe('Banner display control', () => {
+        /**
+         * Test: Banner is displayed by default (showBanner: true)
+         * Validates that drawFiglet is called when showBanner is true (default behavior).
+         */
+        it('should display banner when showBanner is true (default)', () => {
+            config.showBanner = true;
+
+            const drawFigletSpy = sinon.spy();
+            const rendererStub = {
+                drawFiglet: drawFigletSpy,
+                render: sinon.stub(),
+                renderOne: sinon.stub(),
+                renderDryRunTable: sinon.stub()
+            };
+
+            const executor = new MigrationScriptExecutor(handler, config, {
+                logger: new SilentLogger(),
+                migrationRenderer: rendererStub as any
+            });
+
+            // Verify drawFiglet was called
+            expect(drawFigletSpy.calledOnce).to.be.true;
+        });
+
+        /**
+         * Test: Banner is not displayed when showBanner is false
+         * Validates that drawFiglet is NOT called when showBanner is false.
+         */
+        it('should not display banner when showBanner is false', () => {
+            config.showBanner = false;
+
+            const drawFigletSpy = sinon.spy();
+            const rendererStub = {
+                drawFiglet: drawFigletSpy,
+                render: sinon.stub(),
+                renderOne: sinon.stub(),
+                renderDryRunTable: sinon.stub()
+            };
+
+            const executor = new MigrationScriptExecutor(handler, config, {
+                logger: new SilentLogger(),
+                migrationRenderer: rendererStub as any
+            });
+
+            // Verify drawFiglet was NOT called
+            expect(drawFigletSpy.called).to.be.false;
         });
     });
 });

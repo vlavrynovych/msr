@@ -330,6 +330,7 @@ describe('ConfigLoader', () => {
             process.env.MSR_DISPLAY_LIMIT = '50';
 
             const config = new Config();
+            config.showBanner = false;
             ConfigLoader.applyEnvironmentVariables(config);
 
             expect(config.folder).to.equal('./custom/migrations');
@@ -349,6 +350,7 @@ describe('ConfigLoader', () => {
             process.env.MSR_LOGGING_MAX_FILES = '20';
 
             const config = new Config();
+            config.showBanner = false;
             ConfigLoader.applyEnvironmentVariables(config);
 
             expect(config.logging.enabled).to.be.true;
@@ -367,6 +369,7 @@ describe('ConfigLoader', () => {
             ]);
 
             const config = new Config();
+            config.showBanner = false;
             ConfigLoader.applyEnvironmentVariables(config);
 
             expect(config.filePatterns).to.have.lengthOf(2);
@@ -382,13 +385,16 @@ describe('ConfigLoader', () => {
             process.env.MSR_RECURSIVE = 'false';
             process.env.MSR_VALIDATE_BEFORE_RUN = '1';
             process.env.MSR_STRICT_VALIDATION = 'yes';
+            process.env.MSR_SHOW_BANNER = 'false';
 
             const config = new Config();
+            config.showBanner = false;
             ConfigLoader.applyEnvironmentVariables(config);
 
             expect(config.recursive).to.be.false;
             expect(config.validateBeforeRun).to.be.true;
             expect(config.strictValidation).to.be.true;
+            expect(config.showBanner).to.be.false;
         });
 
         /**
@@ -399,6 +405,7 @@ describe('ConfigLoader', () => {
             process.env.MSR_FILE_PATTERNS = 'invalid json [';
 
             const config = new Config();
+            config.showBanner = false;
             const originalPatterns = [...config.filePatterns];
 
             ConfigLoader.applyEnvironmentVariables(config);
@@ -416,6 +423,7 @@ describe('ConfigLoader', () => {
             process.env.MSR_LOGGING_ENABLED = 'true';
 
             const config = new Config();
+            config.showBanner = false;
             ConfigLoader.applyEnvironmentVariables(config);
 
             // Dot-notation should still work even when JSON is invalid
@@ -431,6 +439,7 @@ describe('ConfigLoader', () => {
             process.env.MSR_BACKUP_TIMESTAMP = 'false';
 
             const config = new Config();
+            config.showBanner = false;
             ConfigLoader.applyEnvironmentVariables(config);
 
             // Dot-notation should still work even when JSON is invalid
@@ -454,6 +463,7 @@ describe('ConfigLoader', () => {
             });
 
             const config = new Config();
+            config.showBanner = false;
             ConfigLoader.applyEnvironmentVariables(config);
 
             expect(config.logging.enabled).to.be.true;
@@ -476,6 +486,7 @@ describe('ConfigLoader', () => {
             });
 
             const config = new Config();
+            config.showBanner = false;
             ConfigLoader.applyEnvironmentVariables(config);
 
             expect(config.transaction.mode).to.equal('PER_BATCH');
@@ -490,6 +501,7 @@ describe('ConfigLoader', () => {
             process.env.MSR_TRANSACTION = 'invalid-json';
 
             const config = new Config();
+            config.showBanner = false;
 
             // Should not throw
             ConfigLoader.applyEnvironmentVariables(config);
