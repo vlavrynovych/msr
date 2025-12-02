@@ -115,7 +115,10 @@ This will install:
 - Jekyll (~3.9.0)
 - Just the Docs theme (0.4.0)
 - kramdown-parser-gfm (GitHub Flavored Markdown)
-- jekyll-seo-tag
+- jekyll-seo-tag (SEO optimization)
+- jekyll-sitemap (automatic sitemap.xml generation)
+- jekyll-remote-theme (remote theme support)
+- jekyll-include-cache (theme performance)
 - webrick (Ruby 3.0+ compatibility)
 
 **First-time setup takes 2-3 minutes** to download and compile all gems.
