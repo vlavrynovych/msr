@@ -31,6 +31,9 @@
     "test:mutation:incremental": "stryker run --incremental",
     "lint": "eslint ./src/ --ext .ts",
     "lint:report": "eslint ./src/ --ext .ts --format junit --output-file ./reports/eslint.xml",
+    "docs:install": "cd docs && bundle install",
+    "docs:serve": "cd docs && bundle exec jekyll serve",
+    "docs:build": "cd docs && bundle exec jekyll build",
     "postinstall": "[ -f node_modules/fsevents/fsevents.node ] && xattr -d com.apple.quarantine node_modules/fsevents/fsevents.node 2>/dev/null || true"
   },
   "keywords": [

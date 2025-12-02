@@ -9,3 +9,10 @@
 /coverage
 .nyc_output
 coverage.json
+
+# Jekyll (documentation)
+docs/.sass-cache
+docs/_site
+docs/.jekyll-cache
+docs/vendor/bundle
+docs/Gemfile.lock

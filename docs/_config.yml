@@ -93,6 +93,8 @@ kramdown:
 # Plugins
 plugins:
   - jekyll-seo-tag
+  - jekyll-remote-theme
+  - jekyll-include-cache
 
 # Exclude from processing
 exclude:

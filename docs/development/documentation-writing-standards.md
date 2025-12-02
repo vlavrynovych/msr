@@ -1,14 +1,14 @@
 ---
 layout: default
-title: Documentation Standard
+title: Documentation Writing Standards
 parent: Development
-nav_order: 4
+nav_order: 5
 ---
 
-# Documentation Standard
+# Documentation Writing Standards
 {: .no_toc }
 
-Standards and guidelines for maintaining MSR documentation.
+Standards and guidelines for writing and maintaining MSR documentation.
 {: .fs-6 .fw-300 }
 
 ## Table of contents

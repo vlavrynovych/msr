@@ -2,7 +2,7 @@
 layout: default
 title: Publishing New Versions
 parent: Development
-nav_order: 5
+nav_order: 7
 ---
 
 # Publishing New Versions
