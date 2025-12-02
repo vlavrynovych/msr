@@ -175,6 +175,18 @@ if (result.success) {
 
 ---
 
+## 🌱 Why MSR Exists
+
+MSR was born from a real problem: In 2017, while building a mobile app with Firebase, a small team needed to backup and restore production data multiple times a week. Manual processes meant constant risk of corrupting critical data before the app even launched. The solution? A JavaScript tool that automated migrations with automatic backups and intelligent rollback.
+
+Six years and many projects later, that prototype became MSR - completely rewritten in TypeScript with a database-agnostic architecture. The core insight: **migration tools should be as flexible as your stack**. Whether you're migrating Firebase collections or PostgreSQL tables, using SQL files or TypeScript logic, MSR adapts to your needs instead of forcing you into rigid patterns.
+
+Today, MSR powers migrations across multiple database platforms with features traditional tools don't offer: built-in backup/restore, polyglot migrations (SQL + TypeScript + JavaScript), custom validators, transaction control, and deep customization. It's designed for real-world scenarios where you need both the simplicity of SQL migrations and the power of programmatic logic.
+
+**[Read the full origin story →](https://migration-script-runner.github.io/msr-core/about/origin-story)**
+
+---
+
 ## 🎯 Why MSR?
 
 **Bring your own database.** MSR doesn't lock you into a specific ORM or database system. Whether you're using PostgreSQL, MongoDB, DynamoDB, or a custom database, MSR handles the migration workflow while you maintain full control.

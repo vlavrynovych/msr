@@ -24,6 +24,9 @@ Main interface for database integration.
 
 Interface that must be implemented for your specific database.
 
+{: .note }
+> **Design Origin**: The handler pattern emerged from MSR's 2017 Firebase prototype, where an `EntityService` provided clean helper methods like `updateAll(callback)` and `findAllBy(propertyName, value)`. Instead of raw database SDK calls in every migration, this service layer made migrations declarative and maintainable. This pattern proved so valuable it became core to MSR's architecture - allowing you to inject your own services, repositories, and business logic into migrations. Read more in the [origin story](../../about/origin-story).
+
 ```typescript
 interface IDatabaseMigrationHandler {
   getName(): string;

@@ -36,6 +36,9 @@ MSR provides flexible backup and restore capabilities that go beyond simple roll
 - **Disaster Recovery**: Manual backup and restore procedures
 - **CI/CD Integration**: Backup before deployments with external restore capability
 
+{: .note }
+> **Why Built-in Backup?** Most migration tools don't include backup/restore - they assume you'll handle it separately. MSR's built-in backup emerged from a real need: in 2017, a team migrating production Firebase data learned that automatic backups before every migration run aren't optional luxury - they're essential safety. Manual backups meant room for catastrophic mistakes. Automatic backup before each migration run, with intelligent rollback on failure, became a core MSR principle. Read more in the [origin story](../about/origin-story).
+
 {: .warning }
 > When copying production data to non-production environments, always sanitize sensitive data (PII, passwords, API keys) to comply with security and privacy regulations.
 
