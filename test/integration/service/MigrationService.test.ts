@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import {MigrationScript, MigrationService, SilentLogger, DuplicateTimestampMode} from "../../../src";
+import { DuplicateTimestampMode, IDB, MigrationScript, MigrationService, SilentLogger } from "../../../src";
 import {TestUtils} from "../../helpers/TestUtils";
 import path from 'node:path';
 
@@ -16,7 +16,7 @@ describe('MigrationService', () => {
             const cfg =TestUtils.getConfig()
             cfg.filePatterns[0].test = (value) => {return true}
             cfg.filePatterns[0].exec = (value) => {return null}
-            const ms = new MigrationService(new SilentLogger())
+            const ms = new MigrationService<IDB>(new SilentLogger())
 
             // Attempt to read scripts with malformed filenames
             try {
@@ -37,14 +37,14 @@ describe('MigrationService', () => {
          */
         it('should read valid migration scripts successfully', async () => {
             // Read migration scripts from test directory
-            const ms = new MigrationService(new SilentLogger())
-            const res:MigrationScript[] = await ms.findMigrationScripts(TestUtils.getConfig());
+            const ms = new MigrationService<IDB>(new SilentLogger())
+            const res: MigrationScript<IDB>[] = await ms.findMigrationScripts(TestUtils.getConfig());
 
             // Verify one script was found with correct metadata
             expect(res).not.undefined
             expect(res.length).eq(1, '1 script should be found')
 
-            const script:MigrationScript = res[0];
+            const script: MigrationScript<IDB> = res[0];
             expect(script).not.undefined
             expect(script.script).is.undefined // Content not loaded yet (lazy loading)
             expect(script.name).not.undefined
@@ -63,7 +63,7 @@ describe('MigrationService', () => {
         it('should return empty array for empty folder', async () => {
             // Read from empty test directory
             const cfg = TestUtils.getConfig(TestUtils.EMPTY_FOLDER)
-            const res:MigrationScript[] = await new MigrationService(new SilentLogger()).findMigrationScripts(cfg)
+            const res: MigrationScript<IDB>[] = await new MigrationService<IDB>(new SilentLogger()).findMigrationScripts(cfg)
 
             // Verify empty array is returned without errors
             expect(res).not.undefined
@@ -79,7 +79,7 @@ describe('MigrationService', () => {
         it('should throw error when folder is not found', async () => {
             // Attempt to read from non-existent directory
             const cfg = TestUtils.getConfig('non-existent-folder')
-            const ms = new MigrationService(new SilentLogger())
+            const ms = new MigrationService<IDB>(new SilentLogger())
 
             // Verify filesystem error is thrown
             await expect(ms.findMigrationScripts(cfg)).to.be.rejectedWith("ENOENT: no such file or directory");
@@ -95,7 +95,7 @@ describe('MigrationService', () => {
             // Stub filesystem to return mix of hidden and visible files
             const cfg = TestUtils.getConfig();
             cfg.recursive = false; // Use single-folder mode for this test
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             const sinon = await import('sinon');
             const readdirStub = sinon.stub(require('fs'), 'readdirSync')
@@ -136,7 +136,7 @@ describe('MigrationService', () => {
                 error: () => {},
                 debug: () => {}
             };
-            const ms = new MigrationService(testLogger);
+            const ms = new MigrationService<IDB>(testLogger);
 
             const sinon = await import('sinon');
             const readdirStub = sinon.stub(require('fs'), 'readdirSync')
@@ -167,7 +167,7 @@ describe('MigrationService', () => {
             // Stub filesystem to return mix of migration and non-migration files
             const cfg = TestUtils.getConfig();
             cfg.recursive = false; // Use single-folder mode for this test
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             const sinon = await import('sinon');
             const readdirStub = sinon.stub(require('fs'), 'readdirSync')
@@ -199,7 +199,7 @@ describe('MigrationService', () => {
             // Stub filesystem to return 100 migration files
             const cfg = TestUtils.getConfig();
             cfg.recursive = false; // Use single-folder mode for this test
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             const sinon = await import('sinon');
             const files = Array.from({length: 100}, (_, i) =>
@@ -236,7 +236,7 @@ describe('MigrationService', () => {
             // Stub filesystem with special character filenames
             const cfg = TestUtils.getConfig();
             cfg.recursive = false; // Use single-folder mode for this test
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             const sinon = await import('sinon');
             const readdirStub = sinon.stub(require('fs'), 'readdirSync')
@@ -266,7 +266,7 @@ describe('MigrationService', () => {
         it('should handle concurrent reads safely', async () => {
             // Execute 10 concurrent reads
             const cfg = TestUtils.getConfig();
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             const promises = Array.from({length: 10}, () =>
                 ms.findMigrationScripts(cfg)
@@ -298,9 +298,9 @@ describe('MigrationService', () => {
         it('should read migration scripts from sub-folders recursively', async () => {
             const cfg = TestUtils.getConfig(TestUtils.RECURSIVE_FOLDER);
             cfg.recursive = true;
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
-            const res: MigrationScript[] = await ms.findMigrationScripts(cfg);
+            const res: MigrationScript<IDB>[] = await ms.findMigrationScripts(cfg);
 
             // Verify all 4 migrations from different sub-folders are found
             expect(res).not.undefined;
@@ -329,9 +329,9 @@ describe('MigrationService', () => {
         it('should maintain timestamp order across sub-folders', async () => {
             const cfg = TestUtils.getConfig(TestUtils.RECURSIVE_FOLDER);
             cfg.recursive = true;
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
-            const res: MigrationScript[] = await ms.findMigrationScripts(cfg);
+            const res: MigrationScript<IDB>[] = await ms.findMigrationScripts(cfg);
 
             // Expected execution order by timestamp:
             // 1. V202311010001 (users)
@@ -360,7 +360,7 @@ describe('MigrationService', () => {
         it('should filter hidden folders in recursive mode', async () => {
             const cfg = TestUtils.getConfig();
             cfg.recursive = true;
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             const sinon = await import('sinon');
             const readdirStub = sinon.stub(require('fs'), 'readdirSync');
@@ -403,9 +403,9 @@ describe('MigrationService', () => {
         it('should only scan root folder when recursive is disabled', async () => {
             const cfg = TestUtils.getConfig(TestUtils.RECURSIVE_FOLDER);
             cfg.recursive = false;
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
-            const res: MigrationScript[] = await ms.findMigrationScripts(cfg);
+            const res: MigrationScript<IDB>[] = await ms.findMigrationScripts(cfg);
 
             // Should find 0 migrations because all are in sub-folders
             expect(res).not.undefined;
@@ -420,7 +420,7 @@ describe('MigrationService', () => {
         it('should handle empty sub-folders gracefully', async () => {
             const cfg = TestUtils.getConfig();
             cfg.recursive = true;
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             const sinon = await import('sinon');
             const readdirStub = sinon.stub(require('fs'), 'readdirSync');
@@ -460,7 +460,7 @@ describe('MigrationService', () => {
         it('should handle deeply nested sub-folders', async () => {
             const cfg = TestUtils.getConfig();
             cfg.recursive = true;
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             const sinon = await import('sinon');
             const readdirStub = sinon.stub(require('fs'), 'readdirSync');
@@ -512,7 +512,7 @@ describe('MigrationService', () => {
         it('should handle mixed files and folders in root directory', async () => {
             const cfg = TestUtils.getConfig();
             cfg.recursive = true;
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             const sinon = await import('sinon');
             const readdirStub = sinon.stub(require('fs'), 'readdirSync');
@@ -557,7 +557,7 @@ describe('MigrationService', () => {
         it('should filter non-migration files in sub-folders', async () => {
             const cfg = TestUtils.getConfig();
             cfg.recursive = true;
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             const sinon = await import('sinon');
             const readdirStub = sinon.stub(require('fs'), 'readdirSync');
@@ -603,7 +603,7 @@ describe('MigrationService', () => {
         it('should return undefined when beforeMigrateName is explicitly null', async () => {
             const cfg = TestUtils.getConfig();
             cfg.beforeMigrateName = null;
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             const result = await ms.findBeforeMigrateScript(cfg);
 
@@ -617,7 +617,7 @@ describe('MigrationService', () => {
          * Validates that the default logger parameter works correctly
          */
         it('should use default ConsoleLogger when logger not provided', () => {
-            const ms = new MigrationService();
+            const ms = new MigrationService<IDB>();
             expect(ms).to.be.instanceOf(MigrationService);
         })
     })
@@ -631,7 +631,7 @@ describe('MigrationService', () => {
         it('should validate all filenames for path traversal in single-folder mode', async () => {
             const cfg = TestUtils.getConfig();
             cfg.recursive = false;
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             const sinon = await import('sinon');
             // Simulate filesystem returning a file with '..' in the name
@@ -660,7 +660,7 @@ describe('MigrationService', () => {
         it('should reject path traversal in recursive mode', async () => {
             const cfg = TestUtils.getConfig();
             cfg.recursive = true;
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             const sinon = await import('sinon');
             const readdirStub = sinon.stub(require('fs'), 'readdirSync');
@@ -693,7 +693,7 @@ describe('MigrationService', () => {
         it('should reject path traversal in beforeMigrate script', async () => {
             const cfg = TestUtils.getConfig();
             cfg.beforeMigrateName = '../../../etc/passwd';
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             try {
                 await ms.findBeforeMigrateScript(cfg);
@@ -711,7 +711,7 @@ describe('MigrationService', () => {
         it('should allow valid relative paths within migrations directory', async () => {
             const cfg = TestUtils.getConfig();
             cfg.recursive = true;
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             const sinon = await import('sinon');
             const readdirStub = sinon.stub(require('fs'), 'readdirSync');
@@ -750,7 +750,7 @@ describe('MigrationService', () => {
         it('should reject absolute paths outside migrations directory', async () => {
             const cfg = TestUtils.getConfig();
             cfg.recursive = false;
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             const sinon = await import('sinon');
             const path = await import('path');
@@ -781,7 +781,7 @@ describe('MigrationService', () => {
         it('should allow path that resolves to base directory itself', async () => {
             const cfg = TestUtils.getConfig();
             cfg.recursive = false;
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             const sinon = await import('sinon');
 
@@ -810,7 +810,7 @@ describe('MigrationService', () => {
             cfg.folder = path.join(process.cwd(), 'test', 'fixtures', 'migrations-duplicates');
             cfg.recursive = false;
             cfg.duplicateTimestampMode = DuplicateTimestampMode.ERROR;
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             try {
                 await ms.findMigrationScripts(cfg);
@@ -832,7 +832,7 @@ describe('MigrationService', () => {
             const cfg = TestUtils.getConfig();
             cfg.folder = path.join(process.cwd(), 'test', 'fixtures', 'migrations-test');
             cfg.recursive = false;
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             const res = await ms.findMigrationScripts(cfg);
 
@@ -864,7 +864,7 @@ describe('MigrationService', () => {
                 error: () => {},
                 debug: () => {}
             };
-            const ms = new MigrationService(testLogger);
+            const ms = new MigrationService<IDB>(testLogger);
 
             // Should not throw - continues execution despite duplicates
             const res = await ms.findMigrationScripts(cfg);
@@ -902,7 +902,7 @@ describe('MigrationService', () => {
                 error: () => {},
                 debug: () => {}
             };
-            const ms = new MigrationService(testLogger);
+            const ms = new MigrationService<IDB>(testLogger);
 
             // Should not throw or warn
             const res = await ms.findMigrationScripts(cfg);
@@ -926,7 +926,7 @@ describe('MigrationService', () => {
             cfg.folder = path.join(process.cwd(), 'test', 'fixtures', 'migrations-duplicates');
             cfg.recursive = false;
             cfg.duplicateTimestampMode = DuplicateTimestampMode.ERROR;
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             try {
                 await ms.findMigrationScripts(cfg);
@@ -954,7 +954,7 @@ describe('MigrationService', () => {
             cfg.folder = path.join(process.cwd(), 'test', 'fixtures', 'migrations-duplicates');
             cfg.recursive = false;
             cfg.duplicateTimestampMode = DuplicateTimestampMode.ERROR;
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
 
             try {
                 await ms.findMigrationScripts(cfg);

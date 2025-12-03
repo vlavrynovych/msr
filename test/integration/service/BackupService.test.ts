@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import fs from "node:fs";
 import sinon from 'sinon';
-import {BackupConfig, BackupService, Config, IDatabaseMigrationHandler, SilentLogger} from "../../../src";
+import { BackupConfig, BackupService, Config, IDB, IDatabaseMigrationHandler, SilentLogger } from "../../../src";
 
 describe('BackupService', () => {
 
@@ -118,13 +118,13 @@ describe('BackupService', () => {
             cfg.backup.deleteBackup = false;
             cfg.backup.timestamp = false;
             cfg.backup.suffix = `-backup-file-overwrite-${Date.now()}`;
-            const bs = new BackupService({
+            const bs = new BackupService<IDB>({
                 backup: {
                     async backup(): Promise<string> {
                         return 'data'
                     }
                 }
-            } as IDatabaseMigrationHandler, cfg, new SilentLogger());
+            } as IDatabaseMigrationHandler<IDB>, cfg, new SilentLogger());
 
             // Stub filesystem to simulate existing file
             const existsStub = sinon.stub(fs, 'existsSync').returns(true);
@@ -159,13 +159,13 @@ describe('BackupService', () => {
             const cfg = new Config();
             cfg.backup.timestamp = false;
             cfg.backup.suffix = `-test-${Date.now()}`;
-            const bs = new BackupService({
+            const bs = new BackupService<IDB>({
                 backup: {
                     async backup(): Promise<string> {
                         return 'data'
                     }
                 }
-            } as IDatabaseMigrationHandler, cfg, new SilentLogger());
+            } as IDatabaseMigrationHandler<IDB>, cfg, new SilentLogger());
 
             // Stub filesystem to simulate permission error
             const writeStub = sinon.stub(fs, 'writeFileSync')
@@ -188,13 +188,13 @@ describe('BackupService', () => {
             const cfg = new Config();
             cfg.backup.timestamp = false;
             cfg.backup.suffix = `-test-${Date.now()}`;
-            const bs = new BackupService({
+            const bs = new BackupService<IDB>({
                 backup: {
                     async backup(): Promise<string> {
                         return 'data'
                     }
                 }
-            } as IDatabaseMigrationHandler, cfg, new SilentLogger());
+            } as IDatabaseMigrationHandler<IDB>, cfg, new SilentLogger());
 
             // Stub filesystem to simulate disk full error
             const writeStub = sinon.stub(fs, 'writeFileSync')
@@ -215,13 +215,13 @@ describe('BackupService', () => {
         it('should handle backup() method failure from handler', async () => {
             // Configure backup with failing database handler
             const cfg = new Config();
-            const bs = new BackupService({
+            const bs = new BackupService<IDB>({
                 backup: {
                     async backup(): Promise<string> {
                         throw new Error('Database connection failed')
                     }
                 }
-            } as IDatabaseMigrationHandler, cfg);
+            } as IDatabaseMigrationHandler<IDB>, cfg);
 
             // Verify the database error is propagated
             await expect(bs.backup()).to.be.rejectedWith('Database connection failed');
@@ -239,13 +239,13 @@ describe('BackupService', () => {
             cfg.backup.timestamp = false;
             cfg.backup.suffix = `-large-${Date.now()}`;
             const largeData = 'x'.repeat(10 * 1024 * 1024); // 10MB string
-            const bs = new BackupService({
+            const bs = new BackupService<IDB>({
                 backup: {
                     async backup(): Promise<string> {
                         return largeData
                     }
                 }
-            } as IDatabaseMigrationHandler, cfg);
+            } as IDatabaseMigrationHandler<IDB>, cfg);
 
             // Create and write large backup (should not throw or timeout)
             const backupPath = await bs.backup();
@@ -266,13 +266,13 @@ describe('BackupService', () => {
          */
         it('should throw error if backupFile is undefined after _backup()', async () => {
             const cfg = new Config();
-            const bs = new BackupService({
+            const bs = new BackupService<IDB>({
                 backup: {
                     async backup(): Promise<string> {
                         return 'test data'
                     }
                 }
-            } as IDatabaseMigrationHandler, cfg);
+            } as IDatabaseMigrationHandler<IDB>, cfg);
 
             // Spy on _backup to make it not set backupFile
             const originalBackup = (bs as any)._backup.bind(bs);
@@ -295,13 +295,13 @@ describe('BackupService', () => {
             const cfg = new Config();
             cfg.backup.timestamp = false;
             cfg.backup.suffix = `-log-test-${Date.now()}`;
-            const bs = new BackupService({
+            const bs = new BackupService<IDB>({
                 backup: {
                     async backup(): Promise<string> {
                         return 'test data'
                     }
                 }
-            } as IDatabaseMigrationHandler, cfg);
+            } as IDatabaseMigrationHandler<IDB>, cfg);
 
             // and: spy on console
             const consoleInfoSpy = sinon.spy(console, 'info');
@@ -330,7 +330,7 @@ describe('BackupService', () => {
             // Create backup service without creating a backup file
             const cfg = new Config();
             cfg.backup.deleteBackup = false;
-            const bs = new BackupService({} as IDatabaseMigrationHandler, cfg);
+            const bs = new BackupService<IDB>({} as IDatabaseMigrationHandler<IDB>, cfg);
 
             // Attempt to restore (should fail with clear error about no backup interface)
             await expect(bs.restore()).to.be.rejectedWith("No backup interface provided");
@@ -348,7 +348,7 @@ describe('BackupService', () => {
             cfg.backup.timestamp = false;
             cfg.backup.suffix = `-corrupted-${Date.now()}`;
             let restoredData: string | undefined;
-            const bs = new BackupService({
+            const bs = new BackupService<IDB>({
                 backup: {
                     async backup(): Promise<string> {
                         return 'valid data'
@@ -361,7 +361,7 @@ describe('BackupService', () => {
                         return Promise.resolve('restored')
                     }
                 }
-            } as IDatabaseMigrationHandler, cfg);
+            } as IDatabaseMigrationHandler<IDB>, cfg);
 
             // Create backup and then stub file read to return corrupted data
             await bs.backup();
@@ -385,7 +385,7 @@ describe('BackupService', () => {
             const cfg = new Config();
             cfg.backup.timestamp = false;
             cfg.backup.suffix = `-perm-test-${Date.now()}`;
-            const bs = new BackupService({
+            const bs = new BackupService<IDB>({
                 backup: {
                     async backup(): Promise<string> {
                         return 'data'
@@ -394,7 +394,7 @@ describe('BackupService', () => {
                         return Promise.resolve('restored')
                     }
                 }
-            } as IDatabaseMigrationHandler, cfg);
+            } as IDatabaseMigrationHandler<IDB>, cfg);
 
             // Create backup successfully
             await bs.backup();
@@ -418,7 +418,7 @@ describe('BackupService', () => {
             const cfg = new Config();
             cfg.backup.timestamp = false;
             cfg.backup.suffix = `-restore-log-${Date.now()}`;
-            const bs = new BackupService({
+            const bs = new BackupService<IDB>({
                 backup: {
                     async backup(): Promise<string> {
                         return 'test data'
@@ -427,7 +427,7 @@ describe('BackupService', () => {
                         return Promise.resolve('restored')
                     }
                 }
-            } as IDatabaseMigrationHandler, cfg);
+            } as IDatabaseMigrationHandler<IDB>, cfg);
 
             // and: create backup first
             await bs.backup();
@@ -459,7 +459,7 @@ describe('BackupService', () => {
             // Configure to disable backup deletion
             const cfg = new Config();
             cfg.backup.deleteBackup = false;
-            const bs = new BackupService({} as IDatabaseMigrationHandler, cfg);
+            const bs = new BackupService<IDB>({} as IDatabaseMigrationHandler<IDB>, cfg);
 
             // Call deleteBackup (should be no-op, not throw)
             expect(() => bs.deleteBackup()).to.not.throw();
@@ -477,13 +477,13 @@ describe('BackupService', () => {
             cfg.backup.deleteBackup = true;
             cfg.backup.timestamp = false;
             cfg.backup.suffix = `-delete-test-${Date.now()}`;
-            const bs = new BackupService({
+            const bs = new BackupService<IDB>({
                 backup: {
                     async backup(): Promise<string> {
                         return 'data'
                     }
                 }
-            } as IDatabaseMigrationHandler, cfg, new SilentLogger());
+            } as IDatabaseMigrationHandler<IDB>, cfg, new SilentLogger());
 
             // Create backup successfully
             await bs.backup();
@@ -508,13 +508,13 @@ describe('BackupService', () => {
             // Configure backup with deletion enabled
             const cfg = new Config();
             cfg.backup.deleteBackup = true;
-            const bs = new BackupService({
+            const bs = new BackupService<IDB>({
                 backup: {
                     async backup(): Promise<string> {
                         return 'data'
                     }
                 }
-            } as IDatabaseMigrationHandler, cfg, new SilentLogger());
+            } as IDatabaseMigrationHandler<IDB>, cfg, new SilentLogger());
 
             // Call deleteBackup without creating a backup first - should not throw
             expect(() => bs.deleteBackup()).to.not.throw();

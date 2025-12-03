@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Custom Logging
-parent: Customization
+parent: Extending MSR
 nav_order: 4
 ---
 

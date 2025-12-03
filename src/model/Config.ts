@@ -387,7 +387,7 @@ export class Config {
      * ```typescript
      * import { IMigrationValidator, ValidationIssueType } from '@migration-script-runner/core';
      *
-     * class NamingValidator implements IMigrationValidator {
+     * class NamingValidator implements IMigrationValidator<DB> {
      *   async validate(script, config) {
      *     const className = script.script.constructor.name;
      *     const expectedName = this.toClassName(script.name);
@@ -411,7 +411,8 @@ export class Config {
      * config.customValidators = [new NamingValidator()];
      * ```
      */
-    customValidators: IMigrationValidator[] = []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    customValidators: IMigrationValidator<any>[] = []
 
     /**
      * Enable validation of already-executed migration files.
@@ -583,7 +584,7 @@ export class Config {
      * const config = new Config();
      * config.dryRun = true;
      *
-     * const executor = new MigrationScriptExecutor(handler, config);
+     * const executor = new MigrationScriptExecutor<DB>(handler, config);
      * await executor.migrate(); // No changes made, only preview
      * ```
      *

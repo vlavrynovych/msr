@@ -1,6 +1,7 @@
 import { MigrationScript } from '../../model/MigrationScript';
 import { TransactionMode } from '../../model/TransactionMode';
 import { IsolationLevel } from '../../model/IsolationLevel';
+import {IDB} from "../dao";
 
 /**
  * Context information for transaction lifecycle hooks.
@@ -8,12 +9,17 @@ import { IsolationLevel } from '../../model/IsolationLevel';
  * Provides metadata about the current transaction for monitoring, logging,
  * and alerting purposes. Passed to all transaction hook methods.
  *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
+ *
  * **New in v0.5.0**
  *
  * @example
  * ```typescript
- * class MetricsHook implements ITransactionHooks {
- *   async afterCommit(context: ITransactionContext): Promise<void> {
+ * class MetricsHook implements ITransactionHooks<IDB> {
+ *   async afterCommit(context: ITransactionContext<IDB>): Promise<void> {
  *     console.log(`Transaction ${context.transactionId} committed`);
  *     console.log(`Migrations: ${context.migrations.map(m => m.name).join(', ')}`);
  *     console.log(`Duration: ${Date.now() - context.startTime}ms`);
@@ -22,7 +28,7 @@ import { IsolationLevel } from '../../model/IsolationLevel';
  * }
  * ```
  */
-export interface ITransactionContext {
+export interface ITransactionContext<DB extends IDB> {
     /**
      * Unique identifier for this transaction.
      *
@@ -55,12 +61,13 @@ export interface ITransactionContext {
 
     /**
      * Migration scripts included in this transaction.
+     * Typed with the generic DB parameter (v0.6.0).
      *
      * - PER_MIGRATION mode: Array with single migration
      * - PER_BATCH mode: Array with all migrations in batch
      * - NONE mode: Empty array
      */
-    migrations: MigrationScript[];
+    migrations: MigrationScript<DB>[];
 
     /**
      * Transaction start timestamp (Unix milliseconds).
@@ -88,7 +95,7 @@ export interface ITransactionContext {
      *
      * @example
      * ```typescript
-     * async onCommitRetry(context: ITransactionContext, attempt: number) {
+     * async onCommitRetry(context: ITransactionContext<DB>, attempt: number) {
      *   if (context.attempt >= 3) {
      *     await this.slack.alert(`Transaction ${context.transactionId} failing repeatedly`);
      *   }

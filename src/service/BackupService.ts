@@ -2,7 +2,7 @@ import fs from "node:fs";
 import moment from "moment";
 
 import {BackupConfig, Config} from "../model";
-import {IBackupService, IDatabaseMigrationHandler, ILogger} from "../interface";
+import {IBackupService, IDatabaseMigrationHandler, ILogger, IDB} from "../interface";
 import {ConsoleLogger} from "../logger";
 
 /**
@@ -13,9 +13,11 @@ import {ConsoleLogger} from "../logger";
  * - Restoring database state if migrations fail
  * - Cleaning up backup files after successful migrations
  *
+ *
+ * @template DB - Database interface type
  * @example
  * ```typescript
- * const service = new BackupService(handler);
+ * const service = new BackupService<DB>(handler);
  *
  * await service.backup();        // Create backup before migration
  * // ... run migrations ...
@@ -23,7 +25,7 @@ import {ConsoleLogger} from "../logger";
  * service.deleteBackup();        // Clean up if migration succeeds
  * ```
  */
-export class BackupService implements IBackupService {
+export class BackupService<DB extends IDB> implements IBackupService {
 
     /** Path to the currently active backup file */
     private backupFile: string | undefined;
@@ -36,7 +38,7 @@ export class BackupService implements IBackupService {
      * @param logger - Logger instance for output (defaults to ConsoleLogger)
      */
     public constructor(
-        private readonly handler: IDatabaseMigrationHandler,
+        private readonly handler: IDatabaseMigrationHandler<DB>,
         private readonly config: Config,
         private readonly logger: ILogger = new ConsoleLogger()
     ) {}
@@ -50,6 +52,8 @@ export class BackupService implements IBackupService {
      *
      * @returns The absolute path to the created backup file
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
      * const backupPath = await service.backup();
@@ -79,6 +83,8 @@ export class BackupService implements IBackupService {
      * @param backupPath - Optional path to specific backup file. If not provided, uses the most recent backup.
      * @throws {Error} If backup file doesn't exist or cannot be read
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
      * try {
@@ -104,6 +110,8 @@ export class BackupService implements IBackupService {
      * Only deletes if `config.backup.deleteBackup` is true. Called automatically
      * after successful migrations or after restore completes.
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
      * // After successful migration
@@ -176,6 +184,8 @@ export class BackupService implements IBackupService {
      * @param cfg - Backup configuration
      * @returns Full path to backup file
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
      * const config = new BackupConfig();

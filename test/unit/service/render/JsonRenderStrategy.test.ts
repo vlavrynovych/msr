@@ -1,6 +1,6 @@
 import {expect} from 'chai';
 import sinon from 'sinon';
-import {JsonRenderStrategy, IScripts, MigrationScript, IDatabaseMigrationHandler, Config} from "../../../../src";
+import {JsonRenderStrategy, IScripts, MigrationScript, IDatabaseMigrationHandler, Config, IDB} from "../../../../src";
 
 /**
  * Unit tests for JsonRenderStrategy.
@@ -23,8 +23,8 @@ describe('JsonRenderStrategy', () => {
 
     describe('constructor', () => {
         it('should default to pretty printing', () => {
-            const strategy = new JsonRenderStrategy();
-            const scripts = {migrated: []} as unknown as IScripts;
+            const strategy = new JsonRenderStrategy<IDB>();
+            const scripts = {migrated: []} as unknown as IScripts<IDB>;
             const config = new Config();
 
             strategy.renderBanner('1.0.0', 'Test Handler');
@@ -37,7 +37,7 @@ describe('JsonRenderStrategy', () => {
         });
 
         it('should support compact printing', () => {
-            const strategy = new JsonRenderStrategy(false);
+            const strategy = new JsonRenderStrategy<IDB>(false);
 
             strategy.renderBanner('1.0.0', 'Test Handler');
 
@@ -49,8 +49,8 @@ describe('JsonRenderStrategy', () => {
 
     describe('renderMigrated', () => {
         it('should render empty array when no migrations', () => {
-            const strategy = new JsonRenderStrategy();
-            const scripts = {migrated: [], all: []} as unknown as IScripts;
+            const strategy = new JsonRenderStrategy<IDB>();
+            const scripts = {migrated: [], all: []} as unknown as IScripts<IDB>;
             const config = new Config();
 
             strategy.renderMigrated(scripts, config);
@@ -59,7 +59,7 @@ describe('JsonRenderStrategy', () => {
         });
 
         it('should render migrated scripts as JSON', () => {
-            const strategy = new JsonRenderStrategy();
+            const strategy = new JsonRenderStrategy<IDB>();
             const now = Date.now();
             const scripts = {
                 migrated: [
@@ -69,12 +69,12 @@ describe('JsonRenderStrategy', () => {
                         startedAt: now - 5000,
                         finishedAt: now,
                         username: 'developer',
-                    } as MigrationScript
+                    } as MigrationScript<IDB>
                 ],
                 all: [
-                    {timestamp: 202501220100, name: 'V202501220100_test.ts'} as MigrationScript
+                    {timestamp: 202501220100, name: 'V202501220100_test.ts'} as MigrationScript<IDB>
                 ]
-            } as unknown as IScripts;
+            } as unknown as IScripts<IDB>;
             const config = new Config();
 
             strategy.renderMigrated(scripts, config);
@@ -94,7 +94,7 @@ describe('JsonRenderStrategy', () => {
         });
 
         it('should mark migrations as not found locally when missing from all', () => {
-            const strategy = new JsonRenderStrategy();
+            const strategy = new JsonRenderStrategy<IDB>();
             const now = Date.now();
             const scripts = {
                 migrated: [
@@ -104,10 +104,10 @@ describe('JsonRenderStrategy', () => {
                         startedAt: now - 5000,
                         finishedAt: now,
                         username: 'developer',
-                    } as MigrationScript
+                    } as MigrationScript<IDB>
                 ],
                 all: [] // Migration not found locally
-            } as unknown as IScripts;
+            } as unknown as IScripts<IDB>;
             const config = new Config();
 
             strategy.renderMigrated(scripts, config);
@@ -119,16 +119,16 @@ describe('JsonRenderStrategy', () => {
         });
 
         it('should limit migrations when limit is specified', () => {
-            const strategy = new JsonRenderStrategy();
+            const strategy = new JsonRenderStrategy<IDB>();
             const now = Date.now();
             const scripts = {
                 migrated: [
-                    {timestamp: 1, name: 'Old', startedAt: now, finishedAt: now, username: 'user'} as MigrationScript,
-                    {timestamp: 2, name: 'Recent', startedAt: now, finishedAt: now, username: 'user'} as MigrationScript,
-                    {timestamp: 3, name: 'Newest', startedAt: now, finishedAt: now, username: 'user'} as MigrationScript,
+                    {timestamp: 1, name: 'Old', startedAt: now, finishedAt: now, username: 'user'} as MigrationScript<IDB>,
+                    {timestamp: 2, name: 'Recent', startedAt: now, finishedAt: now, username: 'user'} as MigrationScript<IDB>,
+                    {timestamp: 3, name: 'Newest', startedAt: now, finishedAt: now, username: 'user'} as MigrationScript<IDB>,
                 ],
                 all: []
-            } as unknown as IScripts;
+            } as unknown as IScripts<IDB>;
             const config = new Config();
             config.displayLimit = 2;
 
@@ -144,15 +144,15 @@ describe('JsonRenderStrategy', () => {
         });
 
         it('should handle limit of 0 as show all', () => {
-            const strategy = new JsonRenderStrategy();
+            const strategy = new JsonRenderStrategy<IDB>();
             const now = Date.now();
             const scripts = {
                 migrated: [
-                    {timestamp: 1, name: 'M1', startedAt: now, finishedAt: now, username: 'user'} as MigrationScript,
-                    {timestamp: 2, name: 'M2', startedAt: now, finishedAt: now, username: 'user'} as MigrationScript,
+                    {timestamp: 1, name: 'M1', startedAt: now, finishedAt: now, username: 'user'} as MigrationScript<IDB>,
+                    {timestamp: 2, name: 'M2', startedAt: now, finishedAt: now, username: 'user'} as MigrationScript<IDB>,
                 ],
                 all: []
-            } as unknown as IScripts;
+            } as unknown as IScripts<IDB>;
             const config = new Config();
             config.displayLimit = 0;
 
@@ -165,14 +165,14 @@ describe('JsonRenderStrategy', () => {
         });
 
         it('should handle missing all array gracefully', () => {
-            const strategy = new JsonRenderStrategy();
+            const strategy = new JsonRenderStrategy<IDB>();
             const now = Date.now();
             const scripts = {
                 migrated: [
-                    {timestamp: 1, name: 'M1', startedAt: now, finishedAt: now, username: 'user'} as MigrationScript,
+                    {timestamp: 1, name: 'M1', startedAt: now, finishedAt: now, username: 'user'} as MigrationScript<IDB>,
                 ],
                 all: undefined // No all array
-            } as unknown as IScripts;
+            } as unknown as IScripts<IDB>;
             const config = new Config();
 
             strategy.renderMigrated(scripts, config);
@@ -185,7 +185,7 @@ describe('JsonRenderStrategy', () => {
         });
 
         it('should support compact mode', () => {
-            const strategy = new JsonRenderStrategy(false);
+            const strategy = new JsonRenderStrategy<IDB>(false);
             const now = Date.now();
             const scripts = {
                 migrated: [
@@ -195,10 +195,10 @@ describe('JsonRenderStrategy', () => {
                         startedAt: now - 5000,
                         finishedAt: now,
                         username: 'developer',
-                    } as MigrationScript
+                    } as MigrationScript<IDB>
                 ],
                 all: []
-            } as unknown as IScripts;
+            } as unknown as IScripts<IDB>;
             const config = new Config();
 
             strategy.renderMigrated(scripts, config);
@@ -211,7 +211,7 @@ describe('JsonRenderStrategy', () => {
         });
 
         it('should handle null timestamps and show 0 duration', () => {
-            const strategy = new JsonRenderStrategy();
+            const strategy = new JsonRenderStrategy<IDB>();
             const now = Date.now();
             const scripts = {
                 migrated: [
@@ -221,17 +221,17 @@ describe('JsonRenderStrategy', () => {
                         startedAt: null as any,
                         finishedAt: now,
                         username: 'developer',
-                    } as MigrationScript,
+                    } as MigrationScript<IDB>,
                     {
                         timestamp: 202501220200,
                         name: 'V202501220200_null_finish.ts',
                         startedAt: now,
                         finishedAt: null as any,
                         username: 'developer',
-                    } as MigrationScript
+                    } as MigrationScript<IDB>
                 ],
                 all: []
-            } as unknown as IScripts;
+            } as unknown as IScripts<IDB>;
             const config = new Config();
 
             strategy.renderMigrated(scripts, config);
@@ -248,7 +248,7 @@ describe('JsonRenderStrategy', () => {
 
     describe('renderPending', () => {
         it('should not render when no pending migrations', () => {
-            const strategy = new JsonRenderStrategy();
+            const strategy = new JsonRenderStrategy<IDB>();
 
             strategy.renderPending([]);
 
@@ -256,10 +256,10 @@ describe('JsonRenderStrategy', () => {
         });
 
         it('should render pending migrations as JSON', () => {
-            const strategy = new JsonRenderStrategy();
+            const strategy = new JsonRenderStrategy<IDB>();
             const scripts = [
-                {timestamp: 202501220100, name: 'V202501220100_test.ts', filepath: '/path/to/migration.ts'} as MigrationScript,
-                {timestamp: 202501220200, name: 'V202501220200_another.ts', filepath: '/path/to/another.ts'} as MigrationScript,
+                {timestamp: 202501220100, name: 'V202501220100_test.ts', filepath: '/path/to/migration.ts'} as MigrationScript<IDB>,
+                {timestamp: 202501220200, name: 'V202501220200_another.ts', filepath: '/path/to/another.ts'} as MigrationScript<IDB>,
             ];
 
             strategy.renderPending(scripts);
@@ -275,9 +275,9 @@ describe('JsonRenderStrategy', () => {
         });
 
         it('should support compact mode', () => {
-            const strategy = new JsonRenderStrategy(false);
+            const strategy = new JsonRenderStrategy<IDB>(false);
             const scripts = [
-                {timestamp: 202501220100, name: 'V202501220100_test.ts', filepath: '/path/to/migration.ts'} as MigrationScript,
+                {timestamp: 202501220100, name: 'V202501220100_test.ts', filepath: '/path/to/migration.ts'} as MigrationScript<IDB>,
             ];
 
             strategy.renderPending(scripts);
@@ -292,7 +292,7 @@ describe('JsonRenderStrategy', () => {
 
     describe('renderExecuted', () => {
         it('should not render when no executed migrations', () => {
-            const strategy = new JsonRenderStrategy();
+            const strategy = new JsonRenderStrategy<IDB>();
 
             strategy.renderExecuted([]);
 
@@ -300,7 +300,7 @@ describe('JsonRenderStrategy', () => {
         });
 
         it('should render executed migrations as JSON', () => {
-            const strategy = new JsonRenderStrategy();
+            const strategy = new JsonRenderStrategy<IDB>();
             const now = Date.now();
             const scripts = [
                 {
@@ -336,7 +336,7 @@ describe('JsonRenderStrategy', () => {
         });
 
         it('should support compact mode', () => {
-            const strategy = new JsonRenderStrategy(false);
+            const strategy = new JsonRenderStrategy<IDB>(false);
             const now = Date.now();
             const scripts = [
                 {
@@ -359,7 +359,7 @@ describe('JsonRenderStrategy', () => {
         });
 
         it('should handle null timestamps in executed migrations', () => {
-            const strategy = new JsonRenderStrategy();
+            const strategy = new JsonRenderStrategy<IDB>();
             const now = Date.now();
             const scripts = [
                 {
@@ -394,7 +394,7 @@ describe('JsonRenderStrategy', () => {
 
     describe('renderIgnored', () => {
         it('should not render when no ignored migrations', () => {
-            const strategy = new JsonRenderStrategy();
+            const strategy = new JsonRenderStrategy<IDB>();
 
             strategy.renderIgnored([]);
 
@@ -402,9 +402,9 @@ describe('JsonRenderStrategy', () => {
         });
 
         it('should render ignored migrations as JSON with warning', () => {
-            const strategy = new JsonRenderStrategy();
+            const strategy = new JsonRenderStrategy<IDB>();
             const scripts = [
-                {timestamp: 202501220100, name: 'V202501220100_old.ts', filepath: '/path/to/old.ts'} as MigrationScript,
+                {timestamp: 202501220100, name: 'V202501220100_old.ts', filepath: '/path/to/old.ts'} as MigrationScript<IDB>,
             ];
 
             strategy.renderIgnored(scripts);
@@ -420,9 +420,9 @@ describe('JsonRenderStrategy', () => {
         });
 
         it('should support compact mode', () => {
-            const strategy = new JsonRenderStrategy(false);
+            const strategy = new JsonRenderStrategy<IDB>(false);
             const scripts = [
-                {timestamp: 202501220100, name: 'V202501220100_old.ts', filepath: '/path/to/old.ts'} as MigrationScript,
+                {timestamp: 202501220100, name: 'V202501220100_old.ts', filepath: '/path/to/old.ts'} as MigrationScript<IDB>,
             ];
 
             strategy.renderIgnored(scripts);
@@ -437,7 +437,7 @@ describe('JsonRenderStrategy', () => {
 
     describe('renderBanner', () => {
         it('should render banner information as JSON', () => {
-            const strategy = new JsonRenderStrategy();
+            const strategy = new JsonRenderStrategy<IDB>();
 
             strategy.renderBanner('0.3.0', 'PostgreSQL Handler');
 
@@ -453,7 +453,7 @@ describe('JsonRenderStrategy', () => {
 
     describe('JSON formatting', () => {
         it('should produce valid JSON for all methods', () => {
-            const strategy = new JsonRenderStrategy(true);
+            const strategy = new JsonRenderStrategy<IDB>(true);
             const now = Date.now();
             const config = new Config();
 
@@ -462,19 +462,19 @@ describe('JsonRenderStrategy', () => {
             expect(() => JSON.parse(logStub.lastCall.args[0])).to.not.throw();
 
             const scripts = {
-                migrated: [{timestamp: 1, name: 'M', startedAt: now, finishedAt: now, username: 'u'} as MigrationScript],
+                migrated: [{timestamp: 1, name: 'M', startedAt: now, finishedAt: now, username: 'u'} as MigrationScript<IDB>],
                 all: []
-            } as unknown as IScripts;
+            } as unknown as IScripts<IDB>;
             strategy.renderMigrated(scripts, config);
             expect(() => JSON.parse(logStub.lastCall.args[0])).to.not.throw();
 
-            strategy.renderPending([{timestamp: 1, name: 'M', filepath: '/p'} as MigrationScript]);
+            strategy.renderPending([{timestamp: 1, name: 'M', filepath: '/p'} as MigrationScript<IDB>]);
             expect(() => JSON.parse(logStub.lastCall.args[0])).to.not.throw();
 
             strategy.renderExecuted([{timestamp: 1, name: 'M', startedAt: now, finishedAt: now, result: 'R', username: 'u'}]);
             expect(() => JSON.parse(logStub.lastCall.args[0])).to.not.throw();
 
-            strategy.renderIgnored([{timestamp: 1, name: 'M', filepath: '/p'} as MigrationScript]);
+            strategy.renderIgnored([{timestamp: 1, name: 'M', filepath: '/p'} as MigrationScript<IDB>]);
             expect(() => JSON.parse(warnStub.lastCall.args[0])).to.not.throw();
         });
     });

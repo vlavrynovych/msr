@@ -2,6 +2,7 @@ import _ from 'lodash';
 import * as os from 'os';
 import {MigrationScript} from "../model/MigrationScript";
 import {ISchemaVersionService} from "../interface/service/ISchemaVersionService";
+import {IDB} from "../interface/dao";
 import {ILogger} from "../interface/ILogger";
 import {IDatabaseMigrationHandler} from "../interface/IDatabaseMigrationHandler";
 import {Config} from "../model/Config";
@@ -25,14 +26,16 @@ import {v4 as uuidv4} from 'uuid';
  *
  * **New in v0.5.0:** Transaction support with configurable modes
  *
+ *
+ * @template DB - Database interface type
  * @example
  * ```typescript
  * // Basic usage without transactions
- * const runner = new MigrationRunner(handler, schemaVersionService, config, logger);
+ * const runner = new MigrationRunner<DB>(handler, schemaVersionService, config, logger);
  * const executed = await runner.execute(todoScripts);
  *
  * // With transaction manager (PER_MIGRATION mode)
- * const runner = new MigrationRunner(
+ * const runner = new MigrationRunner<DB>(
  *   handler,
  *   schemaVersionService,
  *   config,
@@ -43,7 +46,7 @@ import {v4 as uuidv4} from 'uuid';
  * const executed = await runner.execute(todoScripts);
  * ```
  */
-export class MigrationRunner {
+export class MigrationRunner<DB extends IDB> {
 
     /**
      * Creates a new MigrationRunner instance.
@@ -55,29 +58,31 @@ export class MigrationRunner {
      * @param transactionManager - Transaction manager for automatic transaction handling (optional)
      * @param hooks - Transaction lifecycle hooks (optional)
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
      * // Without transactions
-     * const runner = new MigrationRunner(handler, schemaVersionService, config, logger);
+     * const runner = new MigrationRunner<DB>(handler, schemaVersionService, config, logger);
      *
      * // With transactions
-     * const runner = new MigrationRunner(
+     * const runner = new MigrationRunner<DB>(
      *   handler,
      *   schemaVersionService,
      *   config,
      *   logger,
-     *   new DefaultTransactionManager(db, config.transaction, logger),
-     *   new CompositeHooks([new ExecutionSummaryHook()])
+     *   new DefaultTransactionManager<DB>(db, config.transaction, logger),
+     *   new CompositeHooks<DB>([new ExecutionSummaryHook<DB>()])
      * );
      * ```
      */
     constructor(
-        private readonly handler: IDatabaseMigrationHandler,
-        private readonly schemaVersionService: ISchemaVersionService,
+        private readonly handler: IDatabaseMigrationHandler<DB>,
+        private readonly schemaVersionService: ISchemaVersionService<DB>,
         private readonly config: Config,
         private readonly logger?: ILogger,
-        private readonly transactionManager?: ITransactionManager,
-        private readonly hooks?: ITransactionHooks
+        private readonly transactionManager?: ITransactionManager<DB>,
+        private readonly hooks?: ITransactionHooks<DB>
     ) {}
 
     /**
@@ -97,9 +102,11 @@ export class MigrationRunner {
      *
      * @throws {Error} If any migration fails, execution stops and the error is propagated
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
-     * const runner = new MigrationRunner(handler, schemaVersionService, config, logger);
+     * const runner = new MigrationRunner<DB>(handler, schemaVersionService, config, logger);
      * const scripts = [script1, script2, script3];
      *
      * try {
@@ -110,9 +117,9 @@ export class MigrationRunner {
      * }
      * ```
      */
-    async execute(scripts: MigrationScript[]): Promise<MigrationScript[]> {
+    async execute(scripts: MigrationScript<DB>[]): Promise<MigrationScript<DB>[]> {
         scripts = _.orderBy(scripts, ['timestamp'], ['asc']);
-        const executed: MigrationScript[] = [];
+        const executed: MigrationScript<DB>[] = [];
         const username: string = os.userInfo().username;
 
         // Determine transaction mode
@@ -126,7 +133,7 @@ export class MigrationRunner {
         // PER_MIGRATION or NONE: Execute migrations one by one
         // (PER_MIGRATION wrapping happens in executeOne)
         const tasks = _.orderBy(scripts, ['timestamp'], ['asc'])
-            .map((s: MigrationScript) => {
+            .map((s: MigrationScript<DB>) => {
                 s.username = username;
                 return async () => {
                     executed.push(await this.executeOne(s));
@@ -153,10 +160,10 @@ export class MigrationRunner {
      * @throws {Error} If any migration fails or transaction commit fails
      */
     private async executeInTransaction(
-        scripts: MigrationScript[],
+        scripts: MigrationScript<DB>[],
         username: string,
-        executed: MigrationScript[]
-    ): Promise<MigrationScript[]> {
+        executed: MigrationScript<DB>[]
+    ): Promise<MigrationScript<DB>[]> {
         const context = this.createTransactionContext(scripts);
 
         try {
@@ -167,7 +174,7 @@ export class MigrationRunner {
 
             // Execute all migrations
             const tasks = _.orderBy(scripts, ['timestamp'], ['asc'])
-                .map((s: MigrationScript) => {
+                .map((s: MigrationScript<DB>) => {
                     s.username = username;
                     return async () => {
                         executed.push(await this.executeOneWithoutTransaction(s));
@@ -203,7 +210,7 @@ export class MigrationRunner {
      * @param context - Transaction context for hooks
      * @throws {Error} If commit fails after all retries
      */
-    private async commitWithRetry(context: ITransactionContext): Promise<void> {
+    private async commitWithRetry(context: ITransactionContext<DB>): Promise<void> {
         const maxRetries = this.config.transaction.retries ?? 3;
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -232,7 +239,7 @@ export class MigrationRunner {
      * @param context - Transaction context for hooks
      * @param reason - The error that triggered rollback
      */
-    private async rollbackTransaction(context: ITransactionContext, reason: Error): Promise<void> {
+    private async rollbackTransaction(context: ITransactionContext<DB>, reason: Error): Promise<void> {
         try {
             await this.hooks?.beforeRollback?.(context, reason);
             await this.transactionManager!.rollback();
@@ -249,7 +256,7 @@ export class MigrationRunner {
      * @param scripts - Migration scripts being executed
      * @returns Transaction context object
      */
-    private createTransactionContext(scripts: MigrationScript[]): ITransactionContext {
+    private createTransactionContext(scripts: MigrationScript<DB>[]): ITransactionContext<DB> {
         return {
             transactionId: uuidv4(),
             mode: this.config.transaction.mode,
@@ -276,16 +283,18 @@ export class MigrationRunner {
      *
      * @throws {Error} If the migration's up() method throws an error
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
-     * const runner = new MigrationRunner(handler, schemaVersionService, config, logger);
-     * const script = new MigrationScript('V123_example.ts', 123);
+     * const runner = new MigrationRunner<DB>(handler, schemaVersionService, config, logger);
+     * const script = new MigrationScript<DB>('V123_example.ts', 123);
      *
      * const result = await runner.executeOne(script);
      * console.log(`Executed in ${result.finishedAt - result.startedAt}ms`);
      * ```
      */
-    async executeOne(script: MigrationScript): Promise<MigrationScript> {
+    async executeOne(script: MigrationScript<DB>): Promise<MigrationScript<DB>> {
         const mode = this.config.transaction.mode;
 
         // PER_MIGRATION: Wrap in transaction
@@ -305,7 +314,7 @@ export class MigrationRunner {
      *
      * @throws {Error} If migration fails or transaction commit fails
      */
-    private async executeOneInTransaction(script: MigrationScript): Promise<MigrationScript> {
+    private async executeOneInTransaction(script: MigrationScript<DB>): Promise<MigrationScript<DB>> {
         const context = this.createTransactionContext([script]);
 
         try {
@@ -345,7 +354,7 @@ export class MigrationRunner {
      *
      * @throws {Error} If the migration's up() method throws an error
      */
-    private async executeOneWithoutTransaction(script: MigrationScript): Promise<MigrationScript> {
+    private async executeOneWithoutTransaction(script: MigrationScript<DB>): Promise<MigrationScript<DB>> {
         this.logger?.log(`${script.name}: processing...`);
 
         script.startedAt = Date.now();
@@ -368,7 +377,7 @@ export class MigrationRunner {
      *
      * @param script - Migration script to calculate checksum for
      */
-    private calculateChecksum(script: MigrationScript): void {
+    private calculateChecksum(script: MigrationScript<DB>): void {
         try {
             script.checksum = ChecksumService.calculateChecksum(
                 script.filepath,

@@ -6,12 +6,12 @@ import { MigrationScript } from '../../../src/model/MigrationScript';
 import { SilentLogger } from '../../../src/logger';
 
 describe('MigrationValidationService - Transaction Validation', () => {
-    let validationService: MigrationValidationService;
+    let validationService: MigrationValidationService<IDB>;
     let config: Config;
-    let handler: IDatabaseMigrationHandler;
+    let handler: IDatabaseMigrationHandler<IDB>;
 
     beforeEach(() => {
-        validationService = new MigrationValidationService(new SilentLogger());
+        validationService = new MigrationValidationService<IDB>(new SilentLogger());
         config = new Config();
 
         // Default non-transactional handler
@@ -47,7 +47,7 @@ describe('MigrationValidationService - Transaction Validation', () => {
             createTable: async () => true,
             isInitialized: async () => true,
             validateTable: async () => true
-        } as IDatabaseMigrationHandler;
+        } as IDatabaseMigrationHandler<IDB>;
     });
 
     describe('validateTransactionConfiguration()', () => {
@@ -56,7 +56,7 @@ describe('MigrationValidationService - Transaction Validation', () => {
          */
         it('should return no issues when transaction mode is NONE', () => {
             config.transaction.mode = TransactionMode.NONE;
-            const scripts: MigrationScript[] = [];
+            const scripts: MigrationScript<IDB>[] = [];
 
             const issues = validationService.validateTransactionConfiguration(handler, config, scripts);
 
@@ -69,7 +69,7 @@ describe('MigrationValidationService - Transaction Validation', () => {
          */
         it('should error when database does not support transactions', () => {
             config.transaction.mode = TransactionMode.PER_MIGRATION;
-            const scripts: MigrationScript[] = [];
+            const scripts: MigrationScript<IDB>[] = [];
 
             const issues = validationService.validateTransactionConfiguration(handler, config, scripts);
 
@@ -96,7 +96,7 @@ describe('MigrationValidationService - Transaction Validation', () => {
             };
 
             handler.db = transactionalDB as IDB;
-            const scripts: MigrationScript[] = [];
+            const scripts: MigrationScript<IDB>[] = [];
 
             const issues = validationService.validateTransactionConfiguration(handler, config, scripts);
 
@@ -120,7 +120,7 @@ describe('MigrationValidationService - Transaction Validation', () => {
             };
 
             handler.db = callbackDB as IDB;
-            const scripts: MigrationScript[] = [];
+            const scripts: MigrationScript<IDB>[] = [];
 
             const issues = validationService.validateTransactionConfiguration(handler, config, scripts);
 
@@ -146,7 +146,7 @@ describe('MigrationValidationService - Transaction Validation', () => {
             };
 
             handler.db = transactionalDB as IDB;
-            const scripts: MigrationScript[] = [];
+            const scripts: MigrationScript<IDB>[] = [];
 
             const issues = validationService.validateTransactionConfiguration(handler, config, scripts);
 
@@ -176,7 +176,7 @@ describe('MigrationValidationService - Transaction Validation', () => {
             };
 
             handler.db = transactionalDB as IDB;
-            const scripts: MigrationScript[] = [];
+            const scripts: MigrationScript<IDB>[] = [];
 
             const issues = validationService.validateTransactionConfiguration(handler, config, scripts);
 
@@ -204,7 +204,7 @@ describe('MigrationValidationService - Transaction Validation', () => {
             };
 
             handler.db = transactionalDB as IDB;
-            const scripts: MigrationScript[] = [];
+            const scripts: MigrationScript<IDB>[] = [];
 
             const issues = validationService.validateTransactionConfiguration(handler, config, scripts);
 
@@ -234,7 +234,7 @@ describe('MigrationValidationService - Transaction Validation', () => {
             };
 
             handler.db = transactionalDB as IDB;
-            const scripts: MigrationScript[] = [];
+            const scripts: MigrationScript<IDB>[] = [];
 
             const issues = validationService.validateTransactionConfiguration(handler, config, scripts);
 
@@ -264,9 +264,9 @@ describe('MigrationValidationService - Transaction Validation', () => {
             handler.db = transactionalDB as IDB;
 
             // Create 15 migration scripts (more than 10 threshold)
-            const scripts: MigrationScript[] = [];
+            const scripts: MigrationScript<IDB>[] = [];
             for (let i = 1; i <= 15; i++) {
-                scripts.push(new MigrationScript(`V${i}_test.ts`, `/path/V${i}_test.ts`, i));
+                scripts.push(new MigrationScript<IDB>(`V${i}_test.ts`, `/path/V${i}_test.ts`, i));
             }
 
             const issues = validationService.validateTransactionConfiguration(handler, config, scripts);
@@ -299,9 +299,9 @@ describe('MigrationValidationService - Transaction Validation', () => {
             handler.db = transactionalDB as IDB;
 
             // Create 25 migration scripts (more than 20 threshold)
-            const scripts: MigrationScript[] = [];
+            const scripts: MigrationScript<IDB>[] = [];
             for (let i = 1; i <= 25; i++) {
-                scripts.push(new MigrationScript(`V${i}_test.ts`, `/path/V${i}_test.ts`, i));
+                scripts.push(new MigrationScript<IDB>(`V${i}_test.ts`, `/path/V${i}_test.ts`, i));
             }
 
             const issues = validationService.validateTransactionConfiguration(handler, config, scripts);
@@ -333,9 +333,9 @@ describe('MigrationValidationService - Transaction Validation', () => {
             handler.db = transactionalDB as IDB;
 
             // Even with many scripts, no warning in PER_MIGRATION mode
-            const scripts: MigrationScript[] = [];
+            const scripts: MigrationScript<IDB>[] = [];
             for (let i = 1; i <= 25; i++) {
-                scripts.push(new MigrationScript(`V${i}_test.ts`, `/path/V${i}_test.ts`, i));
+                scripts.push(new MigrationScript<IDB>(`V${i}_test.ts`, `/path/V${i}_test.ts`, i));
             }
 
             const issues = validationService.validateTransactionConfiguration(handler, config, scripts);
@@ -366,9 +366,9 @@ describe('MigrationValidationService - Transaction Validation', () => {
             handler.db = transactionalDB as IDB;
 
             // Only 5 scripts (below threshold)
-            const scripts: MigrationScript[] = [];
+            const scripts: MigrationScript<IDB>[] = [];
             for (let i = 1; i <= 5; i++) {
-                scripts.push(new MigrationScript(`V${i}_test.ts`, `/path/V${i}_test.ts`, i));
+                scripts.push(new MigrationScript<IDB>(`V${i}_test.ts`, `/path/V${i}_test.ts`, i));
             }
 
             const issues = validationService.validateTransactionConfiguration(handler, config, scripts);
@@ -398,8 +398,8 @@ describe('MigrationValidationService - Transaction Validation', () => {
 
             handler.db = transactionalDB as IDB;
 
-            const scripts: MigrationScript[] = [
-                new MigrationScript('V1_test.ts', '/path/V1_test.ts', 1)
+            const scripts: MigrationScript<IDB>[] = [
+                new MigrationScript<IDB>('V1_test.ts', '/path/V1_test.ts', 1)
             ];
 
             const issues = validationService.validateTransactionConfiguration(handler, config, scripts);

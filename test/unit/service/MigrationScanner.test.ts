@@ -1,6 +1,7 @@
 import {expect} from 'chai';
 import * as sinon from 'sinon';
-import {MigrationScanner} from '../../../src/service/MigrationScanner';
+import { MigrationScanner } from '../../../src/service/MigrationScanner';
+import { IDB } from '../../../src/interface/dao';
 import {MigrationScriptSelector} from '../../../src/service/MigrationScriptSelector';
 import {IMigrationService} from '../../../src/interface/service/IMigrationService';
 import {ISchemaVersionService} from '../../../src/interface/service/ISchemaVersionService';
@@ -19,28 +20,28 @@ import {IMigrationInfo} from '../../../src/interface/IMigrationInfo';
  * - Error propagation from both services
  */
 describe('MigrationScanner', () => {
-    let scanner: MigrationScanner;
-    let migrationService: sinon.SinonStubbedInstance<IMigrationService>;
-    let schemaVersionService: sinon.SinonStubbedInstance<ISchemaVersionService>;
-    let selector: MigrationScriptSelector;
+    let scanner: MigrationScanner<IDB>;
+    let migrationService: sinon.SinonStubbedInstance<IMigrationService<IDB>>;
+    let schemaVersionService: sinon.SinonStubbedInstance<ISchemaVersionService<IDB>>;
+    let selector: MigrationScriptSelector<IDB>;
     let config: Config;
 
     beforeEach(() => {
         // Create stubs for services
         migrationService = {
             findMigrationScripts: sinon.stub()
-        } as sinon.SinonStubbedInstance<IMigrationService>;
+        } as sinon.SinonStubbedInstance<IMigrationService<IDB>>;
 
         schemaVersionService = {
             getAllMigratedScripts: sinon.stub(),
             init: sinon.stub(),
             save: sinon.stub()
-        } as sinon.SinonStubbedInstance<ISchemaVersionService>;
+        } as sinon.SinonStubbedInstance<ISchemaVersionService<IDB>>;
 
-        selector = new MigrationScriptSelector();
+        selector = new MigrationScriptSelector<IDB>();
         config = new Config();
 
-        scanner = new MigrationScanner(
+        scanner = new MigrationScanner<IDB>(
             migrationService,
             schemaVersionService,
             selector,
@@ -56,18 +57,18 @@ describe('MigrationScanner', () => {
         it('should scan and return complete migration state', async () => {
             // Setup test data
             const now = Date.now();
-            const migratedInfo = new MigrationScript('V100_migration.ts', '/path/V100_migration.ts', 100);
+            const migratedInfo = new MigrationScript<IDB>('V100_migration.ts', '/path/V100_migration.ts', 100);
             migratedInfo.startedAt = now - 1000;
             migratedInfo.finishedAt = now;
             migratedInfo.username = 'test';
             migratedInfo.result = 'success';
 
-            const migratedScripts: MigrationScript[] = [migratedInfo];
+            const migratedScripts: MigrationScript<IDB>[] = [migratedInfo];
 
-            const allScripts: MigrationScript[] = [
-                new MigrationScript('V100_migration.ts', '/path/V100_migration.ts', 100),
-                new MigrationScript('V200_migration.ts', '/path/V200_migration.ts', 200),
-                new MigrationScript('V300_migration.ts', '/path/V300_migration.ts', 300)
+            const allScripts: MigrationScript<IDB>[] = [
+                new MigrationScript<IDB>('V100_migration.ts', '/path/V100_migration.ts', 100),
+                new MigrationScript<IDB>('V200_migration.ts', '/path/V200_migration.ts', 200),
+                new MigrationScript<IDB>('V300_migration.ts', '/path/V300_migration.ts', 300)
             ];
 
             schemaVersionService.getAllMigratedScripts.resolves(migratedScripts);
@@ -92,25 +93,25 @@ describe('MigrationScanner', () => {
 
         it('should identify pending migrations correctly', async () => {
             const now = Date.now();
-            const migratedScript1 = new MigrationScript('V100_migration.ts', '/path/V100_migration.ts', 100);
+            const migratedScript1 = new MigrationScript<IDB>('V100_migration.ts', '/path/V100_migration.ts', 100);
             migratedScript1.startedAt = now - 1000;
             migratedScript1.finishedAt = now;
             migratedScript1.username = 'test';
             migratedScript1.result = 'success';
 
-            const migratedScript2 = new MigrationScript('V200_migration.ts', '/path/V200_migration.ts', 200);
+            const migratedScript2 = new MigrationScript<IDB>('V200_migration.ts', '/path/V200_migration.ts', 200);
             migratedScript2.startedAt = now - 1000;
             migratedScript2.finishedAt = now;
             migratedScript2.username = 'test';
             migratedScript2.result = 'success';
 
-            const migratedScripts: MigrationScript[] = [migratedScript1, migratedScript2];
+            const migratedScripts: MigrationScript<IDB>[] = [migratedScript1, migratedScript2];
 
-            const allScripts: MigrationScript[] = [
-                new MigrationScript('V100_migration.ts', '/path/V100_migration.ts', 100),
-                new MigrationScript('V200_migration.ts', '/path/V200_migration.ts', 200),
-                new MigrationScript('V300_migration.ts', '/path/V300_migration.ts', 300),
-                new MigrationScript('V400_migration.ts', '/path/V400_migration.ts', 400)
+            const allScripts: MigrationScript<IDB>[] = [
+                new MigrationScript<IDB>('V100_migration.ts', '/path/V100_migration.ts', 100),
+                new MigrationScript<IDB>('V200_migration.ts', '/path/V200_migration.ts', 200),
+                new MigrationScript<IDB>('V300_migration.ts', '/path/V300_migration.ts', 300),
+                new MigrationScript<IDB>('V400_migration.ts', '/path/V400_migration.ts', 400)
             ];
 
             schemaVersionService.getAllMigratedScripts.resolves(migratedScripts);
@@ -125,18 +126,18 @@ describe('MigrationScanner', () => {
 
         it('should identify ignored migrations correctly', async () => {
             const now = Date.now();
-            const migratedScript = new MigrationScript('V200_migration.ts', '/path/V200_migration.ts', 200);
+            const migratedScript = new MigrationScript<IDB>('V200_migration.ts', '/path/V200_migration.ts', 200);
             migratedScript.startedAt = now - 1000;
             migratedScript.finishedAt = now;
             migratedScript.username = 'test';
             migratedScript.result = 'success';
 
-            const migratedScripts: MigrationScript[] = [migratedScript];
+            const migratedScripts: MigrationScript<IDB>[] = [migratedScript];
 
-            const allScripts: MigrationScript[] = [
-                new MigrationScript('V100_migration.ts', '/path/V100_migration.ts', 100), // Ignored (older than last)
-                new MigrationScript('V200_migration.ts', '/path/V200_migration.ts', 200), // Already executed
-                new MigrationScript('V300_migration.ts', '/path/V300_migration.ts', 300)  // Pending
+            const allScripts: MigrationScript<IDB>[] = [
+                new MigrationScript<IDB>('V100_migration.ts', '/path/V100_migration.ts', 100), // Ignored (older than last)
+                new MigrationScript<IDB>('V200_migration.ts', '/path/V200_migration.ts', 200), // Already executed
+                new MigrationScript<IDB>('V300_migration.ts', '/path/V300_migration.ts', 300)  // Pending
             ];
 
             schemaVersionService.getAllMigratedScripts.resolves(migratedScripts);
@@ -165,23 +166,23 @@ describe('MigrationScanner', () => {
 
         it('should handle all migrations already executed', async () => {
             const now = Date.now();
-            const migratedScript1 = new MigrationScript('V100_migration.ts', '/path/V100_migration.ts', 100);
+            const migratedScript1 = new MigrationScript<IDB>('V100_migration.ts', '/path/V100_migration.ts', 100);
             migratedScript1.startedAt = now - 1000;
             migratedScript1.finishedAt = now;
             migratedScript1.username = 'test';
             migratedScript1.result = 'success';
 
-            const migratedScript2 = new MigrationScript('V200_migration.ts', '/path/V200_migration.ts', 200);
+            const migratedScript2 = new MigrationScript<IDB>('V200_migration.ts', '/path/V200_migration.ts', 200);
             migratedScript2.startedAt = now - 1000;
             migratedScript2.finishedAt = now;
             migratedScript2.username = 'test';
             migratedScript2.result = 'success';
 
-            const migratedScripts: MigrationScript[] = [migratedScript1, migratedScript2];
+            const migratedScripts: MigrationScript<IDB>[] = [migratedScript1, migratedScript2];
 
-            const allScripts: MigrationScript[] = [
-                new MigrationScript('V100_migration.ts', '/path/V100_migration.ts', 100),
-                new MigrationScript('V200_migration.ts', '/path/V200_migration.ts', 200)
+            const allScripts: MigrationScript<IDB>[] = [
+                new MigrationScript<IDB>('V100_migration.ts', '/path/V100_migration.ts', 100),
+                new MigrationScript<IDB>('V200_migration.ts', '/path/V200_migration.ts', 200)
             ];
 
             schemaVersionService.getAllMigratedScripts.resolves(migratedScripts);
@@ -194,10 +195,10 @@ describe('MigrationScanner', () => {
         });
 
         it('should handle first migration run (no executed migrations)', async () => {
-            const allScripts: MigrationScript[] = [
-                new MigrationScript('V100_migration.ts', '/path/V100_migration.ts', 100),
-                new MigrationScript('V200_migration.ts', '/path/V200_migration.ts', 200),
-                new MigrationScript('V300_migration.ts', '/path/V300_migration.ts', 300)
+            const allScripts: MigrationScript<IDB>[] = [
+                new MigrationScript<IDB>('V100_migration.ts', '/path/V100_migration.ts', 100),
+                new MigrationScript<IDB>('V200_migration.ts', '/path/V200_migration.ts', 200),
+                new MigrationScript<IDB>('V300_migration.ts', '/path/V300_migration.ts', 300)
             ];
 
             schemaVersionService.getAllMigratedScripts.resolves([]);
@@ -211,8 +212,8 @@ describe('MigrationScanner', () => {
         });
 
         it('should call services in parallel for performance', async () => {
-            const migratedScripts: MigrationScript[] = [];
-            const allScripts: MigrationScript[] = [];
+            const migratedScripts: MigrationScript<IDB>[] = [];
+            const allScripts: MigrationScript<IDB>[] = [];
 
             schemaVersionService.getAllMigratedScripts.resolves(migratedScripts);
             migrationService.findMigrationScripts.resolves(allScripts);

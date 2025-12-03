@@ -128,7 +128,7 @@ class PostgresDB implements ISqlDB {
 }
 
 // Usage in handler
-export class PostgresHandler implements IDatabaseMigrationHandler {
+export class PostgresHandler implements IDatabaseMigrationHandler<IDB> {
   db: PostgresDB;
   schemaVersion: ISchemaVersion;
 
@@ -159,7 +159,7 @@ class MySQLDB implements ISqlDB {
 }
 
 // Usage in handler
-export class MySQLHandler implements IDatabaseMigrationHandler {
+export class MySQLHandler implements IDatabaseMigrationHandler<IDB> {
   db: MySQLDB;
   schemaVersion: ISchemaVersion;
 
@@ -202,7 +202,7 @@ class SQLiteDB implements ISqlDB {
 }
 
 // Usage in handler
-export class SQLiteHandler implements IDatabaseMigrationHandler {
+export class SQLiteHandler implements IDatabaseMigrationHandler<IDB> {
   db: SQLiteDB;
   schemaVersion: ISchemaVersion;
 
@@ -710,7 +710,7 @@ import { PostgresDB } from './postgres-db';
 import { PostgresSchemaVersion } from './schema-version';
 import { PostgresBackup } from './backup';
 
-export class PostgresHandler implements IDatabaseMigrationHandler {
+export class PostgresHandler implements IDatabaseMigrationHandler<IDB> {
   db: PostgresDB;
   schemaVersion: ISchemaVersion;
   backup?: IBackup;

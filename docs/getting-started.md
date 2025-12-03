@@ -82,24 +82,36 @@ yarn add @migration-script-runner/core
 
 ## Implementing Your Database Handler
 
-MSR is database-agnostic. You need to implement the `IDatabaseMigrationHandler` interface for your specific database:
+MSR is database-agnostic. You need to implement the `IDatabaseMigrationHandler` interface for your specific database.
+
+**New in v0.6.0:** Generic type parameters provide full type safety for database-specific operations.
 
 ```typescript
 import { IDatabaseMigrationHandler, IMigrationInfo, IBackup, IDB, ISchemaVersion } from '@migration-script-runner/core';
 
-export class MyDatabaseHandler implements IDatabaseMigrationHandler {
+// Define your database type (extends IDB)
+interface IMyDatabase extends IDB {
+  query(sql: string, params?: unknown[]): Promise<unknown[]>;
+  // Add other database-specific methods here
+}
 
-  // Your database connection
-  db: IDB;
+export class MyDatabaseHandler implements IDatabaseMigrationHandler<IMyDatabase> {
 
-  // Schema version tracking (required)
-  schemaVersion: ISchemaVersion;
+  // Your database connection (typed!)
+  db: IMyDatabase;
+
+  // Schema version tracking (required, typed)
+  schemaVersion: ISchemaVersion<IMyDatabase>;
 
   // Backup interface (optional - only needed for BACKUP or BOTH rollback strategies)
-  backup?: IBackup;
+  backup?: IBackup<IMyDatabase>;
 
   getName(): string {
     return 'MyDatabaseHandler';
+  }
+
+  getVersion(): string {
+    return '1.0.0';
   }
 
 }
@@ -146,20 +158,21 @@ Example: `V202501220100_initial_setup.ts`
 ```typescript
 import { IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB } from '@migration-script-runner/core';
 
-// Define your database type for type safety
+// Define your database type for type safety (v0.6.0+)
 interface IMyDatabase extends IDB {
   query(sql: string, params?: unknown[]): Promise<unknown[]>;
 }
 
-export default class InitialSetup implements IRunnableScript {
+export default class InitialSetup implements IRunnableScript<IMyDatabase> {
 
   async up(
     db: IMyDatabase,
     info: IMigrationInfo,
-    handler: IDatabaseMigrationHandler
+    handler: IDatabaseMigrationHandler<IMyDatabase>
   ): Promise<string> {
 
     // Your migration logic here with full type safety
+    // ✅ db is IMyDatabase - full autocomplete for query()
     console.log('Running initial setup...');
 
     // Example: create tables, insert data, etc.
@@ -172,7 +185,7 @@ export default class InitialSetup implements IRunnableScript {
   async down(
     db: IMyDatabase,
     info: IMigrationInfo,
-    handler: IDatabaseMigrationHandler
+    handler: IDatabaseMigrationHandler<IMyDatabase>
   ): Promise<string> {
 
     // Reverse the changes made in up()
@@ -214,22 +227,35 @@ DROP TABLE IF EXISTS products;
 
 **ISqlDB Interface:**
 
-For SQL migrations, your database must implement `ISqlDB`:
+For SQL migrations, your database must implement `ISqlDB`.
+
+**New in v0.6.0:** ISqlDB is now generic for better type safety.
 
 ```typescript
-import { ISqlDB } from '@migration-script-runner/core';
+import { ISqlDB, IDB } from '@migration-script-runner/core';
 import { Pool } from 'pg';
 
-class PostgresDB implements ISqlDB {
+// Define PostgreSQL-specific interface
+interface IPostgresDB extends IDB, ISqlDB {
+  query(sql: string): Promise<any>;
+  // Add other PostgreSQL-specific methods
+}
+
+class PostgresDB implements IPostgresDB {
   constructor(private pool: Pool) {}
 
-  async query(sql: string): Promise<unknown> {
+  async query(sql: string): Promise<any> {
     const result = await this.pool.query(sql);
     return result.rows;
   }
 
-  async checkConnection(): Promise<void> {
-    await this.pool.query('SELECT 1');
+  async checkConnection(): Promise<boolean> {
+    try {
+      await this.pool.query('SELECT 1');
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 ```
@@ -383,10 +409,11 @@ Use MSR as a library to integrate migrations into your application without termi
 
 ```typescript
 import { MigrationScriptExecutor, IMigrationResult, Config } from '@migration-script-runner/core';
+import { IMyDatabase } from './types';
 
 const config = new Config();
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor<IMyDatabase>({ handler }, config);
 
 // Run migrations and get structured results
 const result: IMigrationResult = await executor.up();
@@ -417,10 +444,11 @@ For standalone migration scripts, control the process exit based on results:
 
 ```typescript
 import { MigrationScriptExecutor, Config } from '@migration-script-runner/core';
+import { IMyDatabase } from './types';
 
 const config = new Config();
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor<IMyDatabase>({ handler }, config);
 
 const result = await executor.up();
 process.exit(result.success ? 0 : 1);
@@ -565,7 +593,7 @@ Create a file named `beforeMigrate.ts` in your migrations folder:
 import fs from 'fs';
 import {IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB} from 'migration-script-runner';
 
-export default class BeforeMigrate implements IRunnableScript {
+export default class BeforeMigrate implements IRunnableScript<IDB> {
   async up(
     db: IDB,
     info: IMigrationInfo,
@@ -592,7 +620,7 @@ export default class BeforeMigrate implements IRunnableScript {
 // migrations/beforeMigrate.ts
 import {IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB} from 'migration-script-runner';
 
-export default class BeforeMigrate implements IRunnableScript {
+export default class BeforeMigrate implements IRunnableScript<IDB> {
   async up(
     db: IDB,
     info: IMigrationInfo,
@@ -623,7 +651,7 @@ export default class BeforeMigrate implements IRunnableScript {
 // migrations/beforeMigrate.ts
 import {IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB} from 'migration-script-runner';
 
-export default class BeforeMigrate implements IRunnableScript {
+export default class BeforeMigrate implements IRunnableScript<IDB> {
   async up(
     db: IDB,
     info: IMigrationInfo,
@@ -648,7 +676,7 @@ export default class BeforeMigrate implements IRunnableScript {
 // migrations/beforeMigrate.ts
 import {IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB} from 'migration-script-runner';
 
-export default class BeforeMigrate implements IRunnableScript {
+export default class BeforeMigrate implements IRunnableScript<IDB> {
   async up(
     db: IDB,
     info: IMigrationInfo,

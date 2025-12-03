@@ -1,12 +1,18 @@
 import {IValidationIssue} from "./IValidationIssue";
 import {MigrationScript} from "../../model";
+import {IDB} from "../dao";
 
 /**
  * Result of validating a single migration script.
  *
  * Contains validation status, any issues found, and reference to the validated script.
+ *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
  */
-export interface IValidationResult {
+export interface IValidationResult<DB extends IDB> {
     /**
      * Whether validation passed (no errors).
      *
@@ -27,7 +33,7 @@ export interface IValidationResult {
     issues: IValidationIssue[];
 
     /**
-     * The migration script that was validated.
+     * The migration script that was validated (typed with generic DB parameter in v0.6.0).
      */
-    script: MigrationScript;
+    script: MigrationScript<DB>;
 }

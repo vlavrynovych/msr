@@ -6,7 +6,7 @@ import os from 'node:os';
 
 describe('MigrationScriptExecutor - Validation Error Paths Coverage', () => {
     let tempDir: string;
-    let handler: IDatabaseMigrationHandler;
+    let handler: IDatabaseMigrationHandler<IDB>;
     let config: Config;
     const db: IDB = new class implements IDB {
         [key: string]: unknown;
@@ -37,10 +37,10 @@ describe('MigrationScriptExecutor - Validation Error Paths Coverage', () => {
                         return Promise.resolve(undefined);
                     }
                 }
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             getName: () => 'TestHandler',
             getVersion: () => '1.0.0-test',
-        } as IDatabaseMigrationHandler;
+        } as IDatabaseMigrationHandler<IDB>;
     });
 
     afterEach(() => {
@@ -83,9 +83,8 @@ describe('MigrationScriptExecutor - Validation Error Paths Coverage', () => {
             })
         }];
 
-        const executor = new MigrationScriptExecutor(handler, config, {
-            logger: new SilentLogger()
-        });
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
+}, config);
 
         const result = await executor.migrate();
 
@@ -117,9 +116,8 @@ describe('MigrationScriptExecutor - Validation Error Paths Coverage', () => {
             migrationContent
         );
 
-        const executor = new MigrationScriptExecutor(handler, config, {
-            logger: new SilentLogger()
-        });
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
+}, config);
 
         // Should succeed with warnings
         const result = await executor.migrate();
@@ -149,9 +147,8 @@ describe('MigrationScriptExecutor - Validation Error Paths Coverage', () => {
             migrationContent
         );
 
-        const executor = new MigrationScriptExecutor(handler, config, {
-            logger: new SilentLogger()
-        });
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
+}, config);
 
         const result = await executor.migrate();
 
@@ -196,9 +193,8 @@ describe('MigrationScriptExecutor - Validation Error Paths Coverage', () => {
         // Now modify the file to create checksum mismatch
         fs.writeFileSync(filepath, migrationContent + '// Modified');
 
-        const executor = new MigrationScriptExecutor(handler, config, {
-            logger: new SilentLogger()
-        });
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
+}, config);
 
         const result = await executor.migrate();
 
@@ -275,10 +271,9 @@ describe('MigrationScriptExecutor - Validation Error Paths Coverage', () => {
             log: (msg: string) => loggedMessages.push(`LOG: ${msg}`)
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {
-            logger: capturingLogger,
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: capturingLogger,
             migrationScanner: mockScanner as any
-        });
+}, config);
 
         try {
             await executor.migrate();

@@ -21,9 +21,9 @@ import {TestUtils} from "../../helpers/TestUtils";
  */
 describe('MigrationScriptExecutor - Hooks Integration', () => {
 
-    let handler: IDatabaseMigrationHandler;
-    let executor: MigrationScriptExecutor;
-    let mockHooks: IMigrationHooks;
+    let handler: IDatabaseMigrationHandler<IDB>;
+    let executor: MigrationScriptExecutor<IDB>;
+    let mockHooks: IMigrationHooks<IDB>;
     let cfg: Config;
 
     before(() => {
@@ -36,12 +36,12 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
                 return true;
             }
         }
-        handler = new class implements IDatabaseMigrationHandler {
-            backup: IBackup = {
+        handler = new class implements IDatabaseMigrationHandler<IDB> {
+            backup: IBackup<IDB> = {
                 backup(): Promise<string> { return Promise.resolve('content') },
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
             };
-            schemaVersion: ISchemaVersion = {
+            schemaVersion: ISchemaVersion<IDB> = {
                 migrationRecords: {
                     getAllExecuted(): Promise<any> {
                         return Promise.resolve([]);
@@ -61,8 +61,8 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
             getName(): string { return "Test Implementation" }
             getVersion(): string { return "1.0.0-test" }
         }
-        executor = new MigrationScriptExecutor(handler, cfg, {logger: new SilentLogger()});
-    });
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, cfg);
+});
 
     beforeEach(() => {
         // Create mock hooks with all methods
@@ -85,10 +85,9 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
      * Verifies that all lifecycle hooks are called during successful migration
      */
     it('should call all success path hooks during migration', async () => {
-        executor = new MigrationScriptExecutor(handler, cfg, {
-            logger: new SilentLogger(),
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: mockHooks
-        });
+}, cfg);
 
         const result = await executor.migrate();
 
@@ -114,10 +113,9 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
      * Verifies that hooks receive expected parameters
      */
     it('should call hooks with correct parameters', async () => {
-        executor = new MigrationScriptExecutor(handler, cfg, {
-            logger: new SilentLogger(),
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: mockHooks
-        });
+}, cfg);
 
         const result = await executor.migrate();
 
@@ -150,10 +148,9 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
      * Verifies backward compatibility when no hooks are provided
      */
     it('should work without hooks provided', async () => {
-        executor = new MigrationScriptExecutor(handler, cfg, {
-            logger: new SilentLogger()
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
             // No hooks provided
-        });
+}, cfg);
 
         const result = await executor.migrate();
 
@@ -165,16 +162,15 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
      * Verifies optional chaining works when only some hooks are implemented
      */
     it('should work with partial hook implementation', async () => {
-        const partialHooks: IMigrationHooks = {
+        const partialHooks: IMigrationHooks<IDB> = {
             onStart: sinon.stub().resolves(),
             onComplete: sinon.stub().resolves()
             // Only two hooks implemented
         };
 
-        executor = new MigrationScriptExecutor(handler, cfg, {
-            logger: new SilentLogger(),
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: partialHooks
-        });
+}, cfg);
 
         const result = await executor.migrate();
 
@@ -189,7 +185,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
      */
     it('should call error hooks when migration fails', async () => {
         // Create a handler that will fail during migration
-        const failingHandler: IDatabaseMigrationHandler = {
+        const failingHandler: IDatabaseMigrationHandler<IDB> = {
             db: handler.db,
             getName: handler.getName.bind(handler),
             getVersion: handler.getVersion.bind(handler),
@@ -208,10 +204,9 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
             }
         };
 
-        executor = new MigrationScriptExecutor(failingHandler, cfg, {
-            logger: new SilentLogger(),
+        executor = new MigrationScriptExecutor<IDB>({ handler: failingHandler, logger: new SilentLogger(),
             hooks: mockHooks
-        });
+}, cfg);
 
         try {
             await executor.migrate();
@@ -235,7 +230,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
     it('should call hooks in correct order', async () => {
         const callOrder: string[] = [];
 
-        const orderTrackingHooks: IMigrationHooks = {
+        const orderTrackingHooks: IMigrationHooks<IDB> = {
             onBeforeBackup: sinon.stub().callsFake(async () => {
                 callOrder.push('onBeforeBackup');
             }),
@@ -256,10 +251,9 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
             })
         };
 
-        executor = new MigrationScriptExecutor(handler, cfg, {
-            logger: new SilentLogger(),
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: orderTrackingHooks
-        });
+}, cfg);
 
         await executor.migrate();
 
@@ -285,10 +279,9 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
      * Verifies backup path is passed to the hook
      */
     it('should pass backup path to onAfterBackup hook', async () => {
-        executor = new MigrationScriptExecutor(handler, cfg, {
-            logger: new SilentLogger(),
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: mockHooks
-        });
+}, cfg);
 
         await executor.migrate();
 
@@ -306,7 +299,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
      */
     it('should call hooks even when no migrations to execute', async () => {
         // Configure handler to return all scripts as already migrated
-        const allMigratedHandler: IDatabaseMigrationHandler = {
+        const allMigratedHandler: IDatabaseMigrationHandler<IDB> = {
             db: handler.db,
             getName: handler.getName.bind(handler),
             getVersion: handler.getVersion.bind(handler),
@@ -331,10 +324,9 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
             }
         };
 
-        executor = new MigrationScriptExecutor(allMigratedHandler, cfg, {
-            logger: new SilentLogger(),
+        executor = new MigrationScriptExecutor<IDB>({ handler: allMigratedHandler, logger: new SilentLogger(),
             hooks: mockHooks
-        });
+}, cfg);
 
         const result = await executor.migrate();
 
@@ -356,7 +348,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
      * Verifies migration works correctly with only non-migration hooks
      */
     it('should work with only non-migration hooks', async () => {
-        const nonMigrationHooks: IMigrationHooks = {
+        const nonMigrationHooks: IMigrationHooks<IDB> = {
             onStart: sinon.stub().resolves(),
             onBeforeBackup: sinon.stub().resolves(),
             onAfterBackup: sinon.stub().resolves(),
@@ -364,10 +356,9 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
             // No onBeforeMigrate, onAfterMigrate, or onMigrationError
         };
 
-        executor = new MigrationScriptExecutor(handler, cfg, {
-            logger: new SilentLogger(),
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: nonMigrationHooks
-        });
+}, cfg);
 
         const result = await executor.migrate();
 
@@ -385,15 +376,14 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
      * Verifies optional chaining for onAfterMigrate and onMigrationError
      */
     it('should handle when only onBeforeMigrate is implemented', async () => {
-        const partialMigrationHooks: IMigrationHooks = {
+        const partialMigrationHooks: IMigrationHooks<IDB> = {
             onBeforeMigrate: sinon.stub().resolves()
             // No onAfterMigrate or onMigrationError
         };
 
-        executor = new MigrationScriptExecutor(handler, cfg, {
-            logger: new SilentLogger(),
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: partialMigrationHooks
-        });
+}, cfg);
 
         const result = await executor.migrate();
 
@@ -406,15 +396,14 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
      * Verifies optional chaining for onBeforeMigrate and onMigrationError
      */
     it('should handle when only onAfterMigrate is implemented', async () => {
-        const partialMigrationHooks: IMigrationHooks = {
+        const partialMigrationHooks: IMigrationHooks<IDB> = {
             onAfterMigrate: sinon.stub().resolves()
             // No onBeforeMigrate or onMigrationError
         };
 
-        executor = new MigrationScriptExecutor(handler, cfg, {
-            logger: new SilentLogger(),
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: partialMigrationHooks
-        });
+}, cfg);
 
         const result = await executor.migrate();
 
@@ -427,15 +416,14 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
      * Verifies optional chaining for onBeforeMigrate and onAfterMigrate
      */
     it('should handle when only onMigrationError is implemented', async () => {
-        const errorOnlyHook: IMigrationHooks = {
+        const errorOnlyHook: IMigrationHooks<IDB> = {
             onMigrationError: sinon.stub().resolves()
             // No onBeforeMigrate or onAfterMigrate
         };
 
-        executor = new MigrationScriptExecutor(handler, cfg, {
-            logger: new SilentLogger(),
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: errorOnlyHook
-        });
+}, cfg);
 
         const result = await executor.migrate();
 
@@ -445,26 +433,25 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
     });
 
     /**
-     * Test: CompositeHooks integration
+     * Test: CompositeHooks<IDB> integration
      * Verifies CompositeHooks works correctly with multiple hook implementations
      */
     it('should work with CompositeHooks', async () => {
-        const hook1: IMigrationHooks = {
+        const hook1: IMigrationHooks<IDB> = {
             onStart: sinon.stub().resolves(),
             onComplete: sinon.stub().resolves()
         };
 
-        const hook2: IMigrationHooks = {
+        const hook2: IMigrationHooks<IDB> = {
             onBeforeBackup: sinon.stub().resolves(),
             onAfterBackup: sinon.stub().resolves()
         };
 
-        const compositeHooks = new CompositeHooks([hook1, hook2]);
+        const compositeHooks = new CompositeHooks<IDB>([hook1, hook2]);
 
-        executor = new MigrationScriptExecutor(handler, cfg, {
-            logger: new SilentLogger(),
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: compositeHooks
-        });
+}, cfg);
 
         const result = await executor.migrate();
 

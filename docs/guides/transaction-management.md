@@ -1349,7 +1349,7 @@ const executor = new MigrationScriptExecutor(
 
 - Read [Configuration: Transaction Settings](../configuration/transaction-settings.md) for detailed API reference
 - Review [API: ITransactionalDB](../api/interfaces/db.md#itransactionaldb) interface documentation
-- See [API: ITransactionManager](../api/interfaces/index.md#itransactionmanager) for custom implementations
+- See [API: ITransactionManager<IDB>](../api/interfaces/index.md#itransactionmanager) for custom implementations
 - Check [Recipes: Testing Migrations](recipes/testing-migrations.md) for testing strategies
 
 ---

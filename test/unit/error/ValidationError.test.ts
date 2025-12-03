@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { ValidationError, ValidationIssueType, IValidationResult } from '../../../src';
+import { IDB, IValidationResult, ValidationError, ValidationIssueType } from '../../../src';
 
 describe('ValidationError', () => {
     describe('errorCount', () => {
@@ -9,7 +9,7 @@ describe('ValidationError', () => {
          * from all validation results, ignoring WARNING-type issues.
          */
         it('should count total errors across all validation results', () => {
-            const results: IValidationResult[] = [
+            const results: IValidationResult<IDB>[] = [
                 {
                     valid: false,
                     issues: [
@@ -28,7 +28,7 @@ describe('ValidationError', () => {
                 }
             ];
 
-            const error = new ValidationError('Validation failed', results);
+            const error = new ValidationError<IDB>('Validation failed', results);
 
             expect(error.errorCount).to.equal(3);
         });
@@ -39,7 +39,7 @@ describe('ValidationError', () => {
          * WARNING-type, ensuring proper distinction between errors and warnings.
          */
         it('should return 0 when no errors exist', () => {
-            const results: IValidationResult[] = [
+            const results: IValidationResult<IDB>[] = [
                 {
                     valid: true,
                     issues: [
@@ -49,7 +49,7 @@ describe('ValidationError', () => {
                 }
             ];
 
-            const error = new ValidationError('Validation warnings', results);
+            const error = new ValidationError<IDB>('Validation warnings', results);
 
             expect(error.errorCount).to.equal(0);
         });
@@ -62,7 +62,7 @@ describe('ValidationError', () => {
          * from all validation results, ignoring ERROR-type issues.
          */
         it('should count total warnings across all validation results', () => {
-            const results: IValidationResult[] = [
+            const results: IValidationResult<IDB>[] = [
                 {
                     valid: true,
                     issues: [
@@ -81,7 +81,7 @@ describe('ValidationError', () => {
                 }
             ];
 
-            const error = new ValidationError('Validation issues', results);
+            const error = new ValidationError<IDB>('Validation issues', results);
 
             expect(error.warningCount).to.equal(3);
         });
@@ -92,7 +92,7 @@ describe('ValidationError', () => {
          * ERROR-type, ensuring proper distinction between warnings and errors.
          */
         it('should return 0 when no warnings exist', () => {
-            const results: IValidationResult[] = [
+            const results: IValidationResult<IDB>[] = [
                 {
                     valid: false,
                     issues: [
@@ -102,7 +102,7 @@ describe('ValidationError', () => {
                 }
             ];
 
-            const error = new ValidationError('Validation failed', results);
+            const error = new ValidationError<IDB>('Validation failed', results);
 
             expect(error.warningCount).to.equal(0);
         });
@@ -115,8 +115,8 @@ describe('ValidationError', () => {
          * and error handling purposes.
          */
         it('should set name property to ValidationError', () => {
-            const results: IValidationResult[] = [];
-            const error = new ValidationError('Test message', results);
+            const results: IValidationResult<IDB>[] = [];
+            const error = new ValidationError<IDB>('Test message', results);
 
             expect(error.name).to.equal('ValidationError');
         });
@@ -127,8 +127,8 @@ describe('ValidationError', () => {
          * for error reporting and debugging.
          */
         it('should set message property', () => {
-            const results: IValidationResult[] = [];
-            const error = new ValidationError('Test message', results);
+            const results: IValidationResult<IDB>[] = [];
+            const error = new ValidationError<IDB>('Test message', results);
 
             expect(error.message).to.equal('Test message');
         });
@@ -139,26 +139,26 @@ describe('ValidationError', () => {
          * allowing access to detailed validation information for error handling.
          */
         it('should store validation results', () => {
-            const results: IValidationResult[] = [
+            const results: IValidationResult<IDB>[] = [
                 {
                     valid: false,
                     issues: [{ type: ValidationIssueType.ERROR, code: 'E1', message: 'Error' }],
                     script: {} as any
                 }
             ];
-            const error = new ValidationError('Test', results);
+            const error = new ValidationError<IDB>('Test', results);
 
             expect(error.validationResults).to.equal(results);
         });
 
         /**
-         * Test: ValidationError extends Error class
+         * Test: ValidationError<IDB> extends Error class
          * Validates that ValidationError properly extends the Error class,
          * enabling standard error handling patterns (try-catch, instanceof checks).
          */
         it('should be an instance of Error', () => {
-            const results: IValidationResult[] = [];
-            const error = new ValidationError('Test', results);
+            const results: IValidationResult<IDB>[] = [];
+            const error = new ValidationError<IDB>('Test', results);
 
             expect(error).to.be.instanceOf(Error);
         });

@@ -3,6 +3,7 @@ import moment from "moment";
 import {IRenderStrategy, IScripts, IMigrationInfo, ILogger} from "../../interface";
 import {MigrationScript, Config} from "../../model";
 import {ConsoleLogger} from "../../logger";
+import {IDB} from "../../interface/dao";
 
 /**
  * JSON rendering strategy for structured output.
@@ -16,6 +17,8 @@ import {ConsoleLogger} from "../../logger";
  *
  * Output can be prettified (indented) or compact (single line).
  *
+ *
+ * @template DB - Database interface type
  * @example
  * ```typescript
  * // Pretty JSON for human reading
@@ -25,7 +28,7 @@ import {ConsoleLogger} from "../../logger";
  * const strategy = new JsonRenderStrategy(false);
  * ```
  */
-export class JsonRenderStrategy implements IRenderStrategy {
+export class JsonRenderStrategy<DB extends IDB> implements IRenderStrategy<DB> {
     /**
      * Creates a new JsonRenderStrategy.
      *
@@ -62,7 +65,7 @@ export class JsonRenderStrategy implements IRenderStrategy {
      * @param scripts - Collection of migration scripts with execution history
      * @param config - Configuration for accessing display limit
      */
-    renderMigrated(scripts: IScripts, config: Config): void {
+    renderMigrated(scripts: IScripts<DB>, config: Config): void {
         if (!scripts.migrated.length) return;
 
         let migrated = scripts.migrated;
@@ -112,7 +115,7 @@ export class JsonRenderStrategy implements IRenderStrategy {
      *
      * @param scripts - Array of pending migration scripts
      */
-    renderPending(scripts: MigrationScript[]): void {
+    renderPending(scripts: MigrationScript<DB>[]): void {
         if (!scripts.length) return;
 
         const output = {
@@ -184,7 +187,7 @@ export class JsonRenderStrategy implements IRenderStrategy {
      *
      * @param scripts - Array of ignored migration scripts
      */
-    renderIgnored(scripts: MigrationScript[]): void {
+    renderIgnored(scripts: MigrationScript<DB>[]): void {
         if (!scripts.length) return;
 
         const output = {

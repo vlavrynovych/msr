@@ -50,11 +50,11 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
      * Validates that the special beforeMigrate.ts file runs before migrations
      */
     it('should execute beforeMigrate.ts if it exists in migrations folder', async () => {
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup(): Promise<string> { return Promise.resolve('content') },
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
                     getAllExecuted(): Promise<any> { return Promise.resolve([]) },
@@ -64,13 +64,13 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, cfg, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, cfg);
         const result = await executor.migrate();
 
         // Verify migration succeeded (beforeMigrate.ts exists in test fixtures)
@@ -82,11 +82,11 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
      * Validates that beforeMigrate is skipped if there's nothing to migrate
      */
     it('should not execute beforeMigrate.ts when no pending migrations', async () => {
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup(): Promise<string> { return Promise.resolve('content') },
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
                     // Return the migration as already executed
@@ -104,13 +104,13 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, cfg, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, cfg);
         const result = await executor.migrate();
 
         // Verify migration succeeded without running beforeMigrate
@@ -150,11 +150,11 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
         tempCfg.recursive = false;
         tempCfg.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup(): Promise<string> { return Promise.resolve('content') },
                 restore: restoreStub
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
                     getAllExecuted(): Promise<any> { return Promise.resolve([]) },
@@ -164,13 +164,13 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, tempCfg, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, tempCfg);
         const result = await executor.migrate();
 
         // Verify migration failed
@@ -228,11 +228,11 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
         tempCfg.validateBeforeRun = false; // Disable validation so migration execution is attempted
         tempCfg.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup: backupStub,
                 restore: restoreStub
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
                     getAllExecuted(): Promise<any> { return Promise.resolve([]) },
@@ -242,13 +242,13 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, tempCfg, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, tempCfg);
         const result = await executor.migrate();
 
         // Verify migration failed
@@ -282,11 +282,11 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
         tempCfg.recursive = false;
         tempCfg.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup(): Promise<string> { return Promise.resolve('content') },
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
                     getAllExecuted(): Promise<any> { return Promise.resolve([]) },
@@ -296,13 +296,13 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, tempCfg, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, tempCfg);
         const result = await executor.migrate();
 
         // Verify migration succeeds without beforeMigrate
@@ -321,11 +321,11 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
     it('should execute beforeMigrate.ts only once, not per migration', async () => {
         // This is validated by the implementation - beforeMigrate runs once before the loop
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup(): Promise<string> { return Promise.resolve('content') },
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
                     getAllExecuted(): Promise<any> { return Promise.resolve([]) },
@@ -335,13 +335,13 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, cfg, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, cfg);
         const result = await executor.migrate();
 
         // Verify migration completed successfully
@@ -360,11 +360,11 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
         tempCfg.beforeMigrateName = null; // Disable beforeMigrate
         tempCfg.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup(): Promise<string> { return Promise.resolve('content') },
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
                     getAllExecuted(): Promise<any> { return Promise.resolve([]) },
@@ -374,13 +374,13 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, tempCfg, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, tempCfg);
         const result = await executor.migrate();
 
         // Verify migration succeeded without beforeMigrate
@@ -401,11 +401,11 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
             log: sinon.spy()
         };
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup(): Promise<string> { return Promise.resolve('content') },
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
                     getAllExecuted(): Promise<any> { return Promise.resolve([]) },
@@ -415,7 +415,7 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
@@ -426,7 +426,10 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
         testCfg.logLevel = 'info';
         testCfg.transaction.mode = TransactionMode.NONE;
 
-        const executor = new MigrationScriptExecutor(handler, testCfg, {logger: mockLogger});
+        const executor = new MigrationScriptExecutor<IDB>({
+            handler: handler,
+            logger: mockLogger
+        }, testCfg);
         const result = await executor.migrate();
 
         // Verify migration succeeded
@@ -481,11 +484,11 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
         tempCfg.recursive = false;
         tempCfg.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup(): Promise<string> { return Promise.resolve('content') },
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
                     getAllExecuted(): Promise<any> { return Promise.resolve([]) },
@@ -495,13 +498,13 @@ describe('MigrationScriptExecutor - beforeMigrate File', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, tempCfg, {logger: mockLogger});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: mockLogger}, tempCfg);
         const result = await executor.migrate();
 
         // Verify migration succeeds

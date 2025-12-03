@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import sinon from "sinon";
 import { MigrationScriptExecutor } from "../../../src/service/MigrationScriptExecutor";
+import { IDB } from '../../../src/interface/dao';
 import { MigrationScript } from "../../../src/model/MigrationScript";
 import { Config } from "../../../src/model/Config";
 import { IMigrationHooks } from "../../../src/interface/IMigrationHooks";
@@ -14,10 +15,10 @@ import { SilentLogger } from "../../../src/logger/SilentLogger";
 describe('MigrationScriptExecutor - Hooks Execution', () => {
 
     let handler: any;
-    let executor: MigrationScriptExecutor;
-    let mockHooks: IMigrationHooks;
-    let script1: MigrationScript;
-    let script2: MigrationScript;
+    let executor: MigrationScriptExecutor<IDB>;
+    let mockHooks: IMigrationHooks<IDB>;
+    let script1: MigrationScript<IDB>;
+    let script2: MigrationScript<IDB>;
     let cfg: Config;
 
     beforeEach(() => {
@@ -41,16 +42,16 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
         };
 
         // Create test scripts
-        script1 = new MigrationScript('V123_test1.ts', '/path/to/V123_test1.ts', 123);
+        script1 = new MigrationScript<IDB>('V123_test1.ts', '/path/to/V123_test1.ts', 123);
         script1.script = {
             up: sinon.stub().resolves('success1')
-        } as IRunnableScript;
+        } as IRunnableScript<IDB>;
         script1.init = sinon.stub().resolves();
 
-        script2 = new MigrationScript('V124_test2.ts', '/path/to/V124_test2.ts', 124);
+        script2 = new MigrationScript<IDB>('V124_test2.ts', '/path/to/V124_test2.ts', 124);
         script2.script = {
             up: sinon.stub().resolves('success2')
-        } as IRunnableScript;
+        } as IRunnableScript<IDB>;
         script2.init = sinon.stub().resolves();
 
         // Create mock hooks
@@ -75,13 +76,12 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
          * Verifies hooks are called before script execution.
          */
         it('should call onBeforeMigrate for each migration', async () => {
-            executor = new MigrationScriptExecutor(handler, cfg, {
-                hooks: mockHooks,
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-            });
+}, cfg);
 
             // Access private method via any cast
-            const executedArray: MigrationScript[] = [];
+            const executedArray: MigrationScript<IDB>[] = [];
             await (executor as any).executeWithHooks([script1, script2], executedArray);
 
             expect(executedArray).to.have.lengthOf(2);
@@ -95,12 +95,11 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
          * Verifies hooks are called after successful script execution.
          */
         it('should call onAfterMigrate after each successful migration', async () => {
-            executor = new MigrationScriptExecutor(handler, cfg, {
-                hooks: mockHooks,
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-            });
+}, cfg);
 
-            const executedArray: MigrationScript[] = [];
+            const executedArray: MigrationScript<IDB>[] = [];
             await (executor as any).executeWithHooks([script1, script2], executedArray);
 
             expect(executedArray).to.have.lengthOf(2);
@@ -125,13 +124,12 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
             const testError = new Error('Migration failed');
             script1.script.up = sinon.stub().rejects(testError);
 
-            executor = new MigrationScriptExecutor(handler, cfg, {
-                hooks: mockHooks,
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-            });
+}, cfg);
 
             try {
-                const executedArray: MigrationScript[] = [];
+                const executedArray: MigrationScript<IDB>[] = [];
                 await (executor as any).executeWithHooks([script1, script2], executedArray);
                 expect.fail('Should have thrown error');
             } catch (error) {
@@ -155,13 +153,12 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
         it('should stop execution after first failed migration', async () => {
             script1.script.up = sinon.stub().rejects(new Error('First failed'));
 
-            executor = new MigrationScriptExecutor(handler, cfg, {
-                hooks: mockHooks,
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-            });
+}, cfg);
 
             try {
-                const executedArray: MigrationScript[] = [];
+                const executedArray: MigrationScript<IDB>[] = [];
                 await (executor as any).executeWithHooks([script1, script2], executedArray);
                 expect.fail('Should have thrown error');
             } catch (error) {
@@ -183,12 +180,11 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
         it('should handle empty migration result', async () => {
             script1.script.up = sinon.stub().resolves('');
 
-            executor = new MigrationScriptExecutor(handler, cfg, {
-                hooks: mockHooks,
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-            });
+}, cfg);
 
-            const executedArray: MigrationScript[] = [];
+            const executedArray: MigrationScript<IDB>[] = [];
             await (executor as any).executeWithHooks([script1], executedArray);
 
             expect((mockHooks.onAfterMigrate as sinon.SinonStub).calledOnce).to.be.true;
@@ -203,12 +199,11 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
         it('should handle undefined migration result', async () => {
             script1.script.up = sinon.stub().resolves(undefined);
 
-            executor = new MigrationScriptExecutor(handler, cfg, {
-                hooks: mockHooks,
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-            });
+}, cfg);
 
-            const executedArray: MigrationScript[] = [];
+            const executedArray: MigrationScript<IDB>[] = [];
             await (executor as any).executeWithHooks([script1], executedArray);
 
             expect((mockHooks.onAfterMigrate as sinon.SinonStub).calledOnce).to.be.true;
@@ -225,18 +220,17 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
          * Verifies the method still executes scripts correctly without hooks.
          */
         it('should execute scripts when no migration hooks provided', async () => {
-            const noMigrationHooks: IMigrationHooks = {
+            const noMigrationHooks: IMigrationHooks<IDB> = {
                 onStart: sinon.stub().resolves(),
                 onComplete: sinon.stub().resolves()
                 // No onBeforeMigrate, onAfterMigrate, or onMigrationError
             };
 
-            executor = new MigrationScriptExecutor(handler, cfg, {
-                hooks: noMigrationHooks,
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: noMigrationHooks,
                 logger: new SilentLogger()
-            });
+}, cfg);
 
-            const result: MigrationScript[] = [];
+            const result: MigrationScript<IDB>[] = [];
             await (executor as any).executeWithHooks([script1, script2], result);
 
             // Verify both scripts were executed
@@ -250,18 +244,17 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
          * Verifies only implemented hooks are called.
          */
         it('should execute with partial migration hooks', async () => {
-            const partialHooks: IMigrationHooks = {
+            const partialHooks: IMigrationHooks<IDB> = {
                 onStart: sinon.stub().resolves(),
                 onBeforeMigrate: sinon.stub().resolves()
                 // No onAfterMigrate or onMigrationError
             };
 
-            executor = new MigrationScriptExecutor(handler, cfg, {
-                hooks: partialHooks,
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: partialHooks,
                 logger: new SilentLogger()
-            });
+}, cfg);
 
-            const result: MigrationScript[] = [];
+            const result: MigrationScript<IDB>[] = [];
             await (executor as any).executeWithHooks([script1], result);
 
             // Verify script was executed and onBeforeMigrate was called
@@ -275,20 +268,19 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
          * Verifies onMigrationError is called when provided.
          */
         it('should call onMigrationError when provided and error occurs', async () => {
-            const errorOnlyHook: IMigrationHooks = {
+            const errorOnlyHook: IMigrationHooks<IDB> = {
                 onMigrationError: sinon.stub().resolves()
                 // No onBeforeMigrate or onAfterMigrate
             };
 
             script1.script.up = sinon.stub().rejects(new Error('Test error'));
 
-            executor = new MigrationScriptExecutor(handler, cfg, {
-                hooks: errorOnlyHook,
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: errorOnlyHook,
                 logger: new SilentLogger()
-            });
+}, cfg);
 
             try {
-                const executedArray: MigrationScript[] = [];
+                const executedArray: MigrationScript<IDB>[] = [];
             await (executor as any).executeWithHooks([script1], executedArray);
                 expect.fail('Should have thrown error');
             } catch (err) {
@@ -308,12 +300,11 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
          * Verifies no errors with empty input.
          */
         it('should handle empty scripts array', async () => {
-            executor = new MigrationScriptExecutor(handler, cfg, {
-                hooks: mockHooks,
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-            });
+}, cfg);
 
-            const result: MigrationScript[] = [];
+            const result: MigrationScript<IDB>[] = [];
             await (executor as any).executeWithHooks([], result);
 
             expect(result).to.be.an('array').that.is.empty;
@@ -332,7 +323,7 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
         it('should call hooks in correct order', async () => {
             const callOrder: string[] = [];
 
-            const orderTrackingHooks: IMigrationHooks = {
+            const orderTrackingHooks: IMigrationHooks<IDB> = {
                 onBeforeMigrate: sinon.stub().callsFake(async () => {
                     callOrder.push('before');
                 }),
@@ -346,12 +337,11 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
                 return 'success';
             });
 
-            executor = new MigrationScriptExecutor(handler, cfg, {
-                hooks: orderTrackingHooks,
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: orderTrackingHooks,
                 logger: new SilentLogger()
-            });
+}, cfg);
 
-            const executedArray: MigrationScript[] = [];
+            const executedArray: MigrationScript<IDB>[] = [];
             await (executor as any).executeWithHooks([script1], executedArray);
 
             expect(callOrder).to.deep.equal(['before', 'execute', 'after']);
@@ -364,7 +354,7 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
         it('should call onMigrationError but not onAfterMigrate on failure', async () => {
             const callOrder: string[] = [];
 
-            const orderTrackingHooks: IMigrationHooks = {
+            const orderTrackingHooks: IMigrationHooks<IDB> = {
                 onBeforeMigrate: sinon.stub().callsFake(async () => {
                     callOrder.push('before');
                 }),
@@ -381,13 +371,12 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
                 throw new Error('Failed');
             });
 
-            executor = new MigrationScriptExecutor(handler, cfg, {
-                hooks: orderTrackingHooks,
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: orderTrackingHooks,
                 logger: new SilentLogger()
-            });
+}, cfg);
 
             try {
-                const executedArray: MigrationScript[] = [];
+                const executedArray: MigrationScript<IDB>[] = [];
             await (executor as any).executeWithHooks([script1], executedArray);
             } catch (error) {
                 // Expected

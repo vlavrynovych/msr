@@ -11,6 +11,7 @@ This section contains guides for upgrading between major versions of MSR. Each g
 
 ## Available Upgrade Guides
 
+- [**v0.5.x → v0.6.0**](v0.5-to-v0.6.md) - **Non-Breaking:** Generic type parameters for database-specific type safety, enhanced type guards
 - [**v0.4.x → v0.5.0**](v0.4-to-v0.5.md) - **Non-Breaking:** Transaction management, environment variables, enhanced hooks
 - [**v0.3.x → v0.4.0**](v0.3-to-v0.4.md) - **Breaking:** SQL migrations, API method renames (`up()`/`down()`), `filePatterns` array, `checkConnection()` required
 - [**v0.2.x → v0.3.0**](v0.2-to-v0.3.md) - **Breaking:** `migrate()` now returns `IMigrationResult`, no longer calls `process.exit()`

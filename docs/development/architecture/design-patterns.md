@@ -27,8 +27,8 @@ This UML class diagram shows the main classes, their properties, methods, and re
 classDiagram
     class MigrationScriptExecutor {
         -handler: IDatabaseMigrationHandler
-        -backupService: IBackupService
-        -schemaVersionService: ISchemaVersionService
+        -backupService: IBackup<IDB>Service
+        -schemaVersionService: ISchemaVersionService<IDB>
         -migrationService: IMigrationService
         -migrationRenderer: IMigrationRenderer
         -migrationScanner: IMigrationScanner
@@ -44,7 +44,7 @@ classDiagram
 
     class MigrationScanner {
         -migrationService: IMigrationService
-        -schemaVersionService: ISchemaVersionService
+        -schemaVersionService: ISchemaVersionService<IDB>
         -selector: MigrationScriptSelector
         -handler: IDatabaseMigrationHandler
         +scan() Promise~IScripts~
@@ -60,7 +60,7 @@ classDiagram
 
     class MigrationRunner {
         -handler: IDatabaseMigrationHandler
-        -schemaVersionService: ISchemaVersionService
+        -schemaVersionService: ISchemaVersionService<IDB>
         -logger: ILogger
         +execute(scripts) Promise~MigrationScript[]~
         +executeOne(script) Promise~void~

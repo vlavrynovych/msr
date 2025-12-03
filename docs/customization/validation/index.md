@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Validation
-parent: Customization
+parent: Extending MSR
 nav_order: 3
 has_children: true
 ---

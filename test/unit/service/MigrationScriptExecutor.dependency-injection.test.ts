@@ -16,7 +16,7 @@ import {
 } from '../../../src';
 
 describe('MigrationScriptExecutor - Dependency Injection', () => {
-    let handler: IDatabaseMigrationHandler;
+    let handler: IDatabaseMigrationHandler<IDB>;
     let config: Config;
     const db: IDB = new class implements IDB {
         [key: string]: unknown;
@@ -44,10 +44,10 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                         return Promise.resolve(undefined);
                     }
                 }
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             getName: () => 'TestHandler',
             getVersion: () => '1.0.0-test',
-        } as IDatabaseMigrationHandler;
+        } as IDatabaseMigrationHandler<IDB>;
     });
 
     afterEach(() => {
@@ -62,17 +62,16 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
          * testing and customization of validation behavior.
          */
         it('should use custom validationService when provided', () => {
-            const customValidationService: IMigrationValidationService = {
+            const customValidationService: IMigrationValidationService<IDB> = {
                 validateAll: sinon.stub().resolves([]),
                 validateOne: sinon.stub().resolves({} as any),
                 validateMigratedFileIntegrity: sinon.stub().resolves([]),
                 validateTransactionConfiguration: sinon.stub().returns([])
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, {
-                logger: new SilentLogger(),
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
                 validationService: customValidationService
-            });
+}, config);
 
             expect(executor.validationService).to.equal(customValidationService);
         });
@@ -83,9 +82,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
          * a default MigrationValidationService instance is created.
          */
         it('should create default validationService when not provided', () => {
-            const executor = new MigrationScriptExecutor(handler, config, {
-                logger: new SilentLogger()
-            });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
+}, config);
 
             expect(executor.validationService).to.exist;
             expect(executor.validationService).to.have.property('validateAll');
@@ -99,15 +97,14 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
          * testing and customization of rollback behavior.
          */
         it('should use custom rollbackService when provided', () => {
-            const customRollbackService: IRollbackService = {
+            const customRollbackService: IRollbackService<IDB> = {
                 rollback: sinon.stub().resolves(),
                 shouldCreateBackup: sinon.stub().returns(true)
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, {
-                logger: new SilentLogger(),
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
                 rollbackService: customRollbackService
-            });
+}, config);
 
             expect(executor.rollbackService).to.equal(customRollbackService);
         });
@@ -118,9 +115,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
          * a default RollbackService instance is created.
          */
         it('should create default rollbackService when not provided', () => {
-            const executor = new MigrationScriptExecutor(handler, config, {
-                logger: new SilentLogger()
-            });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
+}, config);
 
             expect(executor.rollbackService).to.exist;
             expect(executor.rollbackService).to.have.property('rollback');
@@ -134,7 +130,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
          * testing and customization of migration file loading behavior.
          */
         it('should use custom loaderRegistry when provided', () => {
-            const customLoader: IMigrationScriptLoader = {
+            const customLoader: IMigrationScriptLoader<IDB> = {
                 canHandle: () => true,
                 load: sinon.stub().resolves({
                     up: async () => 'custom',
@@ -143,16 +139,15 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 getName: () => 'CustomLoader'
             };
 
-            const customRegistry: ILoaderRegistry = {
+            const customRegistry: ILoaderRegistry<IDB> = {
                 register: sinon.stub(),
                 findLoader: sinon.stub().returns(customLoader),
                 getLoaders: sinon.stub().returns([customLoader])
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, {
-                logger: new SilentLogger(),
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
                 loaderRegistry: customRegistry
-            });
+}, config);
 
             expect((executor as any).loaderRegistry).to.equal(customRegistry);
         });
@@ -164,11 +159,10 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
          * a default LoaderRegistry with TypeScriptLoader and SqlLoader is created.
          */
         it('should create default loaderRegistry when not provided', () => {
-            const executor = new MigrationScriptExecutor(handler, config, {
-                logger: new SilentLogger()
-            });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
+}, config);
 
-            const registry = (executor as any).loaderRegistry as ILoaderRegistry;
+            const registry = (executor as any).loaderRegistry as ILoaderRegistry<IDB>;
             expect(registry).to.exist;
             expect(registry.getLoaders()).to.have.lengthOf(2);
 
@@ -187,9 +181,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
         it('should return undefined when transaction mode is NONE', () => {
             config.transaction.mode = 'NONE' as any;
 
-            const executor = new MigrationScriptExecutor(handler, config, {
-                logger: new SilentLogger()
-            });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
+}, config);
 
             // Access private method via reflection
             const transactionManager = (executor as any).createTransactionManager(handler);
@@ -214,9 +207,10 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 transactionManager: customTxManager
             };
 
-            const executor = new MigrationScriptExecutor(handlerWithTx as any, config, {
+            const executor = new MigrationScriptExecutor<IDB>({
+                handler: handlerWithTx as any,
                 logger: new SilentLogger()
-            });
+            }, config);
 
             const transactionManager = (executor as any).createTransactionManager(handlerWithTx);
 
@@ -242,9 +236,10 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 db: transactionalDB
             };
 
-            const executor = new MigrationScriptExecutor(handlerWithTransactionalDB as any, config, {
+            const executor = new MigrationScriptExecutor<IDB>({
+                handler: handlerWithTransactionalDB as any,
                 logger: new SilentLogger()
-            });
+            }, config);
 
             const transactionManager = (executor as any).createTransactionManager(handlerWithTransactionalDB);
 
@@ -275,9 +270,10 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
 
             config.transaction.mode = 'PER_MIGRATION' as any; // Enable transactions
 
-            const executor = new MigrationScriptExecutor(handlerWithCallbackDB as any, config, {
+            const executor = new MigrationScriptExecutor<IDB>({
+                handler: handlerWithCallbackDB as any,
                 logger: new SilentLogger()
-            });
+            }, config);
 
             const transactionManager = (executor as any).createTransactionManager(handlerWithCallbackDB);
 
@@ -319,9 +315,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 log: (msg: string) => {}
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, {
-                logger: capturingLogger
-            });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: capturingLogger
+}, config);
 
             // Mock executeWithHooks to throw error immediately
             (executor as any).executeWithHooks = sinon.stub().rejects(new Error('Execution failed'));
@@ -377,10 +372,9 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 renderDryRunTable: sinon.stub()
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, {
-                logger: new SilentLogger(),
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
                 migrationRenderer: rendererStub as any
-            });
+}, config);
 
             // Verify drawFiglet was called
             expect(drawFigletSpy.calledOnce).to.be.true;
@@ -401,10 +395,9 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 renderDryRunTable: sinon.stub()
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, {
-                logger: new SilentLogger(),
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
                 migrationRenderer: rendererStub as any
-            });
+}, config);
 
             // Verify drawFiglet was NOT called
             expect(drawFigletSpy.called).to.be.false;

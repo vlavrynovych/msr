@@ -3,6 +3,7 @@ import { ICallbackTransactionalDB } from '../interface/dao/ITransactionalDB';
 import { IsolationLevel } from '../model/IsolationLevel';
 import { TransactionConfig } from '../model/TransactionConfig';
 import { ILogger } from '../interface/ILogger';
+import {IDB} from '../interface/dao';
 
 /**
  * Transaction manager for callback-style transactional databases (NoSQL).
@@ -19,7 +20,12 @@ import { ILogger } from '../interface/ILogger';
  *
  * **New in v0.5.0**
  *
- * @typeParam TxContext - Database-specific transaction context type (e.g., Firestore.Transaction)
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ * - `TxContext` - Database-specific transaction context type (e.g., Firestore.Transaction)
+ *
+ * @template DB - Database interface type
+ * @template TxContext - Database-specific transaction context type
  *
  * @example
  * ```typescript
@@ -36,7 +42,7 @@ import { ILogger } from '../interface/ILogger';
  * config.retries = 3;
  * config.retryBackoff = true;
  *
- * const txManager = new CallbackTransactionManager(db, config);
+ * const txManager = new CallbackTransactionManager<IDB, Transaction>(db, config);
  *
  * // Used by MigrationRunner
  * await txManager.begin();
@@ -44,7 +50,7 @@ import { ILogger } from '../interface/ILogger';
  * await txManager.commit();  // Executes all operations in single transaction
  * ```
  */
-export class CallbackTransactionManager<TxContext = unknown> implements ITransactionManager {
+export class CallbackTransactionManager<DB extends IDB, TxContext = unknown> implements ITransactionManager<DB> {
     private operations: Array<(tx: TxContext) => Promise<void>> = [];
 
     /**

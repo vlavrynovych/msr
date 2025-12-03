@@ -1,4 +1,4 @@
-import {IMigrationInfo, IRunnableScript, ILoaderRegistry} from "../interface";
+import {IMigrationInfo, IRunnableScript, ILoaderRegistry, IDB} from "../interface";
 
 /**
  * Represents a migration script file discovered in the migrations directory.
@@ -6,17 +6,22 @@ import {IMigrationInfo, IRunnableScript, ILoaderRegistry} from "../interface";
  * Extends {@link IMigrationInfo} with file path and script loading functionality.
  * Each migration script is identified by its timestamp, name, and file location.
  *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
+ *
  * @example
  * ```typescript
- * const script = new MigrationScript(
+ * const script = new MigrationScript<IDB>(
  *   'V202501220100_initial_setup.ts',
  *   '/path/to/migrations/V202501220100_initial_setup.ts',
  *   202501220100
  * );
- * await script.init(); // Load and parse the script
+ * await script.init(registry); // Load and parse the script
  * ```
  */
-export class MigrationScript extends IMigrationInfo {
+export class MigrationScript<DB extends IDB> extends IMigrationInfo {
 
     /**
      * Absolute path to the migration script file.
@@ -28,8 +33,9 @@ export class MigrationScript extends IMigrationInfo {
      * Parsed and instantiated migration script object.
      * Contains the `up()` method that executes the migration.
      * Populated after calling {@link init}.
+     * Typed with the generic DB parameter (v0.6.0).
      */
-    public script!: IRunnableScript;
+    public script!: IRunnableScript<DB>;
 
     /**
      * Creates a new MigrationScript instance.
@@ -61,13 +67,13 @@ export class MigrationScript extends IMigrationInfo {
      * @example
      * ```typescript
      * const registry = LoaderRegistry.createDefault();
-     * const script = new MigrationScript('V202501220100_test.ts', '/path/to/file.ts', 202501220100);
+     * const script = new MigrationScript<DB>('V202501220100_test.ts', '/path/to/file.ts', 202501220100);
      * await script.init(registry);
      * // Now script.script contains the loaded migration with up() method
      * await script.script.up(db, info, handler);
      * ```
      */
-    async init(registry: ILoaderRegistry):Promise<void> {
+    async init(registry: ILoaderRegistry<DB>):Promise<void> {
         const loader = registry.findLoader(this.filepath);
         this.script = await loader.load(this);
     }

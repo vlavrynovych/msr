@@ -16,7 +16,7 @@ describe('Dry Run Mode', () => {
     let executed: string[] = [];
     let backupsCreated: string[] = [];
     let config: Config;
-    let handler: IDatabaseMigrationHandler;
+    let handler: IDatabaseMigrationHandler<IDB>;
 
     beforeEach(() => {
         executed = [];
@@ -81,7 +81,7 @@ describe('Dry Run Mode', () => {
             createTable: async () => true,
             isInitialized: async () => true,
             validateTable: async () => true
-        } as IDatabaseMigrationHandler;
+        } as IDatabaseMigrationHandler<IDB>;
     });
 
     describe('migrate() - Dry Run Mode', () => {
@@ -90,7 +90,7 @@ describe('Dry Run Mode', () => {
          * Validates that migrations are not run when dryRun is enabled.
          */
         it('should not execute migrations when dryRun is true', async () => {
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
             const result = await executor.migrate();
 
@@ -101,20 +101,20 @@ describe('Dry Run Mode', () => {
             // Verify no database operations were performed
             const saveOperations = executed.filter(op => op.startsWith('save:'));
             expect(saveOperations.length).to.equal(0, 'No migrations should be saved');
-        });
+});
 
         /**
          * Test: No backup is created in dry run mode
          * Validates that backup operations are skipped when dryRun is enabled.
          */
         it('should not create backup when dryRun is true', async () => {
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
             await executor.migrate();
 
             // Verify no backups were created
             expect(backupsCreated.length).to.equal(0, 'No backups should be created in dry run mode');
-        });
+});
 
         /**
          * Test: Validation still runs in dry run mode
@@ -123,19 +123,19 @@ describe('Dry Run Mode', () => {
         it('should still run validation when dryRun is true', async () => {
             config.validateBeforeRun = true;
 
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
             // Should not throw validation errors (all test migrations are valid)
             const result = await executor.migrate();
             expect(result.success).to.be.true;
-        });
+});
 
         /**
          * Test: Dry run shows pending migrations
          * Validates that dry run mode shows what would be executed.
          */
         it('should return pending migrations in result', async () => {
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
             const result = await executor.migrate();
 
@@ -143,7 +143,7 @@ describe('Dry Run Mode', () => {
             expect(result.success).to.be.true;
             expect(result.executed.length).to.equal(0, 'Nothing executed');
             // Pending migrations are shown in renderer, not in result.executed
-        });
+});
 
         /**
          * Test: Dry run shows ignored migrations message when migrations are ignored
@@ -180,10 +180,9 @@ describe('Dry Run Mode', () => {
                 log: (msg: string) => loggedMessages.push(msg)
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, {
-                logger: capturingLogger,
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: capturingLogger,
                 migrationScanner: mockScanner as any
-            });
+}, config);
 
             const result = await executor.migrate();
 
@@ -231,10 +230,9 @@ describe('Dry Run Mode', () => {
                 log: (msg: string) => loggedMessages.push(msg)
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, {
-                logger: capturingLogger,
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: capturingLogger,
                 migrationScanner: mockScanner as any
-            });
+}, config);
 
             await executor.migrate();
 
@@ -253,7 +251,7 @@ describe('Dry Run Mode', () => {
          * Validates that migrateTo() also skips execution in dry run mode.
          */
         it('should not execute migrations to target version when dryRun is true', async () => {
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
             const result = await executor.migrate(202311020036);
 
@@ -264,20 +262,20 @@ describe('Dry Run Mode', () => {
             // Verify no save operations
             const saveOperations = executed.filter(op => op.startsWith('save:'));
             expect(saveOperations.length).to.equal(0);
-        });
+});
 
         /**
          * Test: migrateTo with dry run shows what would execute
          * Validates that migrateTo in dry run mode shows pending migrations.
          */
         it('should preview migrations up to target version', async () => {
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
             const result = await executor.migrate(202311020036);
 
             expect(result.success).to.be.true;
             expect(result.executed.length).to.equal(0);
-        });
+});
 
         /**
          * Test: migrateTo shows ignored count with pending migrations
@@ -325,10 +323,9 @@ describe('Dry Run Mode', () => {
                 log: (msg: string) => loggedMessages.push(msg)
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, {
-                logger: capturingLogger,
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: capturingLogger,
                 migrationScanner: mockScanner as any
-            });
+}, config);
 
             // Migrate to version 999 - should execute 999, ignore 1 & 2
             await executor.migrate(999);
@@ -383,10 +380,9 @@ describe('Dry Run Mode', () => {
                 log: (msg: string) => loggedMessages.push(msg)
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, {
-                logger: capturingLogger,
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: capturingLogger,
                 migrationScanner: mockScanner as any
-            });
+}, config);
 
             // Migrate to version 999 - already at target, should show ignored count
             await executor.migrate(999);
@@ -405,11 +401,11 @@ describe('Dry Run Mode', () => {
         it('should not create backup with BACKUP strategy in dry run', async () => {
             config.rollbackStrategy = RollbackStrategy.BACKUP;
 
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
             await executor.migrate();
 
             expect(backupsCreated.length).to.equal(0);
-        });
+});
 
         /**
          * Test: Dry run with DOWN strategy doesn't execute
@@ -418,12 +414,12 @@ describe('Dry Run Mode', () => {
         it('should not execute with DOWN strategy in dry run', async () => {
             config.rollbackStrategy = RollbackStrategy.DOWN;
 
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
             await executor.migrate();
 
             const saveOperations = executed.filter(op => op.startsWith('save:'));
             expect(saveOperations.length).to.equal(0);
-        });
+});
 
         /**
          * Test: Dry run with BOTH strategy doesn't create backup or execute
@@ -432,13 +428,13 @@ describe('Dry Run Mode', () => {
         it('should not create backup or execute with BOTH strategy in dry run', async () => {
             config.rollbackStrategy = RollbackStrategy.BOTH;
 
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
             await executor.migrate();
 
             expect(backupsCreated.length).to.equal(0);
             const saveOperations = executed.filter(op => op.startsWith('save:'));
             expect(saveOperations.length).to.equal(0);
-        });
+});
     });
 
     describe('Dry Run - Actual Execution Comparison', () => {
@@ -449,7 +445,7 @@ describe('Dry Run Mode', () => {
         it('should execute migrations when dryRun is false', async () => {
             config.dryRun = false; // Disable dry run
 
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
             const result = await executor.migrate();
 
             // With dry run disabled, migrations should execute
@@ -459,7 +455,7 @@ describe('Dry Run Mode', () => {
             // Verify save operations occurred (from migrationRecords or schemaVersion)
             const saveOperations = executed.filter(op => op.includes('save:'));
             expect(saveOperations.length).to.be.greaterThan(0, 'Migrations should be saved');
-        });
+});
 
         /**
          * Test: beforeMigrate is skipped in dry run mode
@@ -469,18 +465,18 @@ describe('Dry Run Mode', () => {
             config.beforeMigrateName = 'beforeMigrate';
             config.dryRun = true;
 
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
             await executor.migrate();
 
             // beforeMigrate should not have executed
             // (it would show up in executed array if it did)
             expect(executed.length).to.equal(0);
-        });
+});
     });
 
     describe('Dry Run with Transactions (v0.5.0)', () => {
         let transactionLog: string[] = [];
-        let transactionalHandler: IDatabaseMigrationHandler;
+        let transactionalHandler: IDatabaseMigrationHandler<IDB>;
         let savedMigrations: IMigrationInfo[] = [];
 
         beforeEach(() => {
@@ -552,7 +548,7 @@ describe('Dry Run Mode', () => {
                 createTable: async () => true,
                 isInitialized: async () => true,
                 validateTable: async () => true
-            } as IDatabaseMigrationHandler;
+            } as IDatabaseMigrationHandler<IDB>;
         });
 
         /**
@@ -562,7 +558,7 @@ describe('Dry Run Mode', () => {
         it('should rollback each migration transaction in PER_MIGRATION mode', async () => {
             config.transaction.mode = TransactionMode.PER_MIGRATION;
 
-            const executor = new MigrationScriptExecutor(transactionalHandler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: transactionalHandler, logger: new SilentLogger() }, config);
             const result = await executor.migrate();
 
             // In dry run with transactions: migrations execute but are rolled back
@@ -583,7 +579,7 @@ describe('Dry Run Mode', () => {
                 // Verify migrations are marked as dry run
                 result.executed.forEach(migration => {
                     expect(migration.dryRun).to.be.true;
-                });
+});
             } else {
                 // No migrations to execute
                 expect(beginCount).to.equal(0, 'No transactions if no migrations');
@@ -599,7 +595,7 @@ describe('Dry Run Mode', () => {
         it('should rollback batch transaction in PER_BATCH mode', async () => {
             config.transaction.mode = TransactionMode.PER_BATCH;
 
-            const executor = new MigrationScriptExecutor(transactionalHandler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: transactionalHandler, logger: new SilentLogger() }, config);
             const result = await executor.migrate();
 
             // In dry run with transactions: migrations execute but are rolled back
@@ -622,7 +618,7 @@ describe('Dry Run Mode', () => {
                 // Verify migrations are marked as dry run
                 result.executed.forEach(migration => {
                     expect(migration.dryRun).to.be.true;
-                });
+});
             }
 
             // No commits in dry run mode regardless
@@ -636,13 +632,13 @@ describe('Dry Run Mode', () => {
         it('should not use transactions in NONE mode during dry run', async () => {
             config.transaction.mode = TransactionMode.NONE;
 
-            const executor = new MigrationScriptExecutor(transactionalHandler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: transactionalHandler, logger: new SilentLogger() }, config);
             const result = await executor.migrate();
 
             // Verify no transactions were started
             expect(transactionLog.length).to.equal(0, 'No transaction operations in NONE mode');
             expect(result.executed.length).to.equal(0, 'Migrations not executed in dry run');
-        });
+});
 
         /**
          * Test: Dry run sets dryRun flag on migration info
@@ -651,14 +647,14 @@ describe('Dry Run Mode', () => {
         it('should mark migrations with dryRun flag when executed in dry run mode', async () => {
             config.transaction.mode = TransactionMode.PER_MIGRATION;
 
-            const executor = new MigrationScriptExecutor(transactionalHandler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: transactionalHandler, logger: new SilentLogger() }, config);
             await executor.migrate();
 
             // Verify dryRun flag is set on saved migrations
             if (savedMigrations.length > 0) {
                 savedMigrations.forEach(migration => {
                     expect(migration.dryRun).to.be.true;
-                });
+});
             }
         });
 
@@ -680,7 +676,7 @@ describe('Dry Run Mode', () => {
                 log: (msg: string) => loggedMessages.push(msg)
             };
 
-            const executor = new MigrationScriptExecutor(transactionalHandler, config, { logger: capturingLogger });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: transactionalHandler, logger: capturingLogger }, config);
             await executor.migrate();
 
             // Check for dry run transaction messages
@@ -691,7 +687,7 @@ describe('Dry Run Mode', () => {
             );
 
             expect(hasDryRunMessage).to.be.true;
-        });
+});
 
         /**
          * Test: Dry run with isolation level
@@ -701,7 +697,7 @@ describe('Dry Run Mode', () => {
             config.transaction.mode = TransactionMode.PER_MIGRATION;
             config.transaction.isolation = IsolationLevel.SERIALIZABLE;
 
-            const executor = new MigrationScriptExecutor(transactionalHandler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: transactionalHandler, logger: new SilentLogger() }, config);
             await executor.migrate();
 
             // Verify isolation level was set
@@ -709,7 +705,7 @@ describe('Dry Run Mode', () => {
             if (transactionLog.length > 0) {
                 expect(isolationSet).to.be.true;
             }
-        });
+});
 
         /**
          * Test: Dry run doesn't commit even on success
@@ -718,7 +714,7 @@ describe('Dry Run Mode', () => {
         it('should rollback successful migrations in dry run mode', async () => {
             config.transaction.mode = TransactionMode.PER_MIGRATION;
 
-            const executor = new MigrationScriptExecutor(transactionalHandler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: transactionalHandler, logger: new SilentLogger() }, config);
             const result = await executor.migrate();
 
             // Success should still mean no commits
@@ -726,7 +722,7 @@ describe('Dry Run Mode', () => {
 
             const commitCount = transactionLog.filter(log => log === 'COMMIT').length;
             expect(commitCount).to.equal(0, 'Even successful migrations should not commit in dry run');
-        });
+});
 
         /**
          * Test: Dry run with transaction failure logs error appropriately
@@ -782,10 +778,9 @@ describe('Dry Run Mode', () => {
                 })
             };
 
-            const executor = new MigrationScriptExecutor(transactionalHandler, config, {
-                logger: capturingLogger,
+            const executor = new MigrationScriptExecutor<IDB>({ handler: transactionalHandler, logger: capturingLogger,
                 migrationScanner: mockScanner as any
-            });
+}, config);
 
             try {
                 await executor.migrate();

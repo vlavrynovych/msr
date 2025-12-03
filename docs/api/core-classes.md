@@ -23,16 +23,32 @@ The main classes for executing and managing migrations.
 
 The main class for executing database migrations.
 
-```typescript
-import { MigrationScriptExecutor, IDatabaseMigrationHandler, Config } from '@migration-script-runner/core';
+**New in v0.6.0:** Generic type parameters provide full type safety for database-specific operations.
 
-const handler = new MyDatabaseHandler();
+```typescript
+import { MigrationScriptExecutor, IDatabaseMigrationHandler, Config, IDB } from '@migration-script-runner/core';
+
+// Define your database type
+interface IMyDatabase extends IDB {
+  query(sql: string): Promise<any>;
+}
+
+const handler = new MyDatabaseHandler();  // implements IDatabaseMigrationHandler<IMyDatabase>
 const config = new Config();
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor<IMyDatabase>({ handler }, config);
 ```
 
 #### Constructor
 
+**Signature (v0.6.0+):**
+```typescript
+constructor<DB extends IDB = IDB>(
+    dependencies: IMigrationExecutorDependencies<DB>,
+    config?: Config
+)
+```
+
+**Old Signature (v0.5.x - REMOVED):**
 ```typescript
 constructor(
     handler: IDatabaseMigrationHandler,
@@ -41,23 +57,26 @@ constructor(
 )
 ```
 
-**Parameters:**
-- `handler`: Database migration handler that implements `IDatabaseMigrationHandler`
-- `config`: Configuration object (formerly accessed via `handler.cfg`)
-- `dependencies` (optional): Custom service implementations for dependency injection
+**Parameters (v0.6.0+):**
+- `dependencies`: Object containing required and optional dependencies
+  - `handler` (required): Database migration handler implementing `IDatabaseMigrationHandler<DB>`
   - `logger?`: Custom logger implementation (defaults to `ConsoleLogger`). **Note:** Automatically wrapped with `LevelAwareLogger` for log level filtering based on `config.logLevel`
-  - `backupService?`: Custom backup service (defaults to `BackupService`)
-  - `rollbackService?`: Custom rollback service (defaults to `RollbackService`)
-  - `schemaVersionService?`: Custom schema version service (defaults to `SchemaVersionService`)
-  - `migrationRenderer?`: Custom migration renderer (defaults to `MigrationRenderer`)
-  - `migrationService?`: Custom migration service (defaults to `MigrationService`)
-  - `migrationScanner?`: Custom migration scanner (defaults to `MigrationScanner`)
-  - `validationService?`: Custom validation service (defaults to `MigrationValidationService`)
-  - `renderStrategy?`: Custom render strategy (defaults to `AsciiTableRenderStrategy`)
-  - `hooks?`: Lifecycle hooks for migration events (defaults to `undefined`)
+  - `backupService?`: Custom backup service implementing `IBackupService` (defaults to `BackupService<DB>`)
+  - `rollbackService?`: Custom rollback service implementing `IRollbackService<DB>` (defaults to `RollbackService<DB>`)
+  - `schemaVersionService?`: Custom schema version service implementing `ISchemaVersionService<DB>` (defaults to `SchemaVersionService<DB>`)
+  - `migrationRenderer?`: Custom migration renderer implementing `IMigrationRenderer<DB>` (defaults to `MigrationRenderer<DB>`)
+  - `migrationService?`: Custom migration service implementing `IMigrationService<DB>` (defaults to `MigrationService<DB>`)
+  - `migrationScanner?`: Custom migration scanner implementing `IMigrationScanner<DB>` (defaults to `MigrationScanner<DB>`)
+  - `validationService?`: Custom validation service implementing `IMigrationValidationService<DB>` (defaults to `MigrationValidationService<DB>`)
+  - `renderStrategy?`: Custom render strategy implementing `IRenderStrategy<DB>` (defaults to `AsciiTableRenderStrategy<DB>`)
+  - `hooks?`: Lifecycle hooks for migration events implementing `IMigrationHooks<DB>` (defaults to `undefined`)
+- `config` (optional): Configuration object (defaults to `ConfigLoader.load()` if not provided)
 
 {: .important }
 > **Breaking Change (v0.3.0):** Config is now passed as a separate second parameter instead of being accessed from `handler.cfg`. This follows the Single Responsibility Principle and improves testability.
+
+{: .important }
+> **Breaking Change (v0.6.0):** Constructor signature changed to use dependency injection pattern with `{ handler }` object syntax. Handler is now required in dependencies object as first parameter. Config is now optional (auto-loads if not provided). Generic type parameter `<DB extends IDB>` provides database-specific type safety.
 
 #### Public Properties
 

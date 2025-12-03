@@ -62,7 +62,7 @@ IDatabaseMigrationHandler (your implementation)
 ├── db: IDB (or ISqlDB for SQL databases)
 ├── schemaVersion: ISchemaVersion
 │   └── migrationRecords: IMigrationScript
-└── backup?: IBackup (optional)
+└── backup?: IBackup<IDB> (optional)
 
 IRunnableScript (your migrations)
 ├── up(db, info, handler)
@@ -118,7 +118,7 @@ class MySchemaVersion implements ISchemaVersion {
 }
 
 // 4. Database handler
-class MyHandler implements IDatabaseMigrationHandler {
+class MyHandler implements IDatabaseMigrationHandler<IDB> {
   db: MyDB;
   schemaVersion: MySchemaVersion;
 
@@ -163,7 +163,7 @@ class MyBackup implements IBackup {
   }
 }
 
-class MyHandler implements IDatabaseMigrationHandler {
+class MyHandler implements IDatabaseMigrationHandler<IDB> {
   db: MyDB;
   schemaVersion: MySchemaVersion;
   backup: MyBackup;  // Now included

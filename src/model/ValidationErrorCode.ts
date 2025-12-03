@@ -38,13 +38,13 @@ export enum ValidationErrorCode {
 
     /**
      * The up() method doesn't have the correct signature.
-     * Expected: up(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string>
+     * Expected: up(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler<DB>): Promise<string>
      */
     INVALID_UP_SIGNATURE = 'INVALID_UP_SIGNATURE',
 
     /**
      * The down() method exists but doesn't have the correct signature.
-     * Expected: down(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string>
+     * Expected: down(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler<DB>): Promise<string>
      */
     INVALID_DOWN_SIGNATURE = 'INVALID_DOWN_SIGNATURE',
 

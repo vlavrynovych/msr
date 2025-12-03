@@ -1,32 +1,17 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import fs from 'node:fs';
-import {
-    MigrationValidationService,
-    MigrationScript,
-    Config,
-    SilentLogger,
-    ValidationIssueType,
-    ValidationErrorCode,
-    ValidationWarningCode,
-    DownMethodPolicy,
-    RollbackStrategy,
-    IRunnableScript,
-    IMigrationValidator,
-    IValidationResult,
-    LoaderRegistry,
-    ILoaderRegistry
-} from "../../../src";
+import { Config, DownMethodPolicy, IDB, ILoaderRegistry, IMigrationValidator, IRunnableScript, IValidationResult, LoaderRegistry, MigrationScript, MigrationValidationService, RollbackStrategy, SilentLogger, ValidationErrorCode, ValidationIssueType, ValidationWarningCode } from "../../../src";
 const { TransactionMode } = require('../../../src');
 
 describe('MigrationValidationService', () => {
-    let validator: MigrationValidationService;
+    let validator: MigrationValidationService<IDB>;
     let config: Config;
     let fsExistsSyncStub: sinon.SinonStub;
-    let loaderRegistry: ILoaderRegistry;
+    let loaderRegistry: ILoaderRegistry<IDB>;
 
     beforeEach(() => {
-        validator = new MigrationValidationService(new SilentLogger());
+        validator = new MigrationValidationService<IDB>(new SilentLogger());
         config = new Config();
         loaderRegistry = LoaderRegistry.createDefault();
         fsExistsSyncStub = sinon.stub(fs, 'existsSync');
@@ -43,7 +28,7 @@ describe('MigrationValidationService', () => {
          * any parameters, using the default ConsoleLogger (covers line 48).
          */
         it('should create instance with default logger', () => {
-            const service = new MigrationValidationService();
+            const service = new MigrationValidationService<IDB>();
             expect(service).to.be.instanceOf(MigrationValidationService);
         });
 
@@ -53,7 +38,7 @@ describe('MigrationValidationService', () => {
          * just a logger parameter without custom validators.
          */
         it('should create instance with logger only', () => {
-            const service = new MigrationValidationService(new SilentLogger());
+            const service = new MigrationValidationService<IDB>(new SilentLogger());
             expect(service).to.be.instanceOf(MigrationValidationService);
         });
 
@@ -63,10 +48,10 @@ describe('MigrationValidationService', () => {
          * for extensible validation logic.
          */
         it('should create instance with custom validators', () => {
-            const customValidator: IMigrationValidator = {
-                validate: async () => ({ valid: true, issues: [], script: {} as MigrationScript })
+            const customValidator: IMigrationValidator<IDB> = {
+                validate: async () => ({ valid: true, issues: [], script: {} as MigrationScript<IDB> })
             };
-            const service = new MigrationValidationService(new SilentLogger(), [customValidator]);
+            const service = new MigrationValidationService<IDB>(new SilentLogger(), [customValidator]);
             expect(service).to.be.instanceOf(MigrationValidationService);
         });
     });
@@ -109,7 +94,7 @@ describe('MigrationValidationService', () => {
          */
         it('should continue validation even if one script fails', async () => {
             const validScript = createValidScript(1, 'migration1');
-            const invalidScript = new MigrationScript('V2_migration2.ts', '/nonexistent/path.ts', 2);
+            const invalidScript = new MigrationScript<IDB>('V2_migration2.ts', '/nonexistent/path.ts', 2);
 
             fsExistsSyncStub.withArgs(validScript.filepath).returns(true);
             fsExistsSyncStub.withArgs(invalidScript.filepath).returns(false);
@@ -228,7 +213,7 @@ describe('MigrationValidationService', () => {
         it('should detect missing up() method', async () => {
             const script = createValidScript(1, 'migration1');
             fsExistsSyncStub.returns(true);
-            script.script = {} as IRunnableScript;
+            script.script = {} as IRunnableScript<IDB>;
 
             const result = await validator.validateOne(script, config, loaderRegistry);
 
@@ -244,7 +229,7 @@ describe('MigrationValidationService', () => {
         it('should detect invalid up() signature', async () => {
             const script = createValidScript(1, 'migration1');
             fsExistsSyncStub.returns(true);
-            script.script = { up: 'not a function' } as unknown as IRunnableScript;
+            script.script = { up: 'not a function' } as unknown as IRunnableScript<IDB>;
 
             const result = await validator.validateOne(script, config, loaderRegistry);
 
@@ -262,7 +247,7 @@ describe('MigrationValidationService', () => {
             fsExistsSyncStub.returns(true);
             script.script = {
                 up: function() { return Promise.resolve('success'); }
-            } as unknown as IRunnableScript;
+            } as unknown as IRunnableScript<IDB>;
 
             const result = await validator.validateOne(script, config, loaderRegistry);
 
@@ -283,7 +268,7 @@ describe('MigrationValidationService', () => {
             script.script = {
                 up: async () => 'success',
                 down: 'not a function'
-            } as unknown as IRunnableScript;
+            } as unknown as IRunnableScript<IDB>;
 
             const result = await validator.validateOne(script, config, loaderRegistry);
 
@@ -302,7 +287,7 @@ describe('MigrationValidationService', () => {
             script.script = {
                 up: async () => 'success',
                 down: function() { return Promise.resolve('rollback'); }
-            } as unknown as IRunnableScript;
+            } as unknown as IRunnableScript<IDB>;
 
             const result = await validator.validateOne(script, config, loaderRegistry);
 
@@ -423,8 +408,8 @@ describe('MigrationValidationService', () => {
          * are included in the final validation result.
          */
         it('should run custom validators and include their issues', async () => {
-            const customValidator: IMigrationValidator = {
-                validate: async (script: MigrationScript, cfg: Config) => {
+            const customValidator: IMigrationValidator<IDB> = {
+                validate: async (script: MigrationScript<IDB>, cfg: Config) => {
                     return {
                         valid: true,
                         issues: [{
@@ -437,7 +422,7 @@ describe('MigrationValidationService', () => {
                 }
             };
 
-            const validatorWithCustom = new MigrationValidationService(new SilentLogger(), [customValidator]);
+            const validatorWithCustom = new MigrationValidationService<IDB>(new SilentLogger(), [customValidator]);
             const script = createValidScript(1, 'migration1');
             fsExistsSyncStub.returns(true);
 
@@ -455,14 +440,14 @@ describe('MigrationValidationService', () => {
          */
         it('should skip custom validators if built-in validation fails', async () => {
             const customValidatorSpy = sinon.spy();
-            const customValidator: IMigrationValidator = {
-                validate: async (script: MigrationScript, cfg: Config) => {
+            const customValidator: IMigrationValidator<IDB> = {
+                validate: async (script: MigrationScript<IDB>, cfg: Config) => {
                     customValidatorSpy();
                     return { valid: true, issues: [], script };
                 }
             };
 
-            const validatorWithCustom = new MigrationValidationService(new SilentLogger(), [customValidator]);
+            const validatorWithCustom = new MigrationValidationService<IDB>(new SilentLogger(), [customValidator]);
             const script = createValidScript(1, 'migration1');
             fsExistsSyncStub.returns(false); // File doesn't exist - built-in validation fails
 
@@ -478,13 +463,13 @@ describe('MigrationValidationService', () => {
          * and reported as a CUSTOM_VALIDATION_FAILED error.
          */
         it('should handle custom validator errors', async () => {
-            const customValidator: IMigrationValidator = {
+            const customValidator: IMigrationValidator<IDB> = {
                 validate: async () => {
                     throw new Error('Custom validator crashed');
                 }
             };
 
-            const validatorWithCustom = new MigrationValidationService(new SilentLogger(), [customValidator]);
+            const validatorWithCustom = new MigrationValidationService<IDB>(new SilentLogger(), [customValidator]);
             const script = createValidScript(1, 'migration1');
             fsExistsSyncStub.returns(true);
 
@@ -701,7 +686,7 @@ describe('MigrationValidationService', () => {
             testConfig.rollbackStrategy = RollbackStrategy.BACKUP;
 
             // MigrationValidationService constructor only takes logger and customValidators
-            const testValidator = new MigrationValidationService(capturingLogger, []);
+            const testValidator = new MigrationValidationService<IDB>(capturingLogger, []);
 
             // Call private method using reflection
             const issues: any[] = [];
@@ -733,15 +718,15 @@ describe('MigrationValidationService', () => {
  * @param name - Descriptive name for the migration
  * @returns MigrationScript instance with valid structure and stubbed init
  */
-function createValidScript(timestamp: number, name: string): MigrationScript {
+function createValidScript(timestamp: number, name: string): MigrationScript<IDB> {
     const filename = `V${timestamp}_${name}.ts`;
     const filepath = `/fake/path/${filename}`;
-    const script = new MigrationScript(filename, filepath, timestamp);
+    const script = new MigrationScript<IDB>(filename, filepath, timestamp);
 
     // Set up a valid script object (simulates successful init)
     script.script = {
         up: async () => 'success'
-    } as IRunnableScript;
+    } as IRunnableScript<IDB>;
 
     // Stub init() to prevent actual file loading
     // Tests that need init() to fail should restore and re-stub

@@ -6,6 +6,7 @@ import _ from "lodash";
 import {IRenderStrategy, IScripts, IMigrationInfo, ILogger} from "../../interface";
 import {MigrationScript, Config} from "../../model";
 import {ConsoleLogger} from "../../logger";
+import {IDB} from "../../interface/dao";
 
 /**
  * ASCII table rendering strategy for console output.
@@ -20,13 +21,15 @@ import {ConsoleLogger} from "../../logger";
  * - Human-readable timestamps with relative time ("2 hours ago")
  * - Color-coded warnings for ignored migrations
  *
+ *
+ * @template DB - Database interface type
  * @example
  * ```typescript
  * const strategy = new AsciiTableRenderStrategy(logger);
- * const renderer = new MigrationRenderer(handler, logger, strategy);
+ * const renderer = new MigrationRenderer<DB>(handler, logger, strategy);
  * ```
  */
-export class AsciiTableRenderStrategy implements IRenderStrategy {
+export class AsciiTableRenderStrategy<DB extends IDB> implements IRenderStrategy<DB> {
     /**
      * Creates a new AsciiTableRenderStrategy.
      *
@@ -50,7 +53,7 @@ export class AsciiTableRenderStrategy implements IRenderStrategy {
      * @param scripts - Collection of migration scripts with execution history
      * @param config - Configuration for accessing file pattern and display limit
      */
-    renderMigrated(scripts: IScripts, config: Config): void {
+    renderMigrated(scripts: IScripts<DB>, config: Config): void {
         if (!scripts.migrated.length) return;
 
         let migrated = scripts.migrated;
@@ -97,7 +100,7 @@ export class AsciiTableRenderStrategy implements IRenderStrategy {
      *
      * @param scripts - Array of pending migration scripts
      */
-    renderPending(scripts: MigrationScript[]): void {
+    renderPending(scripts: MigrationScript<DB>[]): void {
         if (!scripts.length) return;
 
         const table = new AsciiTable3('Pending');
@@ -140,7 +143,7 @@ export class AsciiTableRenderStrategy implements IRenderStrategy {
      *
      * @param scripts - Array of ignored migration scripts
      */
-    renderIgnored(scripts: MigrationScript[]): void {
+    renderIgnored(scripts: MigrationScript<DB>[]): void {
         if (!scripts.length) return;
 
         const table = new AsciiTable3('Ignored Scripts');
@@ -179,6 +182,8 @@ export class AsciiTableRenderStrategy implements IRenderStrategy {
      * @returns Duration formatted as "{seconds}s" (e.g., "2.5s", "0.123s")
      *          Returns "0s" if timestamps are invalid or duration is negative
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
      * const duration = AsciiTableRenderStrategy.getDuration(migrationInfo);

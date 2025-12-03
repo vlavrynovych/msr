@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { DefaultTransactionManager } from '../../../src/service/DefaultTransactionManager';
+import { IDB } from '../../../src/interface/dao';
 import { TransactionConfig } from '../../../src/model/TransactionConfig';
 import { TransactionMode } from '../../../src/model/TransactionMode';
 import { IsolationLevel } from '../../../src/model/IsolationLevel';

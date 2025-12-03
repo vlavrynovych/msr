@@ -1,6 +1,6 @@
 ---
 layout: default
-title: ISchemaVersion & IMigrationScript
+title: ISchemaVersion<IDB> & IMigrationScript
 parent: Interfaces
 grand_parent: API Reference
 nav_order: 4
@@ -33,8 +33,8 @@ interface ISchemaVersion {
 }
 ```
 
-{: .important }
 > **Breaking Change (v0.4.0):** Property `migrations` renamed to `migrationRecords` for clarity.
+{: .important }
 
 **Purpose:** Manages the database table that tracks which migrations have been executed.
 
@@ -317,8 +317,8 @@ interface IMigrationScript {
 }
 ```
 
-{: .important }
 > **Breaking Change (v0.4.0):** Method `getAll()` renamed to `getAllExecuted()` to clarify it returns executed migrations only.
+{: .important }
 
 **Purpose:** Provides database operations for migration tracking records.
 
@@ -594,7 +594,7 @@ export class MongoMigrationScript implements IMigrationScript {
 ```typescript
 import { IDatabaseMigrationHandler, ISchemaVersion } from '@migration-script-runner/core';
 
-export class MyHandler implements IDatabaseMigrationHandler {
+export class MyHandler implements IDatabaseMigrationHandler<IDB> {
   db: MyDB;
   schemaVersion: ISchemaVersion;
 

@@ -127,7 +127,7 @@ gh pr create
 
 ```typescript
 // @yourname/postgres-adapter (FREE, open source)
-export class PostgresAdapter implements IDatabaseMigrationHandler {
+export class PostgresAdapter implements IDatabaseMigrationHandler<IDB> {
   // Your PostgreSQL implementation
 }
 
@@ -160,7 +160,7 @@ export class PostgresAdapter implements IDatabaseMigrationHandler {
 // ❌ Selling this as a product is prohibited
 // "Premium PostgreSQL Adapter for MSR" - $29
 
-export class PostgresAdapter implements IDatabaseMigrationHandler {
+export class PostgresAdapter implements IDatabaseMigrationHandler<IDB> {
   // Cannot sell this as a standalone product
 }
 ```

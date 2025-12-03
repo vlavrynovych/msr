@@ -12,7 +12,7 @@ import { ILogger } from "../interface/ILogger";
  * ```typescript
  * // Silent logger for tests
  * const logger = new SilentLogger();
- * const executor = new MigrationScriptExecutor(handler, logger);
+ * const executor = new MigrationScriptExecutor<DB>(handler, logger);
  * await executor.migrate(); // No console output
  *
  * // Silent logger for library usage

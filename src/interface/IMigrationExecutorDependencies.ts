@@ -9,45 +9,86 @@ import {IRollbackService} from "./service/IRollbackService";
 import {ILogger} from "./ILogger";
 import {IMigrationHooks} from "./IMigrationHooks";
 import {ILoaderRegistry} from "./loader/ILoaderRegistry";
+import {IDatabaseMigrationHandler} from "./IDatabaseMigrationHandler";
+import {IDB} from "./dao";
 
 /**
- * Optional dependencies for MigrationScriptExecutor.
+ * Dependencies for MigrationScriptExecutor.
  *
  * Allows customization of service implementations through dependency injection.
- * All dependencies are optional - if not provided, default implementations will be used.
+ * The handler is required; all other dependencies are optional.
+ *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
+ *
+ * **Breaking Change in v0.6.0:**
+ * - Constructor signature changed to `constructor(dependencies, config?)`
+ * - Handler moved from separate parameter to dependencies object
+ * - All service interfaces now require generic type parameter
  *
  * @example
  * ```typescript
+ * // Minimal usage - just handler
+ * const executor = new MigrationScriptExecutor<IDB>({
+ *     handler: myDatabaseHandler
+ * });
+ *
+ * // With config
+ * const executor = new MigrationScriptExecutor<IDB>({
+ *     handler: myDatabaseHandler
+ * }, config);
+ *
  * // Use custom logger across all services
- * const executor = new MigrationScriptExecutor(handler, {
+ * const executor = new MigrationScriptExecutor<IDB>({
+ *     handler: myDatabaseHandler,
  *     logger: new FileLogger('./migrations.log')
  * });
  *
  * // Use JSON output for CI/CD
- * const executor = new MigrationScriptExecutor(handler, {
+ * const executor = new MigrationScriptExecutor<IDB>({
+ *     handler: myDatabaseHandler,
  *     renderStrategy: new JsonRenderStrategy()
  * });
  *
  * // Use silent output for testing
- * const executor = new MigrationScriptExecutor(handler, {
+ * const executor = new MigrationScriptExecutor<IDB>({
+ *     handler: myDatabaseHandler,
  *     renderStrategy: new SilentRenderStrategy()
  * });
  *
  * // Inject mock services for testing
- * const executor = new MigrationScriptExecutor(handler, {
+ * const executor = new MigrationScriptExecutor<IDB>({
+ *     handler: mockHandler,
  *     backupService: mockBackupService,
  *     schemaVersionService: mockSchemaVersionService,
  *     migrationRenderer: mockRenderer,
  *     migrationService: mockMigrationService
  * });
- *
- * // Partial customization
- * const executor = new MigrationScriptExecutor(handler, {
- *     backupService: new S3BackupService(config)
- * });
  * ```
  */
-export interface IMigrationExecutorDependencies {
+export interface IMigrationExecutorDependencies<DB extends IDB> {
+    /**
+     * Database migration handler (REQUIRED).
+     * Implements database-specific operations for migrations.
+     *
+     * **New in v0.6.0:** Moved from constructor parameter to dependencies object.
+     *
+     * @example
+     * ```typescript
+     * const handler: IDatabaseMigrationHandler<IDB> = {
+     *     db: myDB,
+     *     schemaVersion: mySchemaVersion,
+     *     backup: myBackup,
+     *     getName: () => 'My Database Handler',
+     *     getVersion: () => '1.0.0'
+     * };
+     *
+     * const executor = new MigrationScriptExecutor<IDB>({ handler });
+     * ```
+     */
+    handler: IDatabaseMigrationHandler<DB>;
     /**
      * Custom backup service implementation.
      * If not provided, uses BackupService with default configuration.
@@ -58,13 +99,13 @@ export interface IMigrationExecutorDependencies {
      * Custom schema version tracking service implementation.
      * If not provided, uses SchemaVersionService with handler's schema version.
      */
-    schemaVersionService?: ISchemaVersionService;
+    schemaVersionService?: ISchemaVersionService<DB>;
 
     /**
      * Custom migration renderer implementation.
      * If not provided, uses MigrationRenderer with default configuration.
      */
-    migrationRenderer?: IMigrationRenderer;
+    migrationRenderer?: IMigrationRenderer<DB>;
 
     /**
      * Custom render strategy for migration output.
@@ -82,13 +123,13 @@ export interface IMigrationExecutorDependencies {
      * renderStrategy: new SilentRenderStrategy()
      * ```
      */
-    renderStrategy?: IRenderStrategy;
+    renderStrategy?: IRenderStrategy<DB>;
 
     /**
      * Custom migration service implementation.
      * If not provided, uses MigrationService with default configuration.
      */
-    migrationService?: IMigrationService;
+    migrationService?: IMigrationService<DB>;
 
     /**
      * Custom migration scanner implementation.
@@ -105,7 +146,7 @@ export interface IMigrationExecutorDependencies {
      * migrationScanner: new CustomMigrationScanner()
      * ```
      */
-    migrationScanner?: IMigrationScanner;
+    migrationScanner?: IMigrationScanner<DB>;
 
     /**
      * Logger instance to use across all services.
@@ -123,21 +164,23 @@ export interface IMigrationExecutorDependencies {
      * validationService: new CustomValidationService(logger)
      * ```
      */
-    validationService?: IMigrationValidationService;
+    validationService?: IMigrationValidationService<DB>;
 
     /**
      * Lifecycle hooks for extending migration behavior.
      * If not provided, no hooks will be called during migration.
+     * Typed with the generic DB parameter (v0.6.0).
      *
      * @example
      * ```typescript
      * // Add Slack notifications
-     * const executor = new MigrationScriptExecutor(handler, {
+     * const executor = new MigrationScriptExecutor<IDB>({
+     *     handler: myDatabaseHandler,
      *     hooks: new SlackNotificationHooks(webhookUrl)
      * });
      * ```
      */
-    hooks?: IMigrationHooks;
+    hooks?: IMigrationHooks<DB>;
 
     /**
      * Custom rollback service implementation.
@@ -152,7 +195,7 @@ export interface IMigrationExecutorDependencies {
      * rollbackService: new CustomRollbackService(handler, config, backupService, logger, hooks)
      * ```
      */
-    rollbackService?: IRollbackService;
+    rollbackService?: IRollbackService<DB>;
 
     /**
      * Custom loader registry for migration script loading.
@@ -167,21 +210,21 @@ export interface IMigrationExecutorDependencies {
      * @example
      * ```typescript
      * // Use default loaders
-     * const executor = new MigrationScriptExecutor(handler);
+     * const executor = new MigrationScriptExecutor<DB>(handler);
      * // Automatically uses TypeScript and SQL loaders
      *
      * // Register custom loader
      * const registry = LoaderRegistry.createDefault();
      * registry.register(new PythonLoader());
-     * const executor = new MigrationScriptExecutor(handler, {
+     * const executor = new MigrationScriptExecutor<DB>(handler, {
      *     loaderRegistry: registry
      * });
      *
      * // Use only specific loaders
-     * const registry = new LoaderRegistry();
-     * registry.register(new TypeScriptLoader());
+     * const registry = new LoaderRegistry<DB>();
+     * registry.register(new TypeScriptLoader<DB>());
      * // SQL files will not be supported
      * ```
      */
-    loaderRegistry?: ILoaderRegistry;
+    loaderRegistry?: ILoaderRegistry<DB>;
 }

@@ -11,7 +11,7 @@ import {
 
 describe('MigrationScriptExecutor - Connection Check', () => {
     let config: Config;
-    let baseHandler: IDatabaseMigrationHandler;
+    let baseHandler: IDatabaseMigrationHandler<IDB>;
 
     beforeEach(() => {
         config = new Config();
@@ -34,7 +34,7 @@ describe('MigrationScriptExecutor - Connection Check', () => {
                     save: async (details: IMigrationInfo) => {},
                     remove: async (timestamp: number) => {}
                 }
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             getName: () => 'TestHandler',
             getVersion: () => '1.0.0-test',
         };
@@ -54,11 +54,11 @@ describe('MigrationScriptExecutor - Connection Check', () => {
                 } as IDB
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
             await executor.up();
 
             expect(connectionChecked).to.be.true;
-        });
+});
 
         it('should throw error when connection check fails', async () => {
             const handler = {
@@ -69,7 +69,7 @@ describe('MigrationScriptExecutor - Connection Check', () => {
                 } as IDB
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
             try {
                 await executor.up();
@@ -77,7 +77,7 @@ describe('MigrationScriptExecutor - Connection Check', () => {
             } catch (error) {
                 expect((error as Error).message).to.include('Database connection check failed');
             }
-        });
+});
 
         it('should not run migrations when connection fails', async () => {
             let migrationsRun = false;
@@ -92,7 +92,7 @@ describe('MigrationScriptExecutor - Connection Check', () => {
                 } as IDB
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
             try {
                 await executor.up();
@@ -101,7 +101,7 @@ describe('MigrationScriptExecutor - Connection Check', () => {
             }
 
             expect(migrationsRun).to.be.false;
-        });
+});
     });
 
     describe('down() method', () => {
@@ -118,11 +118,11 @@ describe('MigrationScriptExecutor - Connection Check', () => {
                 } as IDB
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
             await executor.down(202501010001);
 
             expect(connectionChecked).to.be.true;
-        });
+});
 
         it('should throw error when connection check fails during rollback', async () => {
             const handler = {
@@ -133,7 +133,7 @@ describe('MigrationScriptExecutor - Connection Check', () => {
                 } as IDB
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
             try {
                 await executor.down(202501010001);
@@ -141,7 +141,7 @@ describe('MigrationScriptExecutor - Connection Check', () => {
             } catch (error) {
                 expect((error as Error).message).to.include('Database connection check failed');
             }
-        });
+});
     });
 
     describe('validate() method', () => {
@@ -158,11 +158,11 @@ describe('MigrationScriptExecutor - Connection Check', () => {
                 } as IDB
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
             await executor.validate();
 
             expect(connectionChecked).to.be.true;
-        });
+});
 
         it('should throw error when connection check fails during validation', async () => {
             const handler = {
@@ -173,7 +173,7 @@ describe('MigrationScriptExecutor - Connection Check', () => {
                 } as IDB
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
             try {
                 await executor.validate();
@@ -181,7 +181,7 @@ describe('MigrationScriptExecutor - Connection Check', () => {
             } catch (error) {
                 expect((error as Error).message).to.include('Database connection check failed');
             }
-        });
+});
     });
 
     describe('Error messages', () => {
@@ -194,7 +194,7 @@ describe('MigrationScriptExecutor - Connection Check', () => {
                 } as IDB
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
             try {
                 await executor.up();
@@ -205,7 +205,7 @@ describe('MigrationScriptExecutor - Connection Check', () => {
                 expect(errorMsg).to.include('Cannot proceed with migration operations');
                 expect(errorMsg).to.include('verify your database connection settings');
             }
-        });
+});
     });
 
     describe('Connection check timing', () => {
@@ -230,15 +230,15 @@ describe('MigrationScriptExecutor - Connection Check', () => {
                         operations.push('isInitialized');
                         return true;
                     }
-                } as ISchemaVersion
+                } as ISchemaVersion<IDB>
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
             await executor.up();
 
             // checkConnection should be first
             expect(operations[0]).to.equal('checkConnection');
-        });
+});
     });
 
     describe('migrate() alias', () => {
@@ -255,11 +255,11 @@ describe('MigrationScriptExecutor - Connection Check', () => {
                 } as IDB
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
             await executor.migrate();
 
             expect(connectionChecked).to.be.true;
-        });
+});
 
         it('should fail when connection check fails using migrate() method', async () => {
             const handler = {
@@ -270,7 +270,7 @@ describe('MigrationScriptExecutor - Connection Check', () => {
                 } as IDB
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
             try {
                 await executor.migrate();
@@ -278,6 +278,6 @@ describe('MigrationScriptExecutor - Connection Check', () => {
             } catch (error) {
                 expect((error as Error).message).to.include('Database connection check failed');
             }
-        });
+});
     });
 });

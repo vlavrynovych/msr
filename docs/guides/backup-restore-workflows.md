@@ -78,7 +78,7 @@ interface IProdDB extends IDB {
   query(sql: string, params?: any[]): Promise<any>;
 }
 
-export class ProductionHandler implements IDatabaseMigrationHandler {
+export class ProductionHandler implements IDatabaseMigrationHandler<IDB> {
   db: IProdDB;
   schemaVersion: ISchemaVersion;
   backup: IBackup;
@@ -178,7 +178,7 @@ export class ProductionHandler implements IDatabaseMigrationHandler {
 import { IDatabaseMigrationHandler } from '@migration-script-runner/core';
 import { Pool } from 'pg';
 
-export class DevelopmentHandler implements IDatabaseMigrationHandler {
+export class DevelopmentHandler implements IDatabaseMigrationHandler<IDB> {
   // ... similar structure to ProductionHandler
 
   constructor() {
@@ -361,7 +361,7 @@ npm run restore:dev -- backup-prod-2025-01-22.bkp
 import { IDatabaseMigrationHandler, IDB, IBackup } from '@migration-script-runner/core';
 import * as admin from 'firebase-admin';
 
-export class FirebaseHandler implements IDatabaseMigrationHandler {
+export class FirebaseHandler implements IDatabaseMigrationHandler<IDB> {
   db: IDB & { firestore: admin.firestore.Firestore };
   backup: IBackup;
 

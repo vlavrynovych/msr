@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { CallbackTransactionManager } from '../../../src/service/CallbackTransactionManager';
+import { IDB } from '../../../src/interface/dao';
 import { TransactionConfig } from '../../../src/model/TransactionConfig';
 import { IsolationLevel } from '../../../src/model/IsolationLevel';
 import { ICallbackTransactionalDB } from '../../../src/interface/dao/ITransactionalDB';
@@ -56,7 +57,7 @@ describe('CallbackTransactionManager', () => {
     describe('begin()', () => {
 
         it('should initialize operation buffer', async () => {
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
 
             // No way to directly check buffer, but we can verify behavior
@@ -74,14 +75,14 @@ describe('CallbackTransactionManager', () => {
                 info: () => {}
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, testLogger as any);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, testLogger as any);
             await manager.begin();
 
             expect(debugMessage).to.include('Prepared callback transaction');
         });
 
         it('should work without logger', async () => {
-            const manager = new CallbackTransactionManager(mockDB, config);  // No logger
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config);  // No logger
             await manager.begin();  // Should not throw
         });
     });
@@ -109,7 +110,7 @@ describe('CallbackTransactionManager', () => {
                 return callback({} as unknown);
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
 
             // Add operation
@@ -130,7 +131,7 @@ describe('CallbackTransactionManager', () => {
                 return callback({} as unknown);
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
             await manager.commit();  // No operations added
 
@@ -147,7 +148,7 @@ describe('CallbackTransactionManager', () => {
                 info: () => {}
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, testLogger as any);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, testLogger as any);
             await manager.begin();
             await manager.commit();  // No operations added
 
@@ -155,7 +156,7 @@ describe('CallbackTransactionManager', () => {
         });
 
         it('should not throw when no operations added (without logger)', async () => {
-            const manager = new CallbackTransactionManager(mockDB, config);  // No logger
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config);  // No logger
             await manager.begin();
             await manager.commit();  // No operations added, no logger - should not throw
 
@@ -173,7 +174,7 @@ describe('CallbackTransactionManager', () => {
                 info: () => {}
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, testLogger as any);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, testLogger as any);
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
             await manager.commit();
@@ -182,7 +183,7 @@ describe('CallbackTransactionManager', () => {
         });
 
         it('should work without logger on successful transaction', async () => {
-            const manager = new CallbackTransactionManager(mockDB, config);  // No logger
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config);  // No logger
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
             await manager.commit();  // Should not throw
@@ -194,7 +195,7 @@ describe('CallbackTransactionManager', () => {
         it('should execute all added operations in order', async () => {
             const executionOrder: number[] = [];
 
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
 
             manager.addOperation(async () => {
@@ -223,7 +224,7 @@ describe('CallbackTransactionManager', () => {
                 return callback({} as unknown);
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -243,7 +244,7 @@ describe('CallbackTransactionManager', () => {
                 return callback({} as unknown);
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -263,7 +264,7 @@ describe('CallbackTransactionManager', () => {
                 return callback({} as unknown);
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -283,7 +284,7 @@ describe('CallbackTransactionManager', () => {
                 return callback({} as unknown);
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -303,7 +304,7 @@ describe('CallbackTransactionManager', () => {
                 return callback({} as unknown);
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config);  // No logger
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config);  // No logger
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -320,7 +321,7 @@ describe('CallbackTransactionManager', () => {
                 throw new Error('UNIQUE constraint failed');
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -344,7 +345,7 @@ describe('CallbackTransactionManager', () => {
                 throw new Error('UNIQUE constraint failed');
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config);  // No logger
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config);  // No logger
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -369,7 +370,7 @@ describe('CallbackTransactionManager', () => {
             };
 
             config.retries = 3;
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -394,7 +395,7 @@ describe('CallbackTransactionManager', () => {
             };
 
             config.retries = 3;
-            const manager = new CallbackTransactionManager(mockDB, config);  // No logger
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config);  // No logger
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -432,7 +433,7 @@ describe('CallbackTransactionManager', () => {
             config.retryBackoff = true;
 
             let lastTime = Date.now();
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -467,7 +468,7 @@ describe('CallbackTransactionManager', () => {
             config.retryBackoff = false;  // Disable exponential backoff
 
             let lastTime = Date.now();
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -489,7 +490,7 @@ describe('CallbackTransactionManager', () => {
             };
 
             config.retries = undefined;
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -521,7 +522,7 @@ describe('CallbackTransactionManager', () => {
                 return Promise.resolve() as Promise<T>;
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -553,7 +554,7 @@ describe('CallbackTransactionManager', () => {
                 return Promise.resolve() as Promise<T>;
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -573,7 +574,7 @@ describe('CallbackTransactionManager', () => {
                 info: () => {}
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, testLogger as any);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, testLogger as any);
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -603,7 +604,7 @@ describe('CallbackTransactionManager', () => {
                 info: () => {}
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, testLogger as any);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, testLogger as any);
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -628,7 +629,7 @@ describe('CallbackTransactionManager', () => {
                 throw new Error('UNIQUE constraint failed');
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, testLogger as any);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, testLogger as any);
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -656,7 +657,7 @@ describe('CallbackTransactionManager', () => {
             };
 
             config.retries = 2;
-            const manager = new CallbackTransactionManager(mockDB, config, testLogger as any);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, testLogger as any);
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -677,7 +678,7 @@ describe('CallbackTransactionManager', () => {
                 return callback({} as unknown);
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
 
             // First transaction
             await manager.begin();
@@ -712,7 +713,7 @@ describe('CallbackTransactionManager', () => {
                 return Promise.resolve() as Promise<T>;
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -731,7 +732,7 @@ describe('CallbackTransactionManager', () => {
                 info: () => {}
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, testLogger as any);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, testLogger as any);
             await manager.begin();
             manager.addOperation(async () => { /* operation 1 */ });
             manager.addOperation(async () => { /* operation 2 */ });
@@ -742,7 +743,7 @@ describe('CallbackTransactionManager', () => {
         });
 
         it('should work without logger', async () => {
-            const manager = new CallbackTransactionManager(mockDB, config);  // No logger
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config);  // No logger
             await manager.begin();
             manager.addOperation(async () => { /* operation */ });
 
@@ -770,7 +771,7 @@ describe('CallbackTransactionManager', () => {
                 info: () => {}
             };
 
-            const manager = new CallbackTransactionManager(mockDB, config, testLogger as any);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, testLogger as any);
             await manager.setIsolationLevel(IsolationLevel.SERIALIZABLE);
 
             expect(warnMessage).to.include('Callback-style transactions do not support SQL isolation levels');
@@ -778,7 +779,7 @@ describe('CallbackTransactionManager', () => {
         });
 
         it('should work without logger', async () => {
-            const manager = new CallbackTransactionManager(mockDB, config);  // No logger
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config);  // No logger
 
             await manager.setIsolationLevel(IsolationLevel.SERIALIZABLE);  // Should not throw
         });
@@ -789,7 +790,7 @@ describe('CallbackTransactionManager', () => {
         it('should add operation to be executed in transaction', async () => {
             let operationExecuted = false;
 
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
 
             manager.addOperation(async () => {
@@ -804,7 +805,7 @@ describe('CallbackTransactionManager', () => {
         it('should allow multiple operations to be added', async () => {
             const executions: number[] = [];
 
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
 
             manager.addOperation(async () => { executions.push(1); });
@@ -825,7 +826,7 @@ describe('CallbackTransactionManager', () => {
 
             let receivedContext: unknown;
 
-            const manager = new CallbackTransactionManager(mockDB, config, logger);
+            const manager = new CallbackTransactionManager<IDB>(mockDB, config, logger);
             await manager.begin();
 
             manager.addOperation(async (tx) => {

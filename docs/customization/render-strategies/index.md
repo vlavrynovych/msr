@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Render Strategies
-parent: Customization
+parent: Extending MSR
 nav_order: 2
 has_children: true
 ---

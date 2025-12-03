@@ -3,19 +3,11 @@ import sinon from 'sinon';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import {
-    MigrationScriptExecutor,
-    Config,
-    SilentLogger,
-    IDatabaseMigrationHandler,
-    RollbackStrategy,
-    DownMethodPolicy,
-    ValidationError
-} from '../../../src';
+import { Config, DownMethodPolicy, IDB, IDatabaseMigrationHandler, MigrationScriptExecutor, RollbackStrategy, SilentLogger, ValidationError } from '../../../src';
 
 describe('MigrationScriptExecutor - validate() method', () => {
-    let executor: MigrationScriptExecutor;
-    let handler: IDatabaseMigrationHandler;
+    let executor: MigrationScriptExecutor<IDB>;
+    let handler: IDatabaseMigrationHandler<IDB>;
     let config: Config;
     let tempMigrationsDir: string;
 
@@ -63,9 +55,8 @@ describe('MigrationScriptExecutor - validate() method', () => {
      * Call this at the start of each test after creating migration files.
      */
     function createExecutor(): void {
-        executor = new MigrationScriptExecutor(handler, config, {
-            logger: new SilentLogger()
-        });
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
+}, config);
     }
 
     afterEach(() => {
@@ -457,7 +448,7 @@ describe('MigrationScriptExecutor - validate() method', () => {
                 expect.fail('Should have thrown ValidationError');
             } catch (error) {
                 expect(error).to.be.instanceOf(ValidationError);
-                expect((error as ValidationError).validationResults).to.have.lengthOf.at.least(1);
+                expect((error as ValidationError<IDB>).validationResults).to.have.lengthOf.at.least(1);
             }
         });
 

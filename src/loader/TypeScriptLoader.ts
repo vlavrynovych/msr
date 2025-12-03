@@ -3,6 +3,7 @@ import {IRunnableScript} from '../interface/IRunnableScript';
 import {MigrationScript} from '../model/MigrationScript';
 import {ILogger} from '../interface/ILogger';
 import {ConsoleLogger} from '../logger/ConsoleLogger';
+import {IDB} from '../interface/dao';
 
 /**
  * Loader for TypeScript and JavaScript migration files.
@@ -11,15 +12,20 @@ import {ConsoleLogger} from '../logger/ConsoleLogger';
  * This is the default loader that maintains backward compatibility with
  * existing MSR TypeScript migrations.
  *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
+ *
  * @example
  * ```typescript
- * const loader = new TypeScriptLoader();
- * const script = new MigrationScript('V123_create.ts', '/path/to/file', 123);
+ * const loader = new TypeScriptLoader<IDB>();
+ * const script = new MigrationScript<IDB>('V123_create.ts', '/path/to/file', 123);
  * const runnable = await loader.load(script);
  * await runnable.up(db, info, handler);
  * ```
  */
-export class TypeScriptLoader implements IMigrationScriptLoader {
+export class TypeScriptLoader<DB extends IDB> implements IMigrationScriptLoader<DB> {
     constructor(private readonly logger: ILogger = new ConsoleLogger()) {}
 
     /**
@@ -39,15 +45,15 @@ export class TypeScriptLoader implements IMigrationScriptLoader {
      * 1. Dynamically imports the migration file
      * 2. Searches exports for a class with an up() method
      * 3. Instantiates the class
-     * 4. Returns the instance as IRunnableScript
+     * 4. Returns the instance as IRunnableScript<DB>
      *
-     * @param script - Migration script to load
-     * @returns IRunnableScript instance
+     * @param script - Migration script to load (typed with generic DB parameter in v0.6.0)
+     * @returns IRunnableScript instance (typed with generic DB parameter in v0.6.0)
      * @throws Error if no executable content found or multiple exports found
      */
-    async load(script: MigrationScript): Promise<IRunnableScript> {
+    async load(script: MigrationScript<DB>): Promise<IRunnableScript<DB>> {
         const exports = await import(script.filepath);
-        const runnable: IRunnableScript[] = [];
+        const runnable: IRunnableScript<DB>[] = [];
         const errorPrefix = `${script.name}: Cannot parse migration script`;
 
         for (const key in exports) {
@@ -57,7 +63,7 @@ export class TypeScriptLoader implements IMigrationScriptLoader {
                 const hasUpFunction = instance.up && typeof instance.up === 'function';
 
                 if (hasUpFunction) {
-                    runnable.push(instance as IRunnableScript);
+                    runnable.push(instance as IRunnableScript<DB>);
                 } else {
                     this.logger.warn(`${errorPrefix}: the 'up()' function was not found`);
                 }

@@ -1,6 +1,7 @@
 import {IScripts} from "../IScripts";
 import {MigrationScript, Config} from "../../model";
 import {IMigrationInfo} from "../IMigrationInfo";
+import {IDB} from '../dao';
 
 /**
  * Strategy interface for rendering migration output.
@@ -17,21 +18,26 @@ import {IMigrationInfo} from "../IMigrationInfo";
  * - Library-friendly usage (no unwanted console output)
  * - CI/CD integration with structured formats (JSON)
  *
+ * **Generic Type Parameters (v0.6.0):**
+ * - `DB` - Your specific database interface extending IDB
+ *
+ * @template DB - Database interface type
+ *
  * @example
  * ```typescript
  * // Use JSON output for CI/CD
  * const strategy = new JsonRenderStrategy(true);
- * const renderer = new MigrationRenderer(config, logger, strategy);
+ * const renderer = new MigrationRenderer<DB>(config, logger, strategy);
  *
  * // Use silent output for testing
  * const strategy = new SilentRenderStrategy();
- * const renderer = new MigrationRenderer(config, logger, strategy);
+ * const renderer = new MigrationRenderer<DB>(config, logger, strategy);
  *
  * // Use default ASCII table output
- * const renderer = new MigrationRenderer(config, logger); // Uses AsciiTableRenderStrategy
+ * const renderer = new MigrationRenderer<DB>(config, logger); // Uses AsciiTableRenderStrategy
  * ```
  */
-export interface IRenderStrategy {
+export interface IRenderStrategy<DB extends IDB> {
     /**
      * Render the list of previously executed migrations.
      *
@@ -45,7 +51,7 @@ export interface IRenderStrategy {
      * strategy.renderMigrated(scripts, config); // Uses config.displayLimit
      * ```
      */
-    renderMigrated(scripts: IScripts, config: Config): void;
+    renderMigrated(scripts: IScripts<DB>, config: Config): void;
 
     /**
      * Render the list of migrations pending execution.
@@ -57,7 +63,7 @@ export interface IRenderStrategy {
      * strategy.renderPending([script1, script2, script3]);
      * ```
      */
-    renderPending(scripts: MigrationScript[]): void;
+    renderPending(scripts: MigrationScript<DB>[]): void;
 
     /**
      * Render the list of migrations that were executed in the current run.
@@ -84,7 +90,7 @@ export interface IRenderStrategy {
      * strategy.renderIgnored([oldScript1, oldScript2]);
      * ```
      */
-    renderIgnored(scripts: MigrationScript[]): void;
+    renderIgnored(scripts: MigrationScript<DB>[]): void;
 
     /**
      * Render banner/header information.

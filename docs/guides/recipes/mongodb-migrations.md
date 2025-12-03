@@ -97,7 +97,7 @@ export interface IMongoDBConfig {
 /**
  * Complete MongoDB handler with backup/restore capability
  */
-export class MongoDBHandler implements IDatabaseMigrationHandler {
+export class MongoDBHandler implements IDatabaseMigrationHandler<IDB> {
   readonly db: IMongoDBDatabase;
   readonly backup: IBackup;
   readonly schemaVersion: ISchemaVersion;
@@ -357,7 +357,7 @@ runMigrations().catch(error => {
 import { IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler } from '@migration-script-runner/core';
 import { IMongoDBDatabase } from '../src/database/MongoDBHandler';
 
-export default class CreateUsersCollection implements IRunnableScript {
+export default class CreateUsersCollection implements IRunnableScript<IDB> {
   async up(
     db: IMongoDBDatabase,
     info: IMigrationInfo,
@@ -421,7 +421,7 @@ export default class CreateUsersCollection implements IRunnableScript {
 import { IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler } from '@migration-script-runner/core';
 import { IMongoDBDatabase } from '../src/database/MongoDBHandler';
 
-export default class AddNameTextIndex implements IRunnableScript {
+export default class AddNameTextIndex implements IRunnableScript<IDB> {
   async up(
     db: IMongoDBDatabase,
     info: IMigrationInfo,
@@ -457,7 +457,7 @@ export default class AddNameTextIndex implements IRunnableScript {
 import { IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler } from '@migration-script-runner/core';
 import { IMongoDBDatabase } from '../src/database/MongoDBHandler';
 
-export default class NormalizeEmailAddresses implements IRunnableScript {
+export default class NormalizeEmailAddresses implements IRunnableScript<IDB> {
   async up(
     db: IMongoDBDatabase,
     info: IMigrationInfo,
@@ -518,7 +518,7 @@ export default class NormalizeEmailAddresses implements IRunnableScript {
 import { IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler } from '@migration-script-runner/core';
 import { IMongoDBDatabase } from '../src/database/MongoDBHandler';
 
-export default class AddPreferencesField implements IRunnableScript {
+export default class AddPreferencesField implements IRunnableScript<IDB> {
   async up(
     db: IMongoDBDatabase,
     info: IMigrationInfo,

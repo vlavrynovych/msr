@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { MigrationService, SilentLogger } from '../../../src';
+import { IDB, MigrationService, SilentLogger } from '../../../src';
 
 describe('MigrationService - Unit Tests', () => {
     afterEach(() => {
@@ -17,7 +17,7 @@ describe('MigrationService - Unit Tests', () => {
          * Branch: (!resolvedPath.startsWith(resolvedBase + path.sep) && resolvedPath !== resolvedBase)
          */
         it('should reject paths that resolve outside base directory without .. sequences', () => {
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
             const pathModule = require('path');
 
             // Mock path.resolve to simulate a case where the resolved path
@@ -63,7 +63,7 @@ describe('MigrationService - Unit Tests', () => {
          * NOT throw an error (the second part of the AND condition prevents the throw).
          */
         it('should allow paths that resolve to exactly the base directory', () => {
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
             const pathModule = require('path');
 
             const resolveStub = sinon.stub(pathModule, 'resolve');
@@ -98,7 +98,7 @@ describe('MigrationService - Unit Tests', () => {
          * Validates that legitimate files pass validation
          */
         it('should allow normal files within base directory', () => {
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
             const pathModule = require('path');
 
             const resolveStub = sinon.stub(pathModule, 'resolve');
@@ -142,7 +142,7 @@ describe('MigrationService - Unit Tests', () => {
          * Covers: Line 282 (return null when no pattern matches)
          */
         it('should filter out files that do not match any configured pattern', () => {
-            const ms = new MigrationService(new SilentLogger());
+            const ms = new MigrationService<IDB>(new SilentLogger());
             const pathModule = require('path');
 
             const resolveStub = sinon.stub(pathModule, 'resolve');

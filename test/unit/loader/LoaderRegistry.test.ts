@@ -1,24 +1,16 @@
 import { expect } from 'chai';
-import {
-    LoaderRegistry,
-    TypeScriptLoader,
-    SqlLoader,
-    SilentLogger,
-    IMigrationScriptLoader,
-    MigrationScript,
-    IRunnableScript
-} from '../../../src';
+import { IDB, IMigrationScriptLoader, IRunnableScript, LoaderRegistry, MigrationScript, SilentLogger, SqlLoader, TypeScriptLoader } from '../../../src';
 
 describe('LoaderRegistry', () => {
-    let registry: LoaderRegistry;
+    let registry: LoaderRegistry<IDB>;
 
     beforeEach(() => {
-        registry = new LoaderRegistry();
+        registry = new LoaderRegistry<IDB>();
     });
 
     describe('register()', () => {
         it('should register a loader', () => {
-            const loader = new TypeScriptLoader();
+            const loader = new TypeScriptLoader<IDB>();
             registry.register(loader);
 
             const loaders = registry.getLoaders();
@@ -27,8 +19,8 @@ describe('LoaderRegistry', () => {
         });
 
         it('should register multiple loaders', () => {
-            const tsLoader = new TypeScriptLoader();
-            const sqlLoader = new SqlLoader();
+            const tsLoader = new TypeScriptLoader<IDB>();
+            const sqlLoader = new SqlLoader<IDB>();
 
             registry.register(tsLoader);
             registry.register(sqlLoader);
@@ -40,9 +32,9 @@ describe('LoaderRegistry', () => {
         });
 
         it('should maintain registration order', () => {
-            const loader1 = new TypeScriptLoader();
-            const loader2 = new SqlLoader();
-            const loader3 = new TypeScriptLoader();
+            const loader1 = new TypeScriptLoader<IDB>();
+            const loader2 = new SqlLoader<IDB>();
+            const loader3 = new TypeScriptLoader<IDB>();
 
             registry.register(loader1);
             registry.register(loader2);
@@ -57,8 +49,8 @@ describe('LoaderRegistry', () => {
 
     describe('findLoader()', () => {
         beforeEach(() => {
-            registry.register(new TypeScriptLoader());
-            registry.register(new SqlLoader());
+            registry.register(new TypeScriptLoader<IDB>());
+            registry.register(new SqlLoader<IDB>());
         });
 
         it('should find TypeScript loader for .ts files', () => {
@@ -100,11 +92,11 @@ describe('LoaderRegistry', () => {
 
         it('should respect registration order (first match wins)', () => {
             // Create custom registry with specific order
-            const customRegistry = new LoaderRegistry();
+            const customRegistry = new LoaderRegistry<IDB>();
 
             // Register SQL loader first
-            customRegistry.register(new SqlLoader());
-            customRegistry.register(new TypeScriptLoader());
+            customRegistry.register(new SqlLoader<IDB>());
+            customRegistry.register(new TypeScriptLoader<IDB>());
 
             // SQL loader should still only match .up.sql
             const tsLoader = customRegistry.findLoader('/path/to/test.ts');
@@ -122,7 +114,7 @@ describe('LoaderRegistry', () => {
         });
 
         it('should return copy of loaders array', () => {
-            const loader = new TypeScriptLoader();
+            const loader = new TypeScriptLoader<IDB>();
             registry.register(loader);
 
             const loaders1 = registry.getLoaders();
@@ -135,7 +127,7 @@ describe('LoaderRegistry', () => {
         });
 
         it('should not allow external modification of loaders', () => {
-            const loader = new TypeScriptLoader();
+            const loader = new TypeScriptLoader<IDB>();
             registry.register(loader);
 
             const loaders = registry.getLoaders();
@@ -188,12 +180,12 @@ describe('LoaderRegistry', () => {
     describe('Custom Loader Integration', () => {
         it('should support registering custom loaders', () => {
             // Create a custom Python loader (mock)
-            class PythonLoader implements IMigrationScriptLoader {
+            class PythonLoader implements IMigrationScriptLoader<IDB> {
                 canHandle(filePath: string): boolean {
                     return /\.py$/i.test(filePath);
                 }
 
-                async load(script: MigrationScript): Promise<IRunnableScript> {
+                async load(script: MigrationScript<IDB>): Promise<IRunnableScript<IDB>> {
                     return {
                         up: async () => 'Python migration executed',
                         down: async () => 'Python migration rolled back'
@@ -205,8 +197,8 @@ describe('LoaderRegistry', () => {
                 }
             }
 
-            registry.register(new TypeScriptLoader());
-            registry.register(new SqlLoader());
+            registry.register(new TypeScriptLoader<IDB>());
+            registry.register(new SqlLoader<IDB>());
             registry.register(new PythonLoader());
 
             const loader = registry.findLoader('/path/to/test.py');
@@ -215,12 +207,12 @@ describe('LoaderRegistry', () => {
 
         it('should respect custom loader priority', () => {
             // Custom loader that overrides .ts handling
-            class CustomTsLoader implements IMigrationScriptLoader {
+            class CustomTsLoader implements IMigrationScriptLoader<IDB> {
                 canHandle(filePath: string): boolean {
                     return /\.ts$/i.test(filePath);
                 }
 
-                async load(): Promise<IRunnableScript> {
+                async load(): Promise<IRunnableScript<IDB>> {
                     return {
                         up: async () => 'Custom TS loader',
                         down: async () => 'Custom TS rollback'
@@ -234,7 +226,7 @@ describe('LoaderRegistry', () => {
 
             // Register custom loader BEFORE default TypeScript loader
             registry.register(new CustomTsLoader());
-            registry.register(new TypeScriptLoader());
+            registry.register(new TypeScriptLoader<IDB>());
 
             const loader = registry.findLoader('/path/to/test.ts');
             // Should get custom loader (registered first)

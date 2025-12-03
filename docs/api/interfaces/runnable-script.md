@@ -24,12 +24,16 @@ Interface for migration script classes.
 
 Interface for migration script classes. Used by both regular migrations and the special `beforeMigrate` setup script.
 
+**Signature (v0.6.0+):**
 ```typescript
-interface IRunnableScript {
-  up(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string>;
-  down?(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string>;
+interface IRunnableScript<DB extends IDB = IDB> {
+  up(db: DB, info: IMigrationInfo, handler: IDatabaseMigrationHandler<DB>): Promise<string>;
+  down?(db: DB, info: IMigrationInfo, handler: IDatabaseMigrationHandler<DB>): Promise<string>;
 }
 ```
+
+{: .note }
+> **New in v0.6.0:** Generic type parameter `<DB extends IDB>` provides full autocomplete and type checking for database-specific methods. Default `= IDB` maintains backward compatibility.
 
 **Purpose:** Defines the contract for executable migration scripts.
 
@@ -69,7 +73,7 @@ interface IMyDatabase extends IDB {
   query(sql: string, params?: unknown[]): Promise<unknown[]>;
 }
 
-export default class AddUsersTable implements IRunnableScript {
+export default class AddUsersTable implements IRunnableScript<IDB> {
   async up(db: IMyDatabase, info: IMigrationInfo): Promise<string> {
     await db.query('CREATE TABLE users (id INT, name VARCHAR(255))');
     return 'Users table created';
@@ -111,7 +115,7 @@ interface IMyDatabase extends IDB {
   query(sql: string, params?: unknown[]): Promise<unknown[]>;
 }
 
-export default class AddUsersTable implements IRunnableScript {
+export default class AddUsersTable implements IRunnableScript<IDB> {
   async up(db: IMyDatabase, info: IMigrationInfo): Promise<string> {
     await db.query('CREATE TABLE users (id INT, name VARCHAR(255))');
     return 'Users table created';
@@ -138,7 +142,7 @@ interface IPostgresDB extends IDB {
   query<T>(sql: string, params?: unknown[]): Promise<T[]>;
 }
 
-export default class V202501280100_CreateUsersTable implements IRunnableScript {
+export default class V202501280100_CreateUsersTable implements IRunnableScript<IDB> {
   async up(db: IPostgresDB, info: IMigrationInfo): Promise<string> {
     await db.query(`
       CREATE TABLE users (
@@ -176,7 +180,7 @@ interface IPostgresDB extends IDB {
   query<T>(sql: string, params?: unknown[]): Promise<T[]>;
 }
 
-export default class V202501280200_NormalizeEmails implements IRunnableScript {
+export default class V202501280200_NormalizeEmails implements IRunnableScript<IDB> {
   async up(db: IPostgresDB, info: IMigrationInfo): Promise<string> {
     // Get all users
     const users = await db.query<{id: number, email: string}>(`
@@ -211,7 +215,7 @@ interface IPostgresDB extends IDB {
   query<T>(sql: string, params?: unknown[]): Promise<T[]>;
 }
 
-export default class V202501280300_AddAuditColumns implements IRunnableScript {
+export default class V202501280300_AddAuditColumns implements IRunnableScript<IDB> {
   async up(db: IPostgresDB, info: IMigrationInfo): Promise<string> {
     await db.query(`
       ALTER TABLE users
@@ -244,7 +248,7 @@ interface IPostgresDB extends IDB {
   transaction<T>(callback: () => Promise<T>): Promise<T>;
 }
 
-export default class V202501280400_MigrateUserRoles implements IRunnableScript {
+export default class V202501280400_MigrateUserRoles implements IRunnableScript<IDB> {
   async up(db: IPostgresDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string> {
     // Use transaction for atomicity
     await db.transaction(async () => {
@@ -304,7 +308,7 @@ The `beforeMigrate` script uses the same `IRunnableScript` interface but behaves
 // migrations/beforeMigrate.ts
 import { IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB } from '@migration-script-runner/core';
 
-export default class BeforeMigrate implements IRunnableScript {
+export default class BeforeMigrate implements IRunnableScript<IDB> {
   async up(
     db: IDB,
     info: IMigrationInfo,
@@ -482,7 +486,7 @@ interface IFirestoreDB extends IDB {
   firestore: Firestore;
 }
 
-export default class V202501280500_MigrateUserProfiles implements IRunnableScript {
+export default class V202501280500_MigrateUserProfiles implements IRunnableScript<IDB> {
   async up(db: IFirestoreDB, info: IMigrationInfo): Promise<string> {
     const firestore = db.firestore;
     let migratedCount = 0;
@@ -564,7 +568,7 @@ interface IMongoDatabase extends IDB {
   client: MongoClient;
 }
 
-export default class V202501280600_AddUserTimestamps implements IRunnableScript {
+export default class V202501280600_AddUserTimestamps implements IRunnableScript<IDB> {
   async up(db: IMongoDatabase, info: IMigrationInfo): Promise<string> {
     const database = db.client.db('myapp');
     let updatedCount = 0;

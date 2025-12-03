@@ -44,7 +44,7 @@ import { IDB } from './IDB';
  * }
  *
  * // Usage with MSR
- * const handler: IDatabaseMigrationHandler = {
+ * const handler: IDatabaseMigrationHandler<PostgresDB> = {
  *   db: new PostgresDB(pool),
  *   schemaVersion: schemaVersionImpl,
  *   getName: () => 'PostgreSQL Handler',
@@ -272,25 +272,33 @@ export type AnyTransactionalDB<TxContext = unknown> =
  * Type guard to check if database supports imperative transactions (SQL-style).
  *
  * Checks for begin/commit/rollback methods typical of SQL databases.
+ * Preserves the specific database type while narrowing to include transactional capabilities.
  *
  * **New in v0.5.0**
+ * **Enhanced in v0.6.0** - Now preserves specific database type with generics
  *
+ * @typeParam DB - The specific database type extending IDB
  * @param db - Database instance to check
  * @returns true if database implements ITransactionalDB, false otherwise
  *
  * @example
  * ```typescript
- * import { isImperativeTransactional } from '@migration-script-runner/core';
+ * import { isImperativeTransactional, IPostgresDB } from '@migration-script-runner/core';
  *
- * if (isImperativeTransactional(handler.db)) {
- *   // SQL-style transactions
- *   await handler.db.beginTransaction();
- *   // ... operations ...
- *   await handler.db.commit();
+ * const db: IPostgresDB = new PostgresDB(pool);
+ *
+ * if (isImperativeTransactional(db)) {
+ *   // db is now typed as IPostgresDB & ITransactionalDB
+ *   // Full autocomplete for both PostgreSQL-specific AND transaction methods
+ *   await db.beginTransaction();
+ *   await db.query('SELECT * FROM users'); // PostgreSQL-specific
+ *   await db.commit();
  * }
  * ```
  */
-export function isImperativeTransactional(db: IDB): db is ITransactionalDB {
+export function isImperativeTransactional<DB extends IDB>(
+    db: DB
+): db is DB & ITransactionalDB {
     return (
         'beginTransaction' in db &&
         'commit' in db &&
@@ -302,27 +310,37 @@ export function isImperativeTransactional(db: IDB): db is ITransactionalDB {
  * Type guard to check if database supports callback transactions (NoSQL-style).
  *
  * Checks for runTransaction method typical of NoSQL databases like Firestore.
+ * Preserves the specific database type while narrowing to include callback transactional capabilities.
  *
  * **New in v0.5.0**
+ * **Enhanced in v0.6.0** - Now preserves specific database type with generics
  *
+ * @typeParam DB - The specific database type extending IDB
+ * @typeParam TxContext - Database-specific transaction context type
  * @param db - Database instance to check
  * @returns true if database implements ICallbackTransactionalDB, false otherwise
  *
  * @example
  * ```typescript
  * import { isCallbackTransactional } from '@migration-script-runner/core';
+ * import { Transaction } from '@google-cloud/firestore';
  *
- * if (isCallbackTransactional<Transaction>(handler.db)) {
- *   // NoSQL-style transactions
- *   await handler.db.runTransaction(async (tx) => {
- *     // ... operations with tx ...
+ * const db: IFirestoreDB = new FirestoreDB(firestore);
+ *
+ * if (isCallbackTransactional<IFirestoreDB, Transaction>(db)) {
+ *   // db is now typed as IFirestoreDB & ICallbackTransactionalDB<Transaction>
+ *   // Full autocomplete for both Firestore-specific AND transaction methods
+ *   await db.runTransaction(async (tx) => {
+ *     const docRef = db.collection('users').doc('user1'); // Firestore-specific
+ *     const doc = await tx.get(docRef);
+ *     tx.update(docRef, { migrated: true });
  *   });
  * }
  * ```
  */
-export function isCallbackTransactional<TxContext = unknown>(
-    db: IDB
-): db is ICallbackTransactionalDB<TxContext> {
+export function isCallbackTransactional<DB extends IDB, TxContext = unknown>(
+    db: DB
+): db is DB & ICallbackTransactionalDB<TxContext> {
     return 'runTransaction' in db;
 }
 
@@ -330,10 +348,14 @@ export function isCallbackTransactional<TxContext = unknown>(
  * Type guard to check if database supports any transaction style.
  *
  * Checks for either imperative (begin/commit/rollback) or callback (runTransaction)
- * transaction support.
+ * transaction support. Preserves the specific database type while narrowing to include
+ * transactional capabilities.
  *
  * **New in v0.5.0**
+ * **Enhanced in v0.6.0** - Now preserves specific database type with generics
  *
+ * @typeParam DB - The specific database type extending IDB
+ * @typeParam TxContext - Database-specific transaction context type (for callback-style)
  * @param db - Database instance to check
  * @returns true if database supports any transaction style, false otherwise
  *
@@ -341,7 +363,10 @@ export function isCallbackTransactional<TxContext = unknown>(
  * ```typescript
  * import { isTransactionalDB } from '@migration-script-runner/core';
  *
- * if (isTransactionalDB(handler.db)) {
+ * const db: IPostgresDB = new PostgresDB(pool);
+ *
+ * if (isTransactionalDB(db)) {
+ *   // db is now typed as IPostgresDB & AnyTransactionalDB
  *   // Database supports transactions (either style)
  *   console.log('Transactions supported');
  * } else {
@@ -349,6 +374,8 @@ export function isCallbackTransactional<TxContext = unknown>(
  * }
  * ```
  */
-export function isTransactionalDB(db: IDB): db is AnyTransactionalDB {
+export function isTransactionalDB<DB extends IDB, TxContext = unknown>(
+    db: DB
+): db is DB & AnyTransactionalDB<TxContext> {
     return isImperativeTransactional(db) || isCallbackTransactional(db);
 }

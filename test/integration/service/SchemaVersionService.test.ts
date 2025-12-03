@@ -1,28 +1,21 @@
 import {expect, spy} from "chai";
 import {afterEach} from "mocha";
-import {
-    SchemaVersionService,
-    MigrationScript,
-    Config,
-    IMigrationInfo,
-    ISchemaVersion,
-    IMigrationScript
-} from "../../../src";
+import { Config, IDB, IMigrationInfo, IMigrationScript, ISchemaVersion, MigrationScript, SchemaVersionService } from "../../../src";
 
 describe('SchemaVersionService', () => {
 
     let initialized = true
     let created = true
     let valid = true
-    let scripts:MigrationScript[] = []
+    let scripts: MigrationScript<IDB>[] = []
 
     let cfg = new Config()
-    let schemaVersion:ISchemaVersion
+    let schemaVersion: ISchemaVersion<IDB>
 
     before(() => {
         schemaVersion = {
             migrationRecords: {
-                getAllExecuted(): Promise<MigrationScript[]> {
+                getAllExecuted(): Promise<MigrationScript<IDB>[]> {
                     return Promise.resolve(scripts);
                 },
                 save(details: IMigrationInfo): Promise<any> {
@@ -31,7 +24,7 @@ describe('SchemaVersionService', () => {
                 remove(timestamp: number): Promise<void> {
                     return Promise.resolve(undefined);
                 }
-            } as IMigrationScript,
+            } as IMigrationScript<IDB>,
 
             createTable(tableName: string): Promise<boolean> {
                 return Promise.resolve(created);
@@ -44,7 +37,7 @@ describe('SchemaVersionService', () => {
             validateTable(tableName: string): Promise<boolean> {
                 return Promise.resolve(valid);
             }
-        } as ISchemaVersion
+        } as ISchemaVersion<IDB>
     })
 
     beforeEach(() => {
@@ -74,7 +67,7 @@ describe('SchemaVersionService', () => {
             valid = true
 
             // Initialize the schema version table
-            await new SchemaVersionService(schemaVersion).init(cfg.tableName);
+            await new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).init(cfg.tableName);
 
             // Verify the initialization flow: check if exists → create → validate
             expect(schemaVersion.isInitialized).have.been.called.once.with(cfg.tableName)
@@ -95,7 +88,7 @@ describe('SchemaVersionService', () => {
 
             // Attempt initialization which should fail validation
             try {
-                await new SchemaVersionService(schemaVersion).init(cfg.tableName);
+                await new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).init(cfg.tableName);
                 expect.fail('Should have thrown');
             } catch (e: any) {
                 // Verify clear error message for debugging
@@ -122,7 +115,7 @@ describe('SchemaVersionService', () => {
             valid = true
 
             // Initialize (should skip creation)
-            await new SchemaVersionService(schemaVersion).init(cfg.tableName);
+            await new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).init(cfg.tableName);
 
             // Verify creation was skipped but validation still ran
             expect(schemaVersion.isInitialized).have.been.called.once.with(cfg.tableName)
@@ -143,7 +136,7 @@ describe('SchemaVersionService', () => {
             valid = false
 
             // Attempt initialization which should fail validation
-            await expect(new SchemaVersionService(schemaVersion).init(cfg.tableName)).to.be.rejectedWith("Schema version table is invalid");
+            await expect(new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).init(cfg.tableName)).to.be.rejectedWith("Schema version table is invalid");
 
             // Verify validation was attempted but creation was skipped
             expect(schemaVersion.isInitialized).have.been.called.once.with(cfg.tableName)
@@ -165,7 +158,7 @@ describe('SchemaVersionService', () => {
 
             // Attempt initialization which should fail during creation
             try {
-                await new SchemaVersionService(schemaVersion).init(cfg.tableName);
+                await new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).init(cfg.tableName);
                 expect.fail('Should have thrown');
             } catch (e: any) {
                 // Verify clear error message indicating creation failed
@@ -192,7 +185,7 @@ describe('SchemaVersionService', () => {
             valid = true;
 
             // Call init with empty string (service delegates validation)
-            await new SchemaVersionService(schemaVersion).init('');
+            await new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).init('');
             expect(schemaVersion.isInitialized).have.been.called.with('');
         })
 
@@ -210,7 +203,7 @@ describe('SchemaVersionService', () => {
             valid = true;
 
             // Should not throw (delegates to underlying service for length validation)
-            await new SchemaVersionService(schemaVersion).init(longTableName);
+            await new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).init(longTableName);
             expect(schemaVersion.createTable).have.been.called.with(longTableName);
         })
 
@@ -227,7 +220,7 @@ describe('SchemaVersionService', () => {
             valid = true;
 
             // Pass through without modification
-            await new SchemaVersionService(schemaVersion).init('test-table_123');
+            await new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).init('test-table_123');
             expect(schemaVersion.createTable).have.been.called.with('test-table_123');
         })
     })
@@ -243,7 +236,7 @@ describe('SchemaVersionService', () => {
         it('should register migration info successfully', async () => {
             // Create a migration info object to save
             const m = {} as IMigrationInfo;
-            await new SchemaVersionService(schemaVersion).save({} as IMigrationInfo);
+            await new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).save({} as IMigrationInfo);
 
             // Verify only save() was called, no other schema operations
             expect(schemaVersion.migrationRecords.save).have.been.called.with(m)
@@ -270,7 +263,7 @@ describe('SchemaVersionService', () => {
             } as IMigrationInfo;
 
             // Should save without throwing or hanging
-            await new SchemaVersionService(schemaVersion).save(largeMigration);
+            await new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).save(largeMigration);
             expect(schemaVersion.migrationRecords.save).have.been.called.with(largeMigration);
         })
 
@@ -292,7 +285,7 @@ describe('SchemaVersionService', () => {
             };
 
             // Should delegate to service (service handles validation)
-            await new SchemaVersionService(schemaVersion).save(incompleteMigration);
+            await new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).save(incompleteMigration);
             expect(schemaVersion.migrationRecords.save).have.been.called;
         })
     })
@@ -307,7 +300,7 @@ describe('SchemaVersionService', () => {
          */
         it('should retrieve all migrated scripts successfully', async () => {
             // Retrieve all migrated scripts from the database
-            const res = await new SchemaVersionService(schemaVersion).getAllMigratedScripts();
+            const res = await new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).getAllMigratedScripts();
 
             // Verify correct method was called and result returned
             expect(res).eq(scripts, "Should return list of scripts")
@@ -328,7 +321,7 @@ describe('SchemaVersionService', () => {
             scripts = [];
 
             // Retrieve empty list
-            const res = await new SchemaVersionService(schemaVersion).getAllMigratedScripts();
+            const res = await new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).getAllMigratedScripts();
             expect(res.length).eq(0, 'Should return empty array');
         })
 
@@ -343,11 +336,11 @@ describe('SchemaVersionService', () => {
             scripts = Array.from({length: 10000}, (_, i) => ({
                 timestamp: i,
                 name: `Migration${i}`
-            } as MigrationScript));
+            } as MigrationScript<IDB>));
 
             // Measure retrieval performance
             const start = Date.now();
-            const res = await new SchemaVersionService(schemaVersion).getAllMigratedScripts();
+            const res = await new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).getAllMigratedScripts();
             const duration = Date.now() - start;
 
             // Verify all records returned and performance is acceptable
@@ -367,7 +360,7 @@ describe('SchemaVersionService', () => {
         it('should remove migration record successfully', async () => {
             // Remove a migration by timestamp
             const timestamp = 202501220100;
-            await new SchemaVersionService(schemaVersion).remove(timestamp);
+            await new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).remove(timestamp);
 
             // Verify only remove() was called, no other schema operations
             expect(schemaVersion.migrationRecords.remove).have.been.called.with(timestamp);
@@ -387,7 +380,7 @@ describe('SchemaVersionService', () => {
         it('should handle removing non-existent migration', async () => {
             // Attempt to remove a migration that doesn't exist
             const nonExistentTimestamp = 999999999999;
-            await new SchemaVersionService(schemaVersion).remove(nonExistentTimestamp);
+            await new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).remove(nonExistentTimestamp);
 
             // Should delegate to service (service handles existence checking)
             expect(schemaVersion.migrationRecords.remove).have.been.called.with(nonExistentTimestamp);
@@ -401,7 +394,7 @@ describe('SchemaVersionService', () => {
          */
         it('should handle zero timestamp', async () => {
             // Remove with timestamp = 0 (edge case)
-            await new SchemaVersionService(schemaVersion).remove(0);
+            await new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).remove(0);
 
             // Should delegate without validation
             expect(schemaVersion.migrationRecords.remove).have.been.called.with(0);
@@ -415,7 +408,7 @@ describe('SchemaVersionService', () => {
          */
         it('should handle negative timestamp', async () => {
             // Remove with negative timestamp (invalid but passed through)
-            await new SchemaVersionService(schemaVersion).remove(-1);
+            await new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).remove(-1);
 
             // Should delegate to service (service handles validation)
             expect(schemaVersion.migrationRecords.remove).have.been.called.with(-1);
@@ -430,7 +423,7 @@ describe('SchemaVersionService', () => {
         it('should handle very large timestamp', async () => {
             // Remove with very large timestamp (JavaScript max safe integer)
             const largeTimestamp = Number.MAX_SAFE_INTEGER;
-            await new SchemaVersionService(schemaVersion).remove(largeTimestamp);
+            await new SchemaVersionService<IDB, ISchemaVersion<IDB>>(schemaVersion).remove(largeTimestamp);
 
             // Should pass through without issues
             expect(schemaVersion.migrationRecords.remove).have.been.called.with(largeTimestamp);

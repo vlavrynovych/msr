@@ -40,7 +40,8 @@ A database-agnostic migration framework for TypeScript and JavaScript projects.
 ### Core Capabilities
 
 - **🔌 Database Agnostic** - Works with any database by implementing a simple interface
-- **🛡️ Type Safe** - Written in TypeScript with full type definitions
+- **🛡️ Type Safe** - Generic type parameters for database-specific type safety (v0.6.0+)
+- **💡 Full IDE Support** - Complete autocomplete for database-specific methods with generics
 - **💾 Smart Rollback** - Four strategies: backup/restore, down() methods, both, or none
 - **✅ Built-in Validation** - Detects duplicate timestamps, missing files, and checksum mismatches
 - **📊 Migration Tracking** - Keeps history of executed migrations in your database
@@ -60,16 +61,17 @@ A database-agnostic migration framework for TypeScript and JavaScript projects.
 
 ---
 
-## What's New in v0.5.0
+## What's New in v0.6.0
 
-🎉 Latest release brings powerful new capabilities:
+🎉 Latest release brings database-specific type safety:
 
-- **🔒 Transaction Management** - Configurable transaction modes (per-migration, per-batch, none) with automatic retry logic and isolation level control for both SQL and NoSQL databases
-- **⚙️ Environment Variables** - Complete MSR_* configuration support following 12-factor app principles - perfect for Docker, Kubernetes, and CI/CD pipelines
-- **📊 Enhanced Hooks** - New transaction lifecycle hooks for monitoring and metrics collection
-- **🚀 Production Ready** - 100% backward compatible with v0.4.x, zero breaking changes
+- **🎯 Generic Type Parameters** - Full type safety for database-specific operations with `IDatabaseMigrationHandler<DB>`, `IRunnableScript<DB>`, and `MigrationScriptExecutor<DB>`
+- **💡 Enhanced IDE Support** - Full autocomplete and IntelliSense for database-specific methods (no more `as any` casting!)
+- **🛡️ Compile-Time Validation** - Catch database errors at compile time, not runtime
+- **🔍 Enhanced Type Guards** - Type-preserving `isImperativeTransactional<DB>()` and `isCallbackTransactional<DB, TxContext>()` functions
+- **🚀 Zero Breaking Changes** - 100% backward compatible with v0.5.x, default generics maintain existing behavior
 
-**[→ View v0.5.0 migration guide](version-migration/v0.4-to-v0.5)** | **[→ See full changelog](features#feature-highlights-by-version)**
+**[→ View v0.6.0 migration guide](version-migration/v0.5-to-v0.6)** | **[→ See full changelog](features#feature-highlights-by-version)**
 {: .fs-5 }
 
 ---
@@ -87,17 +89,21 @@ npm install @migration-script-runner/core
 ```typescript
 import { IDatabaseMigrationHandler, IDB, ISchemaVersion } from '@migration-script-runner/core';
 
-// Define your database type for type safety
+// Define your database type for full type safety (v0.6.0+)
 interface IMyDatabase extends IDB {
   query(sql: string, params?: unknown[]): Promise<unknown[]>;
 }
 
-export class MyDatabaseHandler implements IDatabaseMigrationHandler {
-  db: IMyDatabase;
-  schemaVersion: ISchemaVersion;
+export class MyDatabaseHandler implements IDatabaseMigrationHandler<IMyDatabase> {
+  db: IMyDatabase;  // ✅ Typed database connection
+  schemaVersion: ISchemaVersion<IMyDatabase>;
 
   getName(): string {
     return 'My Database Handler';
+  }
+
+  getVersion(): string {
+    return '1.0.0';
   }
 
   // Implement schema version tracking and optionally backup
@@ -114,8 +120,9 @@ interface IMyDatabase extends IDB {
   query(sql: string): Promise<unknown[]>;
 }
 
-export default class CreateUsers implements IRunnableScript {
+export default class CreateUsers implements IRunnableScript<IMyDatabase> {
   async up(db: IMyDatabase, info: IMigrationInfo): Promise<string> {
+    // ✅ Full autocomplete for db.query() - no casting needed!
     await db.query(`
       CREATE TABLE users (
         id INT PRIMARY KEY AUTO_INCREMENT,
@@ -137,13 +144,13 @@ export default class CreateUsers implements IRunnableScript {
 
 ```typescript
 import { MigrationScriptExecutor, Config } from '@migration-script-runner/core';
-import { MyDatabaseHandler } from './database-handler';
+import { MyDatabaseHandler, IMyDatabase } from './database-handler';
 
 const config = new Config();
 config.folder = './migrations';
 
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor<IMyDatabase>({ handler }, config);
 
 // Library usage - returns result object
 const result = await executor.up();

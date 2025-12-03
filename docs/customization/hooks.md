@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Migration Hooks
-parent: Customization
+parent: Extending MSR
 nav_order: 6
 ---
 

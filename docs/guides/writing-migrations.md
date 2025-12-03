@@ -14,11 +14,14 @@ Best practices and guidelines for writing effective database migrations.
 ## What You'll Learn
 
 - Migration file naming conventions and formats
-- Writing type-safe migration scripts
+- Writing type-safe migration scripts with generic type parameters (v0.6.0+)
 - Using the beforeMigrate setup script
 - Best practices for maintainable migrations
 - Implementing reversible migrations with down() methods
 - Common patterns and pitfalls to avoid
+
+{: .note }
+> **New in v0.6.0:** Generic type parameters provide full type safety for database-specific operations. Examples in this guide use `IRunnableScript<IDB>` for simplicity. For database-specific typing (PostgreSQL, MongoDB, etc.), see the [v0.6.0 migration guide](../version-migration/v0.5-to-v0.6).
 
 ## Table of contents
 {: .no_toc .text-delta }
@@ -99,7 +102,7 @@ interface IMyDatabase extends IDB {
   query(sql: string, params?: unknown[]): Promise<unknown[]>;
 }
 
-export default class MigrationName implements IRunnableScript {
+export default class MigrationName implements IRunnableScript<IDB> {
 
   async up(
     db: IMyDatabase,
@@ -121,12 +124,12 @@ The class name should match the description (in PascalCase):
 
 ```typescript
 // File: V202501220100_create_users_table.ts
-export default class CreateUsersTable implements IRunnableScript {
+export default class CreateUsersTable implements IRunnableScript<IDB> {
   // ...
 }
 
 // File: V202501220101_add_email_index.ts
-export default class AddEmailIndex implements IRunnableScript {
+export default class AddEmailIndex implements IRunnableScript<IDB> {
   // ...
 }
 ```
@@ -155,7 +158,7 @@ Create a file named `beforeMigrate.ts` in your migrations folder:
 import fs from 'fs';
 import {IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB} from 'migration-script-runner';
 
-export default class BeforeMigrate implements IRunnableScript {
+export default class BeforeMigrate implements IRunnableScript<IDB> {
   async up(
     db: IDB,
     info: IMigrationInfo,
@@ -225,7 +228,7 @@ Each migration should do one thing:
 
 ```typescript
 // Good: Single responsibility
-export default class AddEmailToUsers implements IRunnableScript {
+export default class AddEmailToUsers implements IRunnableScript<IDB> {
   async up(db: any): Promise<any> {
     await db.query('ALTER TABLE users ADD COLUMN email VARCHAR(255)');
     return 'Added email column';
@@ -233,7 +236,7 @@ export default class AddEmailToUsers implements IRunnableScript {
 }
 
 // Bad: Multiple responsibilities
-export default class UpdateUserSchema implements IRunnableScript {
+export default class UpdateUserSchema implements IRunnableScript<IDB> {
   async up(db: any): Promise<any> {
     await db.query('ALTER TABLE users ADD COLUMN email VARCHAR(255)');
     await db.query('ALTER TABLE users ADD COLUMN phone VARCHAR(20)');
@@ -249,7 +252,7 @@ export default class UpdateUserSchema implements IRunnableScript {
 Migrations that can safely run multiple times:
 
 ```typescript
-export default class CreateUsersTable implements IRunnableScript {
+export default class CreateUsersTable implements IRunnableScript<IDB> {
   async up(db: any): Promise<any> {
     // Check if table exists first
     const exists = await db.query(
@@ -272,7 +275,7 @@ MSR tracks executed migrations, so this is mainly useful for manual re-runs duri
 ### 3. Add Logging for Complex Operations
 
 ```typescript
-export default class MigrateUserData implements IRunnableScript {
+export default class MigrateUserData implements IRunnableScript<IDB> {
   async up(db: any): Promise<any> {
     console.log('Starting user data migration...');
 
@@ -300,7 +303,7 @@ export default class MigrateUserData implements IRunnableScript {
 ### 4. Handle Errors Gracefully
 
 ```typescript
-export default class UpdateUserEmails implements IRunnableScript {
+export default class UpdateUserEmails implements IRunnableScript<IDB> {
   async up(db: any): Promise<any> {
     try {
       const result = await db.query(
@@ -323,7 +326,7 @@ If a migration throws an error, MSR will automatically rollback using your confi
 ### 5. Use Transactions (If Supported)
 
 ```typescript
-export default class ComplexDataMigration implements IRunnableScript {
+export default class ComplexDataMigration implements IRunnableScript<IDB> {
   async up(db: any): Promise<any> {
     const transaction = await db.beginTransaction();
 
@@ -350,7 +353,7 @@ export default class ComplexDataMigration implements IRunnableScript {
 ### Creating Tables
 
 ```typescript
-export default class CreatePostsTable implements IRunnableScript {
+export default class CreatePostsTable implements IRunnableScript<IDB> {
   async up(db: any): Promise<any> {
     await db.query(`
       CREATE TABLE posts (
@@ -371,7 +374,7 @@ export default class CreatePostsTable implements IRunnableScript {
 ### Adding Columns
 
 ```typescript
-export default class AddAvatarToUsers implements IRunnableScript {
+export default class AddAvatarToUsers implements IRunnableScript<IDB> {
   async up(db: any): Promise<any> {
     await db.query(`
       ALTER TABLE users
@@ -386,7 +389,7 @@ export default class AddAvatarToUsers implements IRunnableScript {
 ### Creating Indexes
 
 ```typescript
-export default class AddEmailIndex implements IRunnableScript {
+export default class AddEmailIndex implements IRunnableScript<IDB> {
   async up(db: any): Promise<any> {
     await db.query('CREATE INDEX idx_users_email ON users(email)');
     return 'Created email index on users table';
@@ -397,7 +400,7 @@ export default class AddEmailIndex implements IRunnableScript {
 ### Data Migrations
 
 ```typescript
-export default class PopulateDefaultSettings implements IRunnableScript {
+export default class PopulateDefaultSettings implements IRunnableScript<IDB> {
   async up(db: any): Promise<any> {
     const users = await db.query('SELECT id FROM users');
 
@@ -419,7 +422,7 @@ export default class PopulateDefaultSettings implements IRunnableScript {
 Be extremely careful with destructive operations!
 
 ```typescript
-export default class RemoveDeprecatedTable implements IRunnableScript {
+export default class RemoveDeprecatedTable implements IRunnableScript<IDB> {
   async up(db: any): Promise<any> {
     // Optional: Create backup of data first
     const data = await db.query('SELECT * FROM deprecated_table');
@@ -475,7 +478,7 @@ The `down()` method should reverse the changes made by `up()`:
 ```typescript
 import { IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB } from '@migration-script-runner/core';
 
-export default class CreateUsersTable implements IRunnableScript {
+export default class CreateUsersTable implements IRunnableScript<IDB> {
   async up(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string> {
     await (db as any).query(`
       CREATE TABLE users (
@@ -502,7 +505,7 @@ export default class CreateUsersTable implements IRunnableScript {
 Make down() methods idempotent:
 
 ```typescript
-export default class AddEmailIndex implements IRunnableScript {
+export default class AddEmailIndex implements IRunnableScript<IDB> {
   async up(db: any): Promise<string> {
     await db.query('CREATE INDEX idx_users_email ON users(email)');
     return 'Email index created';
@@ -521,7 +524,7 @@ export default class AddEmailIndex implements IRunnableScript {
 For destructive operations, consider preserving data:
 
 ```typescript
-export default class RemovePhoneColumn implements IRunnableScript {
+export default class RemovePhoneColumn implements IRunnableScript<IDB> {
   async up(db: any): Promise<string> {
     // Archive data before dropping
     await db.query(`
@@ -555,7 +558,7 @@ export default class RemovePhoneColumn implements IRunnableScript {
 For data migrations, down() should reverse transformations:
 
 ```typescript
-export default class NormalizeEmails implements IRunnableScript {
+export default class NormalizeEmails implements IRunnableScript<IDB> {
   async up(db: any): Promise<string> {
     // Store original values for rollback
     await db.query(`
@@ -588,7 +591,7 @@ export default class NormalizeEmails implements IRunnableScript {
 Reverse operations in opposite order:
 
 ```typescript
-export default class AddUserRoles implements IRunnableScript {
+export default class AddUserRoles implements IRunnableScript<IDB> {
   async up(db: any): Promise<string> {
     // Step 1: Create roles table
     await db.query('CREATE TABLE roles (id INT PRIMARY KEY, name VARCHAR(50))');
@@ -635,7 +638,7 @@ export default class AddUserRoles implements IRunnableScript {
 
 ```typescript
 // Creating a table
-export default class CreatePostsTable implements IRunnableScript {
+export default class CreatePostsTable implements IRunnableScript<IDB> {
   async up(db: any): Promise<string> {
     await db.query('CREATE TABLE posts (id INT, title VARCHAR(255))');
     return 'Posts table created';
@@ -652,7 +655,7 @@ export default class CreatePostsTable implements IRunnableScript {
 
 ```typescript
 // Adding a column
-export default class AddAvatarColumn implements IRunnableScript {
+export default class AddAvatarColumn implements IRunnableScript<IDB> {
   async up(db: any): Promise<string> {
     await db.query('ALTER TABLE users ADD COLUMN avatar_url VARCHAR(512)');
     return 'Avatar column added';
@@ -665,7 +668,7 @@ export default class AddAvatarColumn implements IRunnableScript {
 }
 
 // Renaming a column
-export default class RenameEmailColumn implements IRunnableScript {
+export default class RenameEmailColumn implements IRunnableScript<IDB> {
   async up(db: any): Promise<string> {
     await db.query('ALTER TABLE users RENAME COLUMN email TO email_address');
     return 'Email column renamed';
@@ -682,7 +685,7 @@ export default class RenameEmailColumn implements IRunnableScript {
 
 ```typescript
 // Creating an index
-export default class AddUserEmailIndex implements IRunnableScript {
+export default class AddUserEmailIndex implements IRunnableScript<IDB> {
   async up(db: any): Promise<string> {
     await db.query('CREATE INDEX idx_users_email ON users(email)');
     return 'Email index created';
@@ -695,7 +698,7 @@ export default class AddUserEmailIndex implements IRunnableScript {
 }
 
 // Creating a unique constraint
-export default class AddUniqueEmailConstraint implements IRunnableScript {
+export default class AddUniqueEmailConstraint implements IRunnableScript<IDB> {
   async up(db: any): Promise<string> {
     await db.query('ALTER TABLE users ADD CONSTRAINT uk_email UNIQUE (email)');
     return 'Email unique constraint added';
@@ -712,7 +715,7 @@ export default class AddUniqueEmailConstraint implements IRunnableScript {
 
 ```typescript
 // Inserting seed data
-export default class AddDefaultRoles implements IRunnableScript {
+export default class AddDefaultRoles implements IRunnableScript<IDB> {
   async up(db: any): Promise<string> {
     await db.query(`
       INSERT INTO roles (id, name) VALUES
@@ -738,7 +741,7 @@ Some migrations are difficult or impossible to reverse safely:
 
 ```typescript
 // Risky: Hard to restore deleted data
-export default class CleanupOldData implements IRunnableScript {
+export default class CleanupOldData implements IRunnableScript<IDB> {
   async up(db: any): Promise<string> {
     await db.query("DELETE FROM logs WHERE created_at < '2024-01-01'");
     return 'Old logs deleted';
@@ -757,7 +760,7 @@ export default class CleanupOldData implements IRunnableScript {
 
 ```typescript
 // Complex: Involves external APIs
-export default class SyncToExternalSystem implements IRunnableScript {
+export default class SyncToExternalSystem implements IRunnableScript<IDB> {
   async up(db: any): Promise<string> {
     const users = await db.query('SELECT * FROM users');
     await externalAPI.bulkCreate(users);  // External system updated
@@ -776,7 +779,7 @@ export default class SyncToExternalSystem implements IRunnableScript {
 
 ```typescript
 // Dangerous: Type changes can lose data
-export default class ChangeColumnType implements IRunnableScript {
+export default class ChangeColumnType implements IRunnableScript<IDB> {
   async up(db: any): Promise<string> {
     // Converting string to integer loses data
     await db.query('ALTER TABLE users MODIFY COLUMN age INT');
@@ -876,7 +879,7 @@ Complete example with proper error handling:
 ```typescript
 import { IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB } from '@migration-script-runner/core';
 
-export default class CreateUserActivityLog implements IRunnableScript {
+export default class CreateUserActivityLog implements IRunnableScript<IDB> {
   async up(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string> {
     try {
       // Create table
@@ -1044,7 +1047,7 @@ async up(db: any): Promise<any> {
 ### Conditional Migrations
 
 ```typescript
-export default class AddFeatureColumn implements IRunnableScript {
+export default class AddFeatureColumn implements IRunnableScript<IDB> {
   async up(db: any, info: IMigrationInfo): Promise<any> {
     // Only run in certain environments
     if (process.env.ENABLE_FEATURE === 'true') {
@@ -1060,7 +1063,7 @@ export default class AddFeatureColumn implements IRunnableScript {
 ### Multi-Database Migrations
 
 ```typescript
-export default class SyncAcrossDatabases implements IRunnableScript {
+export default class SyncAcrossDatabases implements IRunnableScript<IDB> {
   async up(db: any, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<any> {
     // Migrate primary database
     await db.query('CREATE TABLE sync_log ...');

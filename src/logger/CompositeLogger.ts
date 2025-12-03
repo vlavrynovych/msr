@@ -15,7 +15,7 @@ import { ILogger } from "../interface/ILogger";
  *     new FileLogger('/var/log/migrations.log')
  * ]);
  *
- * const executor = new MigrationScriptExecutor(handler, { logger });
+ * const executor = new MigrationScriptExecutor<DB>(handler, { logger });
  * ```
  *
  * @example

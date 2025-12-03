@@ -1,13 +1,13 @@
 import { expect } from 'chai';
-import { TypeScriptLoader, MigrationScript, SilentLogger } from '../../../src';
+import { IDB, MigrationScript, SilentLogger, TypeScriptLoader } from '../../../src';
 import path from 'node:path';
 
 describe('TypeScriptLoader', () => {
-    let loader: TypeScriptLoader;
+    let loader: TypeScriptLoader<IDB>;
     const fixturesPath = path.join(process.cwd(), 'test', 'fixtures', 'migrations');
 
     beforeEach(() => {
-        loader = new TypeScriptLoader(new SilentLogger());
+        loader = new TypeScriptLoader<IDB>(new SilentLogger());
     });
 
     describe('getName()', () => {
@@ -46,7 +46,7 @@ describe('TypeScriptLoader', () => {
 
     describe('load()', () => {
         it('should load a valid TypeScript migration', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202311062345_valid.ts',
                 path.join(fixturesPath, 'V202311062345_valid.ts'),
                 202311062345
@@ -59,7 +59,7 @@ describe('TypeScriptLoader', () => {
         });
 
         it('should throw error for file with no exports', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202311062345_empty.ts',
                 path.join(fixturesPath, 'V202311062345_empty.ts'),
                 202311062345
@@ -75,7 +75,7 @@ describe('TypeScriptLoader', () => {
         });
 
         it('should throw error for file with multiple exports', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202311062345_multiple_exports.ts',
                 path.join(fixturesPath, 'V202311062345_multiple_exports.ts'),
                 202311062345
@@ -91,7 +91,7 @@ describe('TypeScriptLoader', () => {
         });
 
         it('should throw error for non-existent file', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V999999999999_nonexistent.ts',
                 path.join(fixturesPath, 'V999999999999_nonexistent.ts'),
                 999999999999
@@ -107,7 +107,7 @@ describe('TypeScriptLoader', () => {
         });
 
         it('should load script with down() method', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202311062345_with_down.ts',
                 path.join(fixturesPath, 'V202311062345_with_down.ts'),
                 202311062345
@@ -121,7 +121,7 @@ describe('TypeScriptLoader', () => {
         });
 
         it('should instantiate exported class', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202311062345_valid.ts',
                 path.join(fixturesPath, 'V202311062345_valid.ts'),
                 202311062345
@@ -135,7 +135,7 @@ describe('TypeScriptLoader', () => {
         });
 
         it('should handle non-Error exceptions during loading', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202311062345_throws_string.ts',
                 path.join(fixturesPath, 'V202311062345_throws_string.ts'),
                 202311062345

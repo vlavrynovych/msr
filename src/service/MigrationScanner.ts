@@ -5,6 +5,7 @@ import {ISchemaVersionService} from "../interface/service/ISchemaVersionService"
 import {MigrationScriptSelector} from "./MigrationScriptSelector";
 import {Utils} from "./Utils";
 import {Config} from "../model";
+import {IDB} from "../interface/dao";
 
 /**
  * Service for scanning and gathering the complete state of migrations.
@@ -17,9 +18,14 @@ import {Config} from "../model";
  * This provides a clear separation between "gathering state" and "executing migrations",
  * making the code more testable and following the Single Responsibility Principle.
  *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
+ *
  * @example
  * ```typescript
- * const scanner = new MigrationScanner(
+ * const scanner = new MigrationScanner<IDB>(
  *     migrationService,
  *     schemaVersionService,
  *     selector,
@@ -31,19 +37,19 @@ import {Config} from "../model";
  * console.log(`Ignored: ${scripts.ignored.length}`);
  * ```
  */
-export class MigrationScanner implements IMigrationScanner {
+export class MigrationScanner<DB extends IDB> implements IMigrationScanner<DB> {
     /**
      * Creates a new MigrationScanner instance.
      *
-     * @param migrationService - Service for reading migration files from filesystem
-     * @param schemaVersionService - Service for querying executed migrations from database
-     * @param selector - Service for determining which migrations are pending/ignored
+     * @param migrationService - Service for reading migration files from filesystem (typed with generic DB parameter in v0.6.0)
+     * @param schemaVersionService - Service for querying executed migrations from database (typed with generic DB parameter in v0.6.0)
+     * @param selector - Service for determining which migrations are pending/ignored (typed with generic DB parameter in v0.6.0)
      * @param config - Configuration for migrations (folder, pattern, etc.)
      */
     constructor(
-        private readonly migrationService: IMigrationService,
-        private readonly schemaVersionService: ISchemaVersionService,
-        private readonly selector: MigrationScriptSelector,
+        private readonly migrationService: IMigrationService<DB>,
+        private readonly schemaVersionService: ISchemaVersionService<DB>,
+        private readonly selector: MigrationScriptSelector<DB>,
         private readonly config: Config
     ) {}
 
@@ -73,12 +79,12 @@ export class MigrationScanner implements IMigrationScanner {
      * scripts.executed  // Empty (filled during execution)
      * ```
      */
-    async scan(): Promise<IScripts> {
+    async scan(): Promise<IScripts<DB>> {
         // Gather information from database and filesystem in parallel
         const {migrated, all} = await Utils.promiseAll({
             migrated: this.schemaVersionService.getAllMigratedScripts(),
             all: this.migrationService.findMigrationScripts(this.config)
-        }) as IScripts;
+        }) as IScripts<DB>;
 
         // Determine which migrations should be executed and which should be ignored
         const pending = this.selector.getPending(migrated, all);

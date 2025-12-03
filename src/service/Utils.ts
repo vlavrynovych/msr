@@ -2,6 +2,7 @@ import {MigrationScript} from "../model";
 import {IRunnableScript, ILogger} from "../interface";
 import {ConsoleLogger} from "../logger";
 import {TypeScriptLoader} from "../loader/TypeScriptLoader";
+import {IDB} from "../interface/dao";
 
 /**
  * Utility functions for the migration system.
@@ -60,6 +61,7 @@ export class Utils {
      * - Export exactly one class with an `up()` method
      * - Not export multiple executable classes
      *
+     * @typeParam DB - Database interface type
      * @param script - MigrationScript object containing the filepath to load
      * @param logger - Logger instance for output (defaults to ConsoleLogger)
      *
@@ -71,7 +73,7 @@ export class Utils {
      *
      * @example
      * ```typescript
-     * const script = new MigrationScript(
+     * const script = new MigrationScript<DB>(
      *   'V202501220100_test.ts',
      *   '/path/to/V202501220100_test.ts',
      *   202501220100
@@ -81,8 +83,8 @@ export class Utils {
      * // Now can call: await runnable.up(db, info, handler)
      * ```
      */
-    public static async parseRunnable(script:MigrationScript, logger: ILogger = new ConsoleLogger()): Promise<IRunnableScript> {
-        const loader = new TypeScriptLoader(logger);
+    public static async parseRunnable<DB extends IDB>(script: MigrationScript<DB>, logger: ILogger = new ConsoleLogger()): Promise<IRunnableScript<DB>> {
+        const loader = new TypeScriptLoader<DB>(logger);
         return loader.load(script);
     }
 }

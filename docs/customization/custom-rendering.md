@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Custom Rendering
-parent: Customization
+parent: Extending MSR
 nav_order: 5
 ---
 

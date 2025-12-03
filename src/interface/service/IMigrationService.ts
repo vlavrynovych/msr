@@ -1,4 +1,5 @@
 import {Config, MigrationScript} from "../../model";
+import {IDB} from "../dao";
 
 /**
  * Service interface for discovering and loading migration script files.
@@ -7,9 +8,14 @@ import {Config, MigrationScript} from "../../model";
  * parse filenames to extract timestamps and names, and locate special scripts like
  * beforeMigrate.
  *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
+ *
  * @example
  * ```typescript
- * const migrationService = new MigrationService(logger);
+ * const migrationService = new MigrationService<IDB>(logger);
  * const config = new Config();
  *
  * // Find all migration scripts
@@ -23,7 +29,7 @@ import {Config, MigrationScript} from "../../model";
  * }
  * ```
  */
-export interface IMigrationService {
+export interface IMigrationService<DB extends IDB> {
     /**
      * Find and parse all migration script files in the configured folder.
      *
@@ -35,7 +41,7 @@ export interface IMigrationService {
      * Example: V202501220100_create_users.ts
      *
      * @param cfg - Configuration with folder path and file patterns
-     * @returns Promise<MigrationScript[]> - Array of discovered migrations sorted by timestamp
+     * @returns Promise<MigrationScript<DB>[]> - Array of discovered migrations sorted by timestamp (typed with generic DB parameter in v0.6.0)
      *
      * @example
      * ```typescript
@@ -49,7 +55,7 @@ export interface IMigrationService {
      * });
      * ```
      */
-    findMigrationScripts(cfg: Config): Promise<MigrationScript[]>
+    findMigrationScripts(cfg: Config): Promise<MigrationScript<DB>[]>
 
     /**
      * Find the beforeMigrate setup script if it exists.

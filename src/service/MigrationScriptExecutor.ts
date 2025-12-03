@@ -6,6 +6,7 @@ import {IMigrationService} from "../interface/service/IMigrationService";
 import {MigrationScript} from "../model/MigrationScript";
 import {IDatabaseMigrationHandler} from "../interface/IDatabaseMigrationHandler";
 import {ISchemaVersionService} from "../interface/service/ISchemaVersionService";
+import {ISchemaVersion} from "../interface/dao/ISchemaVersion";
 import {IScripts} from "../interface/IScripts";
 import {SchemaVersionService} from "./SchemaVersionService";
 import {IMigrationResult} from "../interface/IMigrationResult";
@@ -21,7 +22,7 @@ import {MigrationScanner} from "./MigrationScanner";
 import {IMigrationScanner} from "../interface/service/IMigrationScanner";
 import {Config, ValidationIssueType} from "../model";
 import {MigrationValidationService} from "./MigrationValidationService";
-import {IMigrationValidationService, IValidationResult, IValidationIssue} from "../interface";
+import {IMigrationValidationService, IValidationResult, IValidationIssue, IDB} from "../interface";
 import {ValidationError} from "../error/ValidationError";
 import {RollbackService} from "./RollbackService";
 import {IRollbackService} from "../interface/service/IRollbackService";
@@ -47,7 +48,13 @@ import {TransactionMode} from "../model/TransactionMode";
  * - Restoring from backup on failure
  * - Displaying migration status and results
  *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
+ *
  * **New in v0.5.0:** Automatic transaction management with configurable modes
+ * **Breaking Change in v0.6.0:** Constructor signature changed to `(dependencies, config?)`
  *
  * @example
  * ```typescript
@@ -55,13 +62,13 @@ import {TransactionMode} from "../model/TransactionMode";
  *
  * const handler = new MyDatabaseHandler();
  *
- * // Option 1: No config - uses waterfall loading
- * const executor = new MigrationScriptExecutor(handler);
- * // Loads from: MSR_* env vars → ./msr.config.js → defaults
+ * // Option 1: Minimal - just handler, uses waterfall config loading
+ * const executor = new MigrationScriptExecutor<IDB>({ handler });
+ * // Loads config from: MSR_* env vars → ./msr.config.js → defaults
  *
  * // Option 2: With explicit config
  * const config = new Config();
- * const executor = new MigrationScriptExecutor(handler, config);
+ * const executor = new MigrationScriptExecutor<IDB>({ handler }, config);
  *
  * // Run all pending migrations
  * await executor.up();
@@ -70,52 +77,56 @@ import {TransactionMode} from "../model/TransactionMode";
  * await executor.list();
  * ```
  */
-export class MigrationScriptExecutor {
+export class MigrationScriptExecutor<DB extends IDB> {
 
     /** Configuration for the migration system */
     private readonly config: Config;
+
+    /** Database migration handler implementing database-specific operations */
+    private readonly handler: IDatabaseMigrationHandler<DB>;
 
     /** Service for creating and managing database backups */
     public readonly backupService: IBackupService;
 
     /** Service for tracking executed migrations in the database */
-    public readonly schemaVersionService: ISchemaVersionService;
+    public readonly schemaVersionService: ISchemaVersionService<DB>;
 
     /** Service for rendering migration output (tables, status messages) */
-    public readonly migrationRenderer: IMigrationRenderer;
+    public readonly migrationRenderer: IMigrationRenderer<DB>;
 
     /** Service for discovering and loading migration script files */
-    public readonly migrationService: IMigrationService;
+    public readonly migrationService: IMigrationService<DB>;
 
     /** Service for scanning and gathering complete migration state */
-    public readonly migrationScanner: IMigrationScanner;
+    public readonly migrationScanner: IMigrationScanner<DB>;
 
     /** Logger instance used across all services */
     public readonly logger: ILogger;
 
     /** Lifecycle hooks for extending migration behavior */
-    public readonly hooks?: IMigrationHooks;
+    public readonly hooks?: IMigrationHooks<DB>;
 
     /** Service for selecting which migrations to execute */
-    private readonly selector: MigrationScriptSelector;
+    private readonly selector: MigrationScriptSelector<DB>;
 
     /** Service for executing migration scripts */
-    private runner: MigrationRunner;
+    private runner: MigrationRunner<DB>;
 
     /** Service for validating migration scripts before execution */
-    public readonly validationService: IMigrationValidationService;
+    public readonly validationService: IMigrationValidationService<DB>;
 
     /** Service for handling rollback operations based on configured strategy */
-    public readonly rollbackService: IRollbackService;
+    public readonly rollbackService: IRollbackService<DB>;
 
     /** Registry for loading migration scripts of different types (TypeScript, SQL, etc.) */
-    private readonly loaderRegistry: ILoaderRegistry;
+    private readonly loaderRegistry: ILoaderRegistry<DB>;
 
     /**
      * Transaction manager for database transactions (v0.5.0).
      * Auto-created if handler provides transactionManager or db implements ITransactionalDB.
+     * Typed with the generic DB parameter (v0.6.0).
      */
-    private readonly transactionManager?: ITransactionManager;
+    private readonly transactionManager?: ITransactionManager<DB>;
 
     /**
      * Creates a new MigrationScriptExecutor instance.
@@ -129,79 +140,91 @@ export class MigrationScriptExecutor {
      * 2. Config file (./msr.config.js, ./msr.config.json, or MSR_CONFIG_FILE)
      * 3. Built-in defaults
      *
-     * @param handler - Database migration handler implementing database-specific operations
+     * **Breaking Change in v0.6.0:**
+     * Constructor signature changed from `(handler, config?, dependencies?)` to `(dependencies, config?)`.
+     * Handler is now required in dependencies object.
+     *
+     * @param dependencies - Service dependencies including required handler
      * @param config - Optional configuration for migrations. If not provided, uses waterfall loading.
-     * @param dependencies - Optional service dependencies for dependency injection
      *
      * @example
      * ```typescript
-     * // No config - uses waterfall loading (env vars → file → defaults)
-     * const executor = new MigrationScriptExecutor(handler);
+     * // Minimal - just handler, uses waterfall config loading
+     * const executor = new MigrationScriptExecutor<IDB>({
+     *     handler: myDatabaseHandler
+     * });
      *
      * // With explicit config
      * const config = new Config();
-     * const executor = new MigrationScriptExecutor(handler, config);
+     * const executor = new MigrationScriptExecutor<IDB>({
+     *     handler: myDatabaseHandler
+     * }, config);
      *
      * // With partial config overrides (merged with waterfall)
-     * const executor = new MigrationScriptExecutor(handler, ConfigLoader.load({
-     *     dryRun: true
-     * }));
+     * const executor = new MigrationScriptExecutor<IDB>({
+     *     handler: myDatabaseHandler
+     * }, ConfigLoader.load({ dryRun: true }));
      *
      * // With JSON output for CI/CD
-     * const executor = new MigrationScriptExecutor(handler, config, {
+     * const executor = new MigrationScriptExecutor<IDB>({
+     *     handler: myDatabaseHandler,
      *     renderStrategy: new JsonRenderStrategy()
      * });
      *
      * // With silent output for testing
-     * const executor = new MigrationScriptExecutor(handler, config, {
+     * const executor = new MigrationScriptExecutor<IDB>({
+     *     handler: myDatabaseHandler,
      *     renderStrategy: new SilentRenderStrategy(),
      *     logger: new SilentLogger()
      * });
      *
      * // With mock services for testing
-     * const executor = new MigrationScriptExecutor(handler, config, {
+     * const executor = new MigrationScriptExecutor<IDB>({
+     *     handler: mockHandler,
      *     backupService: mockBackupService,
      *     migrationService: mockMigrationService
      * });
      * ```
      */
     constructor(
-        private readonly handler: IDatabaseMigrationHandler,
-        config?: Config,
-        dependencies?: IMigrationExecutorDependencies
+        dependencies: IMigrationExecutorDependencies<DB>,
+        config?: Config
     ) {
+        // Extract handler from dependencies
+        this.handler = dependencies.handler;
+
         // Use provided config or load using waterfall approach
         this.config = config ?? ConfigLoader.load();
         // Use provided logger or default to ConsoleLogger, wrapped with level awareness
-        const baseLogger = dependencies?.logger ?? new ConsoleLogger();
+        const baseLogger = dependencies.logger ?? new ConsoleLogger();
         this.logger = new LevelAwareLogger(baseLogger, this.config.logLevel);
 
         // Setup hooks with automatic execution summary logging
-        const hooks: IMigrationHooks[] = [];
-        if (dependencies?.hooks) hooks.push(dependencies.hooks);
-        if (this.config.logging.enabled) hooks.push(new ExecutionSummaryHook(this.config, this.logger, handler));
-        this.hooks = hooks.length > 0 ? new CompositeHooks(hooks) : undefined;
+        const hooks: IMigrationHooks<DB>[] = [];
+        if (dependencies.hooks) hooks.push(dependencies.hooks);
+        if (this.config.logging.enabled) hooks.push(new ExecutionSummaryHook<DB>(this.config, this.logger, this.handler));
+        this.hooks = hooks.length > 0 ? new CompositeHooks<DB>(hooks) : undefined;
 
         // Use provided loader registry or create default (TypeScript + SQL)
-        this.loaderRegistry = dependencies?.loaderRegistry ?? LoaderRegistry.createDefault(this.logger);
+        this.loaderRegistry = dependencies.loaderRegistry ?? LoaderRegistry.createDefault(this.logger);
 
         // Use provided dependencies or create defaults
-        this.backupService = dependencies?.backupService
-            ?? new BackupService(handler, this.config, this.logger);
+        this.backupService = dependencies.backupService
+            ?? new BackupService<DB>(this.handler, this.config, this.logger);
 
-        this.schemaVersionService = dependencies?.schemaVersionService
-            ?? new SchemaVersionService(handler.schemaVersion);
+        this.schemaVersionService = dependencies.schemaVersionService
+            ?? new SchemaVersionService<DB, ISchemaVersion<DB>>(this.handler.schemaVersion);
 
-        this.migrationRenderer = dependencies?.migrationRenderer
-            ?? new MigrationRenderer(handler, this.config, this.logger, dependencies?.renderStrategy);
+        this.migrationRenderer = dependencies.migrationRenderer
+            ?? new MigrationRenderer<DB>(this.handler, this.config, this.logger, dependencies.renderStrategy);
 
-        this.migrationService = dependencies?.migrationService
-            ?? new MigrationService(this.logger);
+        this.migrationService = dependencies.migrationService
+            ?? new MigrationService<DB>(this.logger);
 
-        this.selector = new MigrationScriptSelector();
+        this.selector = new MigrationScriptSelector<DB>();
 
-        this.migrationScanner = dependencies?.migrationScanner
-            ?? new MigrationScanner(
+        this.migrationScanner = dependencies.migrationScanner
+            ?? new MigrationScanner<DB>(
                 this.migrationService,
                 this.schemaVersionService,
                 this.selector,
@@ -209,11 +232,11 @@ export class MigrationScriptExecutor {
             );
 
         // Create transaction manager if transactions are enabled (v0.5.0)
-        this.transactionManager = this.createTransactionManager(handler);
+        this.transactionManager = this.createTransactionManager(this.handler);
 
         // Create MigrationRunner with transaction support (v0.5.0)
-        this.runner = new MigrationRunner(
-            handler,
+        this.runner = new MigrationRunner<DB>(
+            this.handler,
             this.schemaVersionService,
             this.config,
             this.logger,
@@ -221,11 +244,11 @@ export class MigrationScriptExecutor {
             this.hooks
         );
 
-        this.validationService = dependencies?.validationService
-            ?? new MigrationValidationService(this.logger, this.config.customValidators);
+        this.validationService = dependencies.validationService
+            ?? new MigrationValidationService<DB>(this.logger, this.config.customValidators);
 
-        this.rollbackService = dependencies?.rollbackService
-            ?? new RollbackService(handler, this.config, this.backupService, this.logger, this.hooks);
+        this.rollbackService = dependencies.rollbackService
+            ?? new RollbackService<DB>(this.handler, this.config, this.backupService, this.logger, this.hooks);
 
         if (this.config.showBanner) {
             this.migrationRenderer.drawFiglet();
@@ -261,7 +284,7 @@ export class MigrationScriptExecutor {
      * // Creates CallbackTransactionManager automatically
      * ```
      */
-    private createTransactionManager(handler: IDatabaseMigrationHandler): ITransactionManager | undefined {
+    private createTransactionManager(handler: IDatabaseMigrationHandler<DB>): ITransactionManager<DB> | undefined {
         // If transaction mode is NONE, don't create transaction manager
         if (this.config.transaction.mode === TransactionMode.NONE) {
             return undefined;
@@ -276,7 +299,7 @@ export class MigrationScriptExecutor {
         // Check for imperative transaction support (SQL-style)
         if (isImperativeTransactional(handler.db)) {
             this.logger.debug('Auto-creating DefaultTransactionManager (db implements ITransactionalDB)');
-            return new DefaultTransactionManager(
+            return new DefaultTransactionManager<DB>(
                 handler.db,
                 this.config.transaction,
                 this.logger
@@ -286,7 +309,7 @@ export class MigrationScriptExecutor {
         // Check for callback transaction support (NoSQL-style)
         if (isCallbackTransactional(handler.db)) {
             this.logger.debug('Auto-creating CallbackTransactionManager (db implements ICallbackTransactionalDB)');
-            return new CallbackTransactionManager(
+            return new CallbackTransactionManager<DB>(
                 handler.db,
                 this.config.transaction,
                 this.logger
@@ -329,7 +352,7 @@ export class MigrationScriptExecutor {
      * // → User must set config.transaction.mode = TransactionMode.NONE
      * ```
      */
-    private async checkHybridMigrationsAndDisableTransactions(scripts: IScripts): Promise<void> {
+    private async checkHybridMigrationsAndDisableTransactions(scripts: IScripts<DB>): Promise<void> {
         // Only check if we have pending migrations and transaction mode is not NONE
         if (scripts.pending.length === 0 || this.config.transaction.mode === TransactionMode.NONE) {
             return;
@@ -393,7 +416,7 @@ export class MigrationScriptExecutor {
      *
      * @example
      * ```typescript
-     * const executor = new MigrationScriptExecutor(handler, config);
+     * const executor = new MigrationScriptExecutor<DB>(handler, config);
      *
      * // Run all pending migrations
      * const result = await executor.up();
@@ -410,7 +433,7 @@ export class MigrationScriptExecutor {
      * }
      * ```
      */
-    public async up(targetVersion?: number): Promise<IMigrationResult> {
+    public async up(targetVersion?: number): Promise<IMigrationResult<DB>> {
         // Check database connection before proceeding
         await this.checkDatabaseConnection();
 
@@ -467,7 +490,7 @@ export class MigrationScriptExecutor {
      * await executor.up(202501220100);
      * ```
      */
-    public async migrate(targetVersion?: number): Promise<IMigrationResult> {
+    public async migrate(targetVersion?: number): Promise<IMigrationResult<DB>> {
         return this.up(targetVersion);
     }
 
@@ -476,8 +499,8 @@ export class MigrationScriptExecutor {
      *
      * @private
      */
-    private async migrateAll(): Promise<IMigrationResult> {
-        let scripts: IScripts = {
+    private async migrateAll(): Promise<IMigrationResult<DB>> {
+        let scripts: IScripts<DB> = {
             all: [],
             migrated: [],
             pending: [],
@@ -506,7 +529,7 @@ export class MigrationScriptExecutor {
 
             await this.executePendingMigrations(scripts);
 
-            const result: IMigrationResult = {
+            const result: IMigrationResult<DB> = {
                 success: true,
                 executed: scripts.executed,
                 migrated: scripts.migrated,
@@ -533,7 +556,7 @@ export class MigrationScriptExecutor {
         await this.schemaVersionService.init(this.config.tableName);
     }
 
-    private async scanAndValidate(): Promise<IScripts> {
+    private async scanAndValidate(): Promise<IScripts<DB>> {
         const scripts = await this.migrationScanner.scan();
         await Promise.all(scripts.pending.map(s => s.init(this.loaderRegistry)));
 
@@ -568,16 +591,16 @@ export class MigrationScriptExecutor {
         return backupPath;
     }
 
-    private renderMigrationStatus(scripts: IScripts): void {
+    private renderMigrationStatus(scripts: IScripts<DB>): void {
         this.migrationRenderer.drawMigrated(scripts);
         this.migrationRenderer.drawIgnored(scripts.ignored);
     }
 
-    private async handleNoPendingMigrations(scripts: IScripts): Promise<IMigrationResult> {
+    private async handleNoPendingMigrations(scripts: IScripts<DB>): Promise<IMigrationResult<DB>> {
         this.logNoPendingMigrations(scripts.ignored.length);
         this.backupService.deleteBackup();
 
-        const result: IMigrationResult = {
+        const result: IMigrationResult<DB> = {
             success: true,
             executed: [],
             migrated: scripts.migrated,
@@ -601,7 +624,7 @@ export class MigrationScriptExecutor {
         }
     }
 
-    private async executePendingMigrations(scripts: IScripts): Promise<void> {
+    private async executePendingMigrations(scripts: IScripts<DB>): Promise<void> {
         this.logger.info('Processing...');
         this.migrationRenderer.drawPending(scripts.pending);
 
@@ -635,7 +658,7 @@ export class MigrationScriptExecutor {
      * @param scripts - Migration scripts to test
      * @private
      */
-    private async executeDryRun(scripts: IScripts): Promise<void> {
+    private async executeDryRun(scripts: IScripts<DB>): Promise<void> {
         // If transactions are enabled, execute in transaction and rollback
         if (this.transactionManager) {
             this.logger.info(`\n🔍 Testing migrations inside ${this.config.transaction.mode} transaction(s)...\n`);
@@ -677,10 +700,10 @@ export class MigrationScriptExecutor {
 
     private async handleMigrationError(
         err: unknown,
-        scripts: IScripts,
+        scripts: IScripts<DB>,
         errors: Error[],
         backupPath: string | undefined
-    ): Promise<IMigrationResult> {
+    ): Promise<IMigrationResult<DB>> {
         this.logger.error(err as string);
         errors.push(err as Error);
 
@@ -709,7 +732,7 @@ export class MigrationScriptExecutor {
      *
      * @example
      * ```typescript
-     * const executor = new MigrationScriptExecutor(handler);
+     * const executor = new MigrationScriptExecutor<DB>(handler);
      *
      * // List all migrations
      * await executor.list();
@@ -770,7 +793,7 @@ export class MigrationScriptExecutor {
      * console.log(`Validated ${results.pending.length} pending and ${results.migrated.length} executed migrations`);
      * ```
      */
-    public async validate(): Promise<{pending: IValidationResult[], migrated: IValidationIssue[]}> {
+    public async validate(): Promise<{pending: IValidationResult<DB>[], migrated: IValidationIssue[]}> {
         await this.checkDatabaseConnection();
         this.logger.info('🔍 Starting migration validation...\n');
 
@@ -788,7 +811,7 @@ export class MigrationScriptExecutor {
         };
     }
 
-    private async validatePendingMigrations(scripts: IScripts): Promise<IValidationResult[]> {
+    private async validatePendingMigrations(scripts: IScripts<DB>): Promise<IValidationResult<DB>[]> {
         if (!this.config.validateBeforeRun) {
             this.logger.info('Skipping pending migration validation (validateBeforeRun is disabled)\n');
             return [];
@@ -807,7 +830,7 @@ export class MigrationScriptExecutor {
         return pendingResults;
     }
 
-    private handlePendingValidationResults(results: IValidationResult[], totalCount: number): void {
+    private handlePendingValidationResults(results: IValidationResult<DB>[], totalCount: number): void {
         const resultsWithErrors = results.filter(r => !r.valid);
         const resultsWithWarnings = results.filter(r =>
             r.valid && r.issues.some(i => i.type === ValidationIssueType.WARNING)
@@ -831,7 +854,7 @@ export class MigrationScriptExecutor {
         this.logger.info(`✓ Validated ${totalCount} pending migration(s)\n`);
     }
 
-    private logValidationErrors(results: IValidationResult[]): void {
+    private logValidationErrors(results: IValidationResult<DB>[]): void {
         this.logger.error('❌ Pending migration validation failed:\n');
         for (const result of results) {
             this.logger.error(`  ${result.script.name}:`);
@@ -845,7 +868,7 @@ export class MigrationScriptExecutor {
         }
     }
 
-    private logValidationWarnings(results: IValidationResult[]): void {
+    private logValidationWarnings(results: IValidationResult<DB>[]): void {
         this.logger.warn('⚠️  Pending migration validation warnings:\n');
         for (const result of results) {
             this.logger.warn(`  ${result.script.name}:`);
@@ -859,7 +882,7 @@ export class MigrationScriptExecutor {
         }
     }
 
-    private async validateMigratedMigrations(scripts: IScripts): Promise<IValidationIssue[]> {
+    private async validateMigratedMigrations(scripts: IScripts<DB>): Promise<IValidationIssue[]> {
         if (!this.config.validateMigratedFiles) {
             this.logger.info('Skipping executed migration validation (validateMigratedFiles is disabled)\n');
             return [];
@@ -878,7 +901,7 @@ export class MigrationScriptExecutor {
             const errorResults = migratedIssues.map((issue: IValidationIssue) => ({
                 valid: false,
                 issues: [issue],
-                script: {} as MigrationScript
+                script: {} as MigrationScript<DB>
             }));
             throw new ValidationError('Migration file integrity check failed', errorResults);
         }
@@ -976,8 +999,8 @@ export class MigrationScriptExecutor {
      *
      * @private
      */
-    private async migrateToVersion(targetVersion: number): Promise<IMigrationResult> {
-        let scripts: IScripts = {
+    private async migrateToVersion(targetVersion: number): Promise<IMigrationResult<DB>> {
+        let scripts: IScripts<DB> = {
             all: [],
             migrated: [],
             pending: [],
@@ -1006,7 +1029,7 @@ export class MigrationScriptExecutor {
 
             await this.executeMigrationsToVersion(pendingUpToTarget, scripts, targetVersion);
 
-            const result: IMigrationResult = {
+            const result: IMigrationResult<DB> = {
                 success: true,
                 executed: scripts.executed,
                 migrated: scripts.migrated,
@@ -1030,7 +1053,7 @@ export class MigrationScriptExecutor {
         }
     }
 
-    private async initAndValidateScripts(pending: MigrationScript[], migrated: MigrationScript[]): Promise<void> {
+    private async initAndValidateScripts(pending: MigrationScript<DB>[], migrated: MigrationScript<DB>[]): Promise<void> {
         await Promise.all(pending.map(s => s.init(this.loaderRegistry)));
 
         if (this.config.validateBeforeRun && pending.length > 0) {
@@ -1042,11 +1065,11 @@ export class MigrationScriptExecutor {
         }
     }
 
-    private async handleNoMigrationsToTarget(scripts: IScripts, targetVersion: number): Promise<IMigrationResult> {
+    private async handleNoMigrationsToTarget(scripts: IScripts<DB>, targetVersion: number): Promise<IMigrationResult<DB>> {
         this.logNoMigrationsToTarget(targetVersion, scripts.ignored.length);
         this.backupService.deleteBackup();
 
-        const result: IMigrationResult = {
+        const result: IMigrationResult<DB> = {
             success: true,
             executed: [],
             migrated: scripts.migrated,
@@ -1071,8 +1094,8 @@ export class MigrationScriptExecutor {
     }
 
     private async executeMigrationsToVersion(
-        pending: MigrationScript[],
-        scripts: IScripts,
+        pending: MigrationScript<DB>[],
+        scripts: IScripts<DB>,
         targetVersion: number
     ): Promise<void> {
         this.logger.info(`Migrating to version ${targetVersion}...`);
@@ -1127,7 +1150,7 @@ export class MigrationScriptExecutor {
      * }
      * ```
      */
-    public async down(targetVersion: number): Promise<IMigrationResult> {
+    public async down(targetVersion: number): Promise<IMigrationResult<DB>> {
         await this.checkDatabaseConnection();
         this.logger.info(`Rolling back to version ${targetVersion}...`);
 
@@ -1153,7 +1176,7 @@ export class MigrationScriptExecutor {
         }
     }
 
-    private handleNoRollbackNeeded(scripts: IScripts, targetVersion: number): IMigrationResult {
+    private handleNoRollbackNeeded(scripts: IScripts<DB>, targetVersion: number): IMigrationResult<DB> {
         this.logger.info(`Already at version ${targetVersion} or below - nothing to roll back`);
 
         return {
@@ -1164,7 +1187,7 @@ export class MigrationScriptExecutor {
         };
     }
 
-    private async prepareRollbackScripts(toRollback: MigrationScript[]): Promise<void> {
+    private async prepareRollbackScripts(toRollback: MigrationScript<DB>[]): Promise<void> {
         await Promise.all(toRollback.map(s => s.init(this.loaderRegistry)));
 
         if (this.config.validateBeforeRun && toRollback.length > 0) {
@@ -1176,8 +1199,8 @@ export class MigrationScriptExecutor {
         }
     }
 
-    private async executeRollbackScripts(toRollback: MigrationScript[]): Promise<MigrationScript[]> {
-        const rolledBack: MigrationScript[] = [];
+    private async executeRollbackScripts(toRollback: MigrationScript<DB>[]): Promise<MigrationScript<DB>[]> {
+        const rolledBack: MigrationScript<DB>[] = [];
 
         for (const script of toRollback) {
             await this.rollbackSingleMigration(script);
@@ -1187,7 +1210,7 @@ export class MigrationScriptExecutor {
         return rolledBack;
     }
 
-    private async rollbackSingleMigration(script: MigrationScript): Promise<void> {
+    private async rollbackSingleMigration(script: MigrationScript<DB>): Promise<void> {
         if (!script.script.down) {
             throw new Error(`Migration ${script.name} does not have a down() method - cannot roll back`);
         }
@@ -1207,13 +1230,13 @@ export class MigrationScriptExecutor {
     }
 
     private async completeRollback(
-        rolledBack: MigrationScript[],
-        scripts: IScripts,
+        rolledBack: MigrationScript<DB>[],
+        scripts: IScripts<DB>,
         targetVersion: number
-    ): Promise<IMigrationResult> {
+    ): Promise<IMigrationResult<DB>> {
         this.logger.info(`Successfully rolled back to version ${targetVersion}!`);
 
-        const result: IMigrationResult = {
+        const result: IMigrationResult<DB> = {
             success: true,
             executed: rolledBack,
             migrated: scripts.migrated.filter(m => m.timestamp <= targetVersion),
@@ -1244,7 +1267,7 @@ export class MigrationScriptExecutor {
      * @example
      * ```typescript
      * // migrations/beforeMigrate.ts
-     * export default class BeforeMigrate implements IRunnableScript {
+     * export default class BeforeMigrate implements IRunnableScript<DB> {
      *   async up(db, info, handler) {
      *     await db.query('DROP SCHEMA public CASCADE');
      *     await db.query('CREATE SCHEMA public');
@@ -1264,7 +1287,7 @@ export class MigrationScriptExecutor {
      * @throws {ValidationError} If validation fails
      * @private
      */
-    private async validateMigrations(scripts: MigrationScript[]): Promise<void> {
+    private async validateMigrations(scripts: MigrationScript<DB>[]): Promise<void> {
         this.logger.info(`Validating ${scripts.length} migration script(s)...`);
 
         const validationResults = await this.validationService.validateAll(scripts, this.config, this.loaderRegistry);
@@ -1285,7 +1308,7 @@ export class MigrationScriptExecutor {
      * Handle validation errors by logging and throwing ValidationError.
      * @private
      */
-    private handleValidationErrors(resultsWithErrors: IValidationResult[]): void {
+    private handleValidationErrors(resultsWithErrors: IValidationResult<DB>[]): void {
         if (resultsWithErrors.length === 0) {
             return;
         }
@@ -1301,7 +1324,7 @@ export class MigrationScriptExecutor {
      * Display validation errors for a single script.
      * @private
      */
-    private displayValidationErrorsForScript(result: IValidationResult): void {
+    private displayValidationErrorsForScript(result: IValidationResult<DB>): void {
         this.logger.error(`  ${result.script.name}:`);
         const errors = result.issues.filter(i => i.type === ValidationIssueType.ERROR);
         for (const issue of errors) {
@@ -1313,7 +1336,7 @@ export class MigrationScriptExecutor {
      * Handle validation warnings by logging and optionally throwing in strict mode.
      * @private
      */
-    private handleValidationWarnings(resultsWithWarnings: IValidationResult[]): void {
+    private handleValidationWarnings(resultsWithWarnings: IValidationResult<DB>[]): void {
         if (resultsWithWarnings.length === 0) {
             return;
         }
@@ -1331,7 +1354,7 @@ export class MigrationScriptExecutor {
      * Display validation warnings for a single script.
      * @private
      */
-    private displayValidationWarningsForScript(result: IValidationResult): void {
+    private displayValidationWarningsForScript(result: IValidationResult<DB>): void {
         this.logger.warn(`  ${result.script.name}:`);
         const warnings = result.issues.filter(i => i.type === ValidationIssueType.WARNING);
         for (const issue of warnings) {
@@ -1357,7 +1380,7 @@ export class MigrationScriptExecutor {
      * Check strict validation mode and throw if warnings should be treated as errors.
      * @private
      */
-    private checkStrictValidationMode(resultsWithWarnings: IValidationResult[]): void {
+    private checkStrictValidationMode(resultsWithWarnings: IValidationResult<DB>[]): void {
         if (this.config.strictValidation) {
             this.logger.error('\n❌ Strict validation enabled - warnings treated as errors');
             throw new ValidationError('Strict validation enabled - warnings treated as errors', resultsWithWarnings);
@@ -1374,7 +1397,7 @@ export class MigrationScriptExecutor {
      * @throws {ValidationError} If integrity validation fails
      * @private
      */
-    private async validateMigratedFileIntegrity(scripts: MigrationScript[]): Promise<void> {
+    private async validateMigratedFileIntegrity(scripts: MigrationScript<DB>[]): Promise<void> {
         const issues = await this.validationService.validateMigratedFileIntegrity(scripts, this.config);
 
         if (issues.length > 0) {
@@ -1390,7 +1413,7 @@ export class MigrationScriptExecutor {
             }
 
             // Create a validation result for the error
-            const errorResults: IValidationResult[] = issues.map((issue: IValidationIssue) => ({
+            const errorResults: IValidationResult<DB>[] = issues.map((issue: IValidationIssue) => ({
                 valid: false,
                 issues: [issue],
                 script: scripts[0] // Placeholder - not used for integrity errors
@@ -1414,7 +1437,7 @@ export class MigrationScriptExecutor {
      * @param scripts - Pending migration scripts to execute
      * @throws {ValidationError} If transaction configuration is invalid
      */
-    private async validateTransactionConfiguration(scripts: MigrationScript[]): Promise<void> {
+    private async validateTransactionConfiguration(scripts: MigrationScript<DB>[]): Promise<void> {
         const issues = this.validationService.validateTransactionConfiguration(
             this.handler,
             this.config,
@@ -1453,7 +1476,7 @@ export class MigrationScriptExecutor {
 
         // Throw error only if there are actual errors (not warnings)
         if (hasErrors) {
-            const errorResults: IValidationResult[] = issues
+            const errorResults: IValidationResult<DB>[] = issues
                 .filter((i: IValidationIssue) => i.type === ValidationIssueType.ERROR)
                 .map((issue: IValidationIssue) => ({
                     valid: false,
@@ -1480,7 +1503,7 @@ export class MigrationScriptExecutor {
         const startTime = Date.now();
 
         // Create a temporary MigrationScript for the beforeMigrate file
-        const beforeMigrateScript = new MigrationScript(
+        const beforeMigrateScript = new MigrationScript<DB>(
             'beforeMigrate',
             beforeMigratePath,
             0 // No timestamp for beforeMigrate
@@ -1514,7 +1537,7 @@ export class MigrationScriptExecutor {
      *
      * @private
      */
-    private async executeWithHooks(scripts: MigrationScript[], executedArray: MigrationScript[]): Promise<void> {
+    private async executeWithHooks(scripts: MigrationScript<DB>[], executedArray: MigrationScript<DB>[]): Promise<void> {
         for (const script of scripts) {
             // Add script to executed array BEFORE execution
             // This ensures it's available for rollback cleanup if it fails
@@ -1561,7 +1584,7 @@ export class MigrationScriptExecutor {
      *
      * @private
      */
-    async execute(scripts: MigrationScript[]): Promise<MigrationScript[]> {
+    async execute(scripts: MigrationScript<DB>[]): Promise<MigrationScript<DB>[]> {
         return this.runner.execute(scripts);
     }
 }
