@@ -22,14 +22,15 @@ MSR provides a lightweight, flexible framework for managing database migrations 
 
 ## 🎉 What's New in v0.6.0
 
-**Multi-format configuration with plugin architecture:**
+**Enhanced type safety and multi-format configuration:**
 
+- **🛡️ Generic Type Parameters** - Database-specific type safety with `<DB extends IDB>` generics throughout the API
 - **📄 YAML, TOML, and XML Support** - Use your preferred config format (`.yaml`, `.toml`, `.xml`) alongside JS/JSON
 - **🔌 Plugin Architecture** - Extensible loader system with optional peer dependencies keeps core lightweight
 - **🎚️ Log Level Control** - Configurable log levels (`error`, `warn`, `info`, `debug`) to control output verbosity
 - **💡 Better Error Messages** - Actionable error messages with installation instructions when formats aren't available
 - **✨ 100% Test Coverage** - All statements, branches, functions, and lines covered
-- **🚀 100% Backward Compatible** - Zero breaking changes from v0.5.x
+- **⚠️ Breaking Change** - Constructor signature changed to dependency injection pattern (5-15 min migration)
 
 **[→ View configuration docs](https://migration-script-runner.github.io/msr-core/configuration/)**
 
@@ -94,10 +95,10 @@ interface IMyDatabase extends ISqlDB {
   query(sql: string): Promise<unknown>;
 }
 
-export class MyDatabaseHandler implements IDatabaseMigrationHandler {
+export class MyDatabaseHandler implements IDatabaseMigrationHandler<IMyDatabase> {
   db: IMyDatabase;
-  schemaVersion: ISchemaVersion;
-  backup?: IBackup;
+  schemaVersion: ISchemaVersion<IMyDatabase>;
+  backup?: IBackup<IMyDatabase>;
 
   async checkConnection(): Promise<void> {
     await this.db.query('SELECT 1');
@@ -154,7 +155,7 @@ config.folder = './migrations';
 config.logLevel = 'info';  // v0.6.0: 'error' | 'warn' | 'info' | 'debug'
 
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor<IMyDatabase>({ handler }, config);
 
 // Library usage - returns structured result
 const result = await executor.up();
