@@ -133,7 +133,8 @@ export class JsonMetricsCollector implements IMetricsCollector {
         };
     }
 
-    recordMigrationStart(context: IMigrationContext): void {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    recordMigrationStart(_context: IMigrationContext): void {
         this.startTime = Date.now();
         this.metrics.summary.startTime = new Date().toISOString();
         // Note: Cannot initialize migrations here as we don't have script details

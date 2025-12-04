@@ -1,10 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { IMetricsCollector, IMigrationContext } from '../../interface/IMetricsCollector';
+import { IMetricsCollector } from '../../interface/IMetricsCollector';
 import { MigrationScript } from '../../model/MigrationScript';
-import { IMigrationResult } from '../../interface/IMigrationResult';
-import { RollbackStrategy } from '../../model/RollbackStrategy';
-import { ValidationError } from '../../error/ValidationError';
 import { IDB } from '../../interface/dao';
 
 /**

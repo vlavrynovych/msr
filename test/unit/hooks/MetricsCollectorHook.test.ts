@@ -331,6 +331,27 @@ describe('MetricsCollectorHook', () => {
             // Second collector should still be called
             expect(collectorCalls['recordMigrationStart']).to.have.lengthOf(1);
         });
+
+        it('should handle non-Error thrown values', async () => {
+            const nonErrorThrowingCollector: IMetricsCollector = {
+                recordMigrationStart: () => {
+                    // eslint-disable-next-line @typescript-eslint/no-throw-literal
+                    throw 'String error thrown';
+                }
+            };
+
+            hook = new MetricsCollectorHook<IDB>([nonErrorThrowingCollector, mockCollector], mockLogger);
+
+            // Should not throw
+            await hook.onStart(3, 3);
+
+            // Logger should convert non-Error to string
+            expect(loggerWarnings.length).to.be.greaterThan(0);
+            expect(loggerWarnings[0]).to.include('String error thrown');
+
+            // Second collector should still be called
+            expect(collectorCalls['recordMigrationStart']).to.have.lengthOf(1);
+        });
     });
 
     describe('multiple collectors', () => {

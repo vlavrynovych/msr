@@ -3,7 +3,6 @@ import { IMetricsCollector, IMigrationContext } from '../interface/IMetricsColle
 import { MigrationScript } from '../model/MigrationScript';
 import { IMigrationResult } from '../interface/IMigrationResult';
 import { ILogger } from '../interface/ILogger';
-import { RollbackStrategy } from '../model/RollbackStrategy';
 import { IDB } from '../interface/dao';
 
 /**
@@ -100,7 +99,8 @@ export class MetricsCollectorHook<DB extends IDB = IDB> implements IMigrationHoo
      * Called after successful migration script execution.
      * Records script completion with duration calculated from script timing.
      */
-    async onAfterMigrate(script: MigrationScript<DB>, result: string): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async onAfterMigrate(script: MigrationScript<DB>, _result: string): Promise<void> {
         // Calculate duration from script timing info
         const duration = script.finishedAt && script.startedAt
             ? script.finishedAt - script.startedAt
@@ -172,9 +172,10 @@ export class MetricsCollectorHook<DB extends IDB = IDB> implements IMigrationHoo
             this.collectors.map(async (collector) => {
                 try {
                     await fn(collector);
-                } catch (error: any) {
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : String(error);
                     this.logger?.warn(
-                        `Metrics collector ${collector.constructor.name}.${methodName}() failed: ${error.message}`
+                        `Metrics collector ${collector.constructor.name}.${methodName}() failed: ${errorMessage}`
                     );
                     throw error; // Re-throw for Promise.allSettled to capture
                 }
