@@ -1,5 +1,5 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import { IMetricsCollector } from '../../interface/IMetricsCollector';
 import { MigrationScript } from '../../model/MigrationScript';
 import { IDB } from '../../interface/dao';
@@ -136,7 +136,7 @@ export class CsvMetricsCollector implements IMetricsCollector {
                 row.timestamp,
                 row.migration,
                 row.migrationTimestamp.toString(),
-                row.durationMs !== null ? row.durationMs.toString() : '',
+                row.durationMs === null ? '' : row.durationMs.toString(),
                 row.status,
                 row.error
             ];

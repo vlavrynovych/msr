@@ -1,5 +1,5 @@
-import * as path from 'path';
-import * as fs from 'fs';
+import * as path from 'node:path';
+import * as fs from 'node:fs';
 import { IConfigFileLoader } from '../../interface/IConfigFileLoader';
 
 /**
@@ -139,7 +139,7 @@ export class XmlLoader implements IConfigFileLoader {
             }
 
             if (typeof parsed !== 'object') {
-                throw new Error(`Expected XML file to contain an object, got ${typeof parsed}`);
+                throw new TypeError(`Expected XML file to contain an object, got ${typeof parsed}`);
             }
 
             // Extract the root element's content (typically <msr>...</msr>)

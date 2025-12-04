@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import * as path from 'path';
-import * as fs from 'fs';
+import * as path from 'node:path';
+import * as fs from 'node:fs';
 
 /**
  * Additional edge case tests to achieve 100% coverage for all loaders.

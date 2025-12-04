@@ -1,5 +1,5 @@
-import * as path from 'path';
-import * as fs from 'fs';
+import * as path from 'node:path';
+import * as fs from 'node:fs';
 import { IConfigFileLoader } from '../../interface/IConfigFileLoader';
 
 /**
@@ -115,7 +115,7 @@ export class TomlLoader implements IConfigFileLoader {
             }
 
             if (typeof parsed !== 'object' || Array.isArray(parsed)) {
-                throw new Error(
+                throw new TypeError(
                     `Expected TOML file to contain an object, got ${Array.isArray(parsed) ? 'array' : typeof parsed}`
                 );
             }

@@ -122,7 +122,7 @@ export class LoggerMetricsCollector implements IMetricsCollector {
     }
 
     recordRollback(strategy: RollbackStrategy, success: boolean, duration?: number): void {
-        const durationStr = duration !== undefined ? ` in ${duration}ms` : '';
+        const durationStr = duration === undefined ? '' : ` in ${duration}ms`;
         const status = success ? 'succeeded' : 'failed';
         this.logger.info(`${this.prefix} Rollback (${strategy}) ${status}${durationStr}`);
     }

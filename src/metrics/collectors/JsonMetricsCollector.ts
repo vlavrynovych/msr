@@ -1,5 +1,5 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import { IMetricsCollector, IMigrationContext } from '../../interface/IMetricsCollector';
 import { MigrationScript } from '../../model/MigrationScript';
 import { IMigrationResult } from '../../interface/IMigrationResult';
@@ -144,7 +144,10 @@ export class JsonMetricsCollector implements IMetricsCollector {
     recordScriptStart(script: MigrationScript<IDB>): void {
         // Add migration if not exists (first time seeing it)
         let migration = this.metrics.migrations.find(m => m.name === script.name);
-        if (!migration) {
+        if (migration) {
+            migration.status = 'running';
+            migration.startTime = new Date().toISOString();
+        } else {
             migration = {
                 name: script.name,
                 timestamp: script.timestamp,
@@ -152,9 +155,6 @@ export class JsonMetricsCollector implements IMetricsCollector {
                 status: 'running'
             };
             this.metrics.migrations.push(migration);
-        } else {
-            migration.status = 'running';
-            migration.startTime = new Date().toISOString();
         }
     }
 
@@ -230,9 +230,9 @@ export class JsonMetricsCollector implements IMetricsCollector {
         await fs.mkdir(dir, { recursive: true });
 
         // Write JSON
-        const json = this.config.pretty !== false
-            ? JSON.stringify(this.metrics, null, 2)
-            : JSON.stringify(this.metrics);
+        const json = this.config.pretty === false
+            ? JSON.stringify(this.metrics)
+            : JSON.stringify(this.metrics, null, 2);
 
         await fs.writeFile(this.config.filePath, json, 'utf-8');
     }

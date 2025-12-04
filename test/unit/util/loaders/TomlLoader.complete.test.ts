@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { TomlLoader } from '../../../../src/util/loaders/TomlLoader';
 
 /**
