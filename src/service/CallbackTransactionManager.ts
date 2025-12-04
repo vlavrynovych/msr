@@ -122,38 +122,15 @@ export class CallbackTransactionManager<DB extends IDB, TxContext = unknown> imp
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
-                await this.db.runTransaction(async (tx) => {
-                    for (const op of this.operations) {
-                        await op(tx);
-                    }
-                });
-
-                this.logger?.debug(
-                    `Transaction executed successfully (${this.operations.length} operations)` +
-                    `${attempt > 1 ? ` (attempt ${attempt})` : ''}`
-                );
+                await this.executeTransaction();
+                this.logSuccess(attempt);
                 this.operations = [];
                 return;
             } catch (error) {
                 lastError = error as Error;
+                const shouldRetry = await this.handleTransactionError(lastError, attempt, maxRetries);
 
-                const isRetriable = this.isRetriable(lastError);
-                const hasMoreAttempts = attempt < maxRetries;
-
-                if (isRetriable && hasMoreAttempts) {
-                    const delay = this.calculateDelay(attempt);
-                    this.logger?.warn(
-                        `Transaction failed (attempt ${attempt}/${maxRetries}): ${lastError.message}. ` +
-                        `Retrying in ${delay}ms...`
-                    );
-                    await this.sleep(delay);
-                    continue;
-                } else {
-                    if (!isRetriable) {
-                        this.logger?.error(`Transaction failed with non-retriable error: ${lastError.message}`);
-                    } else {
-                        this.logger?.error(`Transaction failed after ${maxRetries} attempts: ${lastError.message}`);
-                    }
+                if (!shouldRetry) {
                     this.operations = [];
                     throw lastError;
                 }
@@ -162,6 +139,62 @@ export class CallbackTransactionManager<DB extends IDB, TxContext = unknown> imp
 
         /* istanbul ignore next */
         throw lastError ?? new Error('Transaction failed for unknown reason');
+    }
+
+    /**
+     * Execute all operations in a single transaction.
+     * @private
+     */
+    private async executeTransaction(): Promise<void> {
+        await this.db.runTransaction(async (tx) => {
+            for (const op of this.operations) {
+                await op(tx);
+            }
+        });
+    }
+
+    /**
+     * Log successful transaction execution.
+     * @private
+     */
+    private logSuccess(attempt: number): void {
+        const message = `Transaction executed successfully (${this.operations.length} operations)`;
+        const attemptInfo = attempt > 1 ? ` (attempt ${attempt})` : '';
+        this.logger?.debug(message + attemptInfo);
+    }
+
+    /**
+     * Handle transaction error and determine if retry should happen.
+     * @returns true if should retry, false otherwise
+     * @private
+     */
+    private async handleTransactionError(error: Error, attempt: number, maxRetries: number): Promise<boolean> {
+        const isRetriable = this.isRetriable(error);
+        const hasMoreAttempts = attempt < maxRetries;
+
+        if (isRetriable && hasMoreAttempts) {
+            const delay = this.calculateDelay(attempt);
+            this.logger?.warn(
+                `Transaction failed (attempt ${attempt}/${maxRetries}): ${error.message}. Retrying in ${delay}ms...`
+            );
+            await this.sleep(delay);
+            return true;
+        }
+
+        this.logFinalError(error, isRetriable, maxRetries);
+        return false;
+    }
+
+    /**
+     * Log final error message based on error type.
+     * @private
+     */
+    private logFinalError(error: Error, isRetriable: boolean, maxRetries: number): void {
+        if (isRetriable) {
+            this.logger?.error(`Transaction failed after ${maxRetries} attempts: ${error.message}`);
+        } else {
+            this.logger?.error(`Transaction failed with non-retriable error: ${error.message}`);
+        }
     }
 
     /**

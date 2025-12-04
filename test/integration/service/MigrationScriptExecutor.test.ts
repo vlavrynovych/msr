@@ -656,8 +656,9 @@ describe('MigrationScriptExecutor', () => {
             };
 
             // Should not throw error
-            await executor['checkHybridMigrationsAndDisableTransactions'](mockScripts);
-            // If we reach here, test passes
+            await expect(
+                executor['checkHybridMigrationsAndDisableTransactions'](mockScripts)
+            ).to.eventually.be.fulfilled;
         });
 
         it('should NOT throw error when only TypeScript migrations', async () => {
@@ -675,8 +676,9 @@ describe('MigrationScriptExecutor', () => {
             };
 
             // Should not throw error
-            await executor['checkHybridMigrationsAndDisableTransactions'](mockScripts);
-            // If we reach here, test passes
+            await expect(
+                executor['checkHybridMigrationsAndDisableTransactions'](mockScripts)
+            ).to.eventually.be.fulfilled;
         });
 
         it('should NOT throw error when transaction mode is NONE', async () => {
@@ -695,8 +697,9 @@ describe('MigrationScriptExecutor', () => {
             };
 
             // Should not throw error even with hybrid migrations
-            await executor['checkHybridMigrationsAndDisableTransactions'](mockScripts);
-            // If we reach here, test passes
+            await expect(
+                executor['checkHybridMigrationsAndDisableTransactions'](mockScripts)
+            ).to.eventually.be.fulfilled;
         });
 
         it('should NOT check when no pending migrations', async () => {
@@ -711,8 +714,9 @@ describe('MigrationScriptExecutor', () => {
             };
 
             // Should not throw error
-            await executor['checkHybridMigrationsAndDisableTransactions'](mockScripts);
-            // If we reach here, test passes
+            await expect(
+                executor['checkHybridMigrationsAndDisableTransactions'](mockScripts)
+            ).to.eventually.be.fulfilled;
         });
 
         it('should throw error for hybrid with .js files', async () => {

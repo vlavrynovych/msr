@@ -48,11 +48,11 @@ import packageJson from '../../package.json';
  */
 export class ExecutionSummaryLogger<DB extends IDB> {
     private summary: IExecutionSummary;
-    private migrationDetails: Map<string, IMigrationExecutionDetail>;
+    private readonly migrationDetails: Map<string, IMigrationExecutionDetail>;
     private runStartTime: Date;
-    private msrVersion: string;
+    private readonly msrVersion: string;
     private transactionMetrics: ITransactionMetrics;
-    private transactionStartTimes: Map<string, number>;
+    private readonly transactionStartTimes: Map<string, number>;
 
     constructor(
         private readonly config: Config,

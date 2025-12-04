@@ -111,7 +111,7 @@ export class MigrationScriptExecutor<DB extends IDB> {
     private readonly selector: MigrationScriptSelector<DB>;
 
     /** Service for executing migration scripts */
-    private runner: MigrationRunner<DB>;
+    private readonly runner: MigrationRunner<DB>;
 
     /** Service for validating migration scripts before execution */
     public readonly validationService: IMigrationValidationService<DB>;

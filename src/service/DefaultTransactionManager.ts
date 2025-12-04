@@ -133,7 +133,8 @@ export class DefaultTransactionManager<DB extends IDB> implements ITransactionMa
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
                 await this.db.commit();
-                this.logger?.debug(`Transaction committed successfully${attempt > 1 ? ` (attempt ${attempt})` : ''}`);
+                const attemptInfo = attempt > 1 ? ` (attempt ${attempt})` : '';
+                this.logger?.debug(`Transaction committed successfully${attemptInfo}`);
                 return; // Success!
             } catch (error) {
                 lastError = error as Error;
