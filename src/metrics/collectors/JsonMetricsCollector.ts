@@ -108,7 +108,7 @@ interface MetricsData {
  * ```
  */
 export class JsonMetricsCollector implements IMetricsCollector {
-    private metrics: MetricsData;
+    private readonly metrics: MetricsData;
     private startTime: number = 0;
 
     /**
@@ -116,7 +116,7 @@ export class JsonMetricsCollector implements IMetricsCollector {
      *
      * @param config Configuration with file path and formatting options
      */
-    constructor(private config: JsonMetricsCollectorConfig) {
+    constructor(private readonly config: JsonMetricsCollectorConfig) {
         this.metrics = {
             summary: {
                 startTime: '',

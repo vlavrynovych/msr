@@ -451,7 +451,7 @@ describe('MetricsCollectorHook', () => {
             };
 
             // Should not throw when calling close on collector without close method
-            await hook.onComplete(result);
+            await expect(hook.onComplete(result)).to.eventually.be.fulfilled;
         });
 
         it('should handle collectors without recordScriptError method', async () => {
@@ -471,7 +471,7 @@ describe('MetricsCollectorHook', () => {
             const error = new Error('Test error');
 
             // Should not throw when calling onMigrationError on collector without recordScriptError
-            await hook.onMigrationError(script, error);
+            await expect(hook.onMigrationError(script, error)).to.eventually.be.fulfilled;
         });
 
         it('should handle collectors without recordError method', async () => {
@@ -484,7 +484,7 @@ describe('MetricsCollectorHook', () => {
             const error = new Error('Test error');
 
             // Should not throw when calling onError on collector without recordError
-            await hook.onError(error);
+            await expect(hook.onError(error)).to.eventually.be.fulfilled;
         });
 
         it('should handle collectors with only some methods', async () => {
@@ -509,12 +509,12 @@ describe('MetricsCollectorHook', () => {
             } as MigrationScript<IDB>;
 
             // All these should work without throwing
-            await hook.onBeforeMigrate(script);
-            await hook.onAfterMigrate(script, 'success');
-            await hook.onMigrationError(script, new Error('test'));
-            await hook.onError(new Error('test'));
-            await hook.onBeforeBackup();
-            await hook.onAfterBackup('./backup.bkp');
+            await expect(hook.onBeforeMigrate(script)).to.eventually.be.fulfilled;
+            await expect(hook.onAfterMigrate(script, 'success')).to.eventually.be.fulfilled;
+            await expect(hook.onMigrationError(script, new Error('test'))).to.eventually.be.fulfilled;
+            await expect(hook.onError(new Error('test'))).to.eventually.be.fulfilled;
+            await expect(hook.onBeforeBackup()).to.eventually.be.fulfilled;
+            await expect(hook.onAfterBackup('./backup.bkp')).to.eventually.be.fulfilled;
 
             const result: IMigrationResult<IDB> = {
                 success: true,

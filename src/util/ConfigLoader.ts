@@ -67,7 +67,7 @@ export class ConfigLoader {
      * Static initializer to register default loaders.
      * Registers loaders in priority order.
      */
-    private static initialized = (() => {
+    private static readonly initialized = (() => {
         // Always register JS/JSON loader (no dependencies)
         ConfigFileLoaderRegistry.register(new JsJsonLoader());
 

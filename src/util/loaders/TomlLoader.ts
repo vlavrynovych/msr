@@ -26,8 +26,8 @@ import { IConfigFileLoader } from '../../interface/IConfigFileLoader';
 export class TomlLoader implements IConfigFileLoader {
     readonly supportedExtensions = ['.toml'];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private tomlModule: any = null;
-    private loadError: Error | null = null;
+    private readonly tomlModule: any = null;
+    private readonly loadError: Error | null = null;
 
     constructor() {
         try {

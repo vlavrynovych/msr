@@ -71,7 +71,7 @@ interface CsvRow {
  * ```
  */
 export class CsvMetricsCollector implements IMetricsCollector {
-    private rows: CsvRow[] = [];
+    private readonly rows: CsvRow[] = [];
     private readonly delimiter: string;
     private readonly includeHeader: boolean;
 
@@ -80,7 +80,7 @@ export class CsvMetricsCollector implements IMetricsCollector {
      *
      * @param config Configuration with file path and CSV options
      */
-    constructor(private config: CsvMetricsCollectorConfig) {
+    constructor(private readonly config: CsvMetricsCollectorConfig) {
         this.delimiter = config.delimiter || ',';
         this.includeHeader = config.includeHeader !== false;
     }

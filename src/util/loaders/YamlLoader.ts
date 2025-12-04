@@ -27,8 +27,8 @@ import { IConfigFileLoader } from '../../interface/IConfigFileLoader';
 export class YamlLoader implements IConfigFileLoader {
     readonly supportedExtensions = ['.yaml', '.yml'];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private yamlModule: any = null;
-    private loadError: Error | null = null;
+    private readonly yamlModule: any = null;
+    private readonly loadError: Error | null = null;
 
     constructor() {
         try {

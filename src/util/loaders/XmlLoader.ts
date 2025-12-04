@@ -38,8 +38,8 @@ import { IConfigFileLoader } from '../../interface/IConfigFileLoader';
 export class XmlLoader implements IConfigFileLoader {
     readonly supportedExtensions = ['.xml'];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private xmlModule: any = null;
-    private loadError: Error | null = null;
+    private readonly xmlModule: any = null;
+    private readonly loadError: Error | null = null;
 
     constructor() {
         try {

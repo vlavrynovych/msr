@@ -69,7 +69,7 @@ export interface LoggerMetricsCollectorConfig {
  * ```
  */
 export class LoggerMetricsCollector implements IMetricsCollector {
-    private scriptStartTimes: Map<string, number> = new Map();
+    private readonly scriptStartTimes: Map<string, number> = new Map();
     protected readonly logger: ILogger;
     private readonly prefix: string;
 

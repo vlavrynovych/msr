@@ -42,8 +42,8 @@ export class MetricsCollectorHook<DB extends IDB = IDB> implements IMigrationHoo
      * @param logger Optional logger for error reporting
      */
     constructor(
-        private collectors: IMetricsCollector[],
-        private logger?: ILogger
+        private readonly collectors: IMetricsCollector[],
+        private readonly logger?: ILogger
     ) {}
 
     /**
