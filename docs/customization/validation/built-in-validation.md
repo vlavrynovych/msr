@@ -810,7 +810,7 @@ Run validation without executing:
 ```typescript
 import { MigrationScriptExecutor, ValidationError } from '@migration-script-runner/core';
 
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 
 try {
     // This will validate but not execute if you catch the error early

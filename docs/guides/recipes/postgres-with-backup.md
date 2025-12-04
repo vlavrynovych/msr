@@ -411,7 +411,7 @@ async function runMigrations() {
   config.backup.deleteBackup = false;  // Keep backups in production
 
   // Create executor
-  const executor = new MigrationScriptExecutor(handler, config);
+  const executor = new MigrationScriptExecutor({ handler }, config);
 
   try {
     console.log('Running migrations...');
@@ -594,7 +594,7 @@ describe('Migration Integration', () => {
     const config = new Config();
     config.folder = './test/fixtures/migrations';
 
-    executor = new MigrationScriptExecutor(handler, config);
+    executor = new MigrationScriptExecutor({ handler }, config);
   });
 
   after(async () => {

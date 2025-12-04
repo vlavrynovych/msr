@@ -78,7 +78,7 @@ This three-part license combines:
 // Your commercial web application
 import { MigrationScriptExecutor } from '@migration-script-runner/core';
 
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 await executor.migrate();
 
 // ✅ This is completely free
@@ -250,7 +250,7 @@ https://github.com/migration-script-runner/msr-core
 
 ```typescript
 // Your app.ts
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 await executor.migrate();
 
 // Sell your SaaS product - completely allowed

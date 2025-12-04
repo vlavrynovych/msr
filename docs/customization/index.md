@@ -96,7 +96,7 @@ class MyLogger implements ILogger {
   }
 }
 
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
   logger: new MyLogger()
 });
 ```

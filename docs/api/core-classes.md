@@ -96,7 +96,7 @@ The `MigrationScriptExecutor` exposes several service instances as public readon
 
 **Example (Accessing Services):**
 ```typescript
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 
 // Check if backup should be created
 if (executor.rollbackService.shouldCreateBackup()) {
@@ -113,7 +113,7 @@ const results = await executor.validationService.validateAll(scripts, config);
 **Example (Custom Rollback Logic):**
 ```typescript
 // Access rollbackService for custom workflows
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 
 try {
   await executor.migrate();

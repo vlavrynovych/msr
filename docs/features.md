@@ -227,7 +227,12 @@ Ready to use these features? Start here:
 ## Feature Highlights by Version
 
 ### v0.6.0 (Current)
-- ✨ **Log Level Control** - Configure output verbosity (error, warn, info, debug) via MSR_LOG_LEVEL
+- 🛡️ **Generic Type Parameters** - Database-specific type safety with `<DB extends IDB>` throughout API (**BREAKING**)
+- 📊 **Metrics Collection** - Built-in collectors for observability (Console, Logger, JSON, CSV)
+- 📄 **Multi-Format Config** - YAML, TOML, and XML configuration file support
+- 🔌 **Plugin Architecture** - Extensible loader system with optional peer dependencies
+- 🎚️ **Log Level Control** - Configure output verbosity (error, warn, info, debug) via MSR_LOG_LEVEL
+- 🔨 **Constructor DI Pattern** - Dependency injection pattern for better extensibility (**BREAKING**)
 
 ### v0.5.0
 - ✨ **Transaction Management** - Full transaction control with retry logic

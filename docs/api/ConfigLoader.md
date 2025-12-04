@@ -124,7 +124,7 @@ const config = ConfigLoader.load({}, {
 });
 
 // Use with MigrationScriptExecutor
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 ```
 
 **Error Handling:**
@@ -582,7 +582,7 @@ Unexpected token at line 5, column 3
 import { MigrationScriptExecutor } from '@migration-script-runner/core';
 
 // Automatically loads: defaults → file → env vars
-const executor = new MigrationScriptExecutor(handler);
+const executor = new MigrationScriptExecutor({ handler });
 await executor.up();
 ```
 
@@ -604,7 +604,7 @@ const config = ConfigLoader.load({
     strictValidation: true
 });
 
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 await executor.migrate();
 ```
 
@@ -764,7 +764,7 @@ const config = ConfigLoader.load({
 
 // Create executor
 const handler = new PostgreSQLHandler(process.env.DATABASE_URL);
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 
 // Run migrations
 await executor.migrate();
@@ -786,7 +786,7 @@ import 'dotenv/config';  // Load .env file
 import { MigrationScriptExecutor } from '@migration-script-runner/core';
 
 // Automatically uses environment variables from .env
-const executor = new MigrationScriptExecutor(handler);
+const executor = new MigrationScriptExecutor({ handler });
 await executor.up();
 ```
 

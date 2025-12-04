@@ -61,7 +61,7 @@ MSR provides three built-in logger implementations. For detailed documentation o
 ```typescript
 import { MigrationScriptExecutor, ConsoleLogger } from '@migration-script-runner/core';
 
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     logger: new ConsoleLogger()
 });
 ```
@@ -73,7 +73,7 @@ const executor = new MigrationScriptExecutor(handler, config, {
 ```typescript
 import { MigrationScriptExecutor, SilentLogger } from '@migration-script-runner/core';
 
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     logger: new SilentLogger()
 });
 ```
@@ -139,7 +139,7 @@ class FileLogger implements ILogger {
 }
 
 // Use the file logger
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
   logger: new FileLogger('/var/log/migrations.log')
 });
 await executor.migrate();
@@ -206,7 +206,7 @@ class CloudWatchLogger implements ILogger {
 }
 
 // Use in production
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
   logger: new CloudWatchLogger('/aws/migrations', 'production')
 });
 ```
@@ -243,7 +243,7 @@ class CombinedLogger implements ILogger {
 }
 
 // Log to both console and file
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
   logger: new CombinedLogger([
     new ConsoleLogger(),
     new FileLogger('/var/log/migrations.log')
@@ -261,8 +261,8 @@ Use the default `ConsoleLogger` for immediate visual feedback:
 
 ```typescript
 const config = new Config();
-const executor = new MigrationScriptExecutor(handler, config);
-// or explicitly: new MigrationScriptExecutor(handler, config, { logger: new ConsoleLogger() });
+const executor = new MigrationScriptExecutor({ handler }, config);
+// or explicitly: new MigrationScriptExecutor({ handler,  logger: new ConsoleLogger() });
 ```
 
 ### Testing
@@ -274,7 +274,7 @@ import { SilentLogger } from '@migration-script-runner/core';
 
 describe('Migration Tests', () => {
   it('should execute migrations successfully', async () => {
-    const executor = new MigrationScriptExecutor(handler, config, {
+    const executor = new MigrationScriptExecutor({ handler, 
       logger: new SilentLogger()
     });
     const result = await executor.migrate();
@@ -289,12 +289,12 @@ Use custom loggers for structured logging and monitoring:
 
 ```typescript
 // Send to cloud service for centralized logging
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
   logger: new CloudWatchLogger('/prod/migrations', process.env.HOSTNAME)
 });
 
 // Or use combined logging
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
   logger: new CombinedLogger([
     new FileLogger('/var/log/migrations.log'),
     new CloudWatchLogger('/prod/migrations', process.env.HOSTNAME)
@@ -356,7 +356,7 @@ import {
 const logger = new SilentLogger();
 
 // Pass logger through dependency injection
-const executor = new MigrationScriptExecutor(handler, config, { logger });
+const executor = new MigrationScriptExecutor({ handler,  logger });
 
 // Other services accept logger directly
 const backupService = new BackupService(handler, logger);

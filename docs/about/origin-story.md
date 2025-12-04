@@ -267,7 +267,7 @@ interface IDatabaseMigrationHandler {
 }
 
 // Plug in any database
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 ```
 
 #### From JavaScript to TypeScript

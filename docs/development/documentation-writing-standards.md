@@ -503,7 +503,7 @@ Always specify language for syntax highlighting:
 
 ````markdown
 ```typescript
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 ```
 
 ```bash
@@ -536,7 +536,7 @@ const config = new Config();
 config.folder = './migrations';
 
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 
 const result = await executor.migrate();
 if (result.success) {

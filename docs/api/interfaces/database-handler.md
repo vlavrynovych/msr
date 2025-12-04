@@ -317,7 +317,7 @@ const handler = new PostgresHandler(pool, true);  // with backup
 
 // Create executor
 const config = new Config();
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 
 // Run migrations
 const result = await executor.up();

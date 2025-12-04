@@ -49,7 +49,7 @@ await service.readMigrationScripts(config);
 ```typescript
 import { MigrationScriptExecutor, ConsoleLogger } from 'msr-core';
 
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     logger: new ConsoleLogger()
 });
 

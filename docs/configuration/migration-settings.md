@@ -691,7 +691,7 @@ const config = new Config();
 config.dryRun = process.env.CI === 'true';
 config.validateBeforeRun = true;
 
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 const result = await executor.migrate();
 
 if (!result.success) {
@@ -768,7 +768,7 @@ config.displayLimit = 20;
 config.beforeMigrateName = 'beforeMigrate';
 
 // Initialize and run
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 await executor.migrate();
 ```
 
