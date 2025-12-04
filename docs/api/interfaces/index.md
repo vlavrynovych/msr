@@ -187,23 +187,23 @@ class MyHandler implements IDatabaseMigrationHandler<IDB> {
 
 ## Changes in v0.6.0
 
-{: .highlight }
+{: .important }
 > Version 0.6.0 adds generic type parameters and new metrics interfaces. See the [v0.5.x → v0.6.0 Migration Guide](../../version-migration/v0.5-to-v0.6) for upgrade instructions.
 
 **Summary of Changes:**
 
-### Generic Type Parameters (Non-Breaking) - [#114](https://github.com/migration-script-runner/msr-core/issues/114)
-All interfaces gained optional generic type parameters with default values for database-specific type safety:
+### Generic Type Parameters (BREAKING CHANGE) - [#114](https://github.com/migration-script-runner/msr-core/issues/114)
+All interfaces now require generic type parameters for database-specific type safety:
 
-- `IDatabaseMigrationHandler` → `IDatabaseMigrationHandler<DB extends IDB = IDB>`
-- `IRunnableScript` → `IRunnableScript<DB extends IDB = IDB>`
-- `ISchemaVersion` → `ISchemaVersion<DB extends IDB = IDB>`
-- `IBackup` → `IBackup<DB extends IDB = IDB>`
-- `ITransactionManager` → `ITransactionManager<DB extends IDB = IDB>`
+- `IDatabaseMigrationHandler` → `IDatabaseMigrationHandler<DB extends IDB>`
+- `IRunnableScript` → `IRunnableScript<DB extends IDB>`
+- `ISchemaVersion` → `ISchemaVersion<DB extends IDB>`
+- `IBackup` → `IBackup<DB extends IDB>`
+- `ITransactionManager` → `ITransactionManager<DB extends IDB>`
 
 **Benefits:** Full IDE autocomplete, compile-time validation, no more `as any` casting
 
-**Backward Compatible:** Default type parameter `= IDB` ensures existing code works without changes
+**Breaking Change:** You must explicitly specify the type parameter (e.g., `IDatabaseMigrationHandler<IDB>`) in your implementations
 
 ### New Interfaces - [#80](https://github.com/migration-script-runner/msr-core/issues/80)
 - `IMetricsCollector` - Metrics collection for observability and performance tracking

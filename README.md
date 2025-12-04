@@ -24,14 +24,16 @@ MSR provides a lightweight, flexible framework for managing database migrations 
 
 **Enhanced type safety, metrics collection, and multi-format configuration:**
 
-- **🛡️ Generic Type Parameters** - Database-specific type safety with `<DB extends IDB>` generics throughout the API
+- **🛡️ Generic Type Parameters** - Database-specific type safety with `<DB extends IDB>` generics throughout the API (**BREAKING**: type parameters now required)
 - **📊 Metrics Collection** - Built-in collectors for observability with console, JSON, CSV, and logger-based output
 - **📄 YAML, TOML, and XML Support** - Use your preferred config format (`.yaml`, `.toml`, `.xml`) alongside JS/JSON
 - **🔌 Plugin Architecture** - Extensible loader system with optional peer dependencies keeps core lightweight
 - **🎚️ Log Level Control** - Configurable log levels (`error`, `warn`, `info`, `debug`) to control output verbosity
 - **💡 Better Error Messages** - Actionable error messages with installation instructions when formats aren't available
 - **✨ 100% Test Coverage** - All statements, branches, functions, and lines covered
-- **⚠️ Breaking Change** - Constructor signature changed to dependency injection pattern (5-15 min migration)
+
+> [!IMPORTANT]
+> **v0.6.0 contains breaking changes:** Type parameters are now required for all interfaces (e.g., `IDatabaseMigrationHandler<IDB>`) and the constructor signature changed to dependency injection pattern. Migration takes 10-30 minutes. See the [v0.5.x → v0.6.0 Migration Guide](https://migration-script-runner.github.io/msr-core/version-migration/v0.5-to-v0.6) for step-by-step instructions.
 
 **[→ View configuration docs](https://migration-script-runner.github.io/msr-core/configuration/)**
 
@@ -119,7 +121,7 @@ export class MyDatabaseHandler implements IDatabaseMigrationHandler<IMyDatabase>
 // migrations/V202501280100_create_users.ts
 import { IRunnableScript, IMigrationInfo, IDB } from '@migration-script-runner/core';
 
-export default class CreateUsers implements IRunnableScript {
+export default class CreateUsers implements IRunnableScript<IDB> {
   async up(db: IDB, info: IMigrationInfo): Promise<string> {
     await db.query(`
       CREATE TABLE users (
@@ -259,13 +261,14 @@ See our [GitHub Issues](https://github.com/migration-script-runner/msr-core/issu
 
 This project is licensed under the **MIT License with Commons Clause and Attribution Requirements**.
 
-**Quick Summary:**
-- ✅ Free to use in your applications (including commercial)
-- ✅ Free to modify and contribute
-- ❌ Cannot sell MSR or database adapters as standalone products
-- 🔒 Database adapters require attribution
-
-See the [LICENSE](LICENSE) file or read the [License Documentation](https://migration-script-runner.github.io/msr-core/license) for detailed examples and FAQ.
+> [!NOTE]
+> **Quick Summary:**
+> - ✅ Free to use in your applications (including commercial)
+> - ✅ Free to modify and contribute
+> - ❌ Cannot sell MSR or database adapters as standalone products
+> - 🔒 Database adapters require attribution
+>
+> See the [LICENSE](LICENSE) file or read the [License Documentation](https://migration-script-runner.github.io/msr-core/license) for detailed examples and FAQ.
 
 ---
 

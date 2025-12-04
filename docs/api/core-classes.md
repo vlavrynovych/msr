@@ -42,7 +42,7 @@ const executor = new MigrationScriptExecutor<IMyDatabase>({ handler }, config);
 
 **Signature (v0.6.0+):**
 ```typescript
-constructor<DB extends IDB = IDB>(
+constructor<DB extends IDB>(
     dependencies: IMigrationExecutorDependencies<DB>,
     config?: Config
 )

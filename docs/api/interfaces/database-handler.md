@@ -29,7 +29,7 @@ Interface that must be implemented for your specific database.
 
 **Signature (v0.6.0+):**
 ```typescript
-interface IDatabaseMigrationHandler<DB extends IDB = IDB> {
+interface IDatabaseMigrationHandler<DB extends IDB> {
   getName(): string;
   getVersion(): string;
   db: DB;  // Your specific database type
@@ -39,8 +39,8 @@ interface IDatabaseMigrationHandler<DB extends IDB = IDB> {
 }
 ```
 
-{: .note }
-> **New in v0.6.0:** Generic type parameter `<DB extends IDB>` provides full type safety for database-specific operations. Default `= IDB` maintains backward compatibility. See [v0.6.0 migration guide](../../version-migration/v0.5-to-v0.6) for detailed examples.
+{: .important }
+> **Breaking Change (v0.6.0):** Generic type parameter `<DB extends IDB>` is now **required** for full type safety. You must explicitly specify the type parameter in your implementations (e.g., `IDatabaseMigrationHandler<IDB>`). See [v0.6.0 migration guide](../../version-migration/v0.5-to-v0.6) for detailed examples.
 
 {: .important }
 > **Breaking Changes (v0.3.0):**

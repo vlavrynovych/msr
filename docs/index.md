@@ -116,11 +116,11 @@ A database-agnostic migration framework for TypeScript and JavaScript projects.
 
 🎉 Latest release brings database-specific type safety:
 
-- **🎯 Generic Type Parameters** - Full type safety for database-specific operations with `IDatabaseMigrationHandler<DB>`, `IRunnableScript<DB>`, and `MigrationScriptExecutor<DB>`
+- **🎯 Generic Type Parameters** - Full type safety for database-specific operations with `IDatabaseMigrationHandler<DB>`, `IRunnableScript<DB>`, and `MigrationScriptExecutor<DB>` (BREAKING: type parameters now required)
 - **💡 Enhanced IDE Support** - Full autocomplete and IntelliSense for database-specific methods (no more `as any` casting!)
 - **🛡️ Compile-Time Validation** - Catch database errors at compile time, not runtime
 - **🔍 Enhanced Type Guards** - Type-preserving `isImperativeTransactional<DB>()` and `isCallbackTransactional<DB, TxContext>()` functions
-- **🚀 Zero Breaking Changes** - 100% backward compatible with v0.5.x, default generics maintain existing behavior
+- **🔨 Breaking Changes** - Type parameters required for all interfaces, constructor signature changed to dependency injection pattern
 
 **[→ View v0.6.0 migration guide](version-migration/v0.5-to-v0.6)** | **[→ See full changelog](features#feature-highlights-by-version)**
 {: .fs-5 }
