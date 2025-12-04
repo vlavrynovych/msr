@@ -36,6 +36,7 @@ import {DefaultTransactionManager} from "./DefaultTransactionManager";
 import {CallbackTransactionManager} from "./CallbackTransactionManager";
 import {isImperativeTransactional, isCallbackTransactional} from "../interface/dao/ITransactionalDB";
 import {TransactionMode} from "../model/TransactionMode";
+import {MetricsCollectorHook} from "../hooks/MetricsCollectorHook";
 
 /**
  * Main executor class for running database migrations.
@@ -199,10 +200,21 @@ export class MigrationScriptExecutor<DB extends IDB> {
         const baseLogger = dependencies.logger ?? new ConsoleLogger();
         this.logger = new LevelAwareLogger(baseLogger, this.config.logLevel);
 
-        // Setup hooks with automatic execution summary logging
+        // Setup hooks with automatic execution summary logging and metrics collection (v0.6.0)
         const hooks: IMigrationHooks<DB>[] = [];
+
+        // Add MetricsCollectorHook if collectors provided (v0.6.0)
+        if (dependencies.metricsCollectors && dependencies.metricsCollectors.length > 0) {
+            hooks.push(new MetricsCollectorHook(dependencies.metricsCollectors, this.logger));
+        }
+
+        // Add user-provided hooks
         if (dependencies.hooks) hooks.push(dependencies.hooks);
+
+        // Add execution summary hook if logging enabled
         if (this.config.logging.enabled) hooks.push(new ExecutionSummaryHook<DB>(this.config, this.logger, this.handler));
+
+        // Combine all hooks or use undefined
         this.hooks = hooks.length > 0 ? new CompositeHooks<DB>(hooks) : undefined;
 
         // Use provided loader registry or create default (TypeScript + SQL)

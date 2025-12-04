@@ -49,6 +49,7 @@ Migration Script Runner is a production-ready migration framework packed with po
 - **[Down Method Policies](customization/validation/built-in-validation#down-method-policy)** - Enforce reversible migrations
 
 ### Monitoring & Logging
+- **[Metrics Collection](customization/metrics/)** - Built-in collectors for console, JSON, CSV, and logger-based output
 - **[Execution Summary](guides/execution-summary)** - Detailed JSON/text summaries with metrics
 - **[Multiple Loggers](customization/loggers/)** - Console, File, Silent, or custom loggers
 - **[Log Level Control](api/environment-variables/core-variables#msr_log_level)** - Configure output verbosity (error, warn, info, debug)

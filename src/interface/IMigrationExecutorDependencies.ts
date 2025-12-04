@@ -11,6 +11,7 @@ import {IMigrationHooks} from "./IMigrationHooks";
 import {ILoaderRegistry} from "./loader/ILoaderRegistry";
 import {IDatabaseMigrationHandler} from "./IDatabaseMigrationHandler";
 import {IDB} from "./dao";
+import {IMetricsCollector} from "./IMetricsCollector";
 
 /**
  * Dependencies for MigrationScriptExecutor.
@@ -181,6 +182,47 @@ export interface IMigrationExecutorDependencies<DB extends IDB> {
      * ```
      */
     hooks?: IMigrationHooks<DB>;
+
+    /**
+     * Array of metrics collectors for observability (v0.6.0).
+     *
+     * Automatically wrapped in MetricsCollectorHook and combined with user-provided hooks.
+     * Multiple collectors can be used simultaneously (e.g., Console + JSON + CSV).
+     *
+     * Collector failures are logged but don't break migrations.
+     *
+     * **Built-in Collectors:**
+     * - ConsoleMetricsCollector - Real-time console output
+     * - JsonMetricsCollector - Structured JSON for CI/CD
+     * - CsvMetricsCollector - CSV format for Excel/Sheets analysis
+     *
+     * @example
+     * ```typescript
+     * // Single collector - console output
+     * const executor = new MigrationScriptExecutor<IDB>({
+     *     handler: myDatabaseHandler,
+     *     metricsCollectors: [new ConsoleMetricsCollector()]
+     * });
+     *
+     * // Multiple collectors simultaneously
+     * const executor = new MigrationScriptExecutor<IDB>({
+     *     handler: myDatabaseHandler,
+     *     metricsCollectors: [
+     *         new ConsoleMetricsCollector(),
+     *         new JsonMetricsCollector({ filePath: './metrics.json' }),
+     *         new CsvMetricsCollector({ filePath: './metrics.csv' })
+     *     ]
+     * });
+     *
+     * // Custom collector for DataDog/Prometheus
+     * class DataDogCollector implements IMetricsCollector {
+     *     recordScriptComplete(script, duration) {
+     *         statsd.timing('migration.duration', duration);
+     *     }
+     * }
+     * ```
+     */
+    metricsCollectors?: IMetricsCollector[];
 
     /**
      * Custom rollback service implementation.

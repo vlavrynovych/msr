@@ -36,6 +36,7 @@ Core interfaces for implementing database handlers and custom components:
 - **ISchemaVersion** - Schema version tracking
 - **IDB** - Database connection interface
 - **IMigrationInfo** - Migration metadata
+- **IMetricsCollector** - Metrics collection interface (v0.6.0+)
 - And more...
 
 ### [Services](services)
@@ -69,6 +70,7 @@ Type definitions and aliases for TypeScript users
 - Custom loggers: [ILogger](interfaces#ilogger)
 - Custom validators: [IMigrationValidator](interfaces#imigrationvalidator)
 - Lifecycle hooks: [IMigrationHooks](interfaces#imigrationhooks)
+- Metrics collection: [IMetricsCollector](interfaces/metrics-collector)
 
 **Advanced Usage?**
 - Explore [Services](services) for fine-grained control
@@ -79,7 +81,7 @@ Type definitions and aliases for TypeScript users
 ## API Versioning
 
 MSR follows [Semantic Versioning](https://semver.org/). This documentation reflects:
-- **Current Version**: v0.5.0
+- **Current Version**: v0.6.0
 - **Breaking Changes**: Documented in [Migration Guides](../version-migration/)
 - **Deprecations**: Marked with `@deprecated` in source code
 
