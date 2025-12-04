@@ -143,7 +143,7 @@ describe('JsJsonLoader', () => {
 
             fs.writeFileSync(testFile, '{ invalid json }');
 
-            expect(() => loader.load(testFile)).to.throw(Error);
+            expect(() => loader.load(testFile)).to.throw(Error, 'Failed to load configuration');
         });
     });
 
@@ -209,7 +209,7 @@ describe('JsJsonLoader', () => {
         it('should throw error for non-existent file', () => {
             const testFile = path.join(testDir, 'non-existent.json');
 
-            expect(() => loader.load(testFile)).to.throw(Error);
+            expect(() => loader.load(testFile)).to.throw(Error, 'Failed to load configuration');
         });
 
         /**

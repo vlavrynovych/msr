@@ -322,7 +322,7 @@ transaction:
             it('should throw error for non-existent file', () => {
                 const testFile = path.join(testDir, 'non-existent.yaml');
 
-                expect(() => loader.load(testFile)).to.throw(Error);
+                expect(() => loader.load(testFile)).to.throw(Error, testFile);
             });
 
             /**
@@ -334,7 +334,7 @@ transaction:
 
                 fs.writeFileSync(testFile, 'invalid: yaml: content: :::');
 
-                expect(() => loader.load(testFile)).to.throw(Error);
+                expect(() => loader.load(testFile)).to.throw(Error, testFile);
             });
 
             /**
