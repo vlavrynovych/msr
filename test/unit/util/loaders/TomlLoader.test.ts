@@ -370,7 +370,7 @@ createdAt = 2024-01-01T12:00:00Z
             it('should throw error for non-existent file', () => {
                 const testFile = path.join(testDir, 'non-existent.toml');
 
-                expect(() => loader.load(testFile)).to.throw();
+                expect(() => loader.load(testFile)).to.throw(Error);
             });
 
             /**
@@ -382,7 +382,7 @@ createdAt = 2024-01-01T12:00:00Z
 
                 fs.writeFileSync(testFile, 'invalid = toml = syntax');
 
-                expect(() => loader.load(testFile)).to.throw();
+                expect(() => loader.load(testFile)).to.throw(Error);
             });
 
             /**
