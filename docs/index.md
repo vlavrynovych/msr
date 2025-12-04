@@ -37,24 +37,75 @@ A database-agnostic migration framework for TypeScript and JavaScript projects.
 
 ## Key Features
 
-### Core Capabilities
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin: 32px 0;">
 
-- **🔌 Database Agnostic** - Works with any database by implementing a simple interface
-- **🛡️ Type Safe** - Generic type parameters for database-specific type safety (v0.6.0+)
-- **💡 Full IDE Support** - Complete autocomplete for database-specific methods with generics
-- **💾 Smart Rollback** - Four strategies: backup/restore, down() methods, both, or none
-- **✅ Built-in Validation** - Detects duplicate timestamps, missing files, and checksum mismatches
-- **📊 Migration Tracking** - Keeps history of executed migrations in your database
+  <div style="background: #e8eaf6; padding: 24px; border-radius: 8px; border-left: 4px solid #5c6bc0;">
+    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+      <span style="font-size: 32px; line-height: 1;">🔌</span>
+      <div>
+        <h3 style="color: #3f51b5; font-size: 20px; font-weight: 600; margin: 0 0 4px 0;">Database Agnostic</h3>
+        <p style="color: #9e9e9e; font-size: 12px; margin: 0;">Bring your own database</p>
+      </div>
+    </div>
+    <p style="color: #5f6368; line-height: 1.6; margin: 0; font-size: 14px;">Works with any database system - SQL, NoSQL, NewSQL, or custom. Implement a simple interface and MSR handles the rest.</p>
+  </div>
 
-### Developer Experience
+  <div style="background: #fce4ec; padding: 24px; border-radius: 8px; border-left: 4px solid #ec407a;">
+    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+      <span style="font-size: 32px; line-height: 1;">🛡️</span>
+      <div>
+        <h3 style="color: #c2185b; font-size: 20px; font-weight: 600; margin: 0 0 4px 0;">Type Safe</h3>
+        <p style="color: #9e9e9e; font-size: 12px; margin: 0;">Full TypeScript support</p>
+      </div>
+    </div>
+    <p style="color: #5f6368; line-height: 1.6; margin: 0; font-size: 14px;">Generic type parameters provide database-specific type safety with full IDE autocomplete. Catch errors at compile time, not runtime.</p>
+  </div>
 
-- **🎨 Multiple Output Formats** - ASCII tables, JSON, or silent output via Strategy Pattern
-- **📝 Flexible Logging** - Built-in loggers (Console, File, Silent) or bring your own
-- **🪝 Lifecycle Hooks** - Extend behavior with beforeMigrate and custom hooks
-- **🎯 Version Control** - Target specific versions with `up(targetVersion)` and `down(targetVersion)`
-- **🔒 Transaction Control** - Configurable transaction modes with automatic retry and isolation levels
-- **⚙️ Environment Variables** - Full 12-factor app configuration support with MSR_* variables
-- **✅ Well Tested** - 100% code coverage with mutation testing
+  <div style="background: #e1f5fe; padding: 24px; border-radius: 8px; border-left: 4px solid #29b6f6;">
+    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+      <span style="font-size: 32px; line-height: 1;">💾</span>
+      <div>
+        <h3 style="color: #0277bd; font-size: 20px; font-weight: 600; margin: 0 0 4px 0;">Smart Rollback</h3>
+        <p style="color: #9e9e9e; font-size: 12px; margin: 0;">4 strategies for every scenario</p>
+      </div>
+    </div>
+    <p style="color: #5f6368; line-height: 1.6; margin: 0; font-size: 14px;">Four rollback strategies: automatic backup/restore, down() methods, both, or none. Choose what fits your database best.</p>
+  </div>
+
+  <div style="background: #e8f5e9; padding: 24px; border-radius: 8px; border-left: 4px solid #66bb6a;">
+    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+      <span style="font-size: 32px; line-height: 1;">✅</span>
+      <div>
+        <h3 style="color: #2e7d32; font-size: 20px; font-weight: 600; margin: 0 0 4px 0;">Built-in Validation</h3>
+        <p style="color: #9e9e9e; font-size: 12px; margin: 0;">Prevent errors before they happen</p>
+      </div>
+    </div>
+    <p style="color: #5f6368; line-height: 1.6; margin: 0; font-size: 14px;">Automatically detects duplicate timestamps, missing files, and checksum mismatches before migrations run.</p>
+  </div>
+
+  <div style="background: #fff3e0; padding: 24px; border-radius: 8px; border-left: 4px solid #ffa726;">
+    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+      <span style="font-size: 32px; line-height: 1;">🎯</span>
+      <div>
+        <h3 style="color: #e65100; font-size: 20px; font-weight: 600; margin: 0 0 4px 0;">Production Ready</h3>
+        <p style="color: #9e9e9e; font-size: 12px; margin: 0;">Library-first design</p>
+      </div>
+    </div>
+    <p style="color: #5f6368; line-height: 1.6; margin: 0; font-size: 14px;">Returns structured results instead of process.exit(). Safe for web servers, workers, and any long-running application.</p>
+  </div>
+
+  <div style="background: #f3e5f5; padding: 24px; border-radius: 8px; border-left: 4px solid #ab47bc;">
+    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+      <span style="font-size: 32px; line-height: 1;">🪝</span>
+      <div>
+        <h3 style="color: #6a1b9a; font-size: 20px; font-weight: 600; margin: 0 0 4px 0;">Extensible</h3>
+        <p style="color: #9e9e9e; font-size: 12px; margin: 0;">Customize everything</p>
+      </div>
+    </div>
+    <p style="color: #5f6368; line-height: 1.6; margin: 0; font-size: 14px;">Lifecycle hooks, custom loggers, output renderers, and validators. Extend MSR to match your workflow perfectly.</p>
+  </div>
+
+</div>
 
 **[→ View all features](features)** - Complete feature list with detailed descriptions
 {: .fs-5 }
