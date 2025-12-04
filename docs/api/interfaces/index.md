@@ -26,32 +26,41 @@ MSR provides a set of well-defined interfaces that you implement to integrate wi
 
 - **[IDatabaseMigrationHandler](database-handler)** - Main interface you implement for your database
 - **[IDB](db)** - Base database connection interface (all databases)
-- **[ISqlDB](sql-db)** - Extended interface for SQL databases (v0.4.0+)
+- **ISqlDB** - Extended interface for SQL databases (v0.4.0+)
+- **[ITransactionalDB](transactional-db)** - Transaction support interface
 
 ### Schema Tracking
 
 - **[ISchemaVersion](schema-version)** - Schema version table management
-- **[IMigrationScript](schema-version#imigrationscript)** - Migration record access
-- **[IMigrationInfo](migration-info)** - Migration execution metadata
+- **IMigrationScript** - Migration record access
+- **IMigrationInfo** - Migration execution metadata
 
 ### Migration Execution
 
 - **[IRunnableScript](runnable-script)** - Migration script implementation
-- **[IMigrationResult](migration-result)** - Migration operation results
+- **IMigrationResult** - Migration operation results
+
+### Transaction Management
+
+- **[ITransactionManager](transaction-manager)** - Transaction lifecycle management
 
 ### Rollback & Backup
 
-- **[IRollbackService](rollback-service)** - Rollback strategy implementation
-- **[IBackup](backup)** - Backup and restore operations
+- **IRollbackService** - Rollback strategy implementation
+- **IBackup** - Backup and restore operations
 
 ### File Loading (v0.4.0+)
 
-- **[IMigrationScriptLoader](loaders)** - Custom file type loader
-- **[ILoaderRegistry](loaders#iloaderregistry)** - Loader management
+- **IMigrationScriptLoader** - Custom file type loader
+- **ILoaderRegistry** - Loader management
+
+### Observability (v0.6.0+)
+
+- **[IMetricsCollector](metrics-collector)** - Metrics collection for monitoring and performance tracking
 
 ### Services
 
-- **[IMigrationService](migration-service)** - Migration file discovery
+- **IMigrationService** - Migration file discovery
 
 ---
 
@@ -62,7 +71,7 @@ IDatabaseMigrationHandler (your implementation)
 ├── db: IDB (or ISqlDB for SQL databases)
 ├── schemaVersion: ISchemaVersion
 │   └── migrationRecords: IMigrationScript
-└── backup?: IBackup (optional)
+└── backup?: IBackup<IDB> (optional)
 
 IRunnableScript (your migrations)
 ├── up(db, info, handler)
@@ -118,7 +127,7 @@ class MySchemaVersion implements ISchemaVersion {
 }
 
 // 4. Database handler
-class MyHandler implements IDatabaseMigrationHandler {
+class MyHandler implements IDatabaseMigrationHandler<IDB> {
   db: MyDB;
   schemaVersion: MySchemaVersion;
 
@@ -163,7 +172,7 @@ class MyBackup implements IBackup {
   }
 }
 
-class MyHandler implements IDatabaseMigrationHandler {
+class MyHandler implements IDatabaseMigrationHandler<IDB> {
   db: MyDB;
   schemaVersion: MySchemaVersion;
   backup: MyBackup;  // Now included
@@ -173,6 +182,34 @@ class MyHandler implements IDatabaseMigrationHandler {
   }
 }
 ```
+
+---
+
+## Changes in v0.6.0
+
+{: .important }
+> Version 0.6.0 adds generic type parameters and new metrics interfaces. See the [v0.5.x → v0.6.0 Migration Guide](../../version-migration/v0.5-to-v0.6) for upgrade instructions.
+
+**Summary of Changes:**
+
+### Generic Type Parameters (BREAKING CHANGE) - [#114](https://github.com/migration-script-runner/msr-core/issues/114)
+All interfaces now require generic type parameters for database-specific type safety:
+
+- `IDatabaseMigrationHandler` → `IDatabaseMigrationHandler<DB extends IDB>`
+- `IRunnableScript` → `IRunnableScript<DB extends IDB>`
+- `ISchemaVersion` → `ISchemaVersion<DB extends IDB>`
+- `IBackup` → `IBackup<DB extends IDB>`
+- `ITransactionManager` → `ITransactionManager<DB extends IDB>`
+
+**Benefits:** Full IDE autocomplete, compile-time validation, no more `as any` casting
+
+**Breaking Change:** You must explicitly specify the type parameter (e.g., `IDatabaseMigrationHandler<IDB>`) in your implementations
+
+### New Interfaces - [#80](https://github.com/migration-script-runner/msr-core/issues/80)
+- `IMetricsCollector` - Metrics collection for observability and performance tracking
+
+### Constructor Signature Change (Breaking)
+- `MigrationScriptExecutor` constructor now requires dependency injection pattern: `new MigrationScriptExecutor({ handler }, config?)`
 
 ---
 

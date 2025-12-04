@@ -1,4 +1,5 @@
 import {MigrationScript} from "../../model/MigrationScript";
+import {IDB} from "../dao";
 
 /**
  * Service for handling database rollback operations.
@@ -7,9 +8,14 @@ import {MigrationScript} from "../../model/MigrationScript";
  * backup mode logic, providing a clean interface for rolling back failed
  * migrations based on the configured strategy.
  *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
+ *
  * @example
  * ```typescript
- * const rollbackService = new RollbackService(handler, config, backupService, logger, hooks);
+ * const rollbackService = new RollbackService<IDB>(handler, config, backupService, logger, hooks);
  *
  * try {
  *   await runMigrations();
@@ -18,7 +24,7 @@ import {MigrationScript} from "../../model/MigrationScript";
  * }
  * ```
  */
-export interface IRollbackService {
+export interface IRollbackService<DB extends IDB> {
     /**
      * Execute rollback based on the configured strategy.
      *
@@ -28,7 +34,7 @@ export interface IRollbackService {
      * - BOTH: Try down() first, fallback to backup if it fails
      * - NONE: No rollback (logs warning)
      *
-     * @param executedScripts - Scripts that were attempted (including the failed one)
+     * @param executedScripts - Scripts that were attempted (including the failed one) (typed with generic DB parameter in v0.6.0)
      * @param backupPath - Path to backup file (if created during migration)
      *
      * @example
@@ -41,7 +47,7 @@ export interface IRollbackService {
      * }
      * ```
      */
-    rollback(executedScripts: MigrationScript[], backupPath?: string): Promise<void>;
+    rollback(executedScripts: MigrationScript<DB>[], backupPath?: string): Promise<void>;
 
     /**
      * Determine if backup should be created based on rollback strategy and backup mode.

@@ -24,14 +24,23 @@ Main interface for database integration.
 
 Interface that must be implemented for your specific database.
 
+{: .note }
+> **Design Origin**: The handler pattern emerged from MSR's 2017 Firebase prototype, where an `EntityService` provided clean helper methods like `updateAll(callback)` and `findAllBy(propertyName, value)`. Instead of raw database SDK calls in every migration, this service layer made migrations declarative and maintainable. This pattern proved so valuable it became core to MSR's architecture - allowing you to inject your own services, repositories, and business logic into migrations. Read more in the [origin story](../../about/origin-story).
+
+**Signature (v0.6.0+):**
 ```typescript
-interface IDatabaseMigrationHandler {
+interface IDatabaseMigrationHandler<DB extends IDB> {
   getName(): string;
-  db: IDB;
-  schemaVersion: ISchemaVersion;
-  backup?: IBackup;  // Optional - only needed for BACKUP or BOTH strategies
+  getVersion(): string;
+  db: DB;  // Your specific database type
+  schemaVersion: ISchemaVersion<DB>;
+  backup?: IBackup<DB>;  // Optional - only needed for BACKUP or BOTH strategies
+  transactionManager?: ITransactionManager<DB>;  // Optional - auto-created if db supports transactions
 }
 ```
+
+{: .important }
+> **Breaking Change (v0.6.0):** Generic type parameter `<DB extends IDB>` is now **required** for full type safety. You must explicitly specify the type parameter in your implementations (e.g., `IDatabaseMigrationHandler<IDB>`). See [v0.6.0 migration guide](../../version-migration/v0.5-to-v0.6) for detailed examples.
 
 {: .important }
 > **Breaking Changes (v0.3.0):**
@@ -81,7 +90,7 @@ interface IPostgresDB extends IDB {
   transaction(callback: (client: IPostgresDB) => Promise<void>): Promise<void>;
 }
 
-class PostgresHandler implements IDatabaseMigrationHandler {
+class PostgresHandler implements IDatabaseMigrationHandler<IDB> {
   db: IPostgresDB;  // Your extended type
   // ...
 }
@@ -204,7 +213,7 @@ class PostgresBackup implements IBackup {
 }
 
 // Complete handler implementation
-export class PostgresHandler implements IDatabaseMigrationHandler {
+export class PostgresHandler implements IDatabaseMigrationHandler<IDB> {
   db: PostgresDB;
   schemaVersion: PostgresSchemaVersion;
   backup?: PostgresBackup;
@@ -271,7 +280,7 @@ class MongoSchemaVersion implements ISchemaVersion {
   }
 }
 
-export class MongoHandler implements IDatabaseMigrationHandler {
+export class MongoHandler implements IDatabaseMigrationHandler<IDB> {
   db: MongoDB;
   schemaVersion: MongoSchemaVersion;
 
@@ -308,7 +317,7 @@ const handler = new PostgresHandler(pool, true);  // with backup
 
 // Create executor
 const config = new Config();
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 
 // Run migrations
 const result = await executor.up();

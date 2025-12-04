@@ -1,16 +1,18 @@
-import {IValidationResult} from "../interface";
+import {IValidationResult, IDB} from "../interface";
 
 /**
  * Error thrown when migration validation fails.
  *
  * Contains all validation results that have errors, allowing
  * for detailed error reporting and programmatic handling.
+ *
+ * @template DB - Database interface type
  */
-export class ValidationError extends Error {
+export class ValidationError<DB extends IDB> extends Error {
     /**
      * Validation results that contain errors.
      */
-    public readonly validationResults: IValidationResult[];
+    public readonly validationResults: IValidationResult<DB>[];
 
     /**
      * Creates a new ValidationError.
@@ -18,7 +20,7 @@ export class ValidationError extends Error {
      * @param message - Error message
      * @param validationResults - Validation results with errors
      */
-    constructor(message: string, validationResults: IValidationResult[]) {
+    constructor(message: string, validationResults: IValidationResult<DB>[]) {
         super(message);
         this.name = 'ValidationError';
         this.validationResults = validationResults;

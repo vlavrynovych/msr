@@ -70,7 +70,7 @@ class CloudLogger implements ILogger {
     // ... implement other methods
 }
 
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     logger: new CloudLogger()
 });
 ```
@@ -88,7 +88,7 @@ class S3BackupService implements IBackupService {
     // ... implement restore, deleteBackup
 }
 
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     backupService: new S3BackupService()
 });
 ```
@@ -99,7 +99,7 @@ const executor = new MigrationScriptExecutor(handler, config, {
 import { IRenderStrategy, JsonRenderStrategy } from '@migration-script-runner/core';
 
 // Use built-in JSON render strategy
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     renderStrategy: new JsonRenderStrategy(true)  // pretty-printed JSON
 });
 
@@ -111,7 +111,7 @@ class CustomRenderStrategy implements IRenderStrategy {
     // ... implement other methods
 }
 
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     renderStrategy: new CustomRenderStrategy()
 });
 ```
@@ -163,7 +163,7 @@ for (const script of scripts) {
 
 ✅ **Good:** Use dependency injection for testability
 ```typescript
-new MigrationScriptExecutor(handler, config, {
+new MigrationScriptExecutor({ handler, 
     logger: mockLogger,
     backupService: mockBackup
 });

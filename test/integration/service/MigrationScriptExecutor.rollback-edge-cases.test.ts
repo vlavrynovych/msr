@@ -71,10 +71,10 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> {
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -87,14 +87,14 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
             // No backup interface
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: testLogger});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: testLogger}, config);
         const result = await executor.migrate();
 
         expect(result.success).to.be.false;
@@ -102,7 +102,7 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
 
         // Cleanup
         fs.unlinkSync(migrationPath);
-    });
+});
 
     /**
      * Test: Successful migration with no down() method should warn when rolled back
@@ -140,10 +140,10 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> {
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -156,13 +156,13 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: testLogger});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: testLogger}, config);
         const result = await executor.migrate();
 
         expect(result.success).to.be.false;
@@ -174,7 +174,7 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
         // Cleanup
         fs.unlinkSync(migration1Path);
         fs.unlinkSync(migration2Path);
-    });
+});
 
     /**
      * Test: BOTH strategy should fallback to backup when down() fails
@@ -218,14 +218,14 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
         const backupStub = sinon.stub().resolves('backup-data');
         const restoreStub = sinon.stub().resolves();
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup: backupStub,
                 restore: restoreStub
             },
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> {
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -238,13 +238,13 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: testLogger});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: testLogger}, config);
         const result = await executor.migrate();
 
         expect(result.success).to.be.false;
@@ -264,7 +264,7 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
         // Cleanup
         fs.unlinkSync(migration1Path);
         fs.unlinkSync(migration2Path);
-    });
+});
 
     /**
      * Test: Down strategy with no executed scripts
@@ -288,10 +288,10 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> {
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -304,13 +304,13 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: testLogger});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: testLogger}, config);
 
         // Test rollbackService.rollback with DOWN strategy and empty array
         // This simulates a scenario where rollback is called but no migrations were executed
@@ -318,7 +318,7 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
 
         // Should log "No migrations to rollback"
         expect(infoMessages.some(msg => msg.includes('No migrations to rollback'))).to.be.true;
-    });
+});
 
     /**
      * Test: NONE strategy should warn about no rollback
@@ -347,10 +347,10 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> {
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -363,13 +363,13 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: testLogger});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: testLogger}, config);
         const result = await executor.migrate();
 
         expect(result.success).to.be.false;
@@ -381,5 +381,5 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
 
         // Cleanup
         fs.unlinkSync(migrationPath);
-    });
+});
 });

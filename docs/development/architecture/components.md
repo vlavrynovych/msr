@@ -135,7 +135,7 @@ graph TB
 ```typescript
 // Example usage
 const config = new Config();
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     logger: new SilentLogger(),  // Optional DI
     backupService: customBackup  // Optional DI
 });

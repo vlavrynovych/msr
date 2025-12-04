@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import sinon from "sinon";
-import { CompositeHooks, IMigrationHooks, MigrationScript, IMigrationResult } from "../../../src";
+import { CompositeHooks, IDB, IMigrationHooks, IMigrationResult, MigrationScript } from "../../../src";
 
 describe('CompositeHooks', () => {
 
@@ -11,7 +11,7 @@ describe('CompositeHooks', () => {
          * Verifies empty array initialization.
          */
         it('should create with empty hooks array', () => {
-            const composite = new CompositeHooks();
+            const composite = new CompositeHooks<IDB>();
             expect(composite.getHooks()).to.be.an('array').that.is.empty;
         });
 
@@ -20,9 +20,9 @@ describe('CompositeHooks', () => {
          * Verifies constructor accepts array of hooks.
          */
         it('should create with initial hooks', () => {
-            const hook1: IMigrationHooks = { onStart: sinon.stub() };
-            const hook2: IMigrationHooks = { onComplete: sinon.stub() };
-            const composite = new CompositeHooks([hook1, hook2]);
+            const hook1: IMigrationHooks<IDB> = { onStart: sinon.stub() };
+            const hook2: IMigrationHooks<IDB> = { onComplete: sinon.stub() };
+            const composite = new CompositeHooks<IDB>([hook1, hook2]);
 
             expect(composite.getHooks()).to.have.lengthOf(2);
             expect(composite.getHooks()).to.include(hook1);
@@ -34,12 +34,12 @@ describe('CompositeHooks', () => {
          * Verifies immutability of internal array.
          */
         it('should create a copy of the hooks array', () => {
-            const hook1: IMigrationHooks = { onStart: sinon.stub() };
+            const hook1: IMigrationHooks<IDB> = { onStart: sinon.stub() };
             const originalArray = [hook1];
-            const composite = new CompositeHooks(originalArray);
+            const composite = new CompositeHooks<IDB>(originalArray);
 
             // Mutate original array
-            const hook2: IMigrationHooks = { onComplete: sinon.stub() };
+            const hook2: IMigrationHooks<IDB> = { onComplete: sinon.stub() };
             originalArray.push(hook2);
 
             // CompositeHooks should not be affected
@@ -55,8 +55,8 @@ describe('CompositeHooks', () => {
          * Verifies basic addHook functionality.
          */
         it('should add hook to empty composite', () => {
-            const composite = new CompositeHooks();
-            const hook: IMigrationHooks = { onStart: sinon.stub() };
+            const composite = new CompositeHooks<IDB>();
+            const hook: IMigrationHooks<IDB> = { onStart: sinon.stub() };
 
             composite.addHook(hook);
 
@@ -69,9 +69,9 @@ describe('CompositeHooks', () => {
          * Verifies addHook can be called multiple times.
          */
         it('should add multiple hooks', () => {
-            const composite = new CompositeHooks();
-            const hook1: IMigrationHooks = { onStart: sinon.stub() };
-            const hook2: IMigrationHooks = { onComplete: sinon.stub() };
+            const composite = new CompositeHooks<IDB>();
+            const hook1: IMigrationHooks<IDB> = { onStart: sinon.stub() };
+            const hook2: IMigrationHooks<IDB> = { onComplete: sinon.stub() };
 
             composite.addHook(hook1);
             composite.addHook(hook2);
@@ -86,8 +86,8 @@ describe('CompositeHooks', () => {
          * Verifies no duplicate prevention (intentional design).
          */
         it('should allow adding the same hook multiple times', () => {
-            const composite = new CompositeHooks();
-            const hook: IMigrationHooks = { onStart: sinon.stub() };
+            const composite = new CompositeHooks<IDB>();
+            const hook: IMigrationHooks<IDB> = { onStart: sinon.stub() };
 
             composite.addHook(hook);
             composite.addHook(hook);
@@ -104,9 +104,9 @@ describe('CompositeHooks', () => {
          * Verifies basic removeHook functionality and return value.
          */
         it('should remove hook from composite', () => {
-            const hook1: IMigrationHooks = { onStart: sinon.stub() };
-            const hook2: IMigrationHooks = { onComplete: sinon.stub() };
-            const composite = new CompositeHooks([hook1, hook2]);
+            const hook1: IMigrationHooks<IDB> = { onStart: sinon.stub() };
+            const hook2: IMigrationHooks<IDB> = { onComplete: sinon.stub() };
+            const composite = new CompositeHooks<IDB>([hook1, hook2]);
 
             const result = composite.removeHook(hook1);
 
@@ -121,9 +121,9 @@ describe('CompositeHooks', () => {
          * Verifies error handling for missing hook.
          */
         it('should return false when removing non-existent hook', () => {
-            const hook1: IMigrationHooks = { onStart: sinon.stub() };
-            const hook2: IMigrationHooks = { onComplete: sinon.stub() };
-            const composite = new CompositeHooks([hook1]);
+            const hook1: IMigrationHooks<IDB> = { onStart: sinon.stub() };
+            const hook2: IMigrationHooks<IDB> = { onComplete: sinon.stub() };
+            const composite = new CompositeHooks<IDB>([hook1]);
 
             const result = composite.removeHook(hook2);
 
@@ -136,8 +136,8 @@ describe('CompositeHooks', () => {
          * Verifies behavior with empty hooks array.
          */
         it('should return false when removing from empty composite', () => {
-            const composite = new CompositeHooks();
-            const hook: IMigrationHooks = { onStart: sinon.stub() };
+            const composite = new CompositeHooks<IDB>();
+            const hook: IMigrationHooks<IDB> = { onStart: sinon.stub() };
 
             const result = composite.removeHook(hook);
 
@@ -150,8 +150,8 @@ describe('CompositeHooks', () => {
          * Verifies single-instance removal behavior.
          */
         it('should remove only first instance of duplicate hook', () => {
-            const hook: IMigrationHooks = { onStart: sinon.stub() };
-            const composite = new CompositeHooks([hook, hook]);
+            const hook: IMigrationHooks<IDB> = { onStart: sinon.stub() };
+            const composite = new CompositeHooks<IDB>([hook, hook]);
 
             const result = composite.removeHook(hook);
 
@@ -168,8 +168,8 @@ describe('CompositeHooks', () => {
          * Verifies immutability of internal state.
          */
         it('should return a copy of hooks array', () => {
-            const hook1: IMigrationHooks = { onStart: sinon.stub() };
-            const composite = new CompositeHooks([hook1]);
+            const hook1: IMigrationHooks<IDB> = { onStart: sinon.stub() };
+            const composite = new CompositeHooks<IDB>([hook1]);
 
             const hooks1 = composite.getHooks();
             const hooks2 = composite.getHooks();
@@ -183,11 +183,11 @@ describe('CompositeHooks', () => {
          * Verifies encapsulation of internal hooks array.
          */
         it('should not allow external modification of internal array', () => {
-            const hook1: IMigrationHooks = { onStart: sinon.stub() };
-            const composite = new CompositeHooks([hook1]);
+            const hook1: IMigrationHooks<IDB> = { onStart: sinon.stub() };
+            const composite = new CompositeHooks<IDB>([hook1]);
 
             const hooks = composite.getHooks();
-            const hook2: IMigrationHooks = { onComplete: sinon.stub() };
+            const hook2: IMigrationHooks<IDB> = { onComplete: sinon.stub() };
             hooks.push(hook2);
 
             expect(composite.getHooks()).to.have.lengthOf(1);
@@ -197,11 +197,11 @@ describe('CompositeHooks', () => {
 
     describe('lifecycle hooks', () => {
 
-        let mockHook1: IMigrationHooks;
-        let mockHook2: IMigrationHooks;
-        let composite: CompositeHooks;
-        let script: MigrationScript;
-        let result: IMigrationResult;
+        let mockHook1: IMigrationHooks<IDB>;
+        let mockHook2: IMigrationHooks<IDB>;
+        let composite: CompositeHooks<IDB>;
+        let script: MigrationScript<IDB>;
+        let result: IMigrationResult<IDB>;
 
         beforeEach(() => {
             mockHook1 = {
@@ -228,9 +228,9 @@ describe('CompositeHooks', () => {
                 onComplete: sinon.stub().resolves(),
                 onError: sinon.stub().resolves()
             };
-            composite = new CompositeHooks([mockHook1, mockHook2]);
+            composite = new CompositeHooks<IDB>([mockHook1, mockHook2]);
 
-            script = new MigrationScript('V123_test.ts', '/path/to/V123_test.ts', 123);
+            script = new MigrationScript<IDB>('V123_test.ts', '/path/to/V123_test.ts', 123);
             result = {
                 success: true,
                 executed: [script],
@@ -368,7 +368,7 @@ describe('CompositeHooks', () => {
          * Verifies no errors when no hooks are registered.
          */
         it('should handle calls with no registered hooks', async () => {
-            const emptyComposite = new CompositeHooks();
+            const emptyComposite = new CompositeHooks<IDB>();
 
             await expect(emptyComposite.onStart(10, 5)).to.not.be.rejected;
             await expect(emptyComposite.onBeforeBackup()).to.not.be.rejected;
@@ -387,11 +387,11 @@ describe('CompositeHooks', () => {
          * Verifies optional hook methods are handled correctly.
          */
         it('should handle hooks with missing optional methods', async () => {
-            const partialHook: IMigrationHooks = {
+            const partialHook: IMigrationHooks<IDB> = {
                 onStart: sinon.stub().resolves()
                 // Other methods intentionally missing
             };
-            const composite = new CompositeHooks([partialHook]);
+            const composite = new CompositeHooks<IDB>([partialHook]);
 
             // Call all methods to test optional chaining branches
             await expect(composite.onStart(10, 5)).to.not.be.rejected;
@@ -415,17 +415,17 @@ describe('CompositeHooks', () => {
         it('should call hooks in registration order', async () => {
             const callOrder: string[] = [];
 
-            const hook1: IMigrationHooks = {
+            const hook1: IMigrationHooks<IDB> = {
                 onStart: sinon.stub().callsFake(async () => {
                     callOrder.push('hook1');
                 })
             };
-            const hook2: IMigrationHooks = {
+            const hook2: IMigrationHooks<IDB> = {
                 onStart: sinon.stub().callsFake(async () => {
                     callOrder.push('hook2');
                 })
             };
-            const composite = new CompositeHooks([hook1, hook2]);
+            const composite = new CompositeHooks<IDB>([hook1, hook2]);
 
             await composite.onStart(10, 5);
 
@@ -437,20 +437,20 @@ describe('CompositeHooks', () => {
          * Verifies hooks with and without methods can coexist.
          */
         it('should skip hooks without specific methods', async () => {
-            const hook1: IMigrationHooks = {
+            const hook1: IMigrationHooks<IDB> = {
                 onStart: sinon.stub().resolves()
                 // No onBeforeBackup
             };
-            const hook2: IMigrationHooks = {
+            const hook2: IMigrationHooks<IDB> = {
                 // No onStart
                 onBeforeBackup: sinon.stub().resolves()
             };
-            const hook3: IMigrationHooks = {
+            const hook3: IMigrationHooks<IDB> = {
                 onStart: sinon.stub().resolves(),
                 onBeforeBackup: sinon.stub().resolves()
             };
 
-            const composite = new CompositeHooks([hook1, hook2, hook3]);
+            const composite = new CompositeHooks<IDB>([hook1, hook2, hook3]);
 
             await composite.onStart(10, 5);
             await composite.onBeforeBackup();
@@ -472,10 +472,10 @@ describe('CompositeHooks', () => {
          */
         it('should propagate errors from hooks', async () => {
             const error = new Error('Hook failed');
-            const failingHook: IMigrationHooks = {
+            const failingHook: IMigrationHooks<IDB> = {
                 onStart: sinon.stub().rejects(error)
             };
-            const composite = new CompositeHooks([failingHook, mockHook1]);
+            const composite = new CompositeHooks<IDB>([failingHook, mockHook1]);
 
             await expect(composite.onStart(10, 5)).to.be.rejectedWith('Hook failed');
 
@@ -492,8 +492,8 @@ describe('CompositeHooks', () => {
          * Verifies hooks can be added and removed dynamically.
          */
         it('should support dynamic hook management', async () => {
-            const composite = new CompositeHooks();
-            const mockHook: IMigrationHooks = {
+            const composite = new CompositeHooks<IDB>();
+            const mockHook: IMigrationHooks<IDB> = {
                 onStart: sinon.stub().resolves()
             };
 
@@ -513,12 +513,12 @@ describe('CompositeHooks', () => {
          * Verifies CompositeHooks can contain other CompositeHooks.
          */
         it('should support nested composite hooks', async () => {
-            const mockHook: IMigrationHooks = {
+            const mockHook: IMigrationHooks<IDB> = {
                 onStart: sinon.stub().resolves()
             };
 
-            const innerComposite = new CompositeHooks([mockHook]);
-            const outerComposite = new CompositeHooks([innerComposite]);
+            const innerComposite = new CompositeHooks<IDB>([mockHook]);
+            const outerComposite = new CompositeHooks<IDB>([innerComposite]);
 
             await outerComposite.onStart(10, 5);
 
@@ -531,7 +531,7 @@ describe('CompositeHooks', () => {
          * Verifies complete lifecycle execution.
          */
         it('should handle complete migration lifecycle', async () => {
-            const mockHook: IMigrationHooks = {
+            const mockHook: IMigrationHooks<IDB> = {
                 onStart: sinon.stub().resolves(),
                 onBeforeBackup: sinon.stub().resolves(),
                 onAfterBackup: sinon.stub().resolves(),
@@ -539,10 +539,10 @@ describe('CompositeHooks', () => {
                 onAfterMigrate: sinon.stub().resolves(),
                 onComplete: sinon.stub().resolves()
             };
-            const composite = new CompositeHooks([mockHook]);
+            const composite = new CompositeHooks<IDB>([mockHook]);
 
-            const script = new MigrationScript('V123_test.ts', '/path/to/V123_test.ts', 123);
-            const result: IMigrationResult = {
+            const script = new MigrationScript<IDB>('V123_test.ts', '/path/to/V123_test.ts', 123);
+            const result: IMigrationResult<IDB> = {
                 success: true,
                 executed: [script],
                 migrated: [],

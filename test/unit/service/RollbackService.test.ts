@@ -1,24 +1,17 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import {
-    RollbackService,
-    Config,
-    RollbackStrategy,
-    BackupMode,
-    MigrationScript,
-    SilentLogger
-} from "../../../src";
+import { BackupMode, Config, IDB, MigrationScript, RollbackService, RollbackStrategy, SilentLogger } from "../../../src";
 import {IDatabaseMigrationHandler} from "../../../src/interface/IDatabaseMigrationHandler";
 import {IBackupService} from "../../../src/interface/service/IBackupService";
 import {IMigrationHooks} from "../../../src/interface/IMigrationHooks";
 
 describe('RollbackService', () => {
-    let rollbackService: RollbackService;
-    let handler: IDatabaseMigrationHandler;
+    let rollbackService: RollbackService<IDB>;
+    let handler: IDatabaseMigrationHandler<IDB>;
     let config: Config;
     let backupService: IBackupService;
     let logger: any;
-    let hooks: IMigrationHooks;
+    let hooks: IMigrationHooks<IDB>;
 
     beforeEach(() => {
         config = new Config();
@@ -66,7 +59,7 @@ describe('RollbackService', () => {
          * config, backupService, logger, and hooks.
          */
         it('should create instance with all parameters', () => {
-            rollbackService = new RollbackService(handler, config, backupService, logger, hooks);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger, hooks);
             expect(rollbackService).to.be.instanceOf(RollbackService);
         });
 
@@ -76,7 +69,7 @@ describe('RollbackService', () => {
          * hooks parameter.
          */
         it('should create instance without hooks', () => {
-            rollbackService = new RollbackService(handler, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger);
             expect(rollbackService).to.be.instanceOf(RollbackService);
         });
     });
@@ -89,7 +82,7 @@ describe('RollbackService', () => {
         it('should return true for BACKUP strategy with FULL mode', () => {
             config.rollbackStrategy = RollbackStrategy.BACKUP;
             config.backupMode = BackupMode.FULL;
-            rollbackService = new RollbackService(handler, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger);
 
             expect(rollbackService.shouldCreateBackup()).to.be.true;
         });
@@ -101,7 +94,7 @@ describe('RollbackService', () => {
         it('should return true for BOTH strategy with FULL mode', () => {
             config.rollbackStrategy = RollbackStrategy.BOTH;
             config.backupMode = BackupMode.FULL;
-            rollbackService = new RollbackService(handler, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger);
 
             expect(rollbackService.shouldCreateBackup()).to.be.true;
         });
@@ -113,7 +106,7 @@ describe('RollbackService', () => {
         it('should return true for BACKUP strategy with CREATE_ONLY mode', () => {
             config.rollbackStrategy = RollbackStrategy.BACKUP;
             config.backupMode = BackupMode.CREATE_ONLY;
-            rollbackService = new RollbackService(handler, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger);
 
             expect(rollbackService.shouldCreateBackup()).to.be.true;
         });
@@ -125,7 +118,7 @@ describe('RollbackService', () => {
         it('should return false for BACKUP strategy with RESTORE_ONLY mode', () => {
             config.rollbackStrategy = RollbackStrategy.BACKUP;
             config.backupMode = BackupMode.RESTORE_ONLY;
-            rollbackService = new RollbackService(handler, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger);
 
             expect(rollbackService.shouldCreateBackup()).to.be.false;
         });
@@ -137,7 +130,7 @@ describe('RollbackService', () => {
         it('should return false for BACKUP strategy with MANUAL mode', () => {
             config.rollbackStrategy = RollbackStrategy.BACKUP;
             config.backupMode = BackupMode.MANUAL;
-            rollbackService = new RollbackService(handler, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger);
 
             expect(rollbackService.shouldCreateBackup()).to.be.false;
         });
@@ -149,7 +142,7 @@ describe('RollbackService', () => {
         it('should return false for DOWN strategy', () => {
             config.rollbackStrategy = RollbackStrategy.DOWN;
             config.backupMode = BackupMode.FULL;
-            rollbackService = new RollbackService(handler, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger);
 
             expect(rollbackService.shouldCreateBackup()).to.be.false;
         });
@@ -161,7 +154,7 @@ describe('RollbackService', () => {
         it('should return false for NONE strategy', () => {
             config.rollbackStrategy = RollbackStrategy.NONE;
             config.backupMode = BackupMode.FULL;
-            rollbackService = new RollbackService(handler, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger);
 
             expect(rollbackService.shouldCreateBackup()).to.be.false;
         });
@@ -177,7 +170,7 @@ describe('RollbackService', () => {
             };
             config.rollbackStrategy = RollbackStrategy.BACKUP;
             config.backupMode = BackupMode.FULL;
-            rollbackService = new RollbackService(handlerWithoutBackup as any, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handlerWithoutBackup as any, config, backupService, logger);
 
             expect(rollbackService.shouldCreateBackup()).to.be.false;
         });
@@ -187,7 +180,7 @@ describe('RollbackService', () => {
         beforeEach(() => {
             config.rollbackStrategy = RollbackStrategy.BACKUP;
             config.backupMode = BackupMode.FULL;
-            rollbackService = new RollbackService(handler, config, backupService, logger, hooks);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger, hooks);
         });
 
         /**
@@ -220,7 +213,7 @@ describe('RollbackService', () => {
          * Validates that backup restoration works when hooks are not provided.
          */
         it('should work without hooks', async () => {
-            rollbackService = new RollbackService(handler, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger);
             const backupPath = '/path/to/backup.bkp';
 
             await rollbackService.rollback([], backupPath);
@@ -235,7 +228,7 @@ describe('RollbackService', () => {
         it('should use existingBackupPath with RESTORE_ONLY mode', async () => {
             config.backupMode = BackupMode.RESTORE_ONLY;
             config.backup.existingBackupPath = '/existing/backup.bkp';
-            rollbackService = new RollbackService(handler, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger);
 
             await rollbackService.rollback([], undefined);
 
@@ -251,7 +244,7 @@ describe('RollbackService', () => {
         it('should throw error when RESTORE_ONLY mode but no existingBackupPath', async () => {
             config.backupMode = BackupMode.RESTORE_ONLY;
             config.backup.existingBackupPath = undefined;
-            rollbackService = new RollbackService(handler, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger);
 
             try {
                 await rollbackService.rollback([], undefined);
@@ -267,7 +260,7 @@ describe('RollbackService', () => {
          */
         it('should skip restore with CREATE_ONLY mode', async () => {
             config.backupMode = BackupMode.CREATE_ONLY;
-            rollbackService = new RollbackService(handler, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger);
 
             await rollbackService.rollback([], '/path/to/backup.bkp');
 
@@ -276,22 +269,22 @@ describe('RollbackService', () => {
     });
 
     describe('rollback() with DOWN strategy', () => {
-        let script1: MigrationScript;
-        let script2: MigrationScript;
+        let script1: MigrationScript<IDB>;
+        let script2: MigrationScript<IDB>;
         let downStub1: sinon.SinonStub;
         let downStub2: sinon.SinonStub;
 
         beforeEach(() => {
             config.rollbackStrategy = RollbackStrategy.DOWN;
-            rollbackService = new RollbackService(handler, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger);
 
             downStub1 = sinon.stub().resolves();
             downStub2 = sinon.stub().resolves();
 
-            script1 = new MigrationScript('migration1', '/path/to/migration1.ts', 1);
+            script1 = new MigrationScript<IDB>('migration1', '/path/to/migration1.ts', 1);
             script1.script = { up: sinon.stub().resolves(), down: downStub1 };
 
-            script2 = new MigrationScript('migration2', '/path/to/migration2.ts', 2);
+            script2 = new MigrationScript<IDB>('migration2', '/path/to/migration2.ts', 2);
             script2.script = { up: sinon.stub().resolves(), down: downStub2 };
         });
 
@@ -312,7 +305,7 @@ describe('RollbackService', () => {
          * Validates that scripts without down() are skipped with a warning.
          */
         it('should skip scripts without down() method', async () => {
-            const script3 = new MigrationScript('migration3', '/path/to/migration3.ts', 3);
+            const script3 = new MigrationScript<IDB>('migration3', '/path/to/migration3.ts', 3);
             script3.script = { up: sinon.stub().resolves() };
 
             await rollbackService.rollback([script1, script2, script3], undefined);
@@ -343,16 +336,16 @@ describe('RollbackService', () => {
     });
 
     describe('rollback() with BOTH strategy', () => {
-        let script1: MigrationScript;
+        let script1: MigrationScript<IDB>;
         let downStub1: sinon.SinonStub;
 
         beforeEach(() => {
             config.rollbackStrategy = RollbackStrategy.BOTH;
             config.backupMode = BackupMode.FULL;
-            rollbackService = new RollbackService(handler, config, backupService, logger, hooks);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger, hooks);
 
             downStub1 = sinon.stub().resolves();
-            script1 = new MigrationScript('migration1', '/path/to/migration1.ts', 1);
+            script1 = new MigrationScript<IDB>('migration1', '/path/to/migration1.ts', 1);
             script1.script = { up: sinon.stub().resolves(), down: downStub1 };
         });
 
@@ -409,7 +402,7 @@ describe('RollbackService', () => {
     describe('rollback() with NONE strategy', () => {
         beforeEach(() => {
             config.rollbackStrategy = RollbackStrategy.NONE;
-            rollbackService = new RollbackService(handler, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger);
         });
 
         /**
@@ -417,7 +410,7 @@ describe('RollbackService', () => {
          * Validates that NONE strategy performs no rollback operations.
          */
         it('should do nothing', async () => {
-            const script1 = new MigrationScript('migration1', '/path/to/migration1.ts', 1);
+            const script1 = new MigrationScript<IDB>('migration1', '/path/to/migration1.ts', 1);
             script1.script = {
                 up: sinon.stub().resolves(),
                 down: sinon.stub().resolves()
@@ -440,9 +433,9 @@ describe('RollbackService', () => {
         it('should not attempt backup restore when BOTH strategy succeeds with down()', async () => {
             config.rollbackStrategy = RollbackStrategy.BOTH;
             config.backupMode = BackupMode.FULL;
-            rollbackService = new RollbackService(handler, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger);
 
-            const script1 = new MigrationScript('migration1', '/path/to/migration1.ts', 1);
+            const script1 = new MigrationScript<IDB>('migration1', '/path/to/migration1.ts', 1);
             const downStub = sinon.stub().resolves();
             script1.script = { up: sinon.stub().resolves(), down: downStub };
 
@@ -460,7 +453,7 @@ describe('RollbackService', () => {
         it('should skip restore with NONE strategy even with FULL mode', async () => {
             config.rollbackStrategy = RollbackStrategy.NONE;
             config.backupMode = BackupMode.FULL;
-            rollbackService = new RollbackService(handler, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger);
 
             await rollbackService.rollback([], '/path/to/backup.bkp');
 
@@ -476,7 +469,7 @@ describe('RollbackService', () => {
         it('should return false from shouldRestoreInMode with DOWN strategy', () => {
             config.rollbackStrategy = RollbackStrategy.DOWN;
             config.backupMode = BackupMode.FULL;
-            rollbackService = new RollbackService(handler, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger);
 
             // Access private method via type casting for coverage
             const shouldRestore = (rollbackService as any).shouldRestoreInMode();
@@ -492,7 +485,7 @@ describe('RollbackService', () => {
         it('should return false from shouldRestoreInMode with NONE strategy', () => {
             config.rollbackStrategy = RollbackStrategy.NONE;
             config.backupMode = BackupMode.FULL;
-            rollbackService = new RollbackService(handler, config, backupService, logger);
+            rollbackService = new RollbackService<IDB>(handler, config, backupService, logger);
 
             // Access private method via type casting for coverage
             const shouldRestore = (rollbackService as any).shouldRestoreInMode();

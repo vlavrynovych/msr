@@ -1,11 +1,11 @@
 import { expect } from 'chai';
-import { MigrationScriptSelector, MigrationScript } from "../../../src";
+import { IDB, MigrationScript, MigrationScriptSelector } from "../../../src";
 
 describe('MigrationScriptSelector', () => {
-    let selector: MigrationScriptSelector;
+    let selector: MigrationScriptSelector<IDB>;
 
     beforeEach(() => {
-        selector = new MigrationScriptSelector();
+        selector = new MigrationScriptSelector<IDB>();
     });
 
     describe('getPending()', () => {
@@ -23,7 +23,7 @@ describe('MigrationScriptSelector', () => {
                 createScript(2, 'migration2'),
                 createScript(3, 'migration3')
             ];
-            const migratedScripts: MigrationScript[] = [];
+            const migratedScripts: MigrationScript<IDB>[] = [];
 
             const result = selector.getPending(migratedScripts, allScripts);
 
@@ -114,7 +114,7 @@ describe('MigrationScriptSelector', () => {
             const migratedScripts = [
                 createScript(1, 'migration1')
             ];
-            const allScripts: MigrationScript[] = [];
+            const allScripts: MigrationScript<IDB>[] = [];
 
             const result = selector.getPending(migratedScripts, allScripts);
 
@@ -135,7 +135,7 @@ describe('MigrationScriptSelector', () => {
                 createScript(1, 'migration1'),
                 createScript(2, 'migration2')
             ];
-            const migratedScripts: MigrationScript[] = [];
+            const migratedScripts: MigrationScript<IDB>[] = [];
 
             const result = selector.getIgnored(migratedScripts, allScripts);
 
@@ -223,7 +223,7 @@ describe('MigrationScriptSelector', () => {
             const migratedScripts = [
                 createScript(5, 'migration5')
             ];
-            const allScripts: MigrationScript[] = [];
+            const allScripts: MigrationScript<IDB>[] = [];
 
             const result = selector.getIgnored(migratedScripts, allScripts);
 
@@ -352,7 +352,7 @@ describe('MigrationScriptSelector', () => {
          * for proper execution sequence.
          */
         it('should return migrations in chronological order', () => {
-            const migratedScripts: MigrationScript[] = [];
+            const migratedScripts: MigrationScript<IDB>[] = [];
             const allScripts = [
                 createScript(5, 'migration5'),
                 createScript(1, 'migration1'),
@@ -374,7 +374,7 @@ describe('MigrationScriptSelector', () => {
          * correctly returns migrations up to the target version.
          */
         it('should handle empty migrated scripts', () => {
-            const migratedScripts: MigrationScript[] = [];
+            const migratedScripts: MigrationScript<IDB>[] = [];
             const allScripts = [
                 createScript(1, 'migration1'),
                 createScript(2, 'migration2'),
@@ -459,7 +459,7 @@ describe('MigrationScriptSelector', () => {
          * to roll back, so an empty array should be returned.
          */
         it('should handle empty migrated scripts', () => {
-            const migratedScripts: MigrationScript[] = [];
+            const migratedScripts: MigrationScript<IDB>[] = [];
 
             const result = selector.getMigratedDownTo(migratedScripts, 5);
 
@@ -608,7 +608,7 @@ describe('MigrationScriptSelector', () => {
          * in any range, so an empty array should be returned.
          */
         it('should handle empty migrated scripts', () => {
-            const migratedScripts: MigrationScript[] = [];
+            const migratedScripts: MigrationScript<IDB>[] = [];
 
             const result = selector.getMigratedInRange(migratedScripts, 1, 5);
 
@@ -632,8 +632,8 @@ describe('MigrationScriptSelector', () => {
  * const script = createScript(123, 'add_users_table');
  * // Creates script named 'V123_add_users_table.ts' at '/fake/path/V123_add_users_table.ts'
  */
-function createScript(timestamp: number, name: string): MigrationScript {
+function createScript(timestamp: number, name: string): MigrationScript<IDB> {
     const filename = `V${timestamp}_${name}.ts`;
-    const script = new MigrationScript(filename, `/fake/path/${filename}`, timestamp);
+    const script = new MigrationScript<IDB>(filename, `/fake/path/${filename}`, timestamp);
     return script;
 }

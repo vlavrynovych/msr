@@ -47,7 +47,7 @@ import { IDB } from './IDB';
  * }
  *
  * // Usage with handler
- * const handler: IDatabaseMigrationHandler = {
+ * const handler: IDatabaseMigrationHandler<DB> = {
  *   db: new PostgresConnection(pool),
  *   schemaVersion: schemaVersionImpl,
  *   getName: () => 'PostgresHandler',

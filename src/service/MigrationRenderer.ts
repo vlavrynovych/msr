@@ -1,4 +1,5 @@
 import {version} from '../../package.json'
+import {IDB} from '../interface/dao';
 
 import {IMigrationInfo, IDatabaseMigrationHandler, IScripts, MigrationScript, ILogger, IMigrationRenderer, IRenderStrategy, Config} from "../index";
 import {ConsoleLogger} from "../logger";
@@ -19,19 +20,21 @@ import {AsciiTableRenderStrategy} from "./render/AsciiTableRenderStrategy";
  * - Library-friendly usage (suppress output)
  * - CI/CD integration (structured output)
  *
+ *
+ * @template DB - Database interface type
  * @example
  * ```typescript
  * // Default ASCII table output
- * const renderer = new MigrationRenderer(handler);
+ * const renderer = new MigrationRenderer<DB>(handler);
  *
  * // JSON output for CI/CD
- * const renderer = new MigrationRenderer(handler, logger, new JsonRenderStrategy());
+ * const renderer = new MigrationRenderer<DB>(handler, logger, new JsonRenderStrategy());
  *
  * // Silent output for testing
- * const renderer = new MigrationRenderer(handler, logger, new SilentRenderStrategy());
+ * const renderer = new MigrationRenderer<DB>(handler, logger, new SilentRenderStrategy());
  * ```
  */
-export class MigrationRenderer implements IMigrationRenderer {
+export class MigrationRenderer<DB extends IDB> implements IMigrationRenderer<DB> {
     /**
      * Creates a new MigrationRenderer.
      *
@@ -41,10 +44,10 @@ export class MigrationRenderer implements IMigrationRenderer {
      * @param strategy - Rendering strategy (defaults to AsciiTableRenderStrategy)
      */
     constructor(
-        private readonly handler: IDatabaseMigrationHandler,
+        private readonly handler: IDatabaseMigrationHandler<DB>,
         private readonly config: Config,
         private readonly logger: ILogger = new ConsoleLogger(),
-        private readonly strategy: IRenderStrategy = new AsciiTableRenderStrategy(logger)
+        private readonly strategy: IRenderStrategy<DB> = new AsciiTableRenderStrategy<DB>(logger)
     ) {}
 
     /**
@@ -64,7 +67,7 @@ export class MigrationRenderer implements IMigrationRenderer {
      *
      * @param scripts - Collection of migration scripts with execution history
      */
-    public drawMigrated(scripts: IScripts): void {
+    public drawMigrated(scripts: IScripts<DB>): void {
         this.strategy.renderMigrated(scripts, this.config);
     }
 
@@ -75,7 +78,7 @@ export class MigrationRenderer implements IMigrationRenderer {
      *
      * @param scripts - Array of pending migration scripts
      */
-    public drawPending(scripts: MigrationScript[]): void {
+    public drawPending(scripts: MigrationScript<DB>[]): void {
         this.strategy.renderPending(scripts);
     }
 
@@ -86,7 +89,7 @@ export class MigrationRenderer implements IMigrationRenderer {
      *
      * @param scripts - Array of ignored migration scripts
      */
-    public drawIgnored(scripts: MigrationScript[]): void {
+    public drawIgnored(scripts: MigrationScript<DB>[]): void {
         this.strategy.renderIgnored(scripts);
     }
 

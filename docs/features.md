@@ -49,15 +49,17 @@ Migration Script Runner is a production-ready migration framework packed with po
 - **[Down Method Policies](customization/validation/built-in-validation#down-method-policy)** - Enforce reversible migrations
 
 ### Monitoring & Logging
+- **[Metrics Collection](customization/metrics/)** - Built-in collectors for console, JSON, CSV, and logger-based output
 - **[Execution Summary](guides/execution-summary)** - Detailed JSON/text summaries with metrics
 - **[Multiple Loggers](customization/loggers/)** - Console, File, Silent, or custom loggers
+- **[Log Level Control](api/environment-variables/core-variables#msr_log_level)** - Configure output verbosity (error, warn, info, debug)
 - **[Lifecycle Hooks](customization/hooks)** - Monitor and extend migration lifecycle
 - **[Rich Metrics](guides/execution-summary#metrics)** - Track timing, retries, and performance
 - **[Custom Output Formats](customization/renderers)** - ASCII tables, JSON, or custom rendering
 
 ### Configuration
 - **[Environment Variables](guides/environment-variables)** - 12-factor app configuration with MSR_* variables
-- **[Config Files](configuration/)** - msr.config.js or msr.config.json support
+- **[Config Files](configuration/)** - Support for JS, JSON, YAML, TOML, and XML formats
 - **[Programmatic API](api/)** - Full TypeScript API for application integration
 - **[Migration Settings](configuration/migration-settings)** - File patterns, display limits, folder configuration
 - **[Validation Settings](configuration/validation-settings)** - Control validation behavior and strictness
@@ -129,7 +131,7 @@ Migration Script Runner is a production-ready migration framework packed with po
 | Feature | Description |
 |---------|-------------|
 | **🌍 Environment Variables** | Configure via MSR_* environment variables following 12-factor app principles |
-| **📄 Config Files** | Support for msr.config.js or msr.config.json with automatic discovery |
+| **📄 Config Files** | Support for JS, JSON, YAML, TOML, and XML config formats with automatic discovery and optional dependencies |
 | **⚙️ Programmatic API** | Full TypeScript API for integration into your applications |
 | **🔌 Extensible Loaders** | Add custom loaders for new file formats beyond TypeScript, JavaScript, SQL |
 | **🎨 Custom Handlers** | Implement your own database handlers for any database system |
@@ -140,6 +142,7 @@ Migration Script Runner is a production-ready migration framework packed with po
 |---------|-------------|
 | **📊 Execution Summaries** | Detailed JSON and text summaries of migration runs with all metrics |
 | **🎭 Multiple Logger Support** | Console, file, silent, or custom loggers - use multiple simultaneously |
+| **🎚️ Log Level Control** | Configure output verbosity with error, warn, info, or debug levels |
 | **🪝 Lifecycle Hooks** | Hook into migration lifecycle for monitoring, alerting, or custom logic |
 | **📈 Rich Metrics** | Track execution time, transaction metrics, retry attempts, and more |
 | **🎨 Customizable Output** | ASCII tables, JSON, or silent rendering - choose your display format |
@@ -202,9 +205,9 @@ Compare MSR features across different use cases:
 
 | Use Case | Key Features |
 |----------|--------------|
-| **Development** | Fast iteration, down() methods, flexible validation, dry run testing |
+| **Development** | Fast iteration, down() methods, flexible validation, dry run testing, debug logging |
 | **CI/CD** | Strict validation, checksum verification, automated testing, environment variables |
-| **Production** | Automatic backups, transaction management, retry logic, execution summaries |
+| **Production** | Automatic backups, transaction management, retry logic, execution summaries, log level control |
 | **Enterprise** | Audit trails, custom validators, hooks for monitoring, comprehensive logging |
 | **Multi-Database** | Custom handlers, flexible loaders, both SQL and NoSQL support |
 
@@ -223,7 +226,15 @@ Ready to use these features? Start here:
 
 ## Feature Highlights by Version
 
-### v0.5.0 (Current)
+### v0.6.0 (Current)
+- 🛡️ **Generic Type Parameters** - Database-specific type safety with `<DB extends IDB>` throughout API (**BREAKING**)
+- 📊 **Metrics Collection** - Built-in collectors for observability (Console, Logger, JSON, CSV)
+- 📄 **Multi-Format Config** - YAML, TOML, and XML configuration file support
+- 🔌 **Plugin Architecture** - Extensible loader system with optional peer dependencies
+- 🎚️ **Log Level Control** - Configure output verbosity (error, warn, info, debug) via MSR_LOG_LEVEL
+- 🔨 **Constructor DI Pattern** - Dependency injection pattern for better extensibility (**BREAKING**)
+
+### v0.5.0
 - ✨ **Transaction Management** - Full transaction control with retry logic
 - ✨ **Environment Variables** - 12-factor app configuration support
 - ✨ **Execution Summaries** - Detailed JSON/text summaries with metrics

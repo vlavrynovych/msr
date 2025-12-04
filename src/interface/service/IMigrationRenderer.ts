@@ -1,6 +1,7 @@
 import {IScripts} from "../IScripts";
 import {MigrationScript} from "../../model";
 import {IMigrationInfo} from "../IMigrationInfo";
+import {IDB} from "../dao";
 
 /**
  * Interface for rendering migration information.
@@ -9,8 +10,13 @@ import {IMigrationInfo} from "../IMigrationInfo";
  * pending migrations, and other migration-related information in various
  * output formats (ASCII tables, JSON, silent, etc.) depending on the
  * configured rendering strategy.
+ *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
  */
-export interface IMigrationRenderer {
+export interface IMigrationRenderer<DB extends IDB> {
     /**
      * Draw ASCII art banner with application name and version.
      *
@@ -25,18 +31,18 @@ export interface IMigrationRenderer {
      * including their execution time, duration, and status.
      * Uses config.displayLimit to determine how many migrations to show.
      *
-     * @param scripts - Collection of migration scripts with execution history
+     * @param scripts - Collection of migration scripts with execution history (typed with generic DB parameter in v0.6.0)
      */
-    drawMigrated(scripts: IScripts): void;
+    drawMigrated(scripts: IScripts<DB>): void;
 
     /**
      * Draw pending migrations to be executed.
      *
      * Shows migrations that haven't been applied yet and are queued for execution.
      *
-     * @param scripts - Array of pending migration scripts
+     * @param scripts - Array of pending migration scripts (typed with generic DB parameter in v0.6.0)
      */
-    drawPending(scripts: MigrationScript[]): void;
+    drawPending(scripts: MigrationScript<DB>[]): void;
 
     /**
      * Draw ignored migrations.
@@ -44,9 +50,9 @@ export interface IMigrationRenderer {
      * Shows migrations that were skipped because they are older than
      * the last executed migration or don't match the execution criteria.
      *
-     * @param scripts - Array of ignored migration scripts
+     * @param scripts - Array of ignored migration scripts (typed with generic DB parameter in v0.6.0)
      */
-    drawIgnored(scripts: MigrationScript[]): void;
+    drawIgnored(scripts: MigrationScript<DB>[]): void;
 
     /**
      * Draw migrations that were executed in the current run.

@@ -48,27 +48,27 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup: backupStub,
                 restore: restoreStub
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" },
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
         const result = await executor.migrate();
 
         // Should succeed (no migrations to run)
@@ -76,7 +76,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
 
         // Should have created backup
         expect(backupStub.calledOnce).to.be.true;
-    });
+});
 
     /**
      * Test: DOWN strategy calls down() methods on failure
@@ -89,28 +89,28 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         // Handler without backup (down() only)
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" },
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
         const result = await executor.migrate();
 
         // Should succeed without backup
         expect(result.success).to.be.true;
-    });
+});
 
     /**
      * Test: BOTH strategy creates backup and can use down()
@@ -125,33 +125,33 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup: backupStub,
                 restore: restoreStub
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" },
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
         const result = await executor.migrate();
 
         // Should succeed and have created backup
         expect(result.success).to.be.true;
         expect(backupStub.calledOnce).to.be.true;
-    });
+});
 
     /**
      * Test: NONE strategy skips backup entirely
@@ -165,33 +165,33 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup: backupStub,
                 restore: sinon.stub().resolves()
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" },
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
         const result = await executor.migrate();
 
         // Should succeed without creating backup
         expect(result.success).to.be.true;
         expect(backupStub.called).to.be.false;
-    });
+});
 
     /**
      * Test: Handler without backup works with DOWN strategy
@@ -204,27 +204,27 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         // No backup property
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" },
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
         const result = await executor.migrate();
 
         expect(result.success).to.be.true;
-    });
+});
 
     /**
      * Test: Default rollback strategy is BACKUP
@@ -245,28 +245,28 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         // No backup property
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" },
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
         const result = await executor.migrate();
 
         // Should succeed even without backup
         expect(result.success).to.be.true;
-    });
+});
 
     /**
      * Test: Backward compatibility - existing handlers still work
@@ -277,29 +277,29 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
         // Don't set rollbackStrategy - should use default (BACKUP)
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup: sinon.stub().resolves('backup-data'),
                 restore: sinon.stub().resolves()
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" },
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
         const result = await executor.migrate();
 
         expect(result.success).to.be.true;
-    });
+});
 });

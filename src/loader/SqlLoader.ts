@@ -17,15 +17,20 @@ import {ConsoleLogger} from '../logger/ConsoleLogger';
  *
  * The entire SQL file content is executed as a single statement via `db.query()`.
  *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
+ *
  * @example
  * ```typescript
- * const loader = new SqlLoader();
- * const script = new MigrationScript('V123_create.up.sql', '/path/to/file', 123);
+ * const loader = new SqlLoader<IDB>();
+ * const script = new MigrationScript<IDB>('V123_create.up.sql', '/path/to/file', 123);
  * const runnable = await loader.load(script);
  * await runnable.up(db, info, handler);
  * ```
  */
-export class SqlLoader implements IMigrationScriptLoader {
+export class SqlLoader<DB extends IDB> implements IMigrationScriptLoader<DB> {
     constructor(private readonly logger: ILogger = new ConsoleLogger()) {}
 
     /**
@@ -48,11 +53,11 @@ export class SqlLoader implements IMigrationScriptLoader {
      * 2. Looks for matching .down.sql file
      * 3. Creates SqlScript wrapper that executes SQL via db.query()
      *
-     * @param script - Migration script to load
-     * @returns SqlScript instance wrapping SQL content
+     * @param script - Migration script to load (typed with generic DB parameter in v0.6.0)
+     * @returns SqlScript instance wrapping SQL content (typed with generic DB parameter in v0.6.0)
      * @throws Error if .up.sql file cannot be read
      */
-    async load(script: MigrationScript): Promise<IRunnableScript> {
+    async load(script: MigrationScript<DB>): Promise<IRunnableScript<DB>> {
         // Read .up.sql file content
         if (!fs.existsSync(script.filepath)) {
             throw new Error(`${script.name}: SQL file not found: ${script.filepath}`);
@@ -71,7 +76,7 @@ export class SqlLoader implements IMigrationScriptLoader {
         }
 
         // Create IRunnableScript wrapper
-        return new SqlScript(upContent, downContent, script.name, this.logger);
+        return new SqlScript<DB>(upContent, downContent, script.name, this.logger);
     }
 
     /**
@@ -106,9 +111,10 @@ export class SqlLoader implements IMigrationScriptLoader {
  * Executes SQL via the database handler's `db.query()` method.
  * The entire file content is passed as a single statement.
  *
+ * @template DB - Database interface type
  * @internal
  */
-class SqlScript implements IRunnableScript {
+class SqlScript<DB extends IDB> implements IRunnableScript<DB> {
     constructor(
         private readonly upSql: string,
         private readonly downSql: string | null,
@@ -119,13 +125,13 @@ class SqlScript implements IRunnableScript {
     /**
      * Execute forward migration SQL.
      *
-     * @param db - Database connection (must implement ISqlDB with query() method)
+     * @param db - Database connection (must implement ISqlDB with query() method, typed with generic DB parameter in v0.6.0)
      * @param info - Migration info
-     * @param handler - Database migration handler
+     * @param handler - Database migration handler (typed with generic DB parameter in v0.6.0)
      * @returns Success message with line count
      * @throws Error if SQL execution fails or db doesn't implement ISqlDB
      */
-    async up(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string> {
+    async up(db: DB, info: IMigrationInfo, handler: IDatabaseMigrationHandler<DB>): Promise<string> {
         if (!this.upSql) {
             throw new Error(`${this.scriptName}: Empty up() SQL content`);
         }
@@ -168,13 +174,13 @@ class SqlScript implements IRunnableScript {
     /**
      * Execute rollback migration SQL.
      *
-     * @param db - Database connection (must implement ISqlDB with query() method)
+     * @param db - Database connection (must implement ISqlDB with query() method, typed with generic DB parameter in v0.6.0)
      * @param info - Migration info
-     * @param handler - Database migration handler
+     * @param handler - Database migration handler (typed with generic DB parameter in v0.6.0)
      * @returns Success message with line count
      * @throws Error if .down.sql file not found or SQL execution fails
      */
-    async down(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string> {
+    async down(db: DB, info: IMigrationInfo, handler: IDatabaseMigrationHandler<DB>): Promise<string> {
         if (!this.downSql) {
             const downPath = this.scriptName.replace('.up.sql', '.down.sql');
             throw new Error(
@@ -214,10 +220,10 @@ class SqlScript implements IRunnableScript {
     /**
      * Type guard to check if db implements ISqlDB interface.
      *
-     * @param db - Database connection to check
+     * @param db - Database connection to check (typed with generic DB parameter in v0.6.0)
      * @returns true if db has query() method (implements ISqlDB)
      */
-    private isSqlDB(db: IDB): db is ISqlDB {
-        return typeof (db as ISqlDB).query === 'function';
+    private isSqlDB(db: DB): db is DB & ISqlDB {
+        return typeof (db as unknown as ISqlDB).query === 'function';
     }
 }

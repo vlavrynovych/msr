@@ -19,7 +19,7 @@ import {
  * backup restoration after migration failures.
  */
 describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
-    let handler: IDatabaseMigrationHandler;
+    let handler: IDatabaseMigrationHandler<IDB>;
     let config: Config;
     const db: IDB = new class implements IDB {
         [key: string]: unknown;
@@ -47,10 +47,10 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
                         return Promise.resolve(undefined);
                     }
                 }
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             getName: () => 'TestHandler',
             getVersion: () => '1.0.0-test',
-        } as IDatabaseMigrationHandler;
+        } as IDatabaseMigrationHandler<IDB>;
     });
 
     afterEach(() => {
@@ -63,7 +63,7 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
      * Validates that restore hooks are called when rollback occurs with a valid backup path.
      */
     it('should call onBeforeRestore and onAfterRestore hooks when backupPath is provided', async () => {
-        const restoreHooks: IMigrationHooks = {
+        const restoreHooks: IMigrationHooks<IDB> = {
             onBeforeRestore: sinon.stub().resolves(),
             onAfterRestore: sinon.stub().resolves()
         };
@@ -74,11 +74,10 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
             deleteBackup: sinon.stub()
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {
-            logger: new SilentLogger(),
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: restoreHooks,
             backupService: mockBackupService
-        });
+}, config);
 
         // Test rollbackService.rollback with BACKUP strategy
         await executor.rollbackService.rollback([], '/path/to/backup.bkp');
@@ -98,7 +97,7 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
     it('should call restore hooks in correct order', async () => {
         const callOrder: string[] = [];
 
-        const orderTrackingHooks: IMigrationHooks = {
+        const orderTrackingHooks: IMigrationHooks<IDB> = {
             onBeforeRestore: sinon.stub().callsFake(async () => {
                 callOrder.push('onBeforeRestore');
             }),
@@ -117,11 +116,10 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
             })
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {
-            logger: new SilentLogger(),
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: orderTrackingHooks,
             backupService: mockBackupService
-        });
+}, config);
 
         // Test rollbackService.rollback with BACKUP strategy
         await executor.rollbackService.rollback([], '/path/to/backup.bkp');
@@ -135,7 +133,7 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
      * Validates that restore hooks are not called when no backup is available.
      */
     it('should not call restore hooks when backupPath is undefined', async () => {
-        const restoreHooks: IMigrationHooks = {
+        const restoreHooks: IMigrationHooks<IDB> = {
             onBeforeRestore: sinon.stub().resolves(),
             onAfterRestore: sinon.stub().resolves()
         };
@@ -146,11 +144,10 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
             deleteBackup: sinon.stub()
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {
-            logger: new SilentLogger(),
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: restoreHooks,
             backupService: mockBackupService
-        });
+}, config);
 
         // Test rollbackService.rollback with BACKUP strategy but no backup path
         await executor.rollbackService.rollback([], undefined);
@@ -172,11 +169,10 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
             deleteBackup: sinon.stub()
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {
-            logger: new SilentLogger(),
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             backupService: mockBackupService
             // No hooks provided
-        });
+}, config);
 
         // Should not throw error - test rollbackService.rollback with BACKUP strategy
         await executor.rollbackService.rollback([], '/path/to/backup.bkp');

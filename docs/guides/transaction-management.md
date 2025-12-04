@@ -69,7 +69,7 @@ const config = new Config();
 config.transaction.mode = 'PER_MIGRATION';  // Default
 config.transaction.isolation = 'READ COMMITTED';
 
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 await executor.migrate();
 ```
 
@@ -98,7 +98,7 @@ const config = new Config();
 config.transaction.mode = 'PER_BATCH';
 config.transaction.retries = 5;  // Retry entire batch on transient errors
 
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 await executor.migrate();  // All migrations in single transaction
 ```
 
@@ -129,7 +129,7 @@ No transaction wrapping. Each migration's `up()` method is responsible for its o
 const config = new Config();
 config.transaction.mode = 'NONE';
 
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 await executor.migrate();
 ```
 
@@ -296,7 +296,7 @@ config.transaction.retries = 3;
 config.transaction.retryDelay = 200;  // 200ms base delay
 config.transaction.retryBackoff = true;  // Exponential backoff
 
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 await executor.migrate();
 ```
 
@@ -333,7 +333,7 @@ config.transaction.retries = 5;           // Max retry attempts (default: 3)
 config.transaction.retryDelay = 100;      // Base delay in ms (default: 100)
 config.transaction.retryBackoff = true;   // Enable exponential backoff (default: true)
 
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 await executor.migrate();
 ```
 
@@ -512,7 +512,7 @@ config.transaction.mode = 'PER_MIGRATION';  // Auto-uses CallbackTransactionMana
 config.transaction.retries = 5;
 config.transaction.retryBackoff = true;
 
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 await executor.migrate();
 ```
 
@@ -562,7 +562,7 @@ const config = new Config();
 config.transaction.mode = 'PER_BATCH';  // All migrations in one transaction
 config.transaction.retries = 3;
 
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 await executor.migrate();
 ```
 
@@ -740,7 +740,7 @@ const hooks: ITransactionHooks = {
   }
 };
 
-const executor = new MigrationScriptExecutor(handler, config, hooks);
+const executor = new MigrationScriptExecutor({ handler, hooks }, config);
 await executor.migrate();
 ```
 
@@ -1349,7 +1349,7 @@ const executor = new MigrationScriptExecutor(
 
 - Read [Configuration: Transaction Settings](../configuration/transaction-settings.md) for detailed API reference
 - Review [API: ITransactionalDB](../api/interfaces/db.md#itransactionaldb) interface documentation
-- See [API: ITransactionManager](../api/interfaces/index.md#itransactionmanager) for custom implementations
+- See [API: ITransactionManager<IDB>](../api/interfaces/index.md#itransactionmanager) for custom implementations
 - Check [Recipes: Testing Migrations](recipes/testing-migrations.md) for testing strategies
 
 ---

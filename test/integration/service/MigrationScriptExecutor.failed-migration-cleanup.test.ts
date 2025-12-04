@@ -116,10 +116,10 @@ describe('MigrationScriptExecutor - Failed Migration Cleanup', () => {
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> {
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -132,13 +132,13 @@ describe('MigrationScriptExecutor - Failed Migration Cleanup', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
         const result = await executor.migrate();
 
         const downCalls = (global as any).__cleanupDownCalls || [];
@@ -162,7 +162,7 @@ describe('MigrationScriptExecutor - Failed Migration Cleanup', () => {
         fs.unlinkSync(migration3Path);
         delete (global as any).__cleanupDownCalls;
         delete (global as any).__partialChanges;
-    });
+});
 
     /**
      * Test: Failed migration without down() method should log warning
@@ -195,10 +195,10 @@ describe('MigrationScriptExecutor - Failed Migration Cleanup', () => {
             log: () => {}
         };
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> {
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -211,13 +211,13 @@ describe('MigrationScriptExecutor - Failed Migration Cleanup', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: testLogger});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: testLogger}, config);
         const result = await executor.migrate();
 
         // Should fail
@@ -235,7 +235,7 @@ describe('MigrationScriptExecutor - Failed Migration Cleanup', () => {
         // Cleanup
         fs.unlinkSync(migrationPath);
         delete (global as any).__partialChanges2;
-    });
+});
 
     /**
      * Test: BOTH strategy should call failed migration's down() before trying successful ones
@@ -278,14 +278,14 @@ describe('MigrationScriptExecutor - Failed Migration Cleanup', () => {
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup: backupStub,
                 restore: restoreStub
             },
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> {
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -298,13 +298,13 @@ describe('MigrationScriptExecutor - Failed Migration Cleanup', () => {
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
         const result = await executor.migrate();
 
         const downCalls = (global as any).__bothStrategyDownCalls || [];
@@ -321,5 +321,5 @@ describe('MigrationScriptExecutor - Failed Migration Cleanup', () => {
         fs.unlinkSync(migration1Path);
         fs.unlinkSync(migration2Path);
         delete (global as any).__bothStrategyDownCalls;
-    });
+});
 });

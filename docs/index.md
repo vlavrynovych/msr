@@ -37,39 +37,92 @@ A database-agnostic migration framework for TypeScript and JavaScript projects.
 
 ## Key Features
 
-### Core Capabilities
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin: 32px 0;">
 
-- **🔌 Database Agnostic** - Works with any database by implementing a simple interface
-- **🛡️ Type Safe** - Written in TypeScript with full type definitions
-- **💾 Smart Rollback** - Four strategies: backup/restore, down() methods, both, or none
-- **✅ Built-in Validation** - Detects duplicate timestamps, missing files, and checksum mismatches
-- **📊 Migration Tracking** - Keeps history of executed migrations in your database
+  <div style="background: #e8eaf6; padding: 24px; border-radius: 8px; border-left: 4px solid #5c6bc0;">
+    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+      <span style="font-size: 32px; line-height: 1;">🔌</span>
+      <div>
+        <h3 style="color: #3f51b5; font-size: 20px; font-weight: 600; margin: 0 0 4px 0;">Database Agnostic</h3>
+        <p style="color: #9e9e9e; font-size: 12px; margin: 0;">Bring your own database</p>
+      </div>
+    </div>
+    <p style="color: #5f6368; line-height: 1.6; margin: 0; font-size: 14px;">Works with any database system - SQL, NoSQL, NewSQL, or custom. Implement a simple interface and MSR handles the rest.</p>
+  </div>
 
-### Developer Experience
+  <div style="background: #fce4ec; padding: 24px; border-radius: 8px; border-left: 4px solid #ec407a;">
+    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+      <span style="font-size: 32px; line-height: 1;">🛡️</span>
+      <div>
+        <h3 style="color: #c2185b; font-size: 20px; font-weight: 600; margin: 0 0 4px 0;">Type Safe</h3>
+        <p style="color: #9e9e9e; font-size: 12px; margin: 0;">Full TypeScript support</p>
+      </div>
+    </div>
+    <p style="color: #5f6368; line-height: 1.6; margin: 0; font-size: 14px;">Generic type parameters provide database-specific type safety with full IDE autocomplete. Catch errors at compile time, not runtime.</p>
+  </div>
 
-- **🎨 Multiple Output Formats** - ASCII tables, JSON, or silent output via Strategy Pattern
-- **📝 Flexible Logging** - Built-in loggers (Console, File, Silent) or bring your own
-- **🪝 Lifecycle Hooks** - Extend behavior with beforeMigrate and custom hooks
-- **🎯 Version Control** - Target specific versions with `up(targetVersion)` and `down(targetVersion)`
-- **🔒 Transaction Control** - Configurable transaction modes with automatic retry and isolation levels
-- **⚙️ Environment Variables** - Full 12-factor app configuration support with MSR_* variables
-- **✅ Well Tested** - 100% code coverage with mutation testing
+  <div style="background: #e1f5fe; padding: 24px; border-radius: 8px; border-left: 4px solid #29b6f6;">
+    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+      <span style="font-size: 32px; line-height: 1;">💾</span>
+      <div>
+        <h3 style="color: #0277bd; font-size: 20px; font-weight: 600; margin: 0 0 4px 0;">Smart Rollback</h3>
+        <p style="color: #9e9e9e; font-size: 12px; margin: 0;">4 strategies for every scenario</p>
+      </div>
+    </div>
+    <p style="color: #5f6368; line-height: 1.6; margin: 0; font-size: 14px;">Four rollback strategies: automatic backup/restore, down() methods, both, or none. Choose what fits your database best.</p>
+  </div>
+
+  <div style="background: #e8f5e9; padding: 24px; border-radius: 8px; border-left: 4px solid #66bb6a;">
+    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+      <span style="font-size: 32px; line-height: 1;">✅</span>
+      <div>
+        <h3 style="color: #2e7d32; font-size: 20px; font-weight: 600; margin: 0 0 4px 0;">Built-in Validation</h3>
+        <p style="color: #9e9e9e; font-size: 12px; margin: 0;">Prevent errors before they happen</p>
+      </div>
+    </div>
+    <p style="color: #5f6368; line-height: 1.6; margin: 0; font-size: 14px;">Automatically detects duplicate timestamps, missing files, and checksum mismatches before migrations run.</p>
+  </div>
+
+  <div style="background: #fff3e0; padding: 24px; border-radius: 8px; border-left: 4px solid #ffa726;">
+    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+      <span style="font-size: 32px; line-height: 1;">🎯</span>
+      <div>
+        <h3 style="color: #e65100; font-size: 20px; font-weight: 600; margin: 0 0 4px 0;">Production Ready</h3>
+        <p style="color: #9e9e9e; font-size: 12px; margin: 0;">Library-first design</p>
+      </div>
+    </div>
+    <p style="color: #5f6368; line-height: 1.6; margin: 0; font-size: 14px;">Returns structured results instead of process.exit(). Safe for web servers, workers, and any long-running application.</p>
+  </div>
+
+  <div style="background: #f3e5f5; padding: 24px; border-radius: 8px; border-left: 4px solid #ab47bc;">
+    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+      <span style="font-size: 32px; line-height: 1;">🪝</span>
+      <div>
+        <h3 style="color: #6a1b9a; font-size: 20px; font-weight: 600; margin: 0 0 4px 0;">Extensible</h3>
+        <p style="color: #9e9e9e; font-size: 12px; margin: 0;">Customize everything</p>
+      </div>
+    </div>
+    <p style="color: #5f6368; line-height: 1.6; margin: 0; font-size: 14px;">Lifecycle hooks, custom loggers, output renderers, and validators. Extend MSR to match your workflow perfectly.</p>
+  </div>
+
+</div>
 
 **[→ View all features](features)** - Complete feature list with detailed descriptions
 {: .fs-5 }
 
 ---
 
-## What's New in v0.5.0
+## What's New in v0.6.0
 
-🎉 Latest release brings powerful new capabilities:
+🎉 Latest release brings database-specific type safety:
 
-- **🔒 Transaction Management** - Configurable transaction modes (per-migration, per-batch, none) with automatic retry logic and isolation level control for both SQL and NoSQL databases
-- **⚙️ Environment Variables** - Complete MSR_* configuration support following 12-factor app principles - perfect for Docker, Kubernetes, and CI/CD pipelines
-- **📊 Enhanced Hooks** - New transaction lifecycle hooks for monitoring and metrics collection
-- **🚀 Production Ready** - 100% backward compatible with v0.4.x, zero breaking changes
+- **🎯 Generic Type Parameters** - Full type safety for database-specific operations with `IDatabaseMigrationHandler<DB>`, `IRunnableScript<DB>`, and `MigrationScriptExecutor<DB>` (BREAKING: type parameters now required)
+- **💡 Enhanced IDE Support** - Full autocomplete and IntelliSense for database-specific methods (no more `as any` casting!)
+- **🛡️ Compile-Time Validation** - Catch database errors at compile time, not runtime
+- **🔍 Enhanced Type Guards** - Type-preserving `isImperativeTransactional<DB>()` and `isCallbackTransactional<DB, TxContext>()` functions
+- **🔨 Breaking Changes** - Type parameters required for all interfaces, constructor signature changed to dependency injection pattern
 
-**[→ View v0.5.0 migration guide](version-migration/v0.4-to-v0.5)** | **[→ See full changelog](features#feature-highlights-by-version)**
+**[→ View v0.6.0 migration guide](version-migration/v0.5-to-v0.6)** | **[→ See full changelog](features#feature-highlights-by-version)**
 {: .fs-5 }
 
 ---
@@ -87,17 +140,21 @@ npm install @migration-script-runner/core
 ```typescript
 import { IDatabaseMigrationHandler, IDB, ISchemaVersion } from '@migration-script-runner/core';
 
-// Define your database type for type safety
+// Define your database type for full type safety (v0.6.0+)
 interface IMyDatabase extends IDB {
   query(sql: string, params?: unknown[]): Promise<unknown[]>;
 }
 
-export class MyDatabaseHandler implements IDatabaseMigrationHandler {
-  db: IMyDatabase;
-  schemaVersion: ISchemaVersion;
+export class MyDatabaseHandler implements IDatabaseMigrationHandler<IMyDatabase> {
+  db: IMyDatabase;  // ✅ Typed database connection
+  schemaVersion: ISchemaVersion<IMyDatabase>;
 
   getName(): string {
     return 'My Database Handler';
+  }
+
+  getVersion(): string {
+    return '1.0.0';
   }
 
   // Implement schema version tracking and optionally backup
@@ -114,8 +171,9 @@ interface IMyDatabase extends IDB {
   query(sql: string): Promise<unknown[]>;
 }
 
-export default class CreateUsers implements IRunnableScript {
+export default class CreateUsers implements IRunnableScript<IMyDatabase> {
   async up(db: IMyDatabase, info: IMigrationInfo): Promise<string> {
+    // ✅ Full autocomplete for db.query() - no casting needed!
     await db.query(`
       CREATE TABLE users (
         id INT PRIMARY KEY AUTO_INCREMENT,
@@ -137,13 +195,13 @@ export default class CreateUsers implements IRunnableScript {
 
 ```typescript
 import { MigrationScriptExecutor, Config } from '@migration-script-runner/core';
-import { MyDatabaseHandler } from './database-handler';
+import { MyDatabaseHandler, IMyDatabase } from './database-handler';
 
 const config = new Config();
 config.folder = './migrations';
 
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor<IMyDatabase>({ handler }, config);
 
 // Library usage - returns result object
 const result = await executor.up();

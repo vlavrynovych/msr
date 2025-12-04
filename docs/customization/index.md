@@ -55,9 +55,16 @@ Create custom output formats:
 Extend migration lifecycle:
 - beforeMigrate and afterMigrate hooks
 - Notifications and alerts
-- Metrics collection
 - Custom validation
 - Integration with external systems
+
+### 📊 [Metrics Collection](metrics/)
+Track and monitor migration performance:
+- ConsoleMetricsCollector - Development feedback
+- LoggerMetricsCollector - Production monitoring
+- JsonMetricsCollector - Detailed analysis
+- CsvMetricsCollector - Spreadsheet reports
+- **Custom Collectors** - Your monitoring service
 
 ### ✅ [Custom Validation](validation/)
 Extend the validation system:
@@ -89,7 +96,7 @@ class MyLogger implements ILogger {
   }
 }
 
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
   logger: new MyLogger()
 });
 ```

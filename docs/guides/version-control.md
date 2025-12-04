@@ -52,7 +52,7 @@ import { MigrationScriptExecutor, Config } from '@migration-script-runner/core';
 
 const config = new Config();
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 
 // Migrate to specific version
 const targetVersion = 202501220300;
@@ -128,7 +128,7 @@ All migrations being rolled back **must** implement the `down()` method:
 ```typescript
 import { IRunnableScript, IMigrationInfo, IDB } from '@migration-script-runner/core';
 
-export default class AddUsersTable implements IRunnableScript {
+export default class AddUsersTable implements IRunnableScript<IDB> {
   async up(db: IDB, info: IMigrationInfo): Promise<string> {
     await db.query('CREATE TABLE users (id INT, name VARCHAR(255))');
     return 'Users table created';
@@ -396,7 +396,7 @@ try {
 If you plan to use `down()`, implement `down()` methods for all migrations:
 
 ```typescript
-export default class MyMigration implements IRunnableScript {
+export default class MyMigration implements IRunnableScript<IDB> {
   async up(db: IDB, info: IMigrationInfo): Promise<string> {
     // Forward migration
     return 'Migration completed';

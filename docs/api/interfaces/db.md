@@ -171,7 +171,7 @@ interface IMyDatabase extends IDB {
 }
 
 // Use in migrations
-export default class AddUsersTable implements IRunnableScript {
+export default class AddUsersTable implements IRunnableScript<IDB> {
   async up(db: IMyDatabase, info: IMigrationInfo): Promise<string> {
     // TypeScript knows about query() method
     await db.query('CREATE TABLE users (id INT, name VARCHAR(255))');
@@ -373,7 +373,7 @@ interface IMyDB extends IDB {
   query(sql: string): Promise<unknown[]>;
 }
 
-export default class CreateUsersTable implements IRunnableScript {
+export default class CreateUsersTable implements IRunnableScript<IDB> {
   async up(db: IMyDB, info: IMigrationInfo): Promise<string> {
     await db.query('CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(255))');
     return 'Users table created';

@@ -350,7 +350,7 @@ import {
     IDB
 } from 'migration-script-runner';
 
-export default class BeforeMigrate implements IRunnableScript {
+export default class BeforeMigrate implements IRunnableScript<IDB> {
     async up(
         db: IDB,
         info: IMigrationInfo,
@@ -377,7 +377,7 @@ export default class BeforeMigrate implements IRunnableScript {
 **Data Seeding:**
 ```typescript
 // Load test data before running migrations
-export default class BeforeMigrate implements IRunnableScript {
+export default class BeforeMigrate implements IRunnableScript<IDB> {
     async up(db, info, handler): Promise<string> {
         await db.execute(`INSERT INTO users VALUES (1, 'admin')`);
         return 'Test data loaded';
@@ -388,7 +388,7 @@ export default class BeforeMigrate implements IRunnableScript {
 **Fresh Database Setup:**
 ```typescript
 // Create extensions on new databases
-export default class BeforeMigrate implements IRunnableScript {
+export default class BeforeMigrate implements IRunnableScript<IDB> {
     async up(db, info, handler): Promise<string> {
         await db.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
         await db.execute('CREATE EXTENSION IF NOT EXISTS "pg_trgm"');
@@ -400,7 +400,7 @@ export default class BeforeMigrate implements IRunnableScript {
 **Environment-Specific Setup:**
 ```typescript
 // Set database parameters
-export default class BeforeMigrate implements IRunnableScript {
+export default class BeforeMigrate implements IRunnableScript<IDB> {
     async up(db, info, handler): Promise<string> {
         if (process.env.NODE_ENV === 'development') {
             await db.execute('SET statement_timeout = 0');
@@ -413,7 +413,7 @@ export default class BeforeMigrate implements IRunnableScript {
 **Validation:**
 ```typescript
 // Check database version
-export default class BeforeMigrate implements IRunnableScript {
+export default class BeforeMigrate implements IRunnableScript<IDB> {
     async up(db, info, handler): Promise<string> {
         const result = await db.execute('SELECT version()');
         const version = parseVersion(result);
@@ -691,7 +691,7 @@ const config = new Config();
 config.dryRun = process.env.CI === 'true';
 config.validateBeforeRun = true;
 
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 const result = await executor.migrate();
 
 if (!result.success) {
@@ -768,7 +768,7 @@ config.displayLimit = 20;
 config.beforeMigrateName = 'beforeMigrate';
 
 // Initialize and run
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 await executor.migrate();
 ```
 

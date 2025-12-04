@@ -27,21 +27,21 @@ describe('BackupService - Optional Backup', () => {
      * Test: restore() should reject when backup file cannot be opened
      */
     it('should reject when backup file does not exist', async () => {
-        const mockBackup: IBackup = {
+        const mockBackup: IBackup<IDB> = {
             backup: sinon.stub().resolves('backup-data'),
             restore: sinon.stub().resolves()
         };
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: mockBackup,
             db: {} as IDB,
-            schemaVersion: {} as ISchemaVersion,
+            schemaVersion: {} as ISchemaVersion<IDB>,
             getName: () => 'Test Handler',
             getVersion: () => '1.0.0-test',
         };
 
         const config = new Config();
-        const backupService = new BackupService(handler, config);
+        const backupService = new BackupService<IDB>(handler, config);
 
         // Set a non-existent backup file path
         const nonExistentPath = path.join(testDir, 'non-existent-backup.json');
@@ -59,16 +59,16 @@ describe('BackupService - Optional Backup', () => {
      * Test: backup() should throw when no backup interface provided
      */
     it('should throw when no backup interface provided', async () => {
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             // No backup interface
             db: {} as IDB,
-            schemaVersion: {} as ISchemaVersion,
+            schemaVersion: {} as ISchemaVersion<IDB>,
             getName: () => 'Test Handler',
             getVersion: () => '1.0.0-test',
         };
 
         const config = new Config();
-        const backupService = new BackupService(handler, config);
+        const backupService = new BackupService<IDB>(handler, config);
 
         try {
             await backupService.backup();
@@ -83,16 +83,16 @@ describe('BackupService - Optional Backup', () => {
      * Additional coverage for optional backup handling
      */
     it('should throw when trying to restore without backup interface', async () => {
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             // No backup interface
             db: {} as IDB,
-            schemaVersion: {} as ISchemaVersion,
+            schemaVersion: {} as ISchemaVersion<IDB>,
             getName: () => 'Test Handler',
             getVersion: () => '1.0.0-test',
         };
 
         const config = new Config();
-        const backupService = new BackupService(handler, config);
+        const backupService = new BackupService<IDB>(handler, config);
 
         // Create a fake backup file
         const backupPath = path.join(testDir, 'fake-backup.json');
@@ -116,21 +116,21 @@ describe('BackupService - Optional Backup', () => {
      */
     it('should successfully backup and restore when backup interface is provided', async () => {
         const backupData = 'test-backup-data-12345';
-        const mockBackup: IBackup = {
+        const mockBackup: IBackup<IDB> = {
             backup: sinon.stub().resolves(backupData),
             restore: sinon.stub().resolves()
         };
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: mockBackup,
             db: {} as IDB,
-            schemaVersion: {} as ISchemaVersion,
+            schemaVersion: {} as ISchemaVersion<IDB>,
             getName: () => 'Test Handler',
             getVersion: () => '1.0.0-test',
         };
 
         const config = new Config();
-        const backupService = new BackupService(handler, config);
+        const backupService = new BackupService<IDB>(handler, config);
 
         // Backup
         const result = await backupService.backup();

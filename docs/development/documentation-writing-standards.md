@@ -1,14 +1,14 @@
 ---
 layout: default
-title: Documentation Standard
+title: Documentation Writing Standards
 parent: Development
-nav_order: 4
+nav_order: 5
 ---
 
-# Documentation Standard
+# Documentation Writing Standards
 {: .no_toc }
 
-Standards and guidelines for maintaining MSR documentation.
+Standards and guidelines for writing and maintaining MSR documentation.
 {: .fs-6 .fw-300 }
 
 ## Table of contents
@@ -503,7 +503,7 @@ Always specify language for syntax highlighting:
 
 ````markdown
 ```typescript
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 ```
 
 ```bash
@@ -536,7 +536,7 @@ const config = new Config();
 config.folder = './migrations';
 
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 
 const result = await executor.migrate();
 if (result.success) {

@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { MigrationService, SilentLogger } from '../../src';
+import { IDB, MigrationService, SilentLogger } from '../../src/index';
 import { TestUtils } from '../helpers';
 
 /**
@@ -28,7 +28,7 @@ describe('MigrationService Performance Benchmarks', () => {
      * - CI/CD pipelines may run migrations on every build
      */
     it('should scan migration directory in < 100ms', async () => {
-        const ms = new MigrationService(new SilentLogger());
+        const ms = new MigrationService<IDB>(new SilentLogger());
         const config = TestUtils.getConfig();
 
         // Warm up (first run may include JIT compilation, module loading, etc.)
@@ -54,7 +54,7 @@ describe('MigrationService Performance Benchmarks', () => {
      * Performance target: < 50ms
      */
     it('should scan empty directory in < 50ms', async () => {
-        const ms = new MigrationService(new SilentLogger());
+        const ms = new MigrationService<IDB>(new SilentLogger());
         const config = TestUtils.getConfig(TestUtils.EMPTY_FOLDER);
 
         // Warm up
@@ -79,7 +79,7 @@ describe('MigrationService Performance Benchmarks', () => {
      * Performance target: All scans should be within 2x of first scan
      */
     it('should maintain consistent performance across multiple scans', async () => {
-        const ms = new MigrationService(new SilentLogger());
+        const ms = new MigrationService<IDB>(new SilentLogger());
         const config = TestUtils.getConfig();
         const durations: number[] = [];
 

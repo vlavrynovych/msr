@@ -36,6 +36,9 @@ MSR provides flexible backup and restore capabilities that go beyond simple roll
 - **Disaster Recovery**: Manual backup and restore procedures
 - **CI/CD Integration**: Backup before deployments with external restore capability
 
+{: .note }
+> **Why Built-in Backup?** Most migration tools don't include backup/restore - they assume you'll handle it separately. MSR's built-in backup emerged from a real need: in 2017, a team migrating production Firebase data learned that automatic backups before every migration run aren't optional luxury - they're essential safety. Manual backups meant room for catastrophic mistakes. Automatic backup before each migration run, with intelligent rollback on failure, became a core MSR principle. Read more in the [origin story](../about/origin-story).
+
 {: .warning }
 > When copying production data to non-production environments, always sanitize sensitive data (PII, passwords, API keys) to comply with security and privacy regulations.
 
@@ -75,7 +78,7 @@ interface IProdDB extends IDB {
   query(sql: string, params?: any[]): Promise<any>;
 }
 
-export class ProductionHandler implements IDatabaseMigrationHandler {
+export class ProductionHandler implements IDatabaseMigrationHandler<IDB> {
   db: IProdDB;
   schemaVersion: ISchemaVersion;
   backup: IBackup;
@@ -175,7 +178,7 @@ export class ProductionHandler implements IDatabaseMigrationHandler {
 import { IDatabaseMigrationHandler } from '@migration-script-runner/core';
 import { Pool } from 'pg';
 
-export class DevelopmentHandler implements IDatabaseMigrationHandler {
+export class DevelopmentHandler implements IDatabaseMigrationHandler<IDB> {
   // ... similar structure to ProductionHandler
 
   constructor() {
@@ -358,7 +361,7 @@ npm run restore:dev -- backup-prod-2025-01-22.bkp
 import { IDatabaseMigrationHandler, IDB, IBackup } from '@migration-script-runner/core';
 import * as admin from 'firebase-admin';
 
-export class FirebaseHandler implements IDatabaseMigrationHandler {
+export class FirebaseHandler implements IDatabaseMigrationHandler<IDB> {
   db: IDB & { firestore: admin.firestore.Firestore };
   backup: IBackup;
 
@@ -460,7 +463,7 @@ async function safeProductionMigration() {
   config.backup.prefix = 'pre-migration';
   config.backup.deleteBackup = false; // Keep all backups
 
-  const executor = new MigrationScriptExecutor(handler, config);
+  const executor = new MigrationScriptExecutor({ handler }, config);
 
   console.log('🔒 Creating production backup before migration...');
   const backupPath = await executor.createBackup();
@@ -589,7 +592,7 @@ async function createBackup() {
   config.backup.prefix = 'ci-backup';
   config.backup.timestamp = true;
 
-  const executor = new MigrationScriptExecutor(handler, config);
+  const executor = new MigrationScriptExecutor({ handler }, config);
   const backupPath = await executor.createBackup();
 
   // Write backup path for next steps
@@ -625,7 +628,7 @@ async function runMigrations() {
   const backupPath = fs.readFileSync('backup-path.txt', 'utf8');
   config.backup.existingBackupPath = backupPath;
 
-  const executor = new MigrationScriptExecutor(handler, config);
+  const executor = new MigrationScriptExecutor({ handler }, config);
 
   console.log('Running migrations with backup restore capability...');
   const result = await executor.migrate();

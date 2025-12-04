@@ -3,11 +3,11 @@ import { SqlLoader, MigrationScript, SilentLogger, IDB, IMigrationInfo, IDatabas
 import path from 'node:path';
 
 describe('SqlLoader', () => {
-    let loader: SqlLoader;
+    let loader: SqlLoader<IDB>;
     const fixturesPath = path.join(process.cwd(), 'test', 'fixtures', 'migrations-sql');
 
     beforeEach(() => {
-        loader = new SqlLoader(new SilentLogger());
+        loader = new SqlLoader<IDB>(new SilentLogger());
     });
 
     describe('getName()', () => {
@@ -44,7 +44,7 @@ describe('SqlLoader', () => {
 
     describe('load()', () => {
         it('should load SQL file with up and down', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202501220100_create_users.up.sql',
                 path.join(fixturesPath, 'V202501220100_create_users.up.sql'),
                 202501220100
@@ -58,7 +58,7 @@ describe('SqlLoader', () => {
         });
 
         it('should load SQL file without down', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202501220200_no_down.up.sql',
                 path.join(fixturesPath, 'V202501220200_no_down.up.sql'),
                 202501220200
@@ -72,7 +72,7 @@ describe('SqlLoader', () => {
         });
 
         it('should execute up() successfully with valid db.query', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202501220100_create_users.up.sql',
                 path.join(fixturesPath, 'V202501220100_create_users.up.sql'),
                 202501220100
@@ -88,14 +88,14 @@ describe('SqlLoader', () => {
                 checkConnection: async () => true
             } as IDB;
 
-            const result = await runnable.up(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler);
+            const result = await runnable.up(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler<IDB>);
 
             expect(result).to.include('Executed SQL migration');
             expect(result).to.include('lines');
         });
 
         it('should execute down() successfully with valid db.query', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202501220100_create_users.up.sql',
                 path.join(fixturesPath, 'V202501220100_create_users.up.sql'),
                 202501220100
@@ -111,14 +111,14 @@ describe('SqlLoader', () => {
                 checkConnection: async () => true
             } as IDB;
 
-            const result = await runnable.down!(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler);
+            const result = await runnable.down!(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler<IDB>);
 
             expect(result).to.include('Rolled back SQL migration');
             expect(result).to.include('lines');
         });
 
         it('should throw error when db.query is not available', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202501220100_create_users.up.sql',
                 path.join(fixturesPath, 'V202501220100_create_users.up.sql'),
                 202501220100
@@ -127,7 +127,7 @@ describe('SqlLoader', () => {
             const runnable = await loader.load(script);
 
             const db = {} as IDB; // No query method
-            const handler = { getName: () => 'TestHandler', getVersion: () => '1.0.0-test' } as IDatabaseMigrationHandler;
+            const handler = { getName: () => 'TestHandler', getVersion: () => '1.0.0-test' } as IDatabaseMigrationHandler<IDB>;
 
             try {
                 await runnable.up(db, {} as IMigrationInfo, handler);
@@ -139,7 +139,7 @@ describe('SqlLoader', () => {
         });
 
         it('should throw error when calling down() without .down.sql file', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202501220200_no_down.up.sql',
                 path.join(fixturesPath, 'V202501220200_no_down.up.sql'),
                 202501220200
@@ -153,7 +153,7 @@ describe('SqlLoader', () => {
             } as IDB;
 
             try {
-                await runnable.down!(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler);
+                await runnable.down!(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler<IDB>);
                 expect.fail('Should have thrown an error');
             } catch (error) {
                 expect((error as Error).message).to.include('No down() SQL file found');
@@ -162,7 +162,7 @@ describe('SqlLoader', () => {
         });
 
         it('should throw error for non-existent SQL file', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V999999999999_nonexistent.up.sql',
                 path.join(fixturesPath, 'V999999999999_nonexistent.up.sql'),
                 999999999999
@@ -177,7 +177,7 @@ describe('SqlLoader', () => {
         });
 
         it('should throw error when SQL execution fails with short SQL', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202501220500_short.up.sql',
                 path.join(fixturesPath, 'V202501220500_short.up.sql'),
                 202501220500
@@ -193,7 +193,7 @@ describe('SqlLoader', () => {
             } as IDB;
 
             try {
-                await runnable.up(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler);
+                await runnable.up(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler<IDB>);
                 expect.fail('Should have thrown an error');
             } catch (error) {
                 expect((error as Error).message).to.include('SQL migration failed');
@@ -205,7 +205,7 @@ describe('SqlLoader', () => {
         });
 
         it('should throw error when SQL rollback execution fails with short SQL', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202501220500_short.up.sql',
                 path.join(fixturesPath, 'V202501220500_short.up.sql'),
                 202501220500
@@ -221,7 +221,7 @@ describe('SqlLoader', () => {
             } as IDB;
 
             try {
-                await runnable.down!(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler);
+                await runnable.down!(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler<IDB>);
                 expect.fail('Should have thrown an error');
             } catch (error) {
                 expect((error as Error).message).to.include('SQL rollback failed');
@@ -233,7 +233,7 @@ describe('SqlLoader', () => {
         });
 
         it('should throw error for empty SQL file', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202501220300_empty.up.sql',
                 path.join(fixturesPath, 'V202501220300_empty.up.sql'),
                 202501220300
@@ -247,7 +247,7 @@ describe('SqlLoader', () => {
             } as IDB;
 
             try {
-                await runnable.up(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler);
+                await runnable.up(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler<IDB>);
                 expect.fail('Should have thrown an error');
             } catch (error) {
                 expect((error as Error).message).to.include('Empty up() SQL content');
@@ -255,7 +255,7 @@ describe('SqlLoader', () => {
         });
 
         it('should throw error when down() db.query is not available', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202501220100_create_users.up.sql',
                 path.join(fixturesPath, 'V202501220100_create_users.up.sql'),
                 202501220100
@@ -264,7 +264,7 @@ describe('SqlLoader', () => {
             const runnable = await loader.load(script);
 
             const db = {} as IDB; // No query method
-            const handler = { getName: () => 'TestHandler', getVersion: () => '1.0.0-test' } as IDatabaseMigrationHandler;
+            const handler = { getName: () => 'TestHandler', getVersion: () => '1.0.0-test' } as IDatabaseMigrationHandler<IDB>;
 
             try {
                 await runnable.down!(db, {} as IMigrationInfo, handler);
@@ -276,7 +276,7 @@ describe('SqlLoader', () => {
         });
 
         it('should trim whitespace from SQL content', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202501220100_create_users.up.sql',
                 path.join(fixturesPath, 'V202501220100_create_users.up.sql'),
                 202501220100
@@ -293,7 +293,7 @@ describe('SqlLoader', () => {
                 checkConnection: async () => true
             } as IDB;
 
-            await runnable.up(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler);
+            await runnable.up(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler<IDB>);
 
             // Should not have leading/trailing whitespace
             expect(capturedSql).to.equal(capturedSql.trim());
@@ -302,7 +302,7 @@ describe('SqlLoader', () => {
         });
 
         it('should truncate long SQL content in error preview for up()', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202501220400_long_sql.up.sql',
                 path.join(fixturesPath, 'V202501220400_long_sql.up.sql'),
                 202501220400
@@ -318,7 +318,7 @@ describe('SqlLoader', () => {
             } as IDB;
 
             try {
-                await runnable.up(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler);
+                await runnable.up(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler<IDB>);
                 expect.fail('Should have thrown an error');
             } catch (error) {
                 expect((error as Error).message).to.include('SQL migration failed');
@@ -329,7 +329,7 @@ describe('SqlLoader', () => {
         });
 
         it('should truncate long SQL content in error preview for down()', async () => {
-            const script = new MigrationScript(
+            const script = new MigrationScript<IDB>(
                 'V202501220400_long_sql.up.sql',
                 path.join(fixturesPath, 'V202501220400_long_sql.up.sql'),
                 202501220400
@@ -345,7 +345,7 @@ describe('SqlLoader', () => {
             } as IDB;
 
             try {
-                await runnable.down!(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler);
+                await runnable.down!(db, {} as IMigrationInfo, {} as IDatabaseMigrationHandler<IDB>);
                 expect.fail('Should have thrown an error');
             } catch (error) {
                 expect((error as Error).message).to.include('SQL rollback failed');

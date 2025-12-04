@@ -135,7 +135,7 @@ export enum TransactionMode {
      * config.transaction.mode = TransactionMode.NONE;
      *
      * // Migration script handles transactions manually:
-     * export default class V001_manual_transaction implements IRunnableScript {
+     * export default class V001_manual_transaction implements IRunnableScript<DB> {
      *   async up(db: IDB) {
      *     // Script manages transaction
      *     await db.query('BEGIN');

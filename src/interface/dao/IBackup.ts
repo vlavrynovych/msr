@@ -1,3 +1,5 @@
+import {IDB} from "./IDB";
+
 /**
  * Interface for database backup and restore operations.
  *
@@ -5,10 +7,17 @@
  * Implementations can use file-based backups, in-memory snapshots, or database-native
  * backup mechanisms depending on the database system.
  *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
+ *
  * @example
  * ```typescript
  * // File-based backup implementation (PostgreSQL/MySQL)
- * export class FileBackup implements IBackup {
+ * export class FileBackup implements IBackup<IDB> {
+ *   constructor(private db: IDB) {}
+ *
  *   async backup(): Promise<string> {
  *     const timestamp = Date.now();
  *     const backupPath = `/backups/db-${timestamp}.sql`;
@@ -23,7 +32,9 @@
  * }
  *
  * // Content-based backup implementation (SQLite/MongoDB)
- * export class ContentBackup implements IBackup {
+ * export class ContentBackup implements IBackup<IDB> {
+ *   constructor(private db: IDB) {}
+ *
  *   async backup(): Promise<string> {
  *     const data = await this.db.serialize();
  *     return JSON.stringify(data);
@@ -37,7 +48,8 @@
  * }
  * ```
  */
-export interface IBackup {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export interface IBackup<DB extends IDB> {
     /**
      * Create a backup of the current database state.
      *

@@ -71,33 +71,33 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         // Create handler with failing migration
-        const failingMigration = new MigrationScript('failing', './test/integration/data/V202001010000_test.ts', 202001010000);
+        const failingMigration = new MigrationScript<IDB>('failing', './test/integration/data/V202001010000_test.ts', 202001010000);
         sinon.stub(failingMigration, 'init').resolves();
         failingMigration.script = {
             up: sinon.stub().rejects(new Error('Migration failed'))
         };
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup: backupStub,
                 restore: restoreStub
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
 
         // Stub migrationScanner to return the failing migration
         sinon.stub(executor.migrationScanner, 'scan').resolves({
@@ -106,7 +106,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
             pending: [failingMigration],
             ignored: [],
             executed: []
-        });
+});
 
         const result = await executor.migrate();
 
@@ -137,33 +137,33 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         // Create handler with failing migration
-        const failingMigration = new MigrationScript('failing', './test/integration/data/V202001010000_test.ts', 202001010000);
+        const failingMigration = new MigrationScript<IDB>('failing', './test/integration/data/V202001010000_test.ts', 202001010000);
         sinon.stub(failingMigration, 'init').resolves();
         failingMigration.script = {
             up: sinon.stub().rejects(new Error('Migration failed'))
         };
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup: backupStub,
                 restore: restoreStub
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
 
         // Stub migrationScanner to return the failing migration
         sinon.stub(executor.migrationScanner, 'scan').resolves({
@@ -172,7 +172,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
             pending: [failingMigration],
             ignored: [],
             executed: []
-        });
+});
 
         try {
             await executor.migrate();
@@ -202,7 +202,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         // Create handler with failing migration that has down()
-        const failingMigration = new MigrationScript('failing', './test/integration/data/V202001010000_test.ts', 202001010000);
+        const failingMigration = new MigrationScript<IDB>('failing', './test/integration/data/V202001010000_test.ts', 202001010000);
         sinon.stub(failingMigration, 'init').resolves();
         const downStub = sinon.stub().resolves();
         failingMigration.script = {
@@ -210,27 +210,27 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
             down: downStub // Has down() method
         };
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup: backupStub,
                 restore: restoreStub
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
 
         // Stub migrationScanner to return the failing migration
         sinon.stub(executor.migrationScanner, 'scan').resolves({
@@ -239,7 +239,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
             pending: [failingMigration],
             ignored: [],
             executed: []
-        });
+});
 
         const result = await executor.migrate();
 
@@ -273,7 +273,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
         // Create handler with failing migration that has a failing down() method
-        const failingMigration = new MigrationScript('failing', './test/integration/data/V202001010000_test.ts', 202001010000);
+        const failingMigration = new MigrationScript<IDB>('failing', './test/integration/data/V202001010000_test.ts', 202001010000);
         sinon.stub(failingMigration, 'init').resolves();
         const downStub = sinon.stub().rejects(new Error('down() failed'));
         failingMigration.script = {
@@ -281,27 +281,27 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
             down: downStub // Has down() but it fails
         };
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup: backupStub,
                 restore: restoreStub
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
 
         // Stub migrationScanner to return the failing migration
         sinon.stub(executor.migrationScanner, 'scan').resolves({
@@ -310,7 +310,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
             pending: [failingMigration],
             ignored: [],
             executed: []
-        });
+});
 
         const result = await executor.migrate();
 
@@ -342,33 +342,33 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         config.validateBeforeRun = false;
 
         // Create handler with failing migration
-        const failingMigration = new MigrationScript('failing', './test/integration/data/V202001010000_test.ts', 202001010000);
+        const failingMigration = new MigrationScript<IDB>('failing', './test/integration/data/V202001010000_test.ts', 202001010000);
         sinon.stub(failingMigration, 'init').resolves();
         failingMigration.script = {
             up: sinon.stub().rejects(new Error('Migration failed'))
         };
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup: backupStub,
                 restore: restoreStub
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
 
         // Stub migrationScanner to return the failing migration
         sinon.stub(executor.migrationScanner, 'scan').resolves({
@@ -377,7 +377,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
             pending: [failingMigration],
             ignored: [],
             executed: []
-        });
+});
 
         const result = await executor.migrate();
 
@@ -399,27 +399,27 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         const config = new Config();
         config.folder = cfg.folder;
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup: backupStub,
                 restore: sinon.stub().resolves()
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
 
         // Call the public method directly
         const backupPath = await executor.createBackup();
@@ -427,7 +427,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         expect(backupStub.calledOnce).to.be.true;
         expect(backupPath).to.be.a('string');
         expect(backupPath).to.include('backup');
-    });
+});
 
     /**
      * Test: restoreFromBackup() public method
@@ -447,34 +447,34 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         }
         fs.writeFileSync(testBackupPath, backupData);
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup: sinon.stub().resolves('backup-data'),
                 restore: restoreStub
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
 
         // Call the public method directly with specific path
         await executor.restoreFromBackup(testBackupPath);
 
         expect(restoreStub.calledOnce).to.be.true;
         expect(restoreStub.firstCall.args[0]).to.equal(backupData);
-    });
+});
 
     /**
      * Test: shouldRestoreInMode() with DOWN strategy (edge case)
@@ -487,34 +487,34 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         config.rollbackStrategy = RollbackStrategy.DOWN; // DOWN strategy
         config.backupMode = BackupMode.FULL; // Any mode
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup: sinon.stub().resolves('backup-data'),
                 restore: sinon.stub().resolves()
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
 
         // Test rollbackService.shouldCreateBackup() with DOWN strategy
         const shouldCreate = executor.rollbackService.shouldCreateBackup();
 
         // Should return false because strategy is DOWN (doesn't need backup)
         expect(shouldCreate).to.be.false;
-    });
+});
 
     /**
      * Test: deleteBackup() public method
@@ -525,27 +525,27 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         config.folder = cfg.folder;
         config.backup.deleteBackup = true; // Enable deletion
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             backup: {
                 backup: sinon.stub().resolves('backup-data'),
                 restore: sinon.stub().resolves()
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]) },
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> { return Promise.resolve([]) },
                     save(details: IMigrationInfo): Promise<void> { return Promise.resolve() },
                     remove(timestamp: number): Promise<void> { return Promise.resolve(undefined) }
                 },
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
 
         // Create a backup first
         const backupPath = await executor.createBackup();
@@ -558,5 +558,5 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
 
         // Verify backup was deleted
         expect(fs.existsSync(backupPath)).to.be.false;
-    });
+});
 });

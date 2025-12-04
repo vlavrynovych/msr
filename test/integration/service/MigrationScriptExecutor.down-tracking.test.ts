@@ -107,10 +107,10 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> {
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -123,7 +123,7 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
@@ -132,7 +132,7 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
         // Clear global tracker
         (global as any).__testDownCalls = [];
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
         const result = await executor.migrate();
 
         // Get down calls from global tracker
@@ -158,7 +158,7 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
         fs.unlinkSync(migration2Path);
         fs.unlinkSync(migration3Path);
         delete (global as any).__testDownCalls;
-    });
+});
 
     /**
      * Test: When migration #2 fails, down() should be called only for migration #1
@@ -197,10 +197,10 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
         config.validateBeforeRun = false; // Disable validation for this rollback-specific test
         config.transaction.mode = TransactionMode.NONE; // Tests don't use transactions
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> {
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -213,7 +213,7 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
@@ -221,7 +221,7 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
 
         (global as any).__testDownCalls2 = [];
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: new SilentLogger()});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
         const result = await executor.migrate();
 
         const calls = (global as any).__testDownCalls2 || [];
@@ -240,7 +240,7 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
         fs.unlinkSync(migration1Path);
         fs.unlinkSync(migration2Path);
         delete (global as any).__testDownCalls2;
-    });
+});
 
     /**
      * Test: When first migration fails, only the failed migration's down() should be called
@@ -274,10 +274,10 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
             log: () => {}
         };
 
-        const handler: IDatabaseMigrationHandler = {
+        const handler: IDatabaseMigrationHandler<IDB> = {
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> {
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> {
                         return Promise.resolve([])
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -290,7 +290,7 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
                 isInitialized: sinon.stub().resolves(true),
                 createTable: sinon.stub().resolves(),
                 validateTable: sinon.stub().resolves(true)
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Handler" },
             getVersion(): string { return "1.0.0-test" }
@@ -298,7 +298,7 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
 
         (global as any).__testDownCalls3 = [];
 
-        const executor = new MigrationScriptExecutor(handler, config, {logger: testLogger});
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: testLogger}, config);
         const result = await executor.migrate();
 
         const calls = (global as any).__testDownCalls3 || [];
@@ -317,5 +317,5 @@ describe('MigrationScriptExecutor - Track Executed Scripts for Rollback', () => 
         // Cleanup
         fs.unlinkSync(migrationPath);
         delete (global as any).__testDownCalls3;
-    });
+});
 });

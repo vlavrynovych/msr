@@ -21,18 +21,18 @@ describe('MigrationScriptExecutor', () => {
     let initialized = true
     let created = true
     let valid = true
-    let scripts:MigrationScript[] = []
+    let scripts: MigrationScript<IDB>[] = []
     let cfg: Config
 
-    let handler:IDatabaseMigrationHandler
-    let executor:MigrationScriptExecutor
+    let handler: IDatabaseMigrationHandler<IDB>
+    let executor: MigrationScriptExecutor<IDB>
 
     /**
      * Test: Constructor with automatic config loading
      * Validates that config is automatically loaded when not provided.
      */
     it('should automatically load config when not provided', () => {
-        const mockHandler: IDatabaseMigrationHandler = {
+        const mockHandler: IDatabaseMigrationHandler<IDB> = {
             getName(): string { return 'TestHandler'; },
             getVersion(): string { return '1.0.0'; },
             backup: {
@@ -44,7 +44,7 @@ describe('MigrationScriptExecutor', () => {
                 createTable(_tableName: string): Promise<boolean> { return Promise.resolve(true); },
                 validateTable(_tableName: string): Promise<boolean> { return Promise.resolve(true); },
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> { return Promise.resolve([]); },
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> { return Promise.resolve([]); },
                     save(_details: IMigrationInfo): Promise<void> { return Promise.resolve(); },
                     remove(_timestamp: number): Promise<void> { return Promise.resolve(); }
                 }
@@ -55,7 +55,7 @@ describe('MigrationScriptExecutor', () => {
         };
 
         // Create executor without config - should auto-load via ConfigLoader
-        const testExecutor = new MigrationScriptExecutor(mockHandler);
+        const testExecutor = new MigrationScriptExecutor<IDB>({ handler: mockHandler }, cfg);
 
         // Verify config was loaded (check a default property)
         expect(testExecutor['config']).to.not.be.undefined;
@@ -72,14 +72,14 @@ describe('MigrationScriptExecutor', () => {
                 return true;
             }
         }
-        handler = new class implements IDatabaseMigrationHandler {
-            backup:IBackup = {
+        handler = new class implements IDatabaseMigrationHandler<IDB> {
+            backup: IBackup<IDB> = {
                 backup(): Promise<string> { return Promise.resolve('content') },
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
             };
-            schemaVersion:ISchemaVersion = {
+            schemaVersion: ISchemaVersion<IDB> = {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> {
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> {
                         return Promise.resolve(scripts);
                     },
                     save(details: IMigrationInfo): Promise<any> {
@@ -88,7 +88,7 @@ describe('MigrationScriptExecutor', () => {
                     remove(timestamp: number): Promise<void> {
                         return Promise.resolve(undefined);
                     }
-                } as IMigrationScript,
+                } as IMigrationScript<IDB>,
 
                 createTable(tableName: string): Promise<boolean> {
                     return Promise.resolve(created);
@@ -109,7 +109,7 @@ describe('MigrationScriptExecutor', () => {
     })
 
     beforeEach(() => {
-        executor = new MigrationScriptExecutor(handler, cfg, { logger: new SilentLogger() });
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, cfg);
         initialized = true
         created = true
         valid = true
@@ -119,7 +119,7 @@ describe('MigrationScriptExecutor', () => {
         spy.on(executor, ['migrate', 'execute']);
         spy.on(executor.backupService, ['restore', 'deleteBackup', 'backup']);
         spy.on(executor.migrationService, ['findMigrationScripts']);
-    })
+});
 
     afterEach(() => {
         spy.restore()
@@ -139,7 +139,7 @@ describe('MigrationScriptExecutor', () => {
          */
         it('should execute migration workflow successfully', async () => {
             // Execute the full migration workflow
-            const result: IMigrationResult = await executor.migrate()
+            const result: IMigrationResult<IDB> = await executor.migrate()
 
             // Verify result object
             expect(result.success).to.be.true
@@ -180,7 +180,7 @@ describe('MigrationScriptExecutor', () => {
             cfg.folder = emptyConfig.folder;
 
             // Execute migration with no scripts to run
-            const result: IMigrationResult = await executor.migrate()
+            const result: IMigrationResult<IDB> = await executor.migrate()
 
             // Verify result object
             expect(result.success).to.be.true
@@ -225,7 +225,7 @@ describe('MigrationScriptExecutor', () => {
             valid = false
 
             // Execute migration which will fail validation
-            const result: IMigrationResult = await executor.migrate()
+            const result: IMigrationResult<IDB> = await executor.migrate()
 
             // Verify result object indicates failure
             expect(result.success).to.be.false
@@ -273,13 +273,13 @@ describe('MigrationScriptExecutor', () => {
                 async up() {
                     throw new Error('Migration execution failed');
                 }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             const readStub = sinon.stub(executor.migrationService, 'findMigrationScripts');
             readStub.resolves([failingScript]);
 
             // Execute migration (will fail)
-            const result: IMigrationResult = await executor.migrate();
+            const result: IMigrationResult<IDB> = await executor.migrate();
 
             // Verify result indicates failure
             expect(result.success).to.be.false
@@ -309,7 +309,7 @@ describe('MigrationScriptExecutor', () => {
                 async up() {
                     throw new Error('Migration execution failed');
                 }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             // Verify the error is propagated correctly
             await expect(executor.execute([errorScript])).to.be.rejectedWith('Migration execution failed');
@@ -329,7 +329,7 @@ describe('MigrationScriptExecutor', () => {
                 async up() {
                     throw new Error('First migration failed');
                 }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             // Create second migration with execution tracking
             const script2 = TestUtils.prepareMigration('V202311020036_test.ts');
@@ -340,7 +340,7 @@ describe('MigrationScriptExecutor', () => {
                     script2Executed = true;
                     return 'success';
                 }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             // Attempt to execute both migrations
             try {
@@ -364,9 +364,9 @@ describe('MigrationScriptExecutor', () => {
         it('should list all migrations with status', async () => {
             // Setup test data with 3 executed migrations
             scripts = [
-                {timestamp: 1, name: 'n1', username: 'v1'} as MigrationScript,
-                {timestamp: 2, name: 'n2', username: 'v2'} as MigrationScript,
-                {timestamp: 3, name: 'n3', username: 'v3'} as MigrationScript,
+                {timestamp: 1, name: 'n1', username: 'v1'} as MigrationScript<IDB>,
+                {timestamp: 2, name: 'n2', username: 'v2'} as MigrationScript<IDB>,
+                {timestamp: 3, name: 'n3', username: 'v3'} as MigrationScript<IDB>,
             ]
 
             // Spy on console output to verify all migrations are displayed
@@ -410,7 +410,7 @@ describe('MigrationScriptExecutor', () => {
             valid = true;
 
             // when: execute full migration
-            const result: IMigrationResult = await executor.migrate();
+            const result: IMigrationResult<IDB> = await executor.migrate();
 
             // then: verify result indicates success
             expect(result.success).to.be.true
@@ -440,7 +440,7 @@ describe('MigrationScriptExecutor', () => {
             valid = false; // cause validation to fail
 
             // when: execute migration that will fail
-            const result: IMigrationResult = await executor.migrate();
+            const result: IMigrationResult<IDB> = await executor.migrate();
 
             // then: verify result indicates failure
             expect(result.success).to.be.false
@@ -470,21 +470,21 @@ describe('MigrationScriptExecutor', () => {
             script1.name = 'Migration1';
             script1.script = {
                 async up() { return 'result1'; }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             const script2 = TestUtils.prepareMigration('V202311020036_test.ts');
             script2.timestamp = 2;
             script2.name = 'Migration2';
             script2.script = {
                 async up() { return 'result2'; }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             const script3 = TestUtils.prepareMigration('V202311020036_test.ts');
             script3.timestamp = 3;
             script3.name = 'Migration3';
             script3.script = {
                 async up() { return 'result3'; }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             // when: execute multiple migrations
             const executed = await executor.execute([script1, script2, script3]);
@@ -517,19 +517,19 @@ describe('MigrationScriptExecutor', () => {
             script1.timestamp = 1;
             script1.script = {
                 async up() { return 'success1'; }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             const script2 = TestUtils.prepareMigration('V202311020036_test.ts');
             script2.timestamp = 2;
             script2.script = {
                 async up() { throw new Error('Migration 2 failed'); }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             const script3 = TestUtils.prepareMigration('V202311020036_test.ts');
             script3.timestamp = 3;
             script3.script = {
                 async up() { return 'success3'; }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             // when: execute with failure in middle
             try {
@@ -556,7 +556,7 @@ describe('MigrationScriptExecutor', () => {
             valid = true;
 
             // when: execute with no scripts
-            const result: IMigrationResult = await executor.migrate();
+            const result: IMigrationResult<IDB> = await executor.migrate();
 
             // then: verify result indicates success with no executions
             expect(result.success).to.be.true
@@ -573,9 +573,9 @@ describe('MigrationScriptExecutor', () => {
 
     describe('Hybrid Migrations (SQL + TypeScript)', () => {
         let db: IDB;
-        let handler: IDatabaseMigrationHandler;
+        let handler: IDatabaseMigrationHandler<IDB>;
         let config: Config;
-        let executor: MigrationScriptExecutor;
+        let executor: MigrationScriptExecutor<IDB>;
 
         beforeEach(() => {
             // Create mock database
@@ -612,15 +612,15 @@ describe('MigrationScriptExecutor', () => {
 
         it('should throw error when hybrid migrations detected with transactions enabled', async () => {
             // Create executor with transaction mode enabled
-            executor = new MigrationScriptExecutor(handler, config);
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler }, config);
 
             // Mock pending migrations (both SQL and TS)
             const mockScripts = {
                 all: [],
                 migrated: [],
                 pending: [
-                    new MigrationScript('V001_CreateTable.up.sql', '/path/V001_CreateTable.up.sql', 1),
-                    new MigrationScript('V002_InsertData.ts', '/path/V002_InsertData.ts', 2)
+                    new MigrationScript<IDB>('V001_CreateTable.up.sql', '/path/V001_CreateTable.up.sql', 1),
+                    new MigrationScript<IDB>('V002_InsertData.ts', '/path/V002_InsertData.ts', 2)
                 ],
                 ignored: [],
                 executed: []
@@ -642,65 +642,68 @@ describe('MigrationScriptExecutor', () => {
         });
 
         it('should NOT throw error when only SQL migrations', async () => {
-            executor = new MigrationScriptExecutor(handler, config);
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler }, config);
 
             const mockScripts = {
                 all: [],
                 migrated: [],
                 pending: [
-                    new MigrationScript('V001_CreateTable.up.sql', '/path/V001_CreateTable.up.sql', 1),
-                    new MigrationScript('V002_AlterTable.up.sql', '/path/V002_AlterTable.up.sql', 2)
+                    new MigrationScript<IDB>('V001_CreateTable.up.sql', '/path/V001_CreateTable.up.sql', 1),
+                    new MigrationScript<IDB>('V002_AlterTable.up.sql', '/path/V002_AlterTable.up.sql', 2)
                 ],
                 ignored: [],
                 executed: []
             };
 
             // Should not throw error
-            await executor['checkHybridMigrationsAndDisableTransactions'](mockScripts);
-            // If we reach here, test passes
+            await expect(
+                executor['checkHybridMigrationsAndDisableTransactions'](mockScripts)
+            ).to.eventually.be.fulfilled;
         });
 
         it('should NOT throw error when only TypeScript migrations', async () => {
-            executor = new MigrationScriptExecutor(handler, config);
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler }, config);
 
             const mockScripts = {
                 all: [],
                 migrated: [],
                 pending: [
-                    new MigrationScript('V001_CreateTable.ts', '/path/V001_CreateTable.ts', 1),
-                    new MigrationScript('V002_InsertData.js', '/path/V002_InsertData.js', 2)
+                    new MigrationScript<IDB>('V001_CreateTable.ts', '/path/V001_CreateTable.ts', 1),
+                    new MigrationScript<IDB>('V002_InsertData.js', '/path/V002_InsertData.js', 2)
                 ],
                 ignored: [],
                 executed: []
             };
 
             // Should not throw error
-            await executor['checkHybridMigrationsAndDisableTransactions'](mockScripts);
-            // If we reach here, test passes
+            await expect(
+                executor['checkHybridMigrationsAndDisableTransactions'](mockScripts)
+            ).to.eventually.be.fulfilled;
         });
 
         it('should NOT throw error when transaction mode is NONE', async () => {
             config.transaction.mode = TransactionMode.NONE;
-            executor = new MigrationScriptExecutor(handler, config);
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler }, config);
 
             const mockScripts = {
                 all: [],
                 migrated: [],
                 pending: [
-                    new MigrationScript('V001_CreateTable.up.sql', '/path/V001_CreateTable.up.sql', 1),
-                    new MigrationScript('V002_InsertData.ts', '/path/V002_InsertData.ts', 2)
+                    new MigrationScript<IDB>('V001_CreateTable.up.sql', '/path/V001_CreateTable.up.sql', 1),
+                    new MigrationScript<IDB>('V002_InsertData.ts', '/path/V002_InsertData.ts', 2)
                 ],
                 ignored: [],
                 executed: []
             };
 
             // Should not throw error even with hybrid migrations
-            await executor['checkHybridMigrationsAndDisableTransactions'](mockScripts);
-            // If we reach here, test passes
+            await expect(
+                executor['checkHybridMigrationsAndDisableTransactions'](mockScripts)
+            ).to.eventually.be.fulfilled;
         });
 
         it('should NOT check when no pending migrations', async () => {
-            executor = new MigrationScriptExecutor(handler, config);
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler }, config);
 
             const mockScripts = {
                 all: [],
@@ -711,19 +714,20 @@ describe('MigrationScriptExecutor', () => {
             };
 
             // Should not throw error
-            await executor['checkHybridMigrationsAndDisableTransactions'](mockScripts);
-            // If we reach here, test passes
+            await expect(
+                executor['checkHybridMigrationsAndDisableTransactions'](mockScripts)
+            ).to.eventually.be.fulfilled;
         });
 
         it('should throw error for hybrid with .js files', async () => {
-            executor = new MigrationScriptExecutor(handler, config);
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler }, config);
 
             const mockScripts = {
                 all: [],
                 migrated: [],
                 pending: [
-                    new MigrationScript('V001_CreateTable.up.sql', '/path/V001_CreateTable.up.sql', 1),
-                    new MigrationScript('V002_InsertData.js', '/path/V002_InsertData.js', 2)
+                    new MigrationScript<IDB>('V001_CreateTable.up.sql', '/path/V001_CreateTable.up.sql', 1),
+                    new MigrationScript<IDB>('V002_InsertData.js', '/path/V002_InsertData.js', 2)
                 ],
                 ignored: [],
                 executed: []
@@ -741,14 +745,14 @@ describe('MigrationScriptExecutor', () => {
 
         it('should include transaction mode in error message', async () => {
             config.transaction.mode = TransactionMode.PER_BATCH;
-            executor = new MigrationScriptExecutor(handler, config);
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler }, config);
 
             const mockScripts = {
                 all: [],
                 migrated: [],
                 pending: [
-                    new MigrationScript('V001_CreateTable.up.sql', '/path/V001_CreateTable.up.sql', 1),
-                    new MigrationScript('V002_InsertData.ts', '/path/V002_InsertData.ts', 2)
+                    new MigrationScript<IDB>('V001_CreateTable.up.sql', '/path/V001_CreateTable.up.sql', 1),
+                    new MigrationScript<IDB>('V002_InsertData.ts', '/path/V002_InsertData.ts', 2)
                 ],
                 ignored: [],
                 executed: []
@@ -764,14 +768,14 @@ describe('MigrationScriptExecutor', () => {
         });
 
         it('should provide helpful solutions in error message', async () => {
-            executor = new MigrationScriptExecutor(handler, config);
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler }, config);
 
             const mockScripts = {
                 all: [],
                 migrated: [],
                 pending: [
-                    new MigrationScript('V001_CreateTable.up.sql', '/path/V001_CreateTable.up.sql', 1),
-                    new MigrationScript('V002_InsertData.ts', '/path/V002_InsertData.ts', 2)
+                    new MigrationScript<IDB>('V001_CreateTable.up.sql', '/path/V001_CreateTable.up.sql', 1),
+                    new MigrationScript<IDB>('V002_InsertData.ts', '/path/V002_InsertData.ts', 2)
                 ],
                 ignored: [],
                 executed: []

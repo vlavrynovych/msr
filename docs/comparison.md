@@ -23,6 +23,9 @@ MSR is designed for **production safety, developer experience, and flexibility**
 | Feature | MSR | Typical Tools |
 |---------|-----|---------------|
 | **Hybrid Migrations** | ✅ Both TypeScript & SQL | Usually one or the other |
+| **Generic Type Safety** | ✅ Database-specific types (v0.6.0) | Limited or none |
+| **Metrics Collection** | ✅ Built-in collectors (v0.6.0) | Usually custom |
+| **Multi-Format Config** | ✅ YAML, TOML, XML, JSON, JS (v0.6.0) | Limited formats |
 | **Transaction Management** | ✅ Configurable modes with retry (v0.5.0) | Basic or none |
 | **Environment Variables** | ✅ Full 12-factor config (v0.5.0) | Limited |
 | **Dry Run Mode** | ✅ Built-in, free | Often paid/enterprise only |
@@ -37,6 +40,9 @@ MSR is designed for **production safety, developer experience, and flexibility**
 |------------|-----------|
 | Up/Down Migrations | ✅ |
 | SQL Migrations | ✅ v0.4.0 |
+| Generic Type Safety | ✅ v0.6.0 - Database-specific types with `<DB extends IDB>` |
+| Metrics Collection | ✅ v0.6.0 - Console, Logger, JSON, CSV collectors |
+| Multi-Format Config | ✅ v0.6.0 - YAML, TOML, XML, JSON, JS |
 | Transaction Support | ✅ v0.5.0 - Configurable modes, isolation levels, auto-retry |
 | Environment Variables | ✅ v0.5.0 - 33 MSR_* variables |
 | Rollback | ✅ |
@@ -140,19 +146,22 @@ When migrations fail in production, you need to know:
 
 **MSR's execution summaries** (v0.4.0) provide a detailed trace of every step, making debugging and recovery straightforward.
 
-## Latest Release: v0.5.0
+## Latest Release: v0.6.0
 
-Version 0.5.0 brings production-grade transaction management and cloud-native configuration:
+Version 0.6.0 brings enhanced type safety, metrics collection, and multi-format configuration:
 
-- ✅ **Transaction Management** (#76) - Configurable modes (per-migration, per-batch, none) with automatic retry logic and isolation level control
-- ✅ **Environment Variables** (#84) - Complete MSR_* configuration support following 12-factor app principles
-- ✅ **Enhanced Hooks** - Transaction lifecycle hooks for monitoring and metrics
-- ✅ **NoSQL Transactions** - Support for callback-based transactions (MongoDB, Firestore, DynamoDB)
-- ✅ **100% Backward Compatible** - Zero breaking changes from v0.4.x
+- 🛡️ **Generic Type Parameters** (#114) - Database-specific type safety with `<DB extends IDB>` throughout the API
+- 📊 **Metrics Collection** (#80) - Built-in collectors for observability (Console, Logger, JSON, CSV)
+- 📄 **Multi-Format Config** (#100) - YAML, TOML, and XML configuration file support
+- 🔌 **Plugin Architecture** - Extensible loader system with optional peer dependencies
+- 🎚️ **Log Level Control** - Configure output verbosity (error, warn, info, debug)
+- ⚠️ **Breaking Changes** - Type parameters required for all interfaces + constructor signature changed
 
-See the [v0.4.x → v0.5.0 Migration Guide](version-migration/v0.4-to-v0.5) for upgrade instructions.
+See the [v0.5.x → v0.6.0 Migration Guide](version-migration/v0.5-to-v0.6) for upgrade instructions.
 
 ## Previous Releases
+
+**v0.5.0** brought production-grade transaction management and cloud-native configuration. See [v0.4.x → v0.5.0 Migration Guide](version-migration/v0.4-to-v0.5) for details.
 
 **v0.4.0** brought SQL migrations, dry run mode, and execution summaries. See [v0.3.x → v0.4.0 Migration Guide](version-migration/v0.3-to-v0.4) for details.
 

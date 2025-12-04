@@ -9,3 +9,11 @@
 /coverage
 .nyc_output
 coverage.json
+.stryker-tmp
+
+# Jekyll (documentation)
+docs/.sass-cache
+docs/_site
+docs/.jekyll-cache
+docs/vendor/bundle
+docs/Gemfile.lock

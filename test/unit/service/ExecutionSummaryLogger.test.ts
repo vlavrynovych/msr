@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as sinon from 'sinon';
 import { ExecutionSummaryLogger } from '../../../src/service/ExecutionSummaryLogger';
+import { IDB } from '../../../src/interface/dao';
 import { Config } from '../../../src/model/Config';
 import { SilentLogger } from '../../../src/logger';
 import { SummaryFormat } from '../../../src/interface/logging/IExecutionSummary';
@@ -14,8 +15,8 @@ const packageJson = require('../../../package.json');
 describe('ExecutionSummaryLogger', () => {
     let config: Config;
     let logger: SilentLogger;
-    let summaryLogger: ExecutionSummaryLogger;
-    let mockHandler: IDatabaseMigrationHandler;
+    let summaryLogger: ExecutionSummaryLogger<IDB>;
+    let mockHandler: IDatabaseMigrationHandler<IDB>;
     const testLogDir = './test-logs/migrations';
 
     beforeEach(() => {
@@ -32,7 +33,7 @@ describe('ExecutionSummaryLogger', () => {
             schemaVersion: {} as any
         };
 
-        summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+        summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
 
         // Clean up test log directory
         if (fs.existsSync(testLogDir)) {
@@ -123,7 +124,7 @@ describe('ExecutionSummaryLogger', () => {
     describe('saveSummary()', () => {
         it('should not save when logging is disabled', async () => {
             config.logging.enabled = false;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
             summaryLogger.startRun();
 
             await summaryLogger.saveSummary(true, 1, 0, 1000);
@@ -134,7 +135,7 @@ describe('ExecutionSummaryLogger', () => {
 
         it('should not save successful runs when logSuccessful is false', async () => {
             config.logging.logSuccessful = false;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
             summaryLogger.startRun();
 
             await summaryLogger.saveSummary(true, 1, 0, 1000);
@@ -146,7 +147,7 @@ describe('ExecutionSummaryLogger', () => {
         it('should save failed runs even when logSuccessful is false', async () => {
             config.logging.logSuccessful = false;
             config.logging.format = SummaryFormat.JSON;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
             summaryLogger.startRun();
 
             await summaryLogger.saveSummary(false, 0, 1, 1000);
@@ -162,7 +163,7 @@ describe('ExecutionSummaryLogger', () => {
         it('should save JSON format', async () => {
             config.logging.format = SummaryFormat.JSON;
             config.logging.logSuccessful = true; // Enable logging successful runs
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
             summaryLogger.startRun();
             summaryLogger.recordMigrationStart('TestMigration', 202501010001);
             summaryLogger.recordMigrationSuccess('TestMigration', 202501010001, 1000);
@@ -195,7 +196,7 @@ describe('ExecutionSummaryLogger', () => {
         it('should save TEXT format', async () => {
             config.logging.format = SummaryFormat.TEXT;
             config.logging.logSuccessful = true;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
             summaryLogger.startRun();
             summaryLogger.recordMigrationStart('TestMigration', 202501010001);
             summaryLogger.recordMigrationSuccess('TestMigration', 202501010001, 1000);
@@ -221,7 +222,7 @@ describe('ExecutionSummaryLogger', () => {
         it('should save BOTH formats', async () => {
             config.logging.format = SummaryFormat.BOTH;
             config.logging.logSuccessful = true;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
             summaryLogger.startRun();
             summaryLogger.recordMigrationStart('TestMigration', 202501010001);
             summaryLogger.recordMigrationSuccess('TestMigration', 202501010001, 1000);
@@ -243,7 +244,7 @@ describe('ExecutionSummaryLogger', () => {
         it('should include backup information in summary', async () => {
             config.logging.format = SummaryFormat.JSON;
             config.logging.logSuccessful = true;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
             summaryLogger.startRun();
             summaryLogger.recordBackup('/backups/test.bkp', 2048);
 
@@ -262,7 +263,7 @@ describe('ExecutionSummaryLogger', () => {
 
         it('should include rollback information in summary', async () => {
             config.logging.format = SummaryFormat.JSON;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
             summaryLogger.startRun();
             summaryLogger.recordRollback('BACKUP', true);
 
@@ -283,7 +284,7 @@ describe('ExecutionSummaryLogger', () => {
     describe('Text Format with Errors', () => {
         it('should include error and stack trace in text format', async () => {
             config.logging.format = SummaryFormat.TEXT;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
             summaryLogger.startRun();
             summaryLogger.recordMigrationStart('FailedMigration', 202501010001);
             const error = new Error('Test error');
@@ -306,7 +307,7 @@ describe('ExecutionSummaryLogger', () => {
         it('should include backup info in text format', async () => {
             config.logging.format = SummaryFormat.TEXT;
             config.logging.logSuccessful = true;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
             summaryLogger.startRun();
             summaryLogger.recordBackup('/backups/test.bkp', 2048);
 
@@ -324,7 +325,7 @@ describe('ExecutionSummaryLogger', () => {
 
         it('should include rollback info with error in text format', async () => {
             config.logging.format = SummaryFormat.TEXT;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
             summaryLogger.startRun();
             summaryLogger.recordRollback('BACKUP', false, 'Rollback failed: timeout');
 
@@ -346,7 +347,7 @@ describe('ExecutionSummaryLogger', () => {
         it('should use default log path when not configured', async () => {
             config.logging.logSuccessful = true;
             config.logging.path = undefined; // Test default path branch
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
             summaryLogger.startRun();
 
             await summaryLogger.saveSummary(true, 1, 0, 1000);
@@ -366,7 +367,7 @@ describe('ExecutionSummaryLogger', () => {
         it('should use default format (JSON) when not configured', async () => {
             config.logging.logSuccessful = true;
             config.logging.format = undefined; // Test default format branch
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
             summaryLogger.startRun();
 
             await summaryLogger.saveSummary(true, 1, 0, 1000);
@@ -383,7 +384,7 @@ describe('ExecutionSummaryLogger', () => {
             config.logging.format = SummaryFormat.JSON;
             config.logging.logSuccessful = true;
             config.logging.maxFiles = 3;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
 
             // Create 5 summary files
             for (let i = 0; i < 5; i++) {
@@ -402,7 +403,7 @@ describe('ExecutionSummaryLogger', () => {
             config.logging.format = SummaryFormat.JSON;
             config.logging.logSuccessful = true;
             config.logging.maxFiles = 0; // No limit
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
 
             // Create 5 summary files
             for (let i = 0; i < 5; i++) {
@@ -420,7 +421,7 @@ describe('ExecutionSummaryLogger', () => {
             config.logging.format = SummaryFormat.JSON;
             config.logging.logSuccessful = true;
             config.logging.maxFiles = 2;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
 
             // Create some migration summary files
             summaryLogger.startRun();
@@ -465,7 +466,7 @@ describe('ExecutionSummaryLogger', () => {
                 debug: () => {}, // Silent debug
                 info: () => {} // Silent info
             };
-            summaryLogger = new ExecutionSummaryLogger(config, testLogger as any, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, testLogger as any, mockHandler);
 
             // Create test directory
             if (!fs.existsSync(testDir)) {
@@ -522,7 +523,7 @@ describe('ExecutionSummaryLogger', () => {
     describe('Version Handling', () => {
         it('should read MSR version from package.json', () => {
             // Verify that the logger is created successfully with the version from package.json
-            const summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            const summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
             expect(summaryLogger).to.be.instanceOf(ExecutionSummaryLogger);
 
             // The version should be available in the summary (tested indirectly through summary creation)
@@ -533,7 +534,7 @@ describe('ExecutionSummaryLogger', () => {
     });
 
     describe('Transaction Metrics Recording', () => {
-        let summaryLogger: ExecutionSummaryLogger;
+        let summaryLogger: ExecutionSummaryLogger<IDB>;
         const testDir = './test-logs/transaction-metrics';
 
         beforeEach(() => {
@@ -541,7 +542,7 @@ describe('ExecutionSummaryLogger', () => {
             config.logging.logSuccessful = true;
             config.logging.path = testDir;
             config.logging.format = SummaryFormat.JSON;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
             summaryLogger.startRun();
         });
 
@@ -625,7 +626,7 @@ describe('ExecutionSummaryLogger', () => {
 
         it('should include transaction section in TEXT format when transactions were used', async () => {
             config.logging.format = SummaryFormat.TEXT;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
             summaryLogger.startRun();
 
             summaryLogger.recordTransactionBegin('tx-1');
@@ -649,7 +650,7 @@ describe('ExecutionSummaryLogger', () => {
 
         it('should NOT include transaction section in TEXT format when no transactions were used', async () => {
             config.logging.format = SummaryFormat.TEXT;
-            summaryLogger = new ExecutionSummaryLogger(config, logger, mockHandler);
+            summaryLogger = new ExecutionSummaryLogger<IDB>(config, logger, mockHandler);
             summaryLogger.startRun();
 
             await summaryLogger.saveSummary(true, 0, 0, 1000);

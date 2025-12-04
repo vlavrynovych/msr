@@ -20,7 +20,28 @@ MSR provides a lightweight, flexible framework for managing database migrations 
 
 ---
 
-## 🎉 What's New in v0.5.0
+## 🎉 What's New in v0.6.0
+
+**Enhanced type safety, metrics collection, and multi-format configuration:**
+
+- **🛡️ Generic Type Parameters** - Database-specific type safety with `<DB extends IDB>` generics throughout the API (**BREAKING**: type parameters now required)
+- **📊 Metrics Collection** - Built-in collectors for observability with console, JSON, CSV, and logger-based output
+- **📄 YAML, TOML, and XML Support** - Use your preferred config format (`.yaml`, `.toml`, `.xml`) alongside JS/JSON
+- **🔌 Plugin Architecture** - Extensible loader system with optional peer dependencies keeps core lightweight
+- **🎚️ Log Level Control** - Configurable log levels (`error`, `warn`, `info`, `debug`) to control output verbosity
+- **💡 Better Error Messages** - Actionable error messages with installation instructions when formats aren't available
+- **✨ 100% Test Coverage** - All statements, branches, functions, and lines covered
+
+> [!IMPORTANT]
+> **v0.6.0 contains breaking changes:** Type parameters are now required for all interfaces (e.g., `IDatabaseMigrationHandler<IDB>`) and the constructor signature changed to dependency injection pattern. Migration takes 10-30 minutes. See the [v0.5.x → v0.6.0 Migration Guide](https://migration-script-runner.github.io/msr-core/version-migration/v0.5-to-v0.6) for step-by-step instructions.
+
+**[→ View configuration docs](https://migration-script-runner.github.io/msr-core/configuration/)**
+
+---
+
+## 📜 Previous Releases
+
+### v0.5.0
 
 **Production-grade transaction management and cloud-native configuration:**
 
@@ -40,10 +61,13 @@ MSR provides a lightweight, flexible framework for managing database migrations 
 - **💾 Smart Rollback** - Multiple strategies: backup/restore, down() methods, both, or none
 - **🔒 Transaction Control** - Configurable transaction modes with automatic retry and isolation levels (v0.5.0)
 - **⚙️ Environment Variables** - Full 12-factor app configuration support with MSR_* variables (v0.5.0)
+- **📄 Multi-Format Config** - Support for JS, JSON, YAML, TOML, and XML configuration files (v0.6.0)
+- **🎚️ Log Level Control** - Configurable verbosity (error, warn, info, debug) for different environments (v0.6.0)
 - **📊 Migration Tracking** - Maintains execution history in your database with checksums
 - **✅ Built-in Validation** - Detects conflicts, missing files, and integrity issues
 - **🎨 Multiple Output Formats** - ASCII tables, JSON, or silent output
-- **📝 Flexible Logging** - Console, file, or custom loggers
+- **📝 Flexible Logging** - Console, file, or custom loggers with level-aware filtering (v0.6.0)
+- **📈 Metrics Collection** - Built-in collectors for monitoring performance and tracking execution (v0.6.0)
 - **🪝 Lifecycle Hooks** - Process, script, backup, and transaction lifecycle hooks (v0.5.0)
 - **📦 Library-First Design** - Returns structured results, safe for web servers and long-running apps
 
@@ -75,10 +99,10 @@ interface IMyDatabase extends ISqlDB {
   query(sql: string): Promise<unknown>;
 }
 
-export class MyDatabaseHandler implements IDatabaseMigrationHandler {
+export class MyDatabaseHandler implements IDatabaseMigrationHandler<IMyDatabase> {
   db: IMyDatabase;
-  schemaVersion: ISchemaVersion;
-  backup?: IBackup;
+  schemaVersion: ISchemaVersion<IMyDatabase>;
+  backup?: IBackup<IMyDatabase>;
 
   async checkConnection(): Promise<void> {
     await this.db.query('SELECT 1');
@@ -97,7 +121,7 @@ export class MyDatabaseHandler implements IDatabaseMigrationHandler {
 // migrations/V202501280100_create_users.ts
 import { IRunnableScript, IMigrationInfo, IDB } from '@migration-script-runner/core';
 
-export default class CreateUsers implements IRunnableScript {
+export default class CreateUsers implements IRunnableScript<IDB> {
   async up(db: IDB, info: IMigrationInfo): Promise<string> {
     await db.query(`
       CREATE TABLE users (
@@ -132,9 +156,10 @@ import { MyDatabaseHandler } from './database-handler';
 
 const config = new Config();
 config.folder = './migrations';
+config.logLevel = 'info';  // v0.6.0: 'error' | 'warn' | 'info' | 'debug'
 
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor<IMyDatabase>({ handler }, config);
 
 // Library usage - returns structured result
 const result = await executor.up();
@@ -145,6 +170,19 @@ if (result.success) {
   console.error('❌ Migration failed:', result.errors);
   process.exit(1);
 }
+```
+
+**Quick Config Examples:**
+
+```bash
+# Environment variable configuration (v0.5.0+)
+MSR_FOLDER=./migrations
+MSR_LOG_LEVEL=debug  # v0.6.0: Control output verbosity
+
+# Or use config file (v0.6.0+)
+# msr.config.yaml
+folder: ./migrations
+logLevel: debug  # error | warn | info | debug
 ```
 
 ---
@@ -162,6 +200,7 @@ if (result.success) {
 ### Configuration & Customization
 - **[Configuration](https://migration-script-runner.github.io/msr-core/configuration/)** - Migration settings, validation, rollback strategies
 - **[Custom Loggers](https://migration-script-runner.github.io/msr-core/customization/loggers/)** - Console, file, or cloud logging
+- **[Metrics Collection](https://migration-script-runner.github.io/msr-core/customization/metrics/)** - Built-in collectors for observability and performance monitoring
 - **[Render Strategies](https://migration-script-runner.github.io/msr-core/customization/render-strategies/)** - ASCII tables, JSON, or custom formats
 - **[Validation](https://migration-script-runner.github.io/msr-core/customization/validation/)** - Custom validation rules
 
@@ -172,6 +211,18 @@ if (result.success) {
 
 ### Upgrading
 - **[Version Migration](https://migration-script-runner.github.io/msr-core/version-migration/)** - Upgrade guides between versions
+
+---
+
+## 🌱 Why MSR Exists
+
+MSR was born from a real problem: In 2017, while building a mobile app with Firebase, a small team needed to backup and restore production data multiple times a week. Manual processes meant constant risk of corrupting critical data before the app even launched. The solution? A JavaScript tool that automated migrations with automatic backups and intelligent rollback.
+
+Six years and many projects later, that prototype became MSR - completely rewritten in TypeScript with a database-agnostic architecture. The core insight: **migration tools should be as flexible as your stack**. Whether you're migrating Firebase collections or PostgreSQL tables, using SQL files or TypeScript logic, MSR adapts to your needs instead of forcing you into rigid patterns.
+
+Today, MSR powers migrations across multiple database platforms with features traditional tools don't offer: built-in backup/restore, polyglot migrations (SQL + TypeScript + JavaScript), custom validators, transaction control, and deep customization. It's designed for real-world scenarios where you need both the simplicity of SQL migrations and the power of programmatic logic.
+
+**[Read the full origin story →](https://migration-script-runner.github.io/msr-core/about/origin-story)**
 
 ---
 
@@ -210,13 +261,14 @@ See our [GitHub Issues](https://github.com/migration-script-runner/msr-core/issu
 
 This project is licensed under the **MIT License with Commons Clause and Attribution Requirements**.
 
-**Quick Summary:**
-- ✅ Free to use in your applications (including commercial)
-- ✅ Free to modify and contribute
-- ❌ Cannot sell MSR or database adapters as standalone products
-- 🔒 Database adapters require attribution
-
-See the [LICENSE](LICENSE) file or read the [License Documentation](https://migration-script-runner.github.io/msr-core/license) for detailed examples and FAQ.
+> [!NOTE]
+> **Quick Summary:**
+> - ✅ Free to use in your applications (including commercial)
+> - ✅ Free to modify and contribute
+> - ❌ Cannot sell MSR or database adapters as standalone products
+> - 🔒 Database adapters require attribution
+>
+> See the [LICENSE](LICENSE) file or read the [License Documentation](https://migration-script-runner.github.io/msr-core/license) for detailed examples and FAQ.
 
 ---
 

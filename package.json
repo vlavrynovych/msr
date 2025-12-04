@@ -1,6 +1,6 @@
 {
   "name": "@migration-script-runner/core",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Migration Script Runner - Core Framework",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -25,12 +25,14 @@
     "test:one": "npm run _mocha --",
     "test:mocha:report": "npm run test:mocha -- --reporter mocha-junit-reporter --reporter-options mochaFile=./reports/mocha/test-results.xml test/**/*.ts",
     "test:coverage": "nyc npm run test:mocha:report",
-    "test:coverage:coveralls": "nyc report --reporter=text-lcov | coveralls",
     "test:report": "rimraf ./reports && npm run lint:report && npm run test:coverage",
     "test:mutation": "stryker run",
     "test:mutation:incremental": "stryker run --incremental",
     "lint": "eslint ./src/ --ext .ts",
     "lint:report": "eslint ./src/ --ext .ts --format junit --output-file ./reports/eslint.xml",
+    "docs:install": "cd docs && bundle install",
+    "docs:serve": "cd docs && bundle exec jekyll serve",
+    "docs:build": "cd docs && bundle exec jekyll build",
     "postinstall": "[ -f node_modules/fsevents/fsevents.node ] && xattr -d com.apple.quarantine node_modules/fsevents/fsevents.node 2>/dev/null || true"
   },
   "keywords": [
@@ -45,6 +47,7 @@
   },
   "license": "SEE LICENSE IN LICENSE",
   "devDependencies": {
+    "@iarna/toml": "^2.2.5",
     "@stryker-mutator/core": "^9.3.0",
     "@stryker-mutator/mocha-runner": "^9.3.0",
     "@stryker-mutator/typescript-checker": "^9.3.0",
@@ -52,6 +55,7 @@
     "@types/chai-as-promised": "^7.1.8",
     "@types/chai-spies": "^1.0.6",
     "@types/figlet": "^1.7.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/lodash": "^4.17.20",
     "@types/mocha": "^10.0.10",
     "@types/node": "^20.19.25",
@@ -62,11 +66,12 @@
     "chai": "^4.5.0",
     "chai-as-promised": "^7.1.2",
     "chai-spies": "^1.1.0",
-    "coveralls": "^3.1.1",
     "cross-env": "^10.1.0",
     "eslint": "^9.39.1",
     "eslint-formatter-junit": "^9.0.1",
     "eslint-plugin-only-warn": "^1.1.0",
+    "fast-xml-parser": "^5.3.2",
+    "js-yaml": "^4.1.1",
     "mocha": "^11.7.5",
     "mocha-junit-reporter": "^2.2.1",
     "nodemon": "^3.1.11",
@@ -82,6 +87,22 @@
     "figlet": "^1.9.4",
     "lodash": "^4.17.21",
     "moment": "^2.30.1"
+  },
+  "peerDependencies": {
+    "@iarna/toml": "^2.2.5",
+    "fast-xml-parser": "^4.5.0",
+    "js-yaml": "^4.1.0"
+  },
+  "peerDependenciesMeta": {
+    "js-yaml": {
+      "optional": true
+    },
+    "@iarna/toml": {
+      "optional": true
+    },
+    "fast-xml-parser": {
+      "optional": true
+    }
   },
   "repository": {
     "type": "git",

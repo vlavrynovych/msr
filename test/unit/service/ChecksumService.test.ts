@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { ChecksumService } from '../../../src';
+import { ChecksumService, IDB } from '../../../src';
 
 describe('ChecksumService', () => {
     let tempDir: string;
@@ -311,7 +311,7 @@ describe('ChecksumService', () => {
 import { IDatabaseMigrationHandler, IMigrationInfo } from 'migration-script-runner';
 
 export default class Migration {
-    async up(db: any, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string> {
+    async up(db: any, info: IMigrationInfo, handler: IDatabaseMigrationHandler<IDB>): Promise<string> {
         await db.query('CREATE TABLE users (id SERIAL PRIMARY KEY, name TEXT)');
         return 'Created users table';
     }

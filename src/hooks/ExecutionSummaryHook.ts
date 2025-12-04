@@ -1,4 +1,5 @@
 import {IMigrationHooks} from '../interface/IMigrationHooks';
+import {IDB} from '../interface/dao';
 import {ITransactionHooks} from '../interface/ITransactionHooks';
 import {ITransactionContext} from '../interface/service/ITransactionContext';
 import {MigrationScript} from '../model/MigrationScript';
@@ -19,36 +20,40 @@ import {IDatabaseMigrationHandler} from '../interface/IDatabaseMigrationHandler'
  *
  * **New in v0.5.0**: Transaction lifecycle tracking with metrics
  *
+ *
+ * @template DB - Database interface type
  * @example
  * ```typescript
  * // Automatically enabled via config
  * const config = new Config();
  * config.logging.enabled = true;
- * const executor = new MigrationScriptExecutor(handler, config);
+ * const executor = new MigrationScriptExecutor<DB>(handler, config);
  * // Summary logging happens automatically
  * ```
  *
+ *
+ * @template DB - Database interface type
  * @example
  * ```typescript
  * // Manual usage with CompositeHooks
- * const summaryHook = new ExecutionSummaryHook(config, logger, handler);
- * const customHooks = new CompositeHooks([summaryHook, myCustomHook]);
- * const executor = new MigrationScriptExecutor(handler, config, {
+ * const summaryHook = new ExecutionSummaryHook<DB>(config, logger, handler);
+ * const customHooks = new CompositeHooks<DB>([summaryHook, myCustomHook]);
+ * const executor = new MigrationScriptExecutor<DB>(handler, config, {
  *     hooks: customHooks
  * });
  * ```
  */
-export class ExecutionSummaryHook implements IMigrationHooks, ITransactionHooks {
-    private readonly summaryLogger: ExecutionSummaryLogger;
+export class ExecutionSummaryHook<DB extends IDB> implements IMigrationHooks<DB>, ITransactionHooks<DB> {
+    private readonly summaryLogger: ExecutionSummaryLogger<DB>;
     private startTime: number = 0;
     private readonly migrationStartTimes: Map<string, number> = new Map();
 
     constructor(
         config: Config,
         logger: ILogger,
-        handler: IDatabaseMigrationHandler
+        handler: IDatabaseMigrationHandler<DB>
     ) {
-        this.summaryLogger = new ExecutionSummaryLogger(config, logger, handler);
+        this.summaryLogger = new ExecutionSummaryLogger<DB>(config, logger, handler);
     }
 
     /**
@@ -80,7 +85,7 @@ export class ExecutionSummaryHook implements IMigrationHooks, ITransactionHooks 
      * Called before each migration executes.
      * Records migration start time.
      */
-    async onBeforeMigrate(script: MigrationScript): Promise<void> {
+    async onBeforeMigrate(script: MigrationScript<DB>): Promise<void> {
         this.summaryLogger.recordMigrationStart(script.name, script.timestamp);
         this.migrationStartTimes.set(script.name, Date.now());
     }
@@ -90,7 +95,7 @@ export class ExecutionSummaryHook implements IMigrationHooks, ITransactionHooks 
      * Records migration success with duration.
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async onAfterMigrate(script: MigrationScript, _result: string): Promise<void> {
+    async onAfterMigrate(script: MigrationScript<DB>, _result: string): Promise<void> {
         const startTime = this.migrationStartTimes.get(script.name) || Date.now();
         const duration = Date.now() - startTime;
         this.summaryLogger.recordMigrationSuccess(script.name, script.timestamp, duration);
@@ -101,7 +106,7 @@ export class ExecutionSummaryHook implements IMigrationHooks, ITransactionHooks 
      * Called when a migration fails.
      * Records migration failure with error details.
      */
-    async onMigrationError(script: MigrationScript, error: Error): Promise<void> {
+    async onMigrationError(script: MigrationScript<DB>, error: Error): Promise<void> {
         this.summaryLogger.recordMigrationFailure(script.name, script.timestamp, error);
         this.migrationStartTimes.delete(script.name);
     }
@@ -110,7 +115,7 @@ export class ExecutionSummaryHook implements IMigrationHooks, ITransactionHooks 
      * Called when migration run completes successfully.
      * Saves execution summary to file.
      */
-    async onComplete(result: IMigrationResult): Promise<void> {
+    async onComplete(result: IMigrationResult<DB>): Promise<void> {
         const totalDuration = Date.now() - this.startTime;
         await this.summaryLogger.saveSummary(
             result.success,
@@ -140,7 +145,7 @@ export class ExecutionSummaryHook implements IMigrationHooks, ITransactionHooks 
      * Called after transaction begins.
      * Records transaction start for metrics.
      */
-    async afterTransactionBegin?(context: ITransactionContext): Promise<void> {
+    async afterTransactionBegin?(context: ITransactionContext<DB>): Promise<void> {
         this.summaryLogger.recordTransactionBegin(context.transactionId);
     }
 
@@ -148,7 +153,7 @@ export class ExecutionSummaryHook implements IMigrationHooks, ITransactionHooks 
      * Called after transaction commits successfully.
      * Records transaction commit for metrics.
      */
-    async afterCommit?(context: ITransactionContext): Promise<void> {
+    async afterCommit?(context: ITransactionContext<DB>): Promise<void> {
         this.summaryLogger.recordTransactionCommit(context.transactionId);
     }
 
@@ -157,7 +162,7 @@ export class ExecutionSummaryHook implements IMigrationHooks, ITransactionHooks 
      * Records retry attempt for metrics.
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async onCommitRetry?(context: ITransactionContext, _attempt: number, _error: Error): Promise<void> {
+    async onCommitRetry?(context: ITransactionContext<DB>, _attempt: number, _error: Error): Promise<void> {
         this.summaryLogger.recordCommitRetry();
     }
 
@@ -165,7 +170,7 @@ export class ExecutionSummaryHook implements IMigrationHooks, ITransactionHooks 
      * Called after transaction rolls back.
      * Records transaction rollback for metrics.
      */
-    async afterRollback?(context: ITransactionContext): Promise<void> {
+    async afterRollback?(context: ITransactionContext<DB>): Promise<void> {
         this.summaryLogger.recordTransactionRollback(context.transactionId);
     }
 }

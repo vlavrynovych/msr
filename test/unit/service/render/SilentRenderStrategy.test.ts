@@ -1,6 +1,6 @@
 import {expect} from 'chai';
 import sinon from 'sinon';
-import {SilentRenderStrategy, IScripts, MigrationScript, Config} from "../../../../src";
+import {SilentRenderStrategy, IScripts, MigrationScript, Config, IDB} from "../../../../src";
 
 /**
  * Unit tests for SilentRenderStrategy.
@@ -26,8 +26,8 @@ describe('SilentRenderStrategy', () => {
 
     describe('renderMigrated', () => {
         it('should produce no output for empty migrations', () => {
-            const strategy = new SilentRenderStrategy();
-            const scripts = {migrated: [], all: []} as unknown as IScripts;
+            const strategy = new SilentRenderStrategy<IDB>();
+            const scripts = {migrated: [], all: []} as unknown as IScripts<IDB>;
             const config = new Config();
 
             strategy.renderMigrated(scripts, config);
@@ -38,7 +38,7 @@ describe('SilentRenderStrategy', () => {
         });
 
         it('should produce no output with migrations', () => {
-            const strategy = new SilentRenderStrategy();
+            const strategy = new SilentRenderStrategy<IDB>();
             const now = Date.now();
             const scripts = {
                 migrated: [
@@ -48,10 +48,10 @@ describe('SilentRenderStrategy', () => {
                         startedAt: now - 5000,
                         finishedAt: now,
                         username: 'developer',
-                    } as MigrationScript
+                    } as MigrationScript<IDB>
                 ],
                 all: []
-            } as unknown as IScripts;
+            } as unknown as IScripts<IDB>;
             const config = new Config();
 
             strategy.renderMigrated(scripts, config);
@@ -62,15 +62,15 @@ describe('SilentRenderStrategy', () => {
         });
 
         it('should produce no output with limit', () => {
-            const strategy = new SilentRenderStrategy();
+            const strategy = new SilentRenderStrategy<IDB>();
             const now = Date.now();
             const scripts = {
                 migrated: [
-                    {timestamp: 1, name: 'M1', startedAt: now, finishedAt: now, username: 'u'} as MigrationScript,
-                    {timestamp: 2, name: 'M2', startedAt: now, finishedAt: now, username: 'u'} as MigrationScript,
+                    {timestamp: 1, name: 'M1', startedAt: now, finishedAt: now, username: 'u'} as MigrationScript<IDB>,
+                    {timestamp: 2, name: 'M2', startedAt: now, finishedAt: now, username: 'u'} as MigrationScript<IDB>,
                 ],
                 all: []
-            } as unknown as IScripts;
+            } as unknown as IScripts<IDB>;
             const config = new Config();
 
             strategy.renderMigrated(scripts, config);
@@ -81,7 +81,7 @@ describe('SilentRenderStrategy', () => {
 
     describe('renderPending', () => {
         it('should produce no output for empty todo', () => {
-            const strategy = new SilentRenderStrategy();
+            const strategy = new SilentRenderStrategy<IDB>();
 
             strategy.renderPending([]);
 
@@ -91,9 +91,9 @@ describe('SilentRenderStrategy', () => {
         });
 
         it('should produce no output with pending migrations', () => {
-            const strategy = new SilentRenderStrategy();
+            const strategy = new SilentRenderStrategy<IDB>();
             const scripts = [
-                {timestamp: 202501220100, name: 'V202501220100_test.ts', filepath: '/path'} as MigrationScript,
+                {timestamp: 202501220100, name: 'V202501220100_test.ts', filepath: '/path'} as MigrationScript<IDB>,
             ];
 
             strategy.renderPending(scripts);
@@ -106,7 +106,7 @@ describe('SilentRenderStrategy', () => {
 
     describe('renderExecuted', () => {
         it('should produce no output for empty executed', () => {
-            const strategy = new SilentRenderStrategy();
+            const strategy = new SilentRenderStrategy<IDB>();
 
             strategy.renderExecuted([]);
 
@@ -116,7 +116,7 @@ describe('SilentRenderStrategy', () => {
         });
 
         it('should produce no output with executed migrations', () => {
-            const strategy = new SilentRenderStrategy();
+            const strategy = new SilentRenderStrategy<IDB>();
             const now = Date.now();
             const scripts = [
                 {
@@ -139,7 +139,7 @@ describe('SilentRenderStrategy', () => {
 
     describe('renderIgnored', () => {
         it('should produce no output for empty ignored', () => {
-            const strategy = new SilentRenderStrategy();
+            const strategy = new SilentRenderStrategy<IDB>();
 
             strategy.renderIgnored([]);
 
@@ -149,9 +149,9 @@ describe('SilentRenderStrategy', () => {
         });
 
         it('should produce no output with ignored migrations', () => {
-            const strategy = new SilentRenderStrategy();
+            const strategy = new SilentRenderStrategy<IDB>();
             const scripts = [
-                {timestamp: 202501220100, name: 'V202501220100_old.ts', filepath: '/path'} as MigrationScript,
+                {timestamp: 202501220100, name: 'V202501220100_old.ts', filepath: '/path'} as MigrationScript<IDB>,
             ];
 
             strategy.renderIgnored(scripts);
@@ -164,7 +164,7 @@ describe('SilentRenderStrategy', () => {
 
     describe('renderBanner', () => {
         it('should produce no output', () => {
-            const strategy = new SilentRenderStrategy();
+            const strategy = new SilentRenderStrategy<IDB>();
 
             strategy.renderBanner('0.3.0', 'PostgreSQL Handler');
 
@@ -176,7 +176,7 @@ describe('SilentRenderStrategy', () => {
 
     describe('complete silence', () => {
         it('should remain silent for all operations', () => {
-            const strategy = new SilentRenderStrategy();
+            const strategy = new SilentRenderStrategy<IDB>();
             const now = Date.now();
             const config = new Config();
 
@@ -184,14 +184,14 @@ describe('SilentRenderStrategy', () => {
             strategy.renderBanner('1.0.0', 'Handler');
 
             const scripts = {
-                migrated: [{timestamp: 1, name: 'M', startedAt: now, finishedAt: now, username: 'u'} as MigrationScript],
+                migrated: [{timestamp: 1, name: 'M', startedAt: now, finishedAt: now, username: 'u'} as MigrationScript<IDB>],
                 all: []
-            } as unknown as IScripts;
+            } as unknown as IScripts<IDB>;
             strategy.renderMigrated(scripts, config);
 
-            strategy.renderPending([{timestamp: 1, name: 'M', filepath: '/p'} as MigrationScript]);
+            strategy.renderPending([{timestamp: 1, name: 'M', filepath: '/p'} as MigrationScript<IDB>]);
             strategy.renderExecuted([{timestamp: 1, name: 'M', startedAt: now, finishedAt: now, result: 'R', username: 'u'}]);
-            strategy.renderIgnored([{timestamp: 1, name: 'M', filepath: '/p'} as MigrationScript]);
+            strategy.renderIgnored([{timestamp: 1, name: 'M', filepath: '/p'} as MigrationScript<IDB>]);
 
             // Verify complete silence
             expect(logStub.called).to.be.false;

@@ -12,12 +12,12 @@ import {IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB} from ".
  *
  * The script is executed only if there are pending migrations to run.
  */
-export default class BeforeMigrate implements IRunnableScript {
+export default class BeforeMigrate implements IRunnableScript<IDB> {
 
     async up(
         db: IDB,
         info: IMigrationInfo,
-        handler: IDatabaseMigrationHandler
+        handler: IDatabaseMigrationHandler<IDB>
     ): Promise<string> {
 
         // BeforeMigrate: Setting up test environment...

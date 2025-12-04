@@ -1,5 +1,6 @@
 import {MigrationScript} from "../model";
 import {IMigrationInfo, ISchemaVersion, ISchemaVersionService} from "../interface";
+import {IDB} from "../interface/dao";
 
 /**
  * Service for managing the schema version tracking table.
@@ -7,9 +8,14 @@ import {IMigrationInfo, ISchemaVersion, ISchemaVersionService} from "../interfac
  * Handles initialization, validation, and CRUD operations for the database table
  * that tracks which migrations have been executed.
  *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ * - `T` - Type of schema version implementation
+ *
+ * @template DB - Database interface type
  * @template T - Type of schema version implementation
  */
-export class SchemaVersionService<T extends ISchemaVersion> implements ISchemaVersionService{
+export class SchemaVersionService<DB extends IDB, T extends ISchemaVersion<DB>> implements ISchemaVersionService<DB>{
     /**
      * Creates a new SchemaVersionService.
      *
@@ -30,7 +36,7 @@ export class SchemaVersionService<T extends ISchemaVersion> implements ISchemaVe
      *
      * @example
      * ```typescript
-     * const service = new SchemaVersionService(schemaVersionImpl);
+     * const service = new SchemaVersionService<DB>(schemaVersionImpl);
      * await service.init('schema_version');
      * ```
      */
@@ -81,7 +87,7 @@ export class SchemaVersionService<T extends ISchemaVersion> implements ISchemaVe
      * console.log(`${executed.length} migrations have been executed`);
      * ```
      */
-    public async getAllMigratedScripts():Promise<MigrationScript[]> {
+    public async getAllMigratedScripts():Promise<MigrationScript<DB>[]> {
         return await this.service.migrationRecords.getAllExecuted();
     }
 

@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { ConfigLoader } from '../../../src/util';
 import { Config } from '../../../src/model/Config';
 
@@ -330,6 +330,7 @@ describe('ConfigLoader', () => {
             process.env.MSR_DISPLAY_LIMIT = '50';
 
             const config = new Config();
+            config.showBanner = false;
             ConfigLoader.applyEnvironmentVariables(config);
 
             expect(config.folder).to.equal('./custom/migrations');
@@ -349,6 +350,7 @@ describe('ConfigLoader', () => {
             process.env.MSR_LOGGING_MAX_FILES = '20';
 
             const config = new Config();
+            config.showBanner = false;
             ConfigLoader.applyEnvironmentVariables(config);
 
             expect(config.logging.enabled).to.be.true;
@@ -367,6 +369,7 @@ describe('ConfigLoader', () => {
             ]);
 
             const config = new Config();
+            config.showBanner = false;
             ConfigLoader.applyEnvironmentVariables(config);
 
             expect(config.filePatterns).to.have.lengthOf(2);
@@ -382,13 +385,65 @@ describe('ConfigLoader', () => {
             process.env.MSR_RECURSIVE = 'false';
             process.env.MSR_VALIDATE_BEFORE_RUN = '1';
             process.env.MSR_STRICT_VALIDATION = 'yes';
+            process.env.MSR_SHOW_BANNER = 'false';
 
             const config = new Config();
+            config.showBanner = false;
             ConfigLoader.applyEnvironmentVariables(config);
 
             expect(config.recursive).to.be.false;
             expect(config.validateBeforeRun).to.be.true;
             expect(config.strictValidation).to.be.true;
+            expect(config.showBanner).to.be.false;
+        });
+
+        /**
+         * Test: Parse valid MSR_LOG_LEVEL values
+         * Validates that all valid log levels are correctly parsed.
+         */
+        it('should parse valid MSR_LOG_LEVEL values', () => {
+            const validLevels = ['error', 'warn', 'info', 'debug'] as const;
+
+            validLevels.forEach((level) => {
+                process.env.MSR_LOG_LEVEL = level;
+
+                const config = new Config();
+                config.showBanner = false;
+                ConfigLoader.applyEnvironmentVariables(config);
+
+                expect(config.logLevel).to.equal(level);
+
+                // Clean up for next iteration
+                delete process.env.MSR_LOG_LEVEL;
+            });
+        });
+
+        /**
+         * Test: Handle invalid MSR_LOG_LEVEL gracefully
+         * Validates that invalid log level values trigger warning and use default.
+         */
+        it('should use default log level for invalid MSR_LOG_LEVEL', () => {
+            process.env.MSR_LOG_LEVEL = 'invalid-level';
+
+            const config = new Config();
+            config.showBanner = false;
+            ConfigLoader.applyEnvironmentVariables(config);
+
+            // Should keep default 'info' when invalid value provided
+            expect(config.logLevel).to.equal('info');
+        });
+
+        /**
+         * Test: MSR_LOG_LEVEL not set uses default
+         * Validates that default log level is used when env var not set.
+         */
+        it('should use default log level when MSR_LOG_LEVEL not set', () => {
+            const config = new Config();
+            config.showBanner = false;
+            ConfigLoader.applyEnvironmentVariables(config);
+
+            // Should use default 'info' from Config class
+            expect(config.logLevel).to.equal('info');
         });
 
         /**
@@ -399,6 +454,7 @@ describe('ConfigLoader', () => {
             process.env.MSR_FILE_PATTERNS = 'invalid json [';
 
             const config = new Config();
+            config.showBanner = false;
             const originalPatterns = [...config.filePatterns];
 
             ConfigLoader.applyEnvironmentVariables(config);
@@ -416,6 +472,7 @@ describe('ConfigLoader', () => {
             process.env.MSR_LOGGING_ENABLED = 'true';
 
             const config = new Config();
+            config.showBanner = false;
             ConfigLoader.applyEnvironmentVariables(config);
 
             // Dot-notation should still work even when JSON is invalid
@@ -431,6 +488,7 @@ describe('ConfigLoader', () => {
             process.env.MSR_BACKUP_TIMESTAMP = 'false';
 
             const config = new Config();
+            config.showBanner = false;
             ConfigLoader.applyEnvironmentVariables(config);
 
             // Dot-notation should still work even when JSON is invalid
@@ -454,6 +512,7 @@ describe('ConfigLoader', () => {
             });
 
             const config = new Config();
+            config.showBanner = false;
             ConfigLoader.applyEnvironmentVariables(config);
 
             expect(config.logging.enabled).to.be.true;
@@ -476,6 +535,7 @@ describe('ConfigLoader', () => {
             });
 
             const config = new Config();
+            config.showBanner = false;
             ConfigLoader.applyEnvironmentVariables(config);
 
             expect(config.transaction.mode).to.equal('PER_BATCH');
@@ -490,6 +550,7 @@ describe('ConfigLoader', () => {
             process.env.MSR_TRANSACTION = 'invalid-json';
 
             const config = new Config();
+            config.showBanner = false;
 
             // Should not throw
             ConfigLoader.applyEnvironmentVariables(config);
@@ -815,6 +876,33 @@ describe('ConfigLoader', () => {
                 delete require.cache[configFile];
             }
         });
+
+        /**
+         * Test: Handle non-existent explicit config file
+         * Validates that specifying a non-existent config file falls back to defaults.
+         */
+        it('should warn and use defaults when explicit config file does not exist', () => {
+            const config = ConfigLoader.load(undefined, {
+                configFile: './non-existent-config.yaml'
+            });
+
+            // Should still return a valid Config with defaults
+            expect(config).to.be.instanceOf(Config);
+            expect(config.folder).to.be.a('string');
+        });
+
+        /**
+         * Test: Load with ConfigLoaderOptions object
+         * Validates that ConfigLoaderOptions with baseDir works correctly.
+         */
+        it('should accept ConfigLoaderOptions with baseDir', () => {
+            const testDir = process.cwd();
+            const config = ConfigLoader.load(undefined, {
+                baseDir: testDir
+            });
+
+            expect(config).to.be.instanceOf(Config);
+        });
     });
 
     describe('loadFromFile', () => {
@@ -926,6 +1014,26 @@ describe('ConfigLoader', () => {
                     fs.unlinkSync(testFile);
                 }
                 delete require.cache[testFile];
+            }
+        });
+
+        /**
+         * Test: Throw error for unsupported file extension
+         * Validates that files with unsupported extensions throw helpful error.
+         */
+        it('should throw error for unsupported file extension', () => {
+            const testFile = path.resolve(__dirname, 'test-config.txt');
+
+            fs.writeFileSync(testFile, 'folder: ./migrations');
+
+            try {
+                const thrower = () => ConfigLoader.loadFromFile(testFile);
+                expect(thrower).to.throw(/No loader registered for file type/);
+                expect(thrower).to.throw(/\.txt/);
+            } finally {
+                if (fs.existsSync(testFile)) {
+                    fs.unlinkSync(testFile);
+                }
             }
         });
     });

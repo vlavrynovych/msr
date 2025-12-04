@@ -1,6 +1,7 @@
 import {BackupConfig, RollbackStrategy, DownMethodPolicy, BackupMode, DuplicateTimestampMode, TransactionConfig} from "./index";
 import {IMigrationValidator} from "../interface/validation/IMigrationValidator";
 import {IExecutionSummaryConfig, SummaryFormat} from "../interface/logging/IExecutionSummary";
+import {LogLevel} from "../interface/ILogger";
 
 /**
  * Configuration for the migration system.
@@ -386,7 +387,7 @@ export class Config {
      * ```typescript
      * import { IMigrationValidator, ValidationIssueType } from '@migration-script-runner/core';
      *
-     * class NamingValidator implements IMigrationValidator {
+     * class NamingValidator implements IMigrationValidator<DB> {
      *   async validate(script, config) {
      *     const className = script.script.constructor.name;
      *     const expectedName = this.toClassName(script.name);
@@ -410,7 +411,8 @@ export class Config {
      * config.customValidators = [new NamingValidator()];
      * ```
      */
-    customValidators: IMigrationValidator[] = []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    customValidators: IMigrationValidator<any>[] = []
 
     /**
      * Enable validation of already-executed migration files.
@@ -582,7 +584,7 @@ export class Config {
      * const config = new Config();
      * config.dryRun = true;
      *
-     * const executor = new MigrationScriptExecutor(handler, config);
+     * const executor = new MigrationScriptExecutor<DB>(handler, config);
      * await executor.migrate(); // No changes made, only preview
      * ```
      *
@@ -598,4 +600,51 @@ export class Config {
      * ```
      */
     dryRun: boolean = false
+
+    /**
+     * Display banner with version and handler information.
+     *
+     * When enabled, shows application banner at the start of migration runs.
+     * Disable for cleaner console output in CI/CD or when embedding MSR in other tools.
+     *
+     * @default true
+     *
+     * @example
+     * ```typescript
+     * // Show banner (default)
+     * config.showBanner = true;
+     *
+     * // Hide banner for cleaner output
+     * config.showBanner = false;
+     * ```
+     */
+    showBanner: boolean = true
+
+    /**
+     * Log level for controlling output verbosity.
+     *
+     * Controls which log messages are displayed during migration execution:
+     * - `'error'`: Only errors (highest priority)
+     * - `'warn'`: Errors and warnings
+     * - `'info'`: Normal operation logs (default)
+     * - `'debug'`: Detailed debugging information (lowest priority)
+     *
+     * Each level includes all higher priority levels.
+     * For example, `'warn'` will show both warnings and errors.
+     *
+     * @default 'info'
+     *
+     * @example
+     * ```typescript
+     * // Show debug logs for troubleshooting
+     * config.logLevel = 'debug';
+     *
+     * // Production: Only show errors
+     * config.logLevel = 'error';
+     *
+     * // Default behavior (info + warn + error)
+     * config.logLevel = 'info';
+     * ```
+     */
+    logLevel: LogLevel = 'info'
 }

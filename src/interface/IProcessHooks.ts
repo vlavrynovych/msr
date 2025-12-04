@@ -1,4 +1,5 @@
 import { IMigrationResult } from "./IMigrationResult";
+import {IDB} from "./dao";
 
 /**
  * Lifecycle hooks for the overall migration process.
@@ -11,18 +12,23 @@ import { IMigrationResult } from "./IMigrationResult";
  * These hooks operate at the process level, not individual migration level.
  * All methods are optional.
  *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
+ *
  * **New in v0.5.0**
  *
  * @example
  * ```typescript
  * import { IProcessHooks } from '@migration-script-runner/core';
  *
- * class NotificationHooks implements IProcessHooks {
+ * class NotificationHooks implements IProcessHooks<IDB> {
  *   async onStart(total: number, pending: number): Promise<void> {
  *     await this.slack.send(`🚀 Starting migration: ${pending}/${total} scripts`);
  *   }
  *
- *   async onComplete(result: IMigrationResult): Promise<void> {
+ *   async onComplete(result: IMigrationResult<IDB>): Promise<void> {
  *     await this.slack.send(`✅ Migration completed: ${result.executed.length} scripts executed`);
  *   }
  *
@@ -32,7 +38,7 @@ import { IMigrationResult } from "./IMigrationResult";
  * }
  * ```
  */
-export interface IProcessHooks {
+export interface IProcessHooks<DB extends IDB> {
     /**
      * Called at the start of the migration process.
      *
@@ -58,18 +64,18 @@ export interface IProcessHooks {
      * Invoked after all migrations execute successfully, before returning
      * the result. Useful for final notifications, metrics, or cleanup.
      *
-     * @param result - Complete migration result with execution details
+     * @param result - Complete migration result with execution details (typed with generic DB parameter in v0.6.0)
      *
      * @example
      * ```typescript
-     * async onComplete(result: IMigrationResult): Promise<void> {
+     * async onComplete(result: IMigrationResult<IDB>): Promise<void> {
      *     console.log(`✅ Success: ${result.executed.length} migrations executed`);
      *     await notifySlack(`Migration completed successfully`);
      *     metrics.increment('migration.success');
      * }
      * ```
      */
-    onComplete?(result: IMigrationResult): Promise<void>;
+    onComplete?(result: IMigrationResult<DB>): Promise<void>;
 
     /**
      * Called when the migration process fails.

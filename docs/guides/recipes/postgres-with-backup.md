@@ -106,7 +106,7 @@ export interface IPostgreSQLConfig {
 /**
  * Complete PostgreSQL handler with backup/restore capability
  */
-export class PostgreSQLHandler implements IDatabaseMigrationHandler {
+export class PostgreSQLHandler implements IDatabaseMigrationHandler<IDB> {
   readonly db: IPostgresDB;
   readonly backup: IBackup;
   readonly schemaVersion: ISchemaVersion;
@@ -411,7 +411,7 @@ async function runMigrations() {
   config.backup.deleteBackup = false;  // Keep backups in production
 
   // Create executor
-  const executor = new MigrationScriptExecutor(handler, config);
+  const executor = new MigrationScriptExecutor({ handler }, config);
 
   try {
     console.log('Running migrations...');
@@ -458,7 +458,7 @@ Create type-safe migrations using the PostgreSQL interface:
 import { IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler } from '@migration-script-runner/core';
 import { IPostgresDB } from '../src/database/PostgreSQLHandler';
 
-export default class CreateUsersTable implements IRunnableScript {
+export default class CreateUsersTable implements IRunnableScript<IDB> {
   async up(
     db: IPostgresDB,
     info: IMigrationInfo,
@@ -594,7 +594,7 @@ describe('Migration Integration', () => {
     const config = new Config();
     config.folder = './test/fixtures/migrations';
 
-    executor = new MigrationScriptExecutor(handler, config);
+    executor = new MigrationScriptExecutor({ handler }, config);
   });
 
   after(async () => {
@@ -701,7 +701,7 @@ const handler = new PostgreSQLHandler({
 For large data migrations:
 
 ```typescript
-export default class MigrateLargeDataset implements IRunnableScript {
+export default class MigrateLargeDataset implements IRunnableScript<IDB> {
   async up(db: IPostgresDB): Promise<string> {
     const batchSize = 1000;
     let offset = 0;

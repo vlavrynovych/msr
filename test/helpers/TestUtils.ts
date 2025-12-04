@@ -1,4 +1,4 @@
-import {MigrationScript} from "../../src";
+import { IDB, MigrationScript } from "../../src";
 import {TestConfig} from "./TestConfig";
 
 // Note: chai plugins are now configured globally in test/setup.ts
@@ -10,7 +10,7 @@ export class TestUtils {
     public static RECURSIVE_FOLDER = `${process.cwd()}/test/fixtures/migrations-recursive`
 
     static prepareMigration(file:string) {
-        return new MigrationScript(file,`${process.cwd()}/test/fixtures/migrations/${file}`, 0)
+        return new MigrationScript<IDB>(file,`${process.cwd()}/test/fixtures/migrations/${file}`, 0)
     }
 
     static getConfig(folder?:string):TestConfig {

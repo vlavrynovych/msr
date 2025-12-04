@@ -3,12 +3,12 @@ import sinon from 'sinon';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { IRunnableScript, MigrationRunner, MigrationScript, SilentLogger, ConsoleLogger, Config, SummaryFormat } from "../../../src";
+import { Config, ConsoleLogger, IDB, IRunnableScript, MigrationRunner, MigrationScript, SilentLogger, SummaryFormat } from "../../../src";
 const { ExecutionSummaryHook } = require('../../../src/hooks/ExecutionSummaryHook');
 const { ExecutionSummaryLogger } = require('../../../src/service/ExecutionSummaryLogger');
 
 describe('MigrationRunner', () => {
-    let runner: MigrationRunner;
+    let runner: MigrationRunner<IDB>;
     let handler: any;
     let schemaVersionService: any;
     let logger: any;
@@ -53,7 +53,7 @@ describe('MigrationRunner', () => {
          */
         it('should create instance with all parameters', () => {
             const cfg = new Config();
-            const runner = new MigrationRunner(handler, schemaVersionService, cfg, logger);
+            const runner = new MigrationRunner<IDB>(handler, schemaVersionService, cfg, logger);
             expect(runner).to.be.instanceOf(MigrationRunner);
         });
 
@@ -65,7 +65,7 @@ describe('MigrationRunner', () => {
          */
         it('should create instance without logger', () => {
             const cfg = new Config();
-            const runner = new MigrationRunner(handler, schemaVersionService, cfg);
+            const runner = new MigrationRunner<IDB>(handler, schemaVersionService, cfg);
             expect(runner).to.be.instanceOf(MigrationRunner);
         });
     });
@@ -73,7 +73,7 @@ describe('MigrationRunner', () => {
     describe('execute()', () => {
         beforeEach(() => {
             const cfg = new Config();
-            runner = new MigrationRunner(handler, schemaVersionService, cfg, logger);
+            runner = new MigrationRunner<IDB>(handler, schemaVersionService, cfg, logger);
         });
 
         /**
@@ -163,7 +163,7 @@ describe('MigrationRunner', () => {
             const upStub = sinon.stub().resolves(expectedResult);
             script.script = {
                 up: upStub
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             const result = await runner.execute([script]);
 
@@ -195,19 +195,19 @@ describe('MigrationRunner', () => {
             const upStub1 = sinon.stub().resolves('success');
             script1.script = {
                 up: upStub1
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             const script2 = createScript(2, 'migration2');
             const upStub2 = sinon.stub().rejects(new Error('Migration failed'));
             script2.script = {
                 up: upStub2
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             const script3 = createScript(3, 'migration3');
             const upStub3 = sinon.stub().resolves('success');
             script3.script = {
                 up: upStub3
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             await expect(runner.execute([script1, script2, script3]))
                 .to.be.rejectedWith('Migration failed');
@@ -240,7 +240,7 @@ describe('MigrationRunner', () => {
     describe('executeOne()', () => {
         beforeEach(() => {
             const cfg = new Config();
-            runner = new MigrationRunner(handler, schemaVersionService, cfg, logger);
+            runner = new MigrationRunner<IDB>(handler, schemaVersionService, cfg, logger);
         });
 
         /**
@@ -270,7 +270,7 @@ describe('MigrationRunner', () => {
             const upStub = sinon.stub().resolves('success');
             script.script = {
                 up: upStub
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             await runner.executeOne(script);
 
@@ -304,7 +304,7 @@ describe('MigrationRunner', () => {
             const loggerWithSpy = new ConsoleLogger();
             const logSpy = sinon.spy(loggerWithSpy, 'log');
             const cfg = new Config();
-            const runnerWithLogger = new MigrationRunner(handler, schemaVersionService, cfg, loggerWithSpy);
+            const runnerWithLogger = new MigrationRunner<IDB>(handler, schemaVersionService, cfg, loggerWithSpy);
 
             const script = createScript(1, 'migration1');
 
@@ -325,7 +325,7 @@ describe('MigrationRunner', () => {
          */
         it('should not throw when logger is undefined', async () => {
             const cfg = new Config();
-            const runnerNoLogger = new MigrationRunner(handler, schemaVersionService, cfg);
+            const runnerNoLogger = new MigrationRunner<IDB>(handler, schemaVersionService, cfg);
             const script = createScript(1, 'migration1');
 
             await expect(runnerNoLogger.executeOne(script)).to.not.be.rejected;
@@ -341,7 +341,7 @@ describe('MigrationRunner', () => {
             const script = createScript(1, 'migration1');
             script.script = {
                 up: sinon.stub().rejects(new Error('Script error'))
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             await expect(runner.executeOne(script))
                 .to.be.rejectedWith('Script error');
@@ -358,10 +358,10 @@ describe('MigrationRunner', () => {
             const filepath = path.join(tempDir, filename);
             fs.writeFileSync(filepath, 'export default class { async up() { return "success"; } }');
 
-            const script = new MigrationScript(filename, filepath, 1);
+            const script = new MigrationScript<IDB>(filename, filepath, 1);
             script.script = {
                 up: async () => 'success'
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             await runner.executeOne(script);
 
@@ -377,17 +377,17 @@ describe('MigrationRunner', () => {
         it('should use configured checksum algorithm', async () => {
             const cfg = new Config();
             cfg.checksumAlgorithm = 'md5';
-            const md5Runner = new MigrationRunner(handler, schemaVersionService, cfg, logger);
+            const md5Runner = new MigrationRunner<IDB>(handler, schemaVersionService, cfg, logger);
 
             // Create actual migration file
             const filename = 'V2_migration2.ts';
             const filepath = path.join(tempDir, filename);
             fs.writeFileSync(filepath, 'export default class { async up() { return "success"; } }');
 
-            const script = new MigrationScript(filename, filepath, 2);
+            const script = new MigrationScript<IDB>(filename, filepath, 2);
             script.script = {
                 up: async () => 'success'
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             await md5Runner.executeOne(script);
 
@@ -401,10 +401,10 @@ describe('MigrationRunner', () => {
          * the migration continues and checksum is not set, with a warning logged.
          */
         it('should continue execution if checksum calculation fails', async () => {
-            const script = new MigrationScript('V1_nonexistent.ts', '/nonexistent/path/that/does/not/exist.ts', 1);
+            const script = new MigrationScript<IDB>('V1_nonexistent.ts', '/nonexistent/path/that/does/not/exist.ts', 1);
             script.script = {
                 up: async () => 'success'
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             // Should not throw, just log warning
             await expect(runner.executeOne(script)).to.not.be.rejected;
@@ -422,12 +422,12 @@ describe('MigrationRunner', () => {
             const loggerWithSpy = new ConsoleLogger();
             const warnSpy = sinon.spy(loggerWithSpy, 'warn');
             const cfg = new Config();
-            const runnerWithLogger = new MigrationRunner(handler, schemaVersionService, cfg, loggerWithSpy);
+            const runnerWithLogger = new MigrationRunner<IDB>(handler, schemaVersionService, cfg, loggerWithSpy);
 
-            const script = new MigrationScript('V1_nonexistent.ts', '/nonexistent/path.ts', 1);
+            const script = new MigrationScript<IDB>('V1_nonexistent.ts', '/nonexistent/path.ts', 1);
             script.script = {
                 up: async () => 'success'
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             await runnerWithLogger.executeOne(script);
 
@@ -450,7 +450,7 @@ describe('MigrationRunner', () => {
             const filepath = path.join(tempDir, filename);
             fs.writeFileSync(filepath, 'export default class { async up() { return "success"; } }');
 
-            const script = new MigrationScript(filename, filepath, 3);
+            const script = new MigrationScript<IDB>(filename, filepath, 3);
             let checksumCalculatedAfterUp = false;
 
             script.script = {
@@ -463,7 +463,7 @@ describe('MigrationRunner', () => {
                     }
                     return 'success';
                 }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             await runner.executeOne(script);
 
@@ -482,10 +482,10 @@ describe('MigrationRunner', () => {
             const filepath = path.join(tempDir, filename);
             fs.writeFileSync(filepath, 'export default class { async up() { return "success"; } }');
 
-            const script = new MigrationScript(filename, filepath, 4);
+            const script = new MigrationScript<IDB>(filename, filepath, 4);
             script.script = {
                 up: async () => 'success'
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             await runner.executeOne(script);
 
@@ -516,19 +516,19 @@ describe('MigrationRunner', () => {
  * @example
  * // Override the up() method for custom behavior
  * const script = createScript(123, 'test');
- * script.script = { up: sinon.stub().rejects(new Error('test error')) } as IRunnableScript;
+ * script.script = { up: sinon.stub().rejects(new Error('test error')) } as IRunnableScript<IDB>;
  */
-function createScript(timestamp: number, name: string): MigrationScript {
+function createScript(timestamp: number, name: string): MigrationScript<IDB> {
     const filename = `V${timestamp}_${name}.ts`;
-    const script = new MigrationScript(filename, `/fake/path/${filename}`, timestamp);
+    const script = new MigrationScript<IDB>(filename, `/fake/path/${filename}`, timestamp);
     script.script = {
         up: async () => 'success'
-    } as IRunnableScript;
+    } as IRunnableScript<IDB>;
     return script;
 }
 
 describe('Transaction Management (v0.5.0)', () => {
-    let runner: MigrationRunner;
+    let runner: MigrationRunner<IDB>;
     let handler: any;
     let schemaVersionService: any;
     let logger: any;
@@ -566,7 +566,7 @@ describe('Transaction Management (v0.5.0)', () => {
                 rollback: sinon.stub().resolves()
             };
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -598,7 +598,7 @@ describe('Transaction Management (v0.5.0)', () => {
                 rollback: sinon.stub().resolves()
             };
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -610,7 +610,7 @@ describe('Transaction Management (v0.5.0)', () => {
             const script2 = createScript(2, 'second');
             script2.script = {
                 up: async () => { throw new Error('Migration failed'); }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             const scripts = [script1, script2];
 
@@ -646,7 +646,7 @@ describe('Transaction Management (v0.5.0)', () => {
                 afterCommit: sinon.stub().resolves()
             };
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -692,7 +692,7 @@ describe('Transaction Management (v0.5.0)', () => {
             // Create ExecutionSummaryHook (it creates its own ExecutionSummaryLogger)
             const executionSummaryHook = new ExecutionSummaryHook(cfg, logger, testHandler as any);
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -742,7 +742,7 @@ describe('Transaction Management (v0.5.0)', () => {
             // Create ExecutionSummaryHook (it creates its own ExecutionSummaryLogger)
             const executionSummaryHook = new ExecutionSummaryHook(cfg, logger, testHandler as any);
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -755,7 +755,7 @@ describe('Transaction Management (v0.5.0)', () => {
             const script2 = createScript(2, 'second');
             script2.script = {
                 up: async () => { throw new Error('Migration failed'); }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             const scripts = [script1, script2];
 
@@ -812,7 +812,7 @@ describe('Transaction Management (v0.5.0)', () => {
             // Create ExecutionSummaryHook (it creates its own ExecutionSummaryLogger)
             const executionSummaryHook = new ExecutionSummaryHook(cfg, logger, testHandler as any);
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -859,7 +859,7 @@ describe('Transaction Management (v0.5.0)', () => {
                 debug: sinon.stub()
             };
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -908,7 +908,7 @@ describe('Transaction Management (v0.5.0)', () => {
             };
 
             // No logger provided - covers optional chaining branch at line 322
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -939,7 +939,7 @@ describe('Transaction Management (v0.5.0)', () => {
                 rollback: sinon.stub().resolves()
             };
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -971,7 +971,7 @@ describe('Transaction Management (v0.5.0)', () => {
                 rollback: sinon.stub().resolves()
             };
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -986,7 +986,7 @@ describe('Transaction Management (v0.5.0)', () => {
             // Second migration fails
             script2.script = {
                 up: async () => { throw new Error('Migration failed'); }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             const scripts = [script1, script2, script3];
 
@@ -1021,7 +1021,7 @@ describe('Transaction Management (v0.5.0)', () => {
                 afterCommit: sinon.stub().resolves()
             };
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -1057,7 +1057,7 @@ describe('Transaction Management (v0.5.0)', () => {
                 afterRollback: sinon.stub().resolves()
             };
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -1069,7 +1069,7 @@ describe('Transaction Management (v0.5.0)', () => {
             const script = createScript(1, 'test');
             script.script = {
                 up: async () => { throw new Error('Failed'); }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             try {
                 await runner.execute([script]);
@@ -1100,7 +1100,7 @@ describe('Transaction Management (v0.5.0)', () => {
                 debug: sinon.stub()
             };
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -1111,7 +1111,7 @@ describe('Transaction Management (v0.5.0)', () => {
             const script = createScript(1, 'test');
             script.script = {
                 up: async () => { throw new Error('Migration failed'); }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             let error: Error | undefined;
             try {
@@ -1141,7 +1141,7 @@ describe('Transaction Management (v0.5.0)', () => {
             };
 
             // Create runner WITHOUT logger
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -1152,7 +1152,7 @@ describe('Transaction Management (v0.5.0)', () => {
             const script = createScript(1, 'test');
             script.script = {
                 up: async () => { throw new Error('Migration failed'); }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             let error: Error | undefined;
             try {
@@ -1190,7 +1190,7 @@ describe('Transaction Management (v0.5.0)', () => {
                 debug: sinon.stub()
             };
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -1239,7 +1239,7 @@ describe('Transaction Management (v0.5.0)', () => {
             };
 
             // No logger provided - covers optional chaining branch at line 184
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -1272,7 +1272,7 @@ describe('Transaction Management (v0.5.0)', () => {
             };
 
             // No hooks provided - covers optional chaining branch at line 186
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -1305,7 +1305,7 @@ describe('Transaction Management (v0.5.0)', () => {
                 rollback: sinon.stub().resolves()
             };
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -1327,7 +1327,7 @@ describe('Transaction Management (v0.5.0)', () => {
             cfg.transaction.mode = 'NONE' as any;
 
             // No transaction manager provided
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -1365,7 +1365,7 @@ describe('Transaction Management (v0.5.0)', () => {
                 onCommitRetry: sinon.stub().resolves()
             };
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -1394,7 +1394,7 @@ describe('Transaction Management (v0.5.0)', () => {
                 rollback: sinon.stub().resolves()
             };
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -1432,7 +1432,7 @@ describe('Transaction Management (v0.5.0)', () => {
                 rollback: sinon.stub().resolves()
             };
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -1464,7 +1464,7 @@ describe('Transaction Management (v0.5.0)', () => {
                 afterTransactionBegin: sinon.stub().resolves()
             };
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -1501,7 +1501,7 @@ describe('Transaction Management (v0.5.0)', () => {
                 afterTransactionBegin: sinon.stub().resolves()
             };
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -1525,7 +1525,7 @@ describe('Transaction Management (v0.5.0)', () => {
         it('should work without transaction manager', async () => {
             const cfg = new Config();
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,
@@ -1548,7 +1548,7 @@ describe('Transaction Management (v0.5.0)', () => {
                 rollback: sinon.stub().resolves()
             };
 
-            runner = new MigrationRunner(
+            runner = new MigrationRunner<IDB>(
                 handler,
                 schemaVersionService,
                 cfg,

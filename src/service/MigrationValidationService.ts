@@ -15,6 +15,7 @@ import {
     TransactionMode
 } from "../model";
 import {ILogger} from "../interface/ILogger";
+import {IDB} from "../interface/dao";
 import {ConsoleLogger} from "../logger";
 import fs from "node:fs";
 import {ChecksumService} from "./ChecksumService";
@@ -29,9 +30,11 @@ import {isImperativeTransactional, isTransactionalDB} from "../interface/dao/ITr
  * (via IMigrationValidator implementations). Validation runs before database
  * initialization and backup creation for fast failure.
  *
+ *
+ * @template DB - Database interface type
  * @example
  * ```typescript
- * const validator = new MigrationValidationService(logger);
+ * const validator = new MigrationValidationService<DB>(logger);
  * const results = await validator.validateAll(scripts, config);
  *
  * // Check for errors
@@ -41,7 +44,7 @@ import {isImperativeTransactional, isTransactionalDB} from "../interface/dao/ITr
  * }
  * ```
  */
-export class MigrationValidationService implements IMigrationValidationService {
+export class MigrationValidationService<DB extends IDB> implements IMigrationValidationService<DB> {
     /**
      * Creates a new MigrationValidationService.
      *
@@ -50,7 +53,7 @@ export class MigrationValidationService implements IMigrationValidationService {
      */
     constructor(
         private readonly logger: ILogger = new ConsoleLogger(),
-        private readonly customValidators?: IMigrationValidator[]
+        private readonly customValidators?: IMigrationValidator<DB>[]
     ) {}
 
     /**
@@ -64,6 +67,8 @@ export class MigrationValidationService implements IMigrationValidationService {
      * @param loaderRegistry - Loader registry for initializing scripts during validation
      * @returns Array of validation results (one per script)
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
      * const results = await validator.validateAll(pendingScripts, config, loaderRegistry);
@@ -75,8 +80,8 @@ export class MigrationValidationService implements IMigrationValidationService {
      * );
      * ```
      */
-    async validateAll(scripts: MigrationScript[], config: Config, loaderRegistry: ILoaderRegistry): Promise<IValidationResult[]> {
-        const results: IValidationResult[] = [];
+    async validateAll(scripts: MigrationScript<DB>[], config: Config, loaderRegistry: ILoaderRegistry<DB>): Promise<IValidationResult<DB>[]> {
+        const results: IValidationResult<DB>[] = [];
 
         for (const script of scripts) {
             const result = await this.validateOne(script, config, loaderRegistry);
@@ -100,7 +105,7 @@ export class MigrationValidationService implements IMigrationValidationService {
      * @param loaderRegistry - Loader registry for initializing scripts during validation
      * @returns Validation result with any issues found
      */
-    async validateOne(script: MigrationScript, config: Config, loaderRegistry: ILoaderRegistry): Promise<IValidationResult> {
+    async validateOne(script: MigrationScript<DB>, config: Config, loaderRegistry: ILoaderRegistry<DB>): Promise<IValidationResult<DB>> {
         const issues: IValidationIssue[] = [];
 
         // Built-in validation
@@ -149,7 +154,7 @@ export class MigrationValidationService implements IMigrationValidationService {
      * @param loaderRegistry - Loader registry for initializing scripts
      * @param issues - Array to collect validation issues
      */
-    private async validateStructure(script: MigrationScript, loaderRegistry: ILoaderRegistry, issues: IValidationIssue[]): Promise<void> {
+    private async validateStructure(script: MigrationScript<DB>, loaderRegistry: ILoaderRegistry<DB>, issues: IValidationIssue[]): Promise<void> {
         // Check if file exists
         if (!fs.existsSync(script.filepath)) {
             issues.push({
@@ -212,7 +217,7 @@ export class MigrationValidationService implements IMigrationValidationService {
      * @param script - Migration script to validate
      * @param issues - Array to collect validation issues
      */
-    private async validateInterface(script: MigrationScript, issues: IValidationIssue[]): Promise<void> {
+    private async validateInterface(script: MigrationScript<DB>, issues: IValidationIssue[]): Promise<void> {
         // If structure validation failed, script.script won't be available
         if (!script.script) {
             return;
@@ -290,7 +295,7 @@ export class MigrationValidationService implements IMigrationValidationService {
      * @param issues - Array to collect validation issues
      */
     private async validateDownMethod(
-        script: MigrationScript,
+        script: MigrationScript<DB>,
         config: Config,
         issues: IValidationIssue[]
     ): Promise<void> {
@@ -360,6 +365,8 @@ export class MigrationValidationService implements IMigrationValidationService {
      * @param config - Migration configuration
      * @returns Array of validation issues found
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
      * const issues = await validator.validateMigratedFileIntegrity(migratedScripts, config);
@@ -369,7 +376,7 @@ export class MigrationValidationService implements IMigrationValidationService {
      * ```
      */
     public async validateMigratedFileIntegrity(
-        migratedScripts: MigrationScript[],
+        migratedScripts: MigrationScript<DB>[],
         config: Config
     ): Promise<IValidationIssue[]> {
         if (!config.validateMigratedFiles) {
@@ -391,7 +398,7 @@ export class MigrationValidationService implements IMigrationValidationService {
     }
 
     private validateSingleMigratedFile(
-        script: MigrationScript,
+        script: MigrationScript<DB>,
         config: Config,
         issues: IValidationIssue[]
     ): void {
@@ -406,7 +413,7 @@ export class MigrationValidationService implements IMigrationValidationService {
     }
 
     private handleMissingMigratedFile(
-        script: MigrationScript,
+        script: MigrationScript<DB>,
         config: Config,
         issues: IValidationIssue[]
     ): void {
@@ -423,7 +430,7 @@ export class MigrationValidationService implements IMigrationValidationService {
     }
 
     private validateMigratedFileChecksum(
-        script: MigrationScript,
+        script: MigrationScript<DB>,
         config: Config,
         issues: IValidationIssue[]
     ): void {
@@ -471,6 +478,8 @@ export class MigrationValidationService implements IMigrationValidationService {
      * @param scripts - Migration scripts to execute
      * @returns Array of validation issues found
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
      * const issues = validator.validateTransactionConfiguration(handler, config, pendingScripts);
@@ -480,9 +489,9 @@ export class MigrationValidationService implements IMigrationValidationService {
      * ```
      */
     public validateTransactionConfiguration(
-        handler: IDatabaseMigrationHandler,
+        handler: IDatabaseMigrationHandler<DB>,
         config: Config,
-        scripts: MigrationScript[]
+        scripts: MigrationScript<DB>[]
     ): IValidationIssue[] {
         const issues: IValidationIssue[] = [];
 
@@ -510,7 +519,7 @@ export class MigrationValidationService implements IMigrationValidationService {
      * Validate that database supports transactions.
      */
     private validateDatabaseSupportsTransactions(
-        handler: IDatabaseMigrationHandler,
+        handler: IDatabaseMigrationHandler<DB>,
         config: Config,
         issues: IValidationIssue[]
     ): void {
@@ -528,7 +537,7 @@ export class MigrationValidationService implements IMigrationValidationService {
      * Validate isolation level is supported by database.
      */
     private validateIsolationLevelSupport(
-        handler: IDatabaseMigrationHandler,
+        handler: IDatabaseMigrationHandler<DB>,
         config: Config,
         issues: IValidationIssue[]
     ): void {
@@ -584,7 +593,7 @@ export class MigrationValidationService implements IMigrationValidationService {
      * Warn about migrations that may exceed transaction timeout.
      */
     private validateTransactionTimeout(
-        scripts: MigrationScript[],
+        scripts: MigrationScript<DB>[],
         config: Config,
         issues: IValidationIssue[]
     ): void {

@@ -1,6 +1,7 @@
 import {IValidationResult} from "./IValidationResult";
 import {MigrationScript} from "../../model";
 import {Config} from "../../model";
+import {IDB} from "../dao";
 
 /**
  * Interface for custom migration validators.
@@ -8,13 +9,18 @@ import {Config} from "../../model";
  * Implement this interface to add project-specific validation rules
  * beyond the built-in structural and interface validation.
  *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
+ *
  * @example
  * ```typescript
  * import { ValidationIssueType } from '@migration-script-runner/core';
  *
  * // Validate class naming convention
- * class NamingConventionValidator implements IMigrationValidator {
- *   async validate(script: MigrationScript, config: Config): Promise<IValidationResult> {
+ * class NamingConventionValidator implements IMigrationValidator<IDB> {
+ *   async validate(script: MigrationScript<IDB>, config: Config): Promise<IValidationResult<IDB>> {
  *     const className = script.script.constructor.name;
  *     const expectedName = this.toClassName(script.name);
  *
@@ -41,8 +47,8 @@ import {Config} from "../../model";
  * import { ValidationIssueType } from '@migration-script-runner/core';
  *
  * // Validate required JSDoc comments
- * class DocumentationValidator implements IMigrationValidator {
- *   async validate(script: MigrationScript, config: Config): Promise<IValidationResult> {
+ * class DocumentationValidator implements IMigrationValidator<DB> {
+ *   async validate(script: MigrationScript<DB>, config: Config): Promise<IValidationResult<DB>> {
  *     const source = fs.readFileSync(script.filepath, 'utf8');
  *     const hasJsDoc = source.includes('/**');
  *
@@ -64,19 +70,19 @@ import {Config} from "../../model";
  * }
  * ```
  */
-export interface IMigrationValidator {
+export interface IMigrationValidator<DB extends IDB> {
     /**
      * Validate a migration script according to custom rules.
      *
      * This method is called after built-in validation passes.
      * Return errors for blocking issues, warnings for non-blocking issues.
      *
-     * @param script - Migration script to validate (already loaded and initialized)
+     * @param script - Migration script to validate (already loaded and initialized, typed with generic DB parameter in v0.6.0)
      * @param config - Migration configuration (for context-aware validation)
      *
-     * @returns Validation result with errors and/or warnings
+     * @returns Validation result with errors and/or warnings (typed with generic DB parameter in v0.6.0)
      *
      * @throws Should not throw - return errors in the result instead
      */
-    validate(script: MigrationScript, config: Config): Promise<IValidationResult>;
+    validate(script: MigrationScript<DB>, config: Config): Promise<IValidationResult<DB>>;
 }

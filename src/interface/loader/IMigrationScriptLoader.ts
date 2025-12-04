@@ -1,5 +1,6 @@
 import {IRunnableScript} from '../IRunnableScript';
 import {MigrationScript} from '../../model/MigrationScript';
+import {IDB} from '../dao';
 
 /**
  * Interface for loading migration scripts from different file types.
@@ -7,14 +8,19 @@ import {MigrationScript} from '../../model/MigrationScript';
  * Implementations handle specific file formats (TypeScript, JavaScript, SQL, etc.)
  * and convert them into IRunnableScript instances that MSR can execute.
  *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
+ *
  * @example
  * ```typescript
- * class TypeScriptLoader implements IMigrationScriptLoader {
+ * class TypeScriptLoader<DB extends IDB> implements IMigrationScriptLoader<DB> {
  *     canHandle(filePath: string): boolean {
  *         return /\.(ts|js)$/i.test(filePath);
  *     }
  *
- *     async load(script: MigrationScript): Promise<IRunnableScript> {
+ *     async load(script: MigrationScript<DB>): Promise<IRunnableScript<DB>> {
  *         const exports = await import(script.filepath);
  *         return new exports.default();
  *     }
@@ -25,7 +31,7 @@ import {MigrationScript} from '../../model/MigrationScript';
  * }
  * ```
  */
-export interface IMigrationScriptLoader {
+export interface IMigrationScriptLoader<DB extends IDB> {
     /**
      * Check if this loader can handle the given file.
      *
@@ -60,20 +66,20 @@ export interface IMigrationScriptLoader {
      * - `up()` method (required) - Forward migration logic
      * - `down()` method (optional) - Rollback logic
      *
-     * @param script - MigrationScript with filepath and metadata
-     * @returns IRunnableScript instance ready for execution
+     * @param script - MigrationScript with filepath and metadata (typed with generic DB parameter in v0.6.0)
+     * @returns IRunnableScript instance ready for execution (typed with generic DB parameter in v0.6.0)
      * @throws Error if file cannot be loaded, parsed, or is invalid
      *
      * @example
      * ```typescript
-     * const script = new MigrationScript('V123_create.ts', 123, '/path/to/file');
+     * const script = new MigrationScript<IDB>('V123_create.ts', 123, '/path/to/file');
      * const runnable = await loader.load(script);
      *
      * // Execute the migration
      * await runnable.up(db, info, handler);
      * ```
      */
-    load(script: MigrationScript): Promise<IRunnableScript>;
+    load(script: MigrationScript<DB>): Promise<IRunnableScript<DB>>;
 
     /**
      * Get loader name for logging and debugging purposes.

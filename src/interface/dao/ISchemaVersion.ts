@@ -1,4 +1,5 @@
 import {IMigrationScript} from "./IMigrationScript";
+import {IDB} from "./IDB";
 
 /**
  * Interface for managing the schema version tracking table.
@@ -7,10 +8,15 @@ import {IMigrationScript} from "./IMigrationScript";
  * that tracks which migrations have been executed. Each database implementation must
  * provide its own implementation of this interface.
  *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
+ *
  * @example
  * ```typescript
  * // PostgreSQL implementation
- * export class PostgresSchemaVersion implements ISchemaVersion {
+ * export class PostgresSchemaVersion implements ISchemaVersion<IDB> {
  *   constructor(private db: IDB) {}
  *
  *   async isInitialized(tableName: string): Promise<boolean> {
@@ -42,11 +48,11 @@ import {IMigrationScript} from "./IMigrationScript";
  *     return columns.includes('timestamp') && columns.includes('name');
  *   }
  *
- *   migrationRecords: IMigrationScript = new PostgresMigrationScript(this.db);
+ *   migrationRecords: IMigrationScript<IDB> = new PostgresMigrationScript(this.db);
  * }
  * ```
  */
-export interface ISchemaVersion {
+export interface ISchemaVersion<DB extends IDB> {
     /**
      * Check if the schema version tracking table has been initialized.
      *
@@ -133,6 +139,7 @@ export interface ISchemaVersion {
      * Provides CRUD operations for the migration records stored in the schema version table.
      * Used to save new migration executions, retrieve migration history, and remove records
      * during rollback operations.
+     * Typed with the generic DB parameter (v0.6.0).
      *
      * @see IMigrationScript for available operations (getAllExecuted, save, remove)
      *
@@ -153,5 +160,5 @@ export interface ISchemaVersion {
      * });
      * ```
      */
-    migrationRecords: IMigrationScript
+    migrationRecords: IMigrationScript<DB>
 }

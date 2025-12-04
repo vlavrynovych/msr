@@ -1,6 +1,6 @@
 import {expect} from 'chai';
 import sinon from 'sinon';
-import {AsciiTableRenderStrategy, IScripts, MigrationScript, Config, IMigrationInfo} from "../../../../src";
+import {AsciiTableRenderStrategy, IScripts, MigrationScript, Config, IMigrationInfo, IDB} from "../../../../src";
 
 /**
  * Unit tests for AsciiTableRenderStrategy.
@@ -164,7 +164,7 @@ describe('AsciiTableRenderStrategy', () => {
 
     describe('constructor', () => {
         it('should use default ConsoleLogger when no logger provided', () => {
-            const strategy = new AsciiTableRenderStrategy();
+            const strategy = new AsciiTableRenderStrategy<IDB>();
             const scripts = {
                 migrated: [
                     {
@@ -173,10 +173,10 @@ describe('AsciiTableRenderStrategy', () => {
                         startedAt: Date.now() - 5000,
                         finishedAt: Date.now(),
                         username: 'developer',
-                    } as MigrationScript
+                    } as MigrationScript<IDB>
                 ],
                 all: []
-            } as unknown as IScripts;
+            } as unknown as IScripts<IDB>;
             const config = new Config();
 
             strategy.renderMigrated(scripts, config);
@@ -191,14 +191,14 @@ describe('AsciiTableRenderStrategy', () => {
 
     describe('renderMigrated with compact mode', () => {
         it('should render with pretty formatting for JSON.stringify', () => {
-            const strategy = new AsciiTableRenderStrategy();
+            const strategy = new AsciiTableRenderStrategy<IDB>();
             const now = Date.now();
             const scripts = {
                 migrated: [
-                    {timestamp: 1, name: 'M1', startedAt: now, finishedAt: now, username: 'user'} as MigrationScript,
+                    {timestamp: 1, name: 'M1', startedAt: now, finishedAt: now, username: 'user'} as MigrationScript<IDB>,
                 ],
                 all: []
-            } as unknown as IScripts;
+            } as unknown as IScripts<IDB>;
             const config = new Config();
 
             strategy.renderMigrated(scripts, config);

@@ -41,7 +41,7 @@ Pretty-printed JSON with indentation for readability:
 ```typescript
 import { MigrationScriptExecutor, JsonRenderStrategy } from '@migration-script-runner/core';
 
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     renderStrategy: new JsonRenderStrategy(true)  // pretty: true
 });
 
@@ -55,7 +55,7 @@ Compact JSON for log aggregation and minimal file size:
 ```typescript
 import { MigrationScriptExecutor, JsonRenderStrategy } from '@migration-script-runner/core';
 
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     renderStrategy: new JsonRenderStrategy(false)  // pretty: false
 });
 
@@ -74,7 +74,7 @@ import {
 const logger = new FileLogger({ logPath: './migrations.json' });
 const strategy = new JsonRenderStrategy(true);
 
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     logger,
     renderStrategy: strategy
 });
@@ -238,7 +238,7 @@ Parse migration results in your CI/CD pipeline:
 ```typescript
 import { MigrationScriptExecutor, JsonRenderStrategy } from '@migration-script-runner/core';
 
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     renderStrategy: new JsonRenderStrategy(false)  // Compact for CI logs
 });
 
@@ -262,7 +262,7 @@ const logger = new FileLogger({
     logPath: '/var/l../version-migration/migrations.jsonl'  // JSON Lines format
 });
 
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     logger,
     renderStrategy: new JsonRenderStrategy(false)  // Compact format
 });
@@ -281,7 +281,7 @@ Monitor migration status programmatically:
 ```typescript
 import { JsonRenderStrategy } from '@migration-script-runner/core';
 
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     renderStrategy: new JsonRenderStrategy(true)
 });
 
@@ -317,7 +317,7 @@ import { JsonRenderStrategy } from '@migration-script-runner/core';
 
 // Capture migration history
 const logger = new FileLogger({ logPath: './migration-report.json' });
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     logger,
     renderStrategy: new JsonRenderStrategy(true)
 });
@@ -363,12 +363,12 @@ app.get('/a../version-migration/status', async (req, res) => {
 
 ```typescript
 // Good: Minimal log file size
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     renderStrategy: new JsonRenderStrategy(false)
 });
 
 // Avoid: Large indented logs in production
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     renderStrategy: new JsonRenderStrategy(true)
 });
 ```

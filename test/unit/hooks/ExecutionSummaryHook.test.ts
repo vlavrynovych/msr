@@ -17,7 +17,7 @@ import { TestUtils } from '../../helpers';
 
 describe('ExecutionSummaryHook', () => {
     let config: Config;
-    let handler: IDatabaseMigrationHandler;
+    let handler: IDatabaseMigrationHandler<IDB>;
     const testLogDir = './test-logs/execution-summary-hook';
 
     beforeEach(() => {
@@ -89,7 +89,7 @@ describe('ExecutionSummaryHook', () => {
             createTable: async () => true,
             isInitialized: async () => true,
             validateTable: async () => true
-        } as IDatabaseMigrationHandler;
+        } as IDatabaseMigrationHandler<IDB>;
     });
 
     afterEach(() => {
@@ -101,39 +101,38 @@ describe('ExecutionSummaryHook', () => {
 
     describe('with logging enabled and no user hooks', () => {
         it('should create ExecutionSummaryHook automatically', async () => {
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
             const result = await executor.up();
 
             expect(result.success).to.be.true;
             // Summary file should be created
             expect(fs.existsSync(testLogDir)).to.be.true;
-        });
+});
 
         it('should log successful migrations', async () => {
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
             await executor.up();
 
             const files = fs.readdirSync(testLogDir);
             expect(files.length).to.equal(1);
             expect(files[0]).to.include('migration-success');
-        });
+});
     });
 
     describe('with logging enabled and user hooks', () => {
         it('should combine ExecutionSummaryHook with user hooks', async () => {
             let userHookCalled = false;
-            const userHooks: IMigrationHooks = {
+            const userHooks: IMigrationHooks<IDB> = {
                 onComplete: async () => {
                     userHookCalled = true;
                 }
             };
 
-            const executor = new MigrationScriptExecutor(handler, config, {
-                logger: new SilentLogger(),
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
                 hooks: userHooks
-            });
+}, config);
 
             await executor.up();
 
@@ -162,7 +161,7 @@ describe('ExecutionSummaryHook', () => {
 
             config.logging.logSuccessful = false; // Only log failures
 
-            const executor = new MigrationScriptExecutor(failingHandler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: failingHandler, logger: new SilentLogger() }, config);
 
             try {
                 await executor.up();
@@ -176,13 +175,13 @@ describe('ExecutionSummaryHook', () => {
             const files = fs.readdirSync(testLogDir);
             expect(files.length).to.be.greaterThan(0);
             expect(files[0]).to.include('migration-failed');
-        });
+});
 
     });
 
     describe('onAfterMigrate without onBeforeMigrate', () => {
         it('should handle fallback when migration start time is missing', async () => {
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
             // Get the hook (it's the ExecutionSummaryHook since logging is enabled)
             const hooks = (executor as any).hooks;
@@ -202,12 +201,12 @@ describe('ExecutionSummaryHook', () => {
 
             // Should not throw error
             expect(true).to.be.true;
-        });
+});
     });
 
     describe('onMigrationError direct invocation', () => {
         it('should record migration failure when onMigrationError is called', async () => {
-            const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+            const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
             // Get the hook (it's the ExecutionSummaryHook since logging is enabled)
             const hooks = (executor as any).hooks;
@@ -234,6 +233,6 @@ describe('ExecutionSummaryHook', () => {
 
             // Should not throw error
             expect(true).to.be.true;
-        });
+});
     });
 });

@@ -9,36 +9,41 @@ import {IMigrationInfo} from "./IMigrationInfo";
  * The class must have an `up()` method that performs the actual migration logic.
  * Optionally, it can also have a `down()` method for rollback functionality.
  *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
+ *
  * @example
  * ```typescript
  * // File: V202501220100_initial_setup.ts
  * import { IRunnableScript, IMigrationInfo, IDatabaseMigrationHandler, IDB } from 'migration-script-runner';
  *
- * export default class InitialSetup implements IRunnableScript {
- *   async up(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string> {
+ * export default class InitialSetup implements IRunnableScript<IDB> {
+ *   async up(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler<IDB>): Promise<string> {
  *     // Your migration logic here
  *     await db.query('CREATE TABLE users (id INT, name VARCHAR(255))');
  *     return 'Users table created successfully';
  *   }
  *
  *   // Optional: rollback logic
- *   async down(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string> {
+ *   async down(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler<IDB>): Promise<string> {
  *     await db.query('DROP TABLE users');
  *     return 'Users table dropped';
  *   }
  * }
  * ```
  */
-export interface IRunnableScript {
+export interface IRunnableScript<DB extends IDB> {
     /**
      * Execute the migration.
      *
      * This method contains the actual migration logic (creating tables, modifying schemas,
      * migrating data, etc.). It is called by the migration executor when the migration runs.
      *
-     * @param db - Database connection/client for executing queries
+     * @param db - Database connection/client for executing queries (typed with generic DB parameter)
      * @param info - Metadata about this migration (name, timestamp, username)
-     * @param handler - Database handler with access to config and other services
+     * @param handler - Database handler with access to config and other services (typed with generic DB parameter)
      *
      * @returns A string describing the result of the migration (e.g., "3 tables created")
      *          This result is stored in the schema version tracking table.
@@ -48,7 +53,7 @@ export interface IRunnableScript {
      *
      * @example
      * ```typescript
-     * async up(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string> {
+     * async up(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler<IDB>): Promise<string> {
      *   console.log(`Running migration: ${info.name}`);
      *
      *   // Execute migration queries
@@ -59,7 +64,7 @@ export interface IRunnableScript {
      * }
      * ```
      */
-    up(db:IDB, info:IMigrationInfo, handler:IDatabaseMigrationHandler):Promise<string>;
+    up(db:DB, info:IMigrationInfo, handler:IDatabaseMigrationHandler<DB>):Promise<string>;
 
     /**
      * Rollback the migration (optional).
@@ -70,9 +75,9 @@ export interface IRunnableScript {
      * If not implemented, the migration cannot be rolled back using down() methods.
      * MSR will either use backup/restore or warn that no rollback is available.
      *
-     * @param db - Database connection/client for executing queries
+     * @param db - Database connection/client for executing queries (typed with generic DB parameter)
      * @param info - Metadata about this migration
-     * @param handler - Database handler with access to config and other services
+     * @param handler - Database handler with access to config and other services (typed with generic DB parameter)
      *
      * @returns A string describing the result of the rollback
      *
@@ -80,7 +85,7 @@ export interface IRunnableScript {
      *
      * @example
      * ```typescript
-     * async down(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler): Promise<string> {
+     * async down(db: IDB, info: IMigrationInfo, handler: IDatabaseMigrationHandler<IDB>): Promise<string> {
      *   console.log(`Rolling back migration: ${info.name}`);
      *
      *   // Reverse the changes from up()
@@ -93,5 +98,5 @@ export interface IRunnableScript {
      *
      * @see Config.rollbackStrategy for rollback configuration
      */
-    down?(db:IDB, info:IMigrationInfo, handler:IDatabaseMigrationHandler):Promise<string>;
+    down?(db:DB, info:IMigrationInfo, handler:IDatabaseMigrationHandler<DB>):Promise<string>;
 }

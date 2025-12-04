@@ -10,6 +10,7 @@ import {
 } from '../interface/logging/IExecutionSummary';
 import {Config} from '../model/Config';
 import {ILogger} from '../interface/ILogger';
+import {IDB} from '../interface/dao';
 import {IDatabaseMigrationHandler} from '../interface/IDatabaseMigrationHandler';
 import packageJson from '../../package.json';
 
@@ -24,9 +25,11 @@ import packageJson from '../../package.json';
  *
  * Supports JSON and text output formats with automatic file rotation.
  *
+ *
+ * @template DB - Database interface type
  * @example
  * ```typescript
- * const logger = new ExecutionSummaryLogger(config, consoleLogger, handler);
+ * const logger = new ExecutionSummaryLogger<DB>(config, consoleLogger, handler);
  *
  * // Start tracking
  * logger.startRun();
@@ -43,18 +46,18 @@ import packageJson from '../../package.json';
  * await logger.saveSummary(true, 1, 0, 1000);
  * ```
  */
-export class ExecutionSummaryLogger {
+export class ExecutionSummaryLogger<DB extends IDB> {
     private summary: IExecutionSummary;
-    private migrationDetails: Map<string, IMigrationExecutionDetail>;
+    private readonly migrationDetails: Map<string, IMigrationExecutionDetail>;
     private runStartTime: Date;
-    private msrVersion: string;
+    private readonly msrVersion: string;
     private transactionMetrics: ITransactionMetrics;
-    private transactionStartTimes: Map<string, number>;
+    private readonly transactionStartTimes: Map<string, number>;
 
     constructor(
         private readonly config: Config,
         private readonly logger: ILogger,
-        private readonly handler: IDatabaseMigrationHandler
+        private readonly handler: IDatabaseMigrationHandler<DB>
     ) {
         this.migrationDetails = new Map();
         this.runStartTime = new Date();

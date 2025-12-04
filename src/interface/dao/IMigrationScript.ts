@@ -1,21 +1,28 @@
 import {MigrationScript} from "../../model";
 import {IMigrationInfo} from "../IMigrationInfo";
+import {IDB} from "./IDB";
 
 /**
  * Interface for managing migration script records in the database.
  *
  * Implementations handle storing and retrieving migration execution metadata,
  * typically in a schema version table or collection.
+ *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
  */
-export interface IMigrationScript {
+export interface IMigrationScript<DB extends IDB> {
     /**
      * Retrieve all executed migrations from the database.
      *
      * Returns migration records in chronological order (oldest first) based on timestamp.
      * Each record includes execution metadata: timestamp, name, username, execution time,
      * duration, and result message.
+     * Typed with the generic DB parameter (v0.6.0).
      *
-     * @returns Promise<MigrationScript[]> - Array of executed migration records
+     * @returns Promise<MigrationScript<DB>[]> - Array of executed migration records
      *
      * @example
      * ```typescript
@@ -28,7 +35,7 @@ export interface IMigrationScript {
      * });
      * ```
      */
-    getAllExecuted(): Promise<MigrationScript[]>;
+    getAllExecuted(): Promise<MigrationScript<DB>[]>;
 
     /**
      * Save migration execution metadata to the database.

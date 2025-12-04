@@ -7,15 +7,20 @@ import {ITransactionManager} from "./service/ITransactionManager";
  * This interface must be implemented for each database system you want to use with MSR.
  * It provides database connection, schema version tracking, and backup/restore functionality.
  *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
  * Note: Configuration is now passed separately to the MigrationScriptExecutor constructor.
+ *
+ * @template DB - Database interface type
  *
  * @example
  * ```typescript
  * // With backup (recommended for production)
- * export class MyDatabaseHandler implements IDatabaseMigrationHandler {
+ * export class MyDatabaseHandler implements IDatabaseMigrationHandler<IDB> {
  *   db: IDB;
- *   schemaVersion: ISchemaVersion;
- *   backup?: IBackup;
+ *   schemaVersion: ISchemaVersion<IDB>;
+ *   backup?: IBackup<IDB>;
  *
  *   constructor() {
  *     this.db = new MyDBConnection();
@@ -26,26 +31,14 @@ import {ITransactionManager} from "./service/ITransactionManager";
  *   getName(): string {
  *     return 'My Database Handler v1.0';
  *   }
- * }
  *
- * // Without backup (using down() migrations instead)
- * export class MyDatabaseHandler implements IDatabaseMigrationHandler {
- *   db: IDB;
- *   schemaVersion: ISchemaVersion;
- *   // No backup property - will use down() methods for rollback
- *
- *   constructor() {
- *     this.db = new MyDBConnection();
- *     this.schemaVersion = new MySchemaVersion(this.db);
- *   }
- *
- *   getName(): string {
- *     return 'My Database Handler v1.0';
+ *   getVersion(): string {
+ *     return '1.0.0';
  *   }
  * }
  * ```
  */
-export interface IDatabaseMigrationHandler {
+export interface IDatabaseMigrationHandler<DB extends IDB> {
     /**
      * Get the name of the database handler.
      * Used for display in console output and logging.
@@ -79,14 +72,16 @@ export interface IDatabaseMigrationHandler {
     /**
      * Database connection/client interface.
      * Provides access to the database for executing queries during migrations.
+     * Typed with the generic DB parameter (v0.6.0).
      */
-    db: IDB
+    db: DB
 
     /**
      * Schema version tracking interface.
      * Handles creating and managing the table that tracks executed migrations.
+     * Typed with the generic DB parameter (v0.6.0).
      */
-    schemaVersion: ISchemaVersion
+    schemaVersion: ISchemaVersion<DB>
 
     /**
      * Backup and restore interface (optional).
@@ -94,10 +89,11 @@ export interface IDatabaseMigrationHandler {
      * If provided, MSR will create backups before migrations and restore on failure.
      * If not provided, you can use down() methods for rollback or configure a
      * different rollback strategy via config.rollbackStrategy.
+     * Typed with the generic DB parameter (v0.6.0).
      *
      * @see Config.rollbackStrategy for available rollback strategies
      */
-    backup?: IBackup
+    backup?: IBackup<DB>
 
     /**
      * Transaction manager for advanced transaction control (optional).
@@ -105,6 +101,7 @@ export interface IDatabaseMigrationHandler {
      * If provided, MSR will use this custom transaction manager instead of creating
      * a default one. This allows complete control over transaction behavior including
      * custom retry logic, savepoints, distributed transactions, etc.
+     * Typed with the generic DB parameter (v0.6.0).
      *
      * **If not provided:**
      * - MSR automatically creates {@link DefaultTransactionManager} if `db` implements {@link ITransactionalDB}
@@ -127,7 +124,7 @@ export interface IDatabaseMigrationHandler {
      * // MSR automatically creates DefaultTransactionManager
      *
      * // Advanced: Custom transaction manager for special needs
-     * class DistributedTransactionManager implements ITransactionManager {
+     * class DistributedTransactionManager implements ITransactionManager<IDB> {
      *   async begin(): Promise<void> {
      *     // Begin transactions across multiple databases
      *   }
@@ -139,7 +136,7 @@ export interface IDatabaseMigrationHandler {
      *   }
      * }
      *
-     * const handler: IDatabaseMigrationHandler = {
+     * const handler: IDatabaseMigrationHandler<IDB> = {
      *   db: myDB,
      *   schemaVersion: schemaVersionImpl,
      *   transactionManager: new DistributedTransactionManager(),  // Override default
@@ -148,5 +145,5 @@ export interface IDatabaseMigrationHandler {
      * };
      * ```
      */
-    transactionManager?: ITransactionManager
+    transactionManager?: ITransactionManager<DB>
 }

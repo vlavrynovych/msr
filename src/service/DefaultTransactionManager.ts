@@ -1,4 +1,5 @@
 import { ITransactionManager } from '../interface/service/ITransactionManager';
+import { IDB } from '../interface/dao';
 import { ITransactionalDB } from '../interface/dao/ITransactionalDB';
 import { IsolationLevel } from '../model/IsolationLevel';
 import { TransactionConfig } from '../model/TransactionConfig';
@@ -30,12 +31,14 @@ import { ILogger } from '../interface/ILogger';
  *
  * **New in v0.5.0**
  *
+ *
+ * @template DB - Database interface type
  * @example
  * ```typescript
  * import { DefaultTransactionManager } from '@migration-script-runner/core';
  *
  * // Create transaction manager
- * const transactionManager = new DefaultTransactionManager(
+ * const transactionManager = new DefaultTransactionManager<DB>(
  *   db,                // ITransactionalDB instance
  *   config.transaction, // TransactionConfig
  *   logger             // Optional logger
@@ -52,7 +55,7 @@ import { ILogger } from '../interface/ILogger';
  * }
  * ```
  */
-export class DefaultTransactionManager implements ITransactionManager {
+export class DefaultTransactionManager<DB extends IDB> implements ITransactionManager<DB> {
     /**
      * Create a new DefaultTransactionManager.
      *
@@ -60,9 +63,11 @@ export class DefaultTransactionManager implements ITransactionManager {
      * @param config - Transaction configuration with retry settings
      * @param logger - Optional logger for transaction operations
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
-     * const txManager = new DefaultTransactionManager(
+     * const txManager = new DefaultTransactionManager<DB>(
      *   myDB,
      *   new TransactionConfig(),
      *   new ConsoleLogger()
@@ -82,6 +87,8 @@ export class DefaultTransactionManager implements ITransactionManager {
      *
      * @throws Error if transaction cannot be started
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
      * await transactionManager.begin();
@@ -107,6 +114,8 @@ export class DefaultTransactionManager implements ITransactionManager {
      *
      * @throws Error if commit fails after all retries
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
      * try {
@@ -124,7 +133,8 @@ export class DefaultTransactionManager implements ITransactionManager {
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
                 await this.db.commit();
-                this.logger?.debug(`Transaction committed successfully${attempt > 1 ? ` (attempt ${attempt})` : ''}`);
+                const attemptInfo = attempt > 1 ? ` (attempt ${attempt})` : '';
+                this.logger?.debug(`Transaction committed successfully${attemptInfo}`);
                 return; // Success!
             } catch (error) {
                 lastError = error as Error;
@@ -166,6 +176,8 @@ export class DefaultTransactionManager implements ITransactionManager {
      *
      * @throws Error if rollback fails (critical error)
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
      * try {
@@ -193,6 +205,8 @@ export class DefaultTransactionManager implements ITransactionManager {
      *
      * @param level - SQL isolation level to set
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
      * await transactionManager.setIsolationLevel(IsolationLevel.SERIALIZABLE);
@@ -223,6 +237,8 @@ export class DefaultTransactionManager implements ITransactionManager {
      * @param error - The error to check
      * @returns True if error is retriable, false otherwise
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
      * const error = new Error('deadlock detected');
@@ -266,6 +282,8 @@ export class DefaultTransactionManager implements ITransactionManager {
      * @param attempt - Current attempt number (1-based)
      * @returns Delay in milliseconds
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
      * // With exponential backoff (retryDelay=100, retryBackoff=true):
@@ -296,6 +314,8 @@ export class DefaultTransactionManager implements ITransactionManager {
      *
      * @param ms - Milliseconds to sleep
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
      * await this.sleep(1000); // Sleep for 1 second

@@ -173,6 +173,119 @@ config.displayLimit = 20;
 
 ---
 
+### MSR_SHOW_BANNER
+
+**Display banner with version information**
+
+- **Type**: `boolean`
+- **Default**: `true`
+- **Example**: `true`, `false`
+
+Controls whether the application banner (ASCII art with version and handler information) is displayed at startup.
+
+```bash
+# Show banner (default)
+export MSR_SHOW_BANNER=true
+
+# Hide banner for cleaner output
+export MSR_SHOW_BANNER=false
+```
+
+**Programmatic Equivalent:**
+```typescript
+config.showBanner = false;
+```
+
+**Use Cases:**
+- `true` (default): Discoverable version and handler info for new users
+- `false`: Cleaner console output in CI/CD pipelines or when embedding MSR
+
+**When to Disable:**
+- CI/CD environments where logs need to be concise
+- When embedding MSR as a library in other tools
+- Docker containers with centralized logging
+- Automated testing scenarios
+
+**See Also:**
+- [Migration Settings](../../configuration/migration-settings#showbanner)
+
+---
+
+### MSR_LOG_LEVEL
+
+**Log output verbosity level**
+
+- **Type**: `'error' | 'warn' | 'info' | 'debug'`
+- **Default**: `'info'`
+- **Example**: `error`, `warn`, `info`, `debug`
+
+Controls the verbosity of log output during migration execution. Each level includes all higher priority levels.
+
+```bash
+# Production: Only errors (highest priority)
+export MSR_LOG_LEVEL=error
+
+# Warnings and errors
+export MSR_LOG_LEVEL=warn
+
+# Normal operation (default): info, warnings, and errors
+export MSR_LOG_LEVEL=info
+
+# Debugging: All logs including detailed debug information
+export MSR_LOG_LEVEL=debug
+```
+
+**Programmatic Equivalent:**
+```typescript
+config.logLevel = 'debug';
+```
+
+**Log Level Hierarchy:**
+
+| Level | Shows | Use Case |
+|-------|-------|----------|
+| `error` | Errors only | Production environments - critical issues only |
+| `warn` | Warnings + Errors | Production with monitoring - catch potential issues |
+| `info` | Info + Warnings + Errors | Default - standard operation visibility |
+| `debug` | All logs | Development/troubleshooting - detailed execution flow |
+
+**Use Cases:**
+- **`error`**: Production deployments where only failures need attention
+- **`warn`**: Production with alerting on warnings and errors
+- **`info`** (default): Development and staging for visibility into migrations
+- **`debug`**: Troubleshooting migration issues or developing new features
+
+**Example Output by Level:**
+
+```typescript
+// With logLevel='error': Only critical failures shown
+logger.error('Migration failed: V001_create_users.ts'); // ✅ Shown
+logger.warn('Table already exists, skipping');         // ❌ Hidden
+logger.info('Executing migration V001...');            // ❌ Hidden
+logger.debug('Query: CREATE TABLE users...');          // ❌ Hidden
+
+// With logLevel='info': Normal operation visibility
+logger.error('Migration failed: V001_create_users.ts'); // ✅ Shown
+logger.warn('Table already exists, skipping');         // ✅ Shown
+logger.info('Executing migration V001...');            // ✅ Shown
+logger.debug('Query: CREATE TABLE users...');          // ❌ Hidden
+```
+
+**Invalid Values:**
+
+If an invalid log level is provided, MSR will display a warning and use the default `'info'` level:
+
+```bash
+export MSR_LOG_LEVEL=verbose  # Invalid - will warn and use 'info'
+# Warning: Invalid MSR_LOG_LEVEL value: 'verbose'. Valid values are: error, warn, info, debug. Using default 'info'.
+```
+
+**See Also:**
+- [LevelAwareLogger API](../core-classes#levelawarelogger)
+- [Custom Loggers](../../customization/custom-loggers)
+
+---
+
 ### MSR_RECURSIVE
 
 **Scan subdirectories recursively**
@@ -307,6 +420,8 @@ export MSR_BEFORE_MIGRATE_NAME=beforeMigrate
 
 # Display settings
 export MSR_DISPLAY_LIMIT=20
+export MSR_SHOW_BANNER=true
+export MSR_LOG_LEVEL=info  # or: error, warn, debug
 
 # Testing (CI/CD only)
 export MSR_DRY_RUN=${CI:-false}

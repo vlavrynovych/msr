@@ -1,4 +1,24 @@
 /**
+ * Log level for controlling output verbosity.
+ *
+ * Levels (in order of priority):
+ * - `'error'`: Highest priority - only errors
+ * - `'warn'`: Warnings and errors
+ * - `'info'`: Normal operation (default)
+ * - `'debug'`: Lowest priority - detailed debugging information
+ *
+ * @example
+ * ```typescript
+ * // Set log level in config
+ * config.logLevel = 'debug';
+ *
+ * // Create level-aware logger
+ * const logger = new LevelAwareLogger(new ConsoleLogger(), 'debug');
+ * ```
+ */
+export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
+
+/**
  * Logger interface for abstracting output operations.
  *
  * This interface allows MSR to separate I/O concerns from business logic,
@@ -9,10 +29,10 @@
  * @example
  * ```typescript
  * // Using the default console logger
- * const executor = new MigrationScriptExecutor(handler);
+ * const executor = new MigrationScriptExecutor<DB>(handler);
  *
  * // Using a silent logger (no output)
- * const executor = new MigrationScriptExecutor(handler, new SilentLogger());
+ * const executor = new MigrationScriptExecutor<DB>(handler, new SilentLogger());
  *
  * // Using a custom logger
  * class MyLogger implements ILogger {
@@ -21,7 +41,7 @@
  *   }
  *   // ... implement other methods
  * }
- * const executor = new MigrationScriptExecutor(handler, new MyLogger());
+ * const executor = new MigrationScriptExecutor<DB>(handler, new MyLogger());
  * ```
  */
 export interface ILogger {

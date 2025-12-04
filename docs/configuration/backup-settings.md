@@ -778,7 +778,7 @@ const config = new Config();
 config.backupMode = BackupMode.MANUAL;
 config.backup.deleteBackup = true;
 
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 
 // Step 1: Create backup manually
 console.log('Creating backup...');

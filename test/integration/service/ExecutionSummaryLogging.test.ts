@@ -17,7 +17,7 @@ import { TestUtils } from '../../helpers';
 
 describe('Execution Summary Logging Integration', () => {
     let config: Config;
-    let handler: IDatabaseMigrationHandler;
+    let handler: IDatabaseMigrationHandler<IDB>;
     const testLogDir = './test-logs/integration';
 
     beforeEach(() => {
@@ -92,7 +92,7 @@ describe('Execution Summary Logging Integration', () => {
             createTable: async () => true,
             isInitialized: async () => true,
             validateTable: async () => true
-        } as IDatabaseMigrationHandler;
+        } as IDatabaseMigrationHandler<IDB>;
     });
 
     afterEach(() => {
@@ -107,7 +107,7 @@ describe('Execution Summary Logging Integration', () => {
     });
 
     it('should create execution summary file for successful migration', async () => {
-        const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
         const result = await executor.up();
 
@@ -130,31 +130,31 @@ describe('Execution Summary Logging Integration', () => {
         expect(summary.result.success).to.be.true;
         expect(summary.config.folder).to.exist;
         expect(summary.config.rollbackStrategy).to.exist;
-    });
+});
 
     it('should not create summary file when logging is disabled', async () => {
         config.logging.enabled = false;
-        const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
         await executor.up();
 
         // No summary file should be created
         expect(fs.existsSync(testLogDir)).to.be.false;
-    });
+});
 
     it('should not create summary for successful runs when logSuccessful is false', async () => {
         config.logging.logSuccessful = false;
-        const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
         await executor.up();
 
         // No summary file should be created
         expect(fs.existsSync(testLogDir)).to.be.false;
-    });
+});
 
     it('should create summary in both JSON and TEXT formats', async () => {
         config.logging.format = SummaryFormat.BOTH;
-        const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
         await executor.up();
 
@@ -168,7 +168,7 @@ describe('Execution Summary Logging Integration', () => {
 
         expect(jsonFile).to.exist;
         expect(textFile).to.exist;
-    });
+});
 
     it('should work with user-provided hooks', async () => {
         let onStartCalled = false;
@@ -183,10 +183,9 @@ describe('Execution Summary Logging Integration', () => {
             }
         };
 
-        const executor = new MigrationScriptExecutor(handler, config, {
-            logger: new SilentLogger(),
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: customHooks
-        });
+}, config);
 
         await executor.up();
 
@@ -201,7 +200,7 @@ describe('Execution Summary Logging Integration', () => {
     });
 
     it('should include migration details in summary', async () => {
-        const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
         await executor.up();
 
@@ -215,12 +214,12 @@ describe('Execution Summary Logging Integration', () => {
         expect(summary.config).to.exist;
         expect(summary.config.folder).to.exist;
         expect(summary.result).to.exist;
-    });
+});
 
     it('should work without hooks when logging disabled and no user hooks', async () => {
         config.logging.enabled = false;
         // Don't provide hooks in dependencies - this makes this.hooks undefined
-        const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
         // This should work fine even with this.hooks being undefined
         // All the optional chaining (?.) branches should handle undefined gracefully
@@ -228,7 +227,7 @@ describe('Execution Summary Logging Integration', () => {
 
         // Should complete successfully
         expect(result.success).to.be.true;
-    });
+});
 
     it('should include transaction configuration in summary when transactions are configured', async () => {
         // Enable transactions
@@ -236,7 +235,7 @@ describe('Execution Summary Logging Integration', () => {
         config.transaction.isolation = IsolationLevel.SERIALIZABLE;
         config.transaction.retries = 5;
 
-        const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
         await executor.up();
 
@@ -253,13 +252,13 @@ describe('Execution Summary Logging Integration', () => {
 
         // Note: Transaction metrics tracking requires a proper transactional DB implementation
         // which is tested separately in the MigrationScriptExecutor transaction tests
-    });
+});
 
     it('should NOT include transaction metrics when transactions are disabled', async () => {
         // Ensure transactions are disabled
         config.transaction.mode = TransactionMode.NONE;
 
-        const executor = new MigrationScriptExecutor(handler, config, { logger: new SilentLogger() });
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
 
         await executor.up();
 
@@ -271,6 +270,6 @@ describe('Execution Summary Logging Integration', () => {
 
         // Transaction metrics should not be present
         expect(summary.transactions).to.be.undefined;
-    });
+});
 
 });

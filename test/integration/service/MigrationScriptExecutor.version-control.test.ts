@@ -25,10 +25,10 @@ describe('MigrationScriptExecutor - Version Control', () => {
     let initialized = true;
     let created = true;
     let valid = true;
-    let scripts: MigrationScript[] = [];
+    let scripts: MigrationScript<IDB>[] = [];
     let cfg: Config;
-    let handler: IDatabaseMigrationHandler;
-    let executor: MigrationScriptExecutor;
+    let handler: IDatabaseMigrationHandler<IDB>;
+    let executor: MigrationScriptExecutor<IDB>;
     let removedTimestamps: number[] = [];
 
     before(() => {
@@ -45,10 +45,10 @@ describe('MigrationScriptExecutor - Version Control', () => {
             backup: {
                 backup(): Promise<string> { return Promise.resolve('content') },
                 restore(data: string): Promise<any> { return Promise.resolve('restored') }
-            } as IBackup,
+            } as IBackup<IDB>,
             schemaVersion: {
                 migrationRecords: {
-                    getAllExecuted(): Promise<MigrationScript[]> {
+                    getAllExecuted(): Promise<MigrationScript<IDB>[]> {
                         return Promise.resolve(scripts);
                     },
                     save(details: IMigrationInfo): Promise<void> {
@@ -58,7 +58,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                         removedTimestamps.push(timestamp);
                         return Promise.resolve(undefined);
                     }
-                } as IMigrationScript,
+                } as IMigrationScript<IDB>,
                 createTable(tableName: string): Promise<boolean> {
                     return Promise.resolve(created);
                 },
@@ -68,11 +68,11 @@ describe('MigrationScriptExecutor - Version Control', () => {
                 validateTable(tableName: string): Promise<boolean> {
                     return Promise.resolve(valid);
                 }
-            } as ISchemaVersion,
+            } as ISchemaVersion<IDB>,
             db,
             getName(): string { return "Test Implementation" },
             getVersion(): string { return "1.0.0-test" }
-        } as IDatabaseMigrationHandler;
+        } as IDatabaseMigrationHandler<IDB>;
     });
 
     beforeEach(() => {
@@ -80,7 +80,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
         cfg.validateBeforeRun = false;
         cfg.validateMigratedFiles = false;
 
-        executor = new MigrationScriptExecutor(handler, cfg, { logger: new SilentLogger() });
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, cfg);
         initialized = true;
         created = true;
         valid = true;
@@ -89,7 +89,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
         spy.on(handler.schemaVersion.migrationRecords, ['save', 'getAllExecuted', 'remove']);
         spy.on(executor.backupService, ['restore', 'deleteBackup', 'backup']);
         spy.on(executor.migrationService, ['findMigrationScripts']);
-    });
+});
 
     afterEach(() => {
         spy.restore();
@@ -102,8 +102,8 @@ describe('MigrationScriptExecutor - Version Control', () => {
      * Avoids file I/O by directly configuring the script property.
      * Also overrides init() to prevent file loading attempts.
      */
-    function createMockMigrationScript(timestamp: number, name: string = `V${timestamp}_mig.ts`): MigrationScript {
-        const script = new MigrationScript(name, `/fake/path/${name}`, timestamp);
+    function createMockMigrationScript(timestamp: number, name: string = `V${timestamp}_mig.ts`): MigrationScript<IDB> {
+        const script = new MigrationScript<IDB>(name, `/fake/path/${name}`, timestamp);
         script.script = {
             async up(): Promise<string> {
                 return `Migration ${timestamp} executed`;
@@ -111,7 +111,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             async down(): Promise<string> {
                 return `Migration ${timestamp} rolled back`;
             }
-        } as IRunnableScript;
+        } as IRunnableScript<IDB>;
         // Override init() to prevent file loading - script is already configured
         script.init = async () => {};
         return script;
@@ -358,7 +358,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                 async up(): Promise<string> {
                     throw new Error('Migration failed intentionally');
                 }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
 
             const scanStub = sinon.stub(executor.migrationScanner, 'scan');
             scanStub.resolves({
@@ -393,10 +393,9 @@ describe('MigrationScriptExecutor - Version Control', () => {
          */
         it('should handle hooks object with undefined methods', async () => {
             // Create executor with empty hooks object
-            const executorWithEmptyHooks = new MigrationScriptExecutor(handler, cfg, {
-                logger: new SilentLogger(),
+            const executorWithEmptyHooks = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
                 hooks: {} // Hooks object exists but no methods defined
-            });
+}, cfg);
 
             const allMigrations = [createMockMigrationScript(1)];
             scripts = [];
@@ -493,15 +492,14 @@ describe('MigrationScriptExecutor - Version Control', () => {
             const onStartSpy = sinon.spy();
             const onCompleteSpy = sinon.spy();
 
-            const executorWithAllHooks = new MigrationScriptExecutor(handler, cfg, {
-                logger: new SilentLogger(),
+            const executorWithAllHooks = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
                 hooks: {
                     onBeforeBackup: onBeforeBackupSpy,
                     onAfterBackup: onAfterBackupSpy,
                     onStart: onStartSpy,
                     onComplete: onCompleteSpy
                 }
-            });
+}, cfg);
 
             const allMigrations = [createMockMigrationScript(1)];
             scripts = [];
@@ -543,13 +541,12 @@ describe('MigrationScriptExecutor - Version Control', () => {
             const onStartSpy = sinon.spy();
             const onCompleteSpy = sinon.spy();
 
-            const executorWithHooks = new MigrationScriptExecutor(handler, cfg, {
-                logger: new SilentLogger(),
+            const executorWithHooks = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
                 hooks: {
                     onStart: onStartSpy,
                     onComplete: onCompleteSpy
                 }
-            });
+}, cfg);
 
             const allMigrations = [createMockMigrationScript(1)];
             const migratedScripts = [createMockMigrationScript(1)];
@@ -731,12 +728,12 @@ describe('MigrationScriptExecutor - Version Control', () => {
          */
         it('should throw error when migration missing down() method', async () => {
             // Create migration WITHOUT down() method
-            const migrationWithoutDown = new MigrationScript('V1_mig.ts', '/fake/path/V1_mig.ts', 1);
+            const migrationWithoutDown = new MigrationScript<IDB>('V1_mig.ts', '/fake/path/V1_mig.ts', 1);
             migrationWithoutDown.script = {
                 async up(): Promise<string> {
                     return 'Migration executed';
                 }
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
             // Override init to prevent file loading
             migrationWithoutDown.init = async () => {};
 
@@ -851,7 +848,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
 
             // Simulate that migrations 1, 2, 3 are now in schema_version
             const migratedScripts = upResult.executed.map(s => {
-                const script = new MigrationScript(s.name, `/fake/path/${s.name}`, s.timestamp);
+                const script = new MigrationScript<IDB>(s.name, `/fake/path/${s.name}`, s.timestamp);
                 script.script = {
                     async up(): Promise<string> {
                         return `Migration ${s.timestamp} executed`;
@@ -859,7 +856,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                     async down(): Promise<string> {
                         return `Migration ${s.timestamp} rolled back`;
                     }
-                } as IRunnableScript;
+                } as IRunnableScript<IDB>;
                 script.init = async () => {};
                 return script;
             });
@@ -985,12 +982,11 @@ describe('MigrationScriptExecutor - Version Control', () => {
          */
         it('should call onStart hook when rolling back', async () => {
             const onStartSpy = sinon.spy();
-            const executorWithHooks = new MigrationScriptExecutor(handler, cfg, {
-                logger: new SilentLogger(),
+            const executorWithHooks = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
                 hooks: {
                     onStart: onStartSpy
                 }
-            });
+}, cfg);
 
             const allMigrations = [
                 createMockMigrationScript(1),
@@ -1029,13 +1025,12 @@ describe('MigrationScriptExecutor - Version Control', () => {
         it('should call onBeforeMigrate and onAfterMigrate hooks for each rollback', async () => {
             const onBeforeMigrateSpy = sinon.spy();
             const onAfterMigrateSpy = sinon.spy();
-            const executorWithHooks = new MigrationScriptExecutor(handler, cfg, {
-                logger: new SilentLogger(),
+            const executorWithHooks = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
                 hooks: {
                     onBeforeMigrate: onBeforeMigrateSpy,
                     onAfterMigrate: onAfterMigrateSpy
                 }
-            });
+}, cfg);
 
             const allMigrations = [
                 createMockMigrationScript(1),
@@ -1076,12 +1071,11 @@ describe('MigrationScriptExecutor - Version Control', () => {
          */
         it('should call onComplete hook after successful rollback', async () => {
             const onCompleteSpy = sinon.spy();
-            const executorWithHooks = new MigrationScriptExecutor(handler, cfg, {
-                logger: new SilentLogger(),
+            const executorWithHooks = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
                 hooks: {
                     onComplete: onCompleteSpy
                 }
-            });
+}, cfg);
 
             const allMigrations = [
                 createMockMigrationScript(1),
@@ -1120,21 +1114,20 @@ describe('MigrationScriptExecutor - Version Control', () => {
          */
         it('should call onError hook when rollback fails', async () => {
             const onErrorSpy = sinon.spy();
-            const executorWithHooks = new MigrationScriptExecutor(handler, cfg, {
-                logger: new SilentLogger(),
+            const executorWithHooks = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
                 hooks: {
                     onError: onErrorSpy
                 }
-            });
+}, cfg);
 
             // Create migration without down() method
-            const migrationWithoutDown = new MigrationScript('V1_mig.ts', '/fake/path/V1_mig.ts', 1);
+            const migrationWithoutDown = new MigrationScript<IDB>('V1_mig.ts', '/fake/path/V1_mig.ts', 1);
             migrationWithoutDown.script = {
                 async up(): Promise<string> {
                     return 'Migration 1 executed';
                 }
                 // NO down() method
-            } as IRunnableScript;
+            } as IRunnableScript<IDB>;
             migrationWithoutDown.init = async () => {};
 
             const migratedScripts = [migrationWithoutDown];

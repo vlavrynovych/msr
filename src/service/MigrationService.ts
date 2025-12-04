@@ -5,6 +5,7 @@ import {parseInt} from "lodash";
 import {IMigrationService, ILogger} from "../interface";
 import {Config, MigrationScript, DuplicateTimestampMode} from "../model";
 import {ConsoleLogger} from "../logger";
+import {IDB} from "../interface/dao";
 
 /**
  * Service for discovering and loading migration script files from the filesystem.
@@ -12,9 +13,14 @@ import {ConsoleLogger} from "../logger";
  * Scans the configured migrations directory, identifies valid migration files based
  * on the filename pattern, and creates MigrationScript objects for each one.
  *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
+ *
  * @example
  * ```typescript
- * const service = new MigrationService();
+ * const service = new MigrationService<IDB>();
  * const config = new Config();
  * config.folder = './migrations';
  *
@@ -22,7 +28,7 @@ import {ConsoleLogger} from "../logger";
  * console.log(`Found ${scripts.length} migration scripts`);
  * ```
  */
-export class MigrationService implements IMigrationService {
+export class MigrationService<DB extends IDB> implements IMigrationService<DB> {
 
     /**
      * Creates a new MigrationService.
@@ -245,7 +251,7 @@ export class MigrationService implements IMigrationService {
      * // Returns migrations from all sub-folders, sorted by timestamp
      * ```
      */
-    public async findMigrationScripts(cfg: Config): Promise<MigrationScript[]> {
+    public async findMigrationScripts(cfg: Config): Promise<MigrationScript<DB>[]> {
         const folder = cfg.folder;
         const patterns = cfg.filePatterns;
 
@@ -283,9 +289,9 @@ export class MigrationService implements IMigrationService {
                 const execArray: RegExpExecArray | null = matchingPattern.exec(name);
                 if(execArray == null) throw new Error("Wrong file name format")
                 const timestamp = parseInt(execArray[1]);
-                return new MigrationScript(name, filePath, timestamp);
+                return new MigrationScript<DB>(name, filePath, timestamp);
             })
-            .filter((script): script is MigrationScript => script !== null);
+            .filter((script): script is MigrationScript<DB> => script !== null);
 
         // Detect duplicate timestamps
         this.validateNoDuplicateTimestamps(scripts, cfg.duplicateTimestampMode);
@@ -308,13 +314,13 @@ export class MigrationService implements IMigrationService {
      *
      * @private
      */
-    private validateNoDuplicateTimestamps(scripts: MigrationScript[], mode: DuplicateTimestampMode): void {
+    private validateNoDuplicateTimestamps(scripts: MigrationScript<DB>[], mode: DuplicateTimestampMode): void {
         // Skip validation if mode is IGNORE
         if (mode === DuplicateTimestampMode.IGNORE) {
             return;
         }
 
-        const timestampMap = new Map<number, MigrationScript>();
+        const timestampMap = new Map<number, MigrationScript<DB>>();
 
         for (const script of scripts) {
             const existing = timestampMap.get(script.timestamp);

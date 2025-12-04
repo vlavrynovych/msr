@@ -1,4 +1,5 @@
 import { IsolationLevel } from '../../model/IsolationLevel';
+import {IDB} from "../dao";
 
 /**
  * Interface for managing database transactions.
@@ -7,6 +8,11 @@ import { IsolationLevel } from '../../model/IsolationLevel';
  * for commit operations. MSR provides a default implementation ({@link DefaultTransactionManager})
  * that wraps {@link ITransactionalDB}, but users can provide custom implementations
  * for advanced scenarios (distributed transactions, savepoints, etc.).
+ *
+ * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ *
+ * @template DB - Database interface type
  *
  * **New in v0.5.0**
  *
@@ -21,7 +27,9 @@ import { IsolationLevel } from '../../model/IsolationLevel';
  * // MSR automatically creates DefaultTransactionManager wrapping PostgresDB
  *
  * // Custom implementation (advanced)
- * class CustomTransactionManager implements ITransactionManager {
+ * class CustomTransactionManager implements ITransactionManager<IDB> {
+ *   constructor(private db: IDB) {}
+ *
  *   async begin(): Promise<void> {
  *     // Custom logic: distributed transactions, etc.
  *   }
@@ -33,14 +41,15 @@ import { IsolationLevel } from '../../model/IsolationLevel';
  *   }
  * }
  *
- * const handler: IDatabaseMigrationHandler = {
+ * const handler: IDatabaseMigrationHandler<IDB> = {
  *   db: myDB,
- *   transactionManager: new CustomTransactionManager(),  // Override
+ *   transactionManager: new CustomTransactionManager(myDB),  // Override
  *   // ...
  * };
  * ```
  */
-export interface ITransactionManager {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export interface ITransactionManager<DB extends IDB> {
     /**
      * Begin a new transaction.
      *

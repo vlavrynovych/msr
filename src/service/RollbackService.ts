@@ -5,6 +5,7 @@ import {IBackupService} from "../interface/service/IBackupService";
 import {ILogger} from "../interface/ILogger";
 import {IMigrationHooks} from "../interface/IMigrationHooks";
 import {IRollbackService} from "../interface/service/IRollbackService";
+import {IDB} from "../interface/dao";
 
 /**
  * Service for handling database rollback operations.
@@ -13,9 +14,11 @@ import {IRollbackService} from "../interface/service/IRollbackService";
  * backup mode logic. Handles the complexity of determining when to create
  * backups and when to restore them based on the configured strategy and mode.
  *
+ *
+ * @template DB - Database interface type
  * @example
  * ```typescript
- * const rollbackService = new RollbackService(handler, config, backupService, logger, hooks);
+ * const rollbackService = new RollbackService<DB>(handler, config, backupService, logger, hooks);
  *
  * try {
  *   await runMigrations();
@@ -25,7 +28,7 @@ import {IRollbackService} from "../interface/service/IRollbackService";
  * }
  * ```
  */
-export class RollbackService implements IRollbackService {
+export class RollbackService<DB extends IDB> implements IRollbackService<DB> {
 
     /**
      * Creates a new RollbackService instance.
@@ -36,9 +39,11 @@ export class RollbackService implements IRollbackService {
      * @param logger - Logger for rollback messages
      * @param hooks - Optional lifecycle hooks for rollback events
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
-     * const rollbackService = new RollbackService(
+     * const rollbackService = new RollbackService<DB>(
      *     handler,
      *     config,
      *     backupService,
@@ -48,11 +53,11 @@ export class RollbackService implements IRollbackService {
      * ```
      */
     constructor(
-        private readonly handler: IDatabaseMigrationHandler,
+        private readonly handler: IDatabaseMigrationHandler<DB>,
         private readonly config: Config,
         private readonly backupService: IBackupService,
         private readonly logger: ILogger,
-        private readonly hooks?: IMigrationHooks
+        private readonly hooks?: IMigrationHooks<DB>
     ) {}
 
     /**
@@ -67,6 +72,8 @@ export class RollbackService implements IRollbackService {
      * @param executedScripts - Scripts that were attempted (including the failed one)
      * @param backupPath - Path to backup file (if created during migration)
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
      * try {
@@ -77,7 +84,7 @@ export class RollbackService implements IRollbackService {
      * }
      * ```
      */
-    async rollback(executedScripts: MigrationScript[], backupPath?: string): Promise<void> {
+    async rollback(executedScripts: MigrationScript<DB>[], backupPath?: string): Promise<void> {
         const strategy = this.config.rollbackStrategy;
 
         switch (strategy) {
@@ -109,6 +116,8 @@ export class RollbackService implements IRollbackService {
      *
      * @returns True if backup should be created, false otherwise
      *
+ *
+ * @template DB - Database interface type
      * @example
      * ```typescript
      * if (rollbackService.shouldCreateBackup()) {
@@ -185,7 +194,7 @@ export class RollbackService implements IRollbackService {
      * @param attemptedScripts - All scripts that were attempted (including the failed one)
      * @private
      */
-    private async rollbackWithDown(attemptedScripts: MigrationScript[]): Promise<void> {
+    private async rollbackWithDown(attemptedScripts: MigrationScript<DB>[]): Promise<void> {
         if (attemptedScripts.length === 0) {
             this.logger.info('No migrations to rollback');
             return;
@@ -218,7 +227,7 @@ export class RollbackService implements IRollbackService {
      * @param backupPath - Path to backup file
      * @private
      */
-    private async rollbackWithBoth(attemptedScripts: MigrationScript[], backupPath: string | undefined): Promise<void> {
+    private async rollbackWithBoth(attemptedScripts: MigrationScript<DB>[], backupPath: string | undefined): Promise<void> {
         try {
             // Try down() methods first (includes failed migration cleanup)
             await this.rollbackWithDown(attemptedScripts);

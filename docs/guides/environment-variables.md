@@ -89,7 +89,7 @@ import { MigrationScriptExecutor } from '@migration-script-runner/core';
 import { MyDatabaseHandler } from './database-handler';
 
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor(handler);
+const executor = new MigrationScriptExecutor({ handler });
 
 await executor.up();
 ```
@@ -111,7 +111,7 @@ npm start
 
 ```typescript
 // Env vars are loaded automatically, but you can override
-const executor = new MigrationScriptExecutor(handler, {
+const executor = new MigrationScriptExecutor({ handler }, {
     dryRun: true  // Override for this specific run
 });
 ```
@@ -142,11 +142,21 @@ export MSR_DRY_RUN=true
 export MSR_RECURSIVE=true
 export MSR_VALIDATE_BEFORE_RUN=true
 export MSR_STRICT_VALIDATION=false
+export MSR_SHOW_BANNER=false
+
+# Log level (error, warn, info, debug)
+export MSR_LOG_LEVEL=info
 ```
 
 **Boolean values** are case-insensitive:
 - `true`, `1`, `yes`, `on` → `true`
 - Everything else → `false`
+
+**Log levels** (in order of verbosity):
+- `error` - Only errors (production)
+- `warn` - Warnings + errors
+- `info` - Normal operation (default)
+- `debug` - All logs including debug output
 
 ---
 
@@ -511,7 +521,7 @@ import 'dotenv/config';
 import { MigrationScriptExecutor } from '@migration-script-runner/core';
 
 // Environment variables loaded automatically
-const executor = new MigrationScriptExecutor(handler);
+const executor = new MigrationScriptExecutor({ handler });
 await executor.up();
 ```
 
@@ -571,7 +581,7 @@ const config = ConfigLoader.load({
 // Load from specific directory
 const config = ConfigLoader.load({}, '/app');
 
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 ```
 
 See [ConfigLoader API Reference](../api/ConfigLoader) for detailed documentation.
@@ -692,7 +702,7 @@ import { DatabaseHandler } from './database';
 const handler = new DatabaseHandler();
 
 // Automatically loads: defaults → file → env vars
-const executor = new MigrationScriptExecutor(handler);
+const executor = new MigrationScriptExecutor({ handler });
 
 await executor.migrate();
 ```

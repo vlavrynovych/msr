@@ -1,10 +1,10 @@
 import { expect } from 'chai';
-import {IMigrationInfo, IDatabaseMigrationHandler, LoaderRegistry} from "../../../src";
+import { IDB, IDatabaseMigrationHandler, IMigrationInfo, LoaderRegistry } from "../../../src";
 import {TestUtils} from "../../helpers/TestUtils";
 
 describe('MigrationScript', () => {
     /**
-     * Test: MigrationScript initialization loads the script content
+     * Test: MigrationScript<IDB> initialization loads the script content
      * Validates that the init() method dynamically loads the migration script
      * from the file system and makes it executable. The script property should
      * be undefined before init() and contain a runnable script with up() method after.
@@ -22,6 +22,6 @@ describe('MigrationScript', () => {
         // Verify the script is now loaded and has a callable up() function
         expect(ms.script).not.undefined
         expect(typeof ms.script.up === 'function').is.true
-        expect(await ms.script.up({ checkConnection: async () => true } as any, {} as IMigrationInfo, {} as IDatabaseMigrationHandler)).eq('result string')
+        expect(await ms.script.up({ checkConnection: async () => true } as any, {} as IMigrationInfo, {} as IDatabaseMigrationHandler<IDB>)).eq('result string')
     })
 })

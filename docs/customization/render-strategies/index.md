@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Render Strategies
-parent: Customization
+parent: Extending MSR
 nav_order: 2
 has_children: true
 ---
@@ -76,20 +76,20 @@ import {
 
 // Default ASCII tables (no configuration needed)
 const config = new Config();
-const executor = new MigrationScriptExecutor(handler, config);
+const executor = new MigrationScriptExecutor({ handler }, config);
 
 // Pretty JSON for readability
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     renderStrategy: new JsonRenderStrategy(true)
 });
 
 // Compact JSON for log aggregation
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     renderStrategy: new JsonRenderStrategy(false)
 });
 
 // Silent for testing
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     renderStrategy: new SilentRenderStrategy()
 });
 ```
@@ -102,7 +102,7 @@ Render strategies work seamlessly with custom loggers:
 import { FileLogger, JsonRenderStrategy } from '@migration-script-runner/core';
 
 const logger = new FileLogger({ logPath: './migrations.log' });
-const executor = new MigrationScriptExecutor(handler, config, {
+const executor = new MigrationScriptExecutor({ handler, 
     logger,
     renderStrategy: new JsonRenderStrategy(true)
 });
