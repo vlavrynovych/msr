@@ -158,7 +158,7 @@ config.folder = './migrations';
 config.logLevel = 'info';  // v0.6.0: 'error' | 'warn' | 'info' | 'debug'
 
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor<IMyDatabase>({ handler }, config);
+const executor = new MigrationScriptExecutor<IMyDatabase>({ handler, config });
 
 // Library usage - returns structured result
 const result = await executor.up();

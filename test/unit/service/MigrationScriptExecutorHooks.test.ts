@@ -78,7 +78,7 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
         it('should call onBeforeMigrate for each migration', async () => {
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             // Access private method via any cast
             const executedArray: MigrationScript<IDB>[] = [];
@@ -97,7 +97,7 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
         it('should call onAfterMigrate after each successful migration', async () => {
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             const executedArray: MigrationScript<IDB>[] = [];
             await (executor as any).executeWithHooks([script1, script2], executedArray);
@@ -126,7 +126,7 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
 
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             try {
                 const executedArray: MigrationScript<IDB>[] = [];
@@ -155,7 +155,7 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
 
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             try {
                 const executedArray: MigrationScript<IDB>[] = [];
@@ -182,7 +182,7 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
 
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             const executedArray: MigrationScript<IDB>[] = [];
             await (executor as any).executeWithHooks([script1], executedArray);
@@ -201,7 +201,7 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
 
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             const executedArray: MigrationScript<IDB>[] = [];
             await (executor as any).executeWithHooks([script1], executedArray);
@@ -228,7 +228,7 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
 
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: noMigrationHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             const result: MigrationScript<IDB>[] = [];
             await (executor as any).executeWithHooks([script1, script2], result);
@@ -252,7 +252,7 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
 
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: partialHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             const result: MigrationScript<IDB>[] = [];
             await (executor as any).executeWithHooks([script1], result);
@@ -277,7 +277,7 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
 
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: errorOnlyHook,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             try {
                 const executedArray: MigrationScript<IDB>[] = [];
@@ -302,7 +302,7 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
         it('should handle empty scripts array', async () => {
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             const result: MigrationScript<IDB>[] = [];
             await (executor as any).executeWithHooks([], result);
@@ -339,7 +339,7 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
 
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: orderTrackingHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             const executedArray: MigrationScript<IDB>[] = [];
             await (executor as any).executeWithHooks([script1], executedArray);
@@ -373,7 +373,7 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
 
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: orderTrackingHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             try {
                 const executedArray: MigrationScript<IDB>[] = [];

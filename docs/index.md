@@ -201,7 +201,7 @@ const config = new Config();
 config.folder = './migrations';
 
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor<IMyDatabase>({ handler }, config);
+const executor = new MigrationScriptExecutor<IMyDatabase>({ handler , config });
 
 // Library usage - returns result object
 const result = await executor.up();

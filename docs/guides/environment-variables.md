@@ -581,7 +581,7 @@ const config = ConfigLoader.load({
 // Load from specific directory
 const config = ConfigLoader.load({}, '/app');
 
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 ```
 
 See [ConfigLoader API Reference](../api/ConfigLoader) for detailed documentation.

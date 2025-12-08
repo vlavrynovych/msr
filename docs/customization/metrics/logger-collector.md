@@ -60,8 +60,9 @@ const executor = new MigrationScriptExecutor({
   handler,
   metricsCollectors: [
     new LoggerMetricsCollector({ logger })
-  ]
-}, config);
+  ], 
+  config
+});
 
 await executor.up();
 ```
@@ -87,8 +88,9 @@ const executor = new MigrationScriptExecutor({
   handler,
   metricsCollectors: [
     new LoggerMetricsCollector({ logger })
-  ]
-}, config);
+  ], 
+  config
+});
 
 await executor.up();
 ```
@@ -110,8 +112,9 @@ const executor = new MigrationScriptExecutor({
   handler,
   metricsCollectors: [
     new LoggerMetricsCollector({ logger })
-  ]
-}, config);
+  ], 
+  config
+});
 ```
 
 **Note:** For development, [ConsoleMetricsCollector](console-collector) is simpler (zero config)
@@ -213,8 +216,9 @@ const executor = new MigrationScriptExecutor({
   handler,
   metricsCollectors: [
     new LoggerMetricsCollector({ logger })
-  ]
-}, config);
+  ], 
+  config
+});
 ```
 
 ---
@@ -243,8 +247,9 @@ const executor = new MigrationScriptExecutor({
   handler,
   metricsCollectors: [
     new LoggerMetricsCollector({ logger })
-  ]
-}, config);
+  ], 
+  config
+});
 ```
 
 **Result:** Metrics sent to local files AND CloudWatch
@@ -267,8 +272,9 @@ const executor = new MigrationScriptExecutor({
   handler,
   metricsCollectors: [
     new LoggerMetricsCollector({ logger })
-  ]
-}, config);
+  ], 
+  config 
+});
 ```
 
 ---
@@ -388,8 +394,9 @@ const executor = new MigrationScriptExecutor({
   logger: appLogger,  // App logging
   metricsCollectors: [
     new LoggerMetricsCollector({ logger: appLogger })  // Metrics
-  ]
-}, config);
+  ], 
+  config
+});
 ```
 
 **Benefit:** All logs (app + metrics) in same destinations
@@ -410,8 +417,9 @@ const executor = new MigrationScriptExecutor({
     new LoggerMetricsCollector({
       logger: metricsLogger  // Metrics only
     })
-  ]
-}, config);
+  ], 
+  config
+});
 ```
 
 **Benefit:** Metrics isolated for analysis

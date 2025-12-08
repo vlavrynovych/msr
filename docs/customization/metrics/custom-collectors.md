@@ -100,8 +100,9 @@ new MigrationScriptExecutor({
   handler,
   metricsCollectors: [
     new HttpMetricsCollector('https://api.example.com/metrics')
-  ]
-}, config);
+  ], 
+  config 
+});
 ```
 
 ---
@@ -206,8 +207,9 @@ new MigrationScriptExecutor({
       host: 'localhost',
       prefix: 'myapp.'
     })
-  ]
-}, config);
+  ], 
+  config 
+});
 ```
 
 **Install dependencies:**
@@ -366,8 +368,9 @@ new MigrationScriptExecutor({
         { Name: 'Application', Value: 'api-server' }
       ]
     })
-  ]
-}, config);
+  ], 
+  config
+});
 ```
 
 **Install dependencies:**

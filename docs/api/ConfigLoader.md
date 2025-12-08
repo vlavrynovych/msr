@@ -21,11 +21,13 @@ Utility class for loading configuration using environment variables and config f
 
 ## Overview
 
-`ConfigLoader` is a utility class that provides waterfall configuration loading with support for:
+`ConfigLoader` is an extensible utility class that provides waterfall configuration loading with support for:
 - Environment variables (`MSR_*`)
 - Configuration files in multiple formats (`.js`, `.json`, `.yaml`, `.yml`, `.toml`, `.xml`)
 - Built-in defaults
 - Constructor overrides
+
+**New in v0.7.0:** Generic class design with instance methods that can be extended by database adapters for custom environment variable handling
 
 **New in v0.6.0:** YAML, TOML, and XML configuration file support with optional peer dependencies
 
@@ -61,7 +63,39 @@ const tableName = process.env[ENV.MSR_TABLE_NAME];
 
 ---
 
-## Static Methods
+## Generic Type Parameter
+
+**New in v0.7.0:**
+
+```typescript
+class ConfigLoader<C extends Config = Config> implements IConfigLoader<C>
+```
+
+The `ConfigLoader` is now generic, allowing database adapters to extend it with custom configuration types.
+
+**Example:**
+```typescript
+// Core usage (default)
+const loader = new ConfigLoader();
+const config = loader.load();
+
+// Adapter usage with custom config
+class PostgreSqlConfigLoader extends ConfigLoader<PostgreSqlConfig> {
+    applyEnvironmentVariables(config: PostgreSqlConfig): void {
+        super.applyEnvironmentVariables(config); // Apply MSR_* vars
+        // Add POSTGRES_* env vars
+        if (process.env.POSTGRES_HOST) {
+            config.host = process.env.POSTGRES_HOST;
+        }
+    }
+}
+```
+
+---
+
+## Instance Methods
+
+**New in v0.7.0:** `load()` and `applyEnvironmentVariables()` are now instance methods that can be overridden by adapters extending `ConfigLoader`.
 
 ### load()
 
@@ -69,17 +103,17 @@ Load configuration using waterfall approach.
 
 **Signature:**
 ```typescript
-static load(
-    overrides?: Partial<Config>,
-    optionsOrBaseDir?: string | ConfigLoaderOptions
-): Config
+load(
+    overrides?: Partial<C>,
+    options?: ConfigLoaderOptions
+): C
 ```
 
 **Parameters:**
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
-| `overrides` | `Partial<Config>` | `undefined` | Optional configuration overrides (highest priority) |
-| `optionsOrBaseDir` | `string \| ConfigLoaderOptions` | `process.cwd()` | Base directory (string) or options object |
+| `overrides` | `Partial<C>` | `undefined` | Optional configuration overrides (highest priority) |
+| `options` | `ConfigLoaderOptions` | `undefined` | Loader options (baseDir, configFile) |
 
 **ConfigLoaderOptions:**
 ```typescript
@@ -89,7 +123,7 @@ interface ConfigLoaderOptions {
 }
 ```
 
-**Returns:** `Config` - Fully loaded configuration object
+**Returns:** `C` - Fully loaded configuration object
 
 **Priority Order:**
 1. Built-in defaults (lowest)
@@ -100,36 +134,90 @@ interface ConfigLoaderOptions {
 **Examples:**
 
 ```typescript
-// Basic usage - load with waterfall
-const config = ConfigLoader.load();
+// Basic usage - instance method
+const loader = new ConfigLoader();
+const config = loader.load();
 
 // With overrides (highest priority)
-const config = ConfigLoader.load({
+const config = loader.load({
     folder: './migrations',
     dryRun: true
 });
 
-// From specific directory (string)
-const config = ConfigLoader.load({}, '/app');
-
 // Using options object
-const config = ConfigLoader.load({}, {
+const config = loader.load({}, {
     baseDir: '/app',
     configFile: './config/production.config.json'
 });
 
 // Specify config file explicitly
-const config = ConfigLoader.load({}, {
+const config = loader.load({}, {
     configFile: './custom-config.yaml'
 });
 
 // Use with MigrationScriptExecutor
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({
+    handler,
+    config: loader.load()
+});
+
+// Or pass loader to executor
+const executor = new MigrationScriptExecutor({
+    handler,
+    configLoader: loader
+});
 ```
 
 **Error Handling:**
 - Invalid config files are logged as warnings but don't stop loading
 - Falls back to defaults + environment variables if file loading fails
+
+---
+
+### applyEnvironmentVariables()
+
+**New in v0.7.0:** Instance method that can be overridden by adapters.
+
+Apply environment variables to configuration object.
+
+**Signature:**
+```typescript
+applyEnvironmentVariables(config: C): void
+```
+
+**Parameters:**
+| Name | Type | Description |
+|------|------|-------------|
+| `config` | `C` | Configuration object to modify with env vars |
+
+**Base Implementation:**
+- Applies all `MSR_*` environment variables
+- Uses type coercion based on default values
+- Called automatically during `load()`
+
+**Extending for Adapters:**
+```typescript
+class PostgreSqlConfigLoader extends ConfigLoader {
+    applyEnvironmentVariables(config: Config): void {
+        // Apply base MSR_* variables
+        super.applyEnvironmentVariables(config);
+
+        // Add custom POSTGRES_* variables
+        if (process.env.POSTGRES_HOST) {
+            (config as any).host = process.env.POSTGRES_HOST;
+        }
+        if (process.env.POSTGRES_PORT) {
+            (config as any).port = parseInt(process.env.POSTGRES_PORT);
+        }
+    }
+}
+```
+
+---
+
+## Static Helper Methods
+
+These utility methods remain static and can be used by adapters for consistent type coercion:
 
 ---
 
@@ -604,7 +692,7 @@ const config = ConfigLoader.load({
     strictValidation: true
 });
 
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 await executor.migrate();
 ```
 
@@ -764,7 +852,7 @@ const config = ConfigLoader.load({
 
 // Create executor
 const handler = new PostgreSQLHandler(process.env.DATABASE_URL);
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 
 // Run migrations
 await executor.migrate();

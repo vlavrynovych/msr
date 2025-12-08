@@ -135,18 +135,18 @@ export class MigrationScriptExecutor<DB extends IDB> {
      * Initializes all required services (backup, schema version tracking, console rendering,
      * migration discovery) and displays the application banner.
      *
-     * **Configuration Loading (Waterfall):**
-     * If no config provided, automatically loads using ConfigLoader.load():
-     * 1. Environment variables (MSR_*)
-     * 2. Config file (./msr.config.js, ./msr.config.json, or MSR_CONFIG_FILE)
-     * 3. Built-in defaults
+     * **Configuration Loading (Waterfall - v0.7.0):**
+     * Uses ConfigLoader instance (from dependencies.configLoader or default):
+     * 1. Start with built-in defaults
+     * 2. Merge with config file (if exists)
+     * 3. Merge with environment variables (MSR_*)
+     * 4. Merge with dependencies.config (if provided)
      *
-     * **Breaking Change in v0.6.0:**
-     * Constructor signature changed from `(handler, config?, dependencies?)` to `(dependencies, config?)`.
-     * Handler is now required in dependencies object.
+     * **Breaking Changes:**
+     * - v0.7.0: Single parameter constructor `(dependencies)`. Config moved to dependencies.config.
+     * - v0.6.0: Constructor signature changed from `(handler, config?, dependencies?)` to `(dependencies, config?)`.
      *
-     * @param dependencies - Service dependencies including required handler
-     * @param config - Optional configuration for migrations. If not provided, uses waterfall loading.
+     * @param dependencies - Service dependencies including required handler, optional config and configLoader
      *
      * @example
      * ```typescript
@@ -155,16 +155,17 @@ export class MigrationScriptExecutor<DB extends IDB> {
      *     handler: myDatabaseHandler
      * });
      *
-     * // With explicit config
-     * const config = new Config();
+     * // With explicit config (v0.7.0+)
      * const executor = new MigrationScriptExecutor<IDB>({
-     *     handler: myDatabaseHandler
-     * }, config);
+     *     handler: myDatabaseHandler,
+     *     config: new Config({ folder: './migrations' })
+     * });
      *
-     * // With partial config overrides (merged with waterfall)
+     * // With custom config loader (v0.7.0+)
      * const executor = new MigrationScriptExecutor<IDB>({
-     *     handler: myDatabaseHandler
-     * }, ConfigLoader.load({ dryRun: true }));
+     *     handler: myDatabaseHandler,
+     *     configLoader: new CustomConfigLoader()
+     * });
      *
      * // With JSON output for CI/CD
      * const executor = new MigrationScriptExecutor<IDB>({
@@ -182,20 +183,21 @@ export class MigrationScriptExecutor<DB extends IDB> {
      * // With mock services for testing
      * const executor = new MigrationScriptExecutor<IDB>({
      *     handler: mockHandler,
+     *     config: testConfig,
      *     backupService: mockBackupService,
      *     migrationService: mockMigrationService
      * });
      * ```
      */
-    constructor(
-        dependencies: IMigrationExecutorDependencies<DB>,
-        config?: Config
-    ) {
+    constructor(dependencies: IMigrationExecutorDependencies<DB>) {
         // Extract handler from dependencies
         this.handler = dependencies.handler;
 
-        // Use provided config or load using waterfall approach
-        this.config = config ?? ConfigLoader.load();
+        // Use provided configLoader or create default instance
+        const configLoader = dependencies.configLoader ?? new ConfigLoader();
+
+        // Load config using configLoader, with dependencies.config as override
+        this.config = dependencies.config ?? configLoader.load();
         // Use provided logger or default to ConsoleLogger, wrapped with level awareness
         const baseLogger = dependencies.logger ?? new ConsoleLogger();
         this.logger = new LevelAwareLogger(baseLogger, this.config.logLevel);

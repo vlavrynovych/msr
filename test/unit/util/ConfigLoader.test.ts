@@ -331,7 +331,7 @@ describe('ConfigLoader', () => {
 
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             expect(config.folder).to.equal('./custom/migrations');
             expect(config.tableName).to.equal('custom_table');
@@ -351,7 +351,7 @@ describe('ConfigLoader', () => {
 
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             expect(config.logging.enabled).to.be.true;
             expect(config.logging.path).to.equal('./custom/logs');
@@ -370,7 +370,7 @@ describe('ConfigLoader', () => {
 
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             expect(config.filePatterns).to.have.lengthOf(2);
             expect(config.filePatterns[0]).to.be.instanceOf(RegExp);
@@ -389,7 +389,7 @@ describe('ConfigLoader', () => {
 
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             expect(config.recursive).to.be.false;
             expect(config.validateBeforeRun).to.be.true;
@@ -409,7 +409,7 @@ describe('ConfigLoader', () => {
 
                 const config = new Config();
                 config.showBanner = false;
-                ConfigLoader.applyEnvironmentVariables(config);
+                new ConfigLoader().applyEnvironmentVariables(config);
 
                 expect(config.logLevel).to.equal(level);
 
@@ -427,7 +427,7 @@ describe('ConfigLoader', () => {
 
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             // Should keep default 'info' when invalid value provided
             expect(config.logLevel).to.equal('info');
@@ -440,7 +440,7 @@ describe('ConfigLoader', () => {
         it('should use default log level when MSR_LOG_LEVEL not set', () => {
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             // Should use default 'info' from Config class
             expect(config.logLevel).to.equal('info');
@@ -457,7 +457,7 @@ describe('ConfigLoader', () => {
             config.showBanner = false;
             const originalPatterns = [...config.filePatterns];
 
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             // Should keep original patterns when JSON is invalid
             expect(config.filePatterns).to.deep.equal(originalPatterns);
@@ -473,7 +473,7 @@ describe('ConfigLoader', () => {
 
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             // Dot-notation should still work even when JSON is invalid
             expect(config.logging.enabled).to.be.true;
@@ -489,7 +489,7 @@ describe('ConfigLoader', () => {
 
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             // Dot-notation should still work even when JSON is invalid
             if (config.backup) {
@@ -513,7 +513,7 @@ describe('ConfigLoader', () => {
 
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             expect(config.logging.enabled).to.be.true;
             expect(config.logging.path).to.equal('./json/logs');
@@ -536,7 +536,7 @@ describe('ConfigLoader', () => {
 
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             expect(config.transaction.mode).to.equal('PER_BATCH');
             expect(config.transaction.retries).to.equal(5);
@@ -553,7 +553,7 @@ describe('ConfigLoader', () => {
             config.showBanner = false;
 
             // Should not throw
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             // Should keep default values
             expect(config.transaction.mode).to.equal('PER_MIGRATION');
@@ -716,7 +716,7 @@ describe('ConfigLoader', () => {
          * Validates that load() returns a proper Config object.
          */
         it('should return Config instance with defaults', () => {
-            const config = ConfigLoader.load();
+            const config = new ConfigLoader().load();
 
             expect(config).to.be.instanceOf(Config);
             expect(config.folder).to.be.a('string');
@@ -731,7 +731,7 @@ describe('ConfigLoader', () => {
             process.env.MSR_FOLDER = './env/migrations';
             process.env.MSR_DRY_RUN = 'true';
 
-            const config = ConfigLoader.load();
+            const config = new ConfigLoader().load();
 
             expect(config.folder).to.equal('./env/migrations');
             expect(config.dryRun).to.be.true;
@@ -744,7 +744,7 @@ describe('ConfigLoader', () => {
         it('should apply overrides over env vars (waterfall)', () => {
             process.env.MSR_FOLDER = './env/migrations';
 
-            const config = ConfigLoader.load({
+            const config = new ConfigLoader().load({
                 folder: './override/migrations'
             });
 
@@ -768,7 +768,7 @@ describe('ConfigLoader', () => {
             `);
 
             try {
-                const config = ConfigLoader.load(undefined, testDir);
+                const config = new ConfigLoader().load(undefined, { baseDir: testDir });
 
                 expect(config.folder).to.equal('./file/migrations');
                 expect(config.tableName).to.equal('file_table');
@@ -804,9 +804,9 @@ describe('ConfigLoader', () => {
             process.env.MSR_DRY_RUN = 'true';
 
             try {
-                const config = ConfigLoader.load({
+                const config = new ConfigLoader().load({
                     tableName: 'override_table'
-                }, testDir);
+                }, { baseDir: testDir });
 
                 // Override wins
                 expect(config.tableName).to.equal('override_table');
@@ -837,7 +837,7 @@ describe('ConfigLoader', () => {
             fs.writeFileSync(configFile, 'module.exports = { invalid syntax');
 
             try {
-                const config = ConfigLoader.load(undefined, testDir);
+                const config = new ConfigLoader().load(undefined, { baseDir: testDir });
 
                 // Should still return a valid Config with defaults
                 expect(config).to.be.instanceOf(Config);
@@ -863,7 +863,7 @@ describe('ConfigLoader', () => {
             fs.writeFileSync(configFile, 'throw "String error not Error instance";');
 
             try {
-                const config = ConfigLoader.load(undefined, testDir);
+                const config = new ConfigLoader().load(undefined, { baseDir: testDir });
 
                 // Should still return a valid Config with defaults
                 expect(config).to.be.instanceOf(Config);
@@ -882,7 +882,7 @@ describe('ConfigLoader', () => {
          * Validates that specifying a non-existent config file falls back to defaults.
          */
         it('should warn and use defaults when explicit config file does not exist', () => {
-            const config = ConfigLoader.load(undefined, {
+            const config = new ConfigLoader().load(undefined, {
                 configFile: './non-existent-config.yaml'
             });
 
@@ -897,7 +897,7 @@ describe('ConfigLoader', () => {
          */
         it('should accept ConfigLoaderOptions with baseDir', () => {
             const testDir = process.cwd();
-            const config = ConfigLoader.load(undefined, {
+            const config = new ConfigLoader().load(undefined, {
                 baseDir: testDir
             });
 

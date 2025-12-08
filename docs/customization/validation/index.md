@@ -47,7 +47,7 @@ const config = new Config();
 config.folder = './migrations';
 
 // Validation is enabled by default (validateBeforeRun = true)
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 
 try {
     await executor.migrate();

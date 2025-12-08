@@ -42,7 +42,7 @@ import { MigrationScriptExecutor } from '@migration-script-runner/core';
 
 // Automatically uses AsciiTableRenderStrategy
 const config = new Config();
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 await executor.migrate();
 ```
 
@@ -201,7 +201,7 @@ Perfect for interactive development with immediate visual feedback:
 import { MigrationScriptExecutor } from '@migration-script-runner/core';
 
 const config = new Config();
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 
 // Beautiful table output for quick review
 await executor.list();
@@ -243,7 +243,7 @@ Great for scripts that require user review:
 import { AsciiTableRenderStrategy } from '@migration-script-runner/core';
 
 const config = new Config();
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 
 console.log('Current migration status:');
 await executor.list();
@@ -261,7 +261,7 @@ if (answer === 'y') {
 ```typescript
 // Good: Local development
 const config = new Config();
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 await executor.migrate();
 
 // Avoid for CI/CD: Use JsonRenderStrategy instead

@@ -110,9 +110,9 @@ describe('MigrationScriptExecutor with Metrics Collectors', () => {
             {
                 handler: handler,
                 logger: new SilentLogger(),
-                metricsCollectors: [mockCollector]
-            },
-            config
+                metricsCollectors: [mockCollector],
+                config: config
+            }
         );
 
         await executor.up();
@@ -131,9 +131,9 @@ describe('MigrationScriptExecutor with Metrics Collectors', () => {
             {
                 handler: handler,
                 logger: new SilentLogger(),
-                metricsCollectors: []
-            },
-            config
+                metricsCollectors: [],
+                config: config
+            }
         );
 
         await executor.up();
@@ -146,9 +146,9 @@ describe('MigrationScriptExecutor with Metrics Collectors', () => {
         const executor = new MigrationScriptExecutor<IDB>(
             {
                 handler: handler,
-                logger: new SilentLogger()
-            },
-            config
+                logger: new SilentLogger(),
+                config: config
+            }
         );
 
         await executor.up();
@@ -162,9 +162,9 @@ describe('MigrationScriptExecutor with Metrics Collectors', () => {
             {
                 handler: handler,
                 logger: new SilentLogger(),
-                metricsCollectors: [mockCollector]
-            },
-            config
+                metricsCollectors: [mockCollector],
+                config: config
+            }
         );
 
         await executor.up();
@@ -204,9 +204,9 @@ describe('MigrationScriptExecutor with Metrics Collectors', () => {
             {
                 handler: handler,
                 logger: new SilentLogger(),
-                metricsCollectors: [mockCollector, mockCollector2]
-            },
-            config
+                metricsCollectors: [mockCollector, mockCollector2],
+                config: config
+            }
         );
 
         await executor.up();

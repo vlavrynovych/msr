@@ -261,7 +261,7 @@ Use the default `ConsoleLogger` for immediate visual feedback:
 
 ```typescript
 const config = new Config();
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 // or explicitly: new MigrationScriptExecutor({ handler,  logger: new ConsoleLogger() });
 ```
 

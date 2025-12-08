@@ -413,7 +413,7 @@ import { IMyDatabase } from './types';
 
 const config = new Config();
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor<IMyDatabase>({ handler }, config);
+const executor = new MigrationScriptExecutor<IMyDatabase>({ handler , config });
 
 // Run migrations and get structured results
 const result: IMigrationResult = await executor.up();
@@ -448,7 +448,7 @@ import { IMyDatabase } from './types';
 
 const config = new Config();
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor<IMyDatabase>({ handler }, config);
+const executor = new MigrationScriptExecutor<IMyDatabase>({ handler , config });
 
 const result = await executor.up();
 process.exit(result.success ? 0 : 1);

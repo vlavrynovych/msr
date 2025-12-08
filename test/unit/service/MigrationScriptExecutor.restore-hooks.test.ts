@@ -77,7 +77,7 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
         const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: restoreHooks,
             backupService: mockBackupService
-}, config);
+, config: config });
 
         // Test rollbackService.rollback with BACKUP strategy
         await executor.rollbackService.rollback([], '/path/to/backup.bkp');
@@ -119,7 +119,7 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
         const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: orderTrackingHooks,
             backupService: mockBackupService
-}, config);
+, config: config });
 
         // Test rollbackService.rollback with BACKUP strategy
         await executor.rollbackService.rollback([], '/path/to/backup.bkp');
@@ -147,7 +147,7 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
         const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: restoreHooks,
             backupService: mockBackupService
-}, config);
+, config: config });
 
         // Test rollbackService.rollback with BACKUP strategy but no backup path
         await executor.rollbackService.rollback([], undefined);
@@ -172,7 +172,7 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
         const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             backupService: mockBackupService
             // No hooks provided
-}, config);
+, config: config });
 
         // Should not throw error - test rollbackService.rollback with BACKUP strategy
         await executor.rollbackService.rollback([], '/path/to/backup.bkp');

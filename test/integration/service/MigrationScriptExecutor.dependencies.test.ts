@@ -59,7 +59,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
          * Validates that the default logger parameter works correctly
          */
         it('should use default ConsoleLogger when logger not provided', () => {
-            const executorWithDefaultLogger = new MigrationScriptExecutor<IDB>({ handler }, cfg);
+            const executorWithDefaultLogger = new MigrationScriptExecutor<IDB>({ handler , config: cfg });
             expect(executorWithDefaultLogger).to.be.instanceOf(MigrationScriptExecutor);
         })
 
@@ -70,7 +70,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
         it('should use custom logger when provided', () => {
             const customLogger = new SilentLogger();
             const executorWithCustomLogger = new MigrationScriptExecutor<IDB>({ handler: handler, logger: customLogger
-}, cfg);
+, config: cfg });
             // Logger should be wrapped with LevelAwareLogger for level filtering
             expect(executorWithCustomLogger.logger).to.be.instanceOf(LevelAwareLogger);
         })
@@ -86,7 +86,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 deleteBackup: sinon.stub()
             };
             const executorWithCustomBackup = new MigrationScriptExecutor<IDB>({ handler: handler, backupService: mockBackupService
-}, cfg);
+, config: cfg });
             expect(executorWithCustomBackup.backupService).to.equal(mockBackupService);
         })
 
@@ -102,7 +102,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 remove: sinon.stub().resolves()
             };
             const executorWithCustomSchema = new MigrationScriptExecutor<IDB>({ handler: handler, schemaVersionService: mockSchemaVersionService
-}, cfg);
+, config: cfg });
             expect(executorWithCustomSchema.schemaVersionService).to.equal(mockSchemaVersionService);
         })
 
@@ -120,7 +120,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 drawExecuted: sinon.stub()
             };
             const executorWithCustomRenderer = new MigrationScriptExecutor<IDB>({ handler: handler, migrationRenderer: mockRenderer
-}, cfg);
+, config: cfg });
             expect(executorWithCustomRenderer.migrationRenderer).to.equal(mockRenderer);
             expect(mockRenderer.drawFiglet.calledOnce).to.be.true;
         })
@@ -135,7 +135,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 findBeforeMigrateScript: sinon.stub().resolves(undefined)
             };
             const executorWithCustomMigration = new MigrationScriptExecutor<IDB>({ handler: handler, migrationService: mockMigrationService
-}, cfg);
+, config: cfg });
             expect(executorWithCustomMigration.migrationService).to.equal(mockMigrationService);
         })
 
@@ -154,7 +154,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 })
             };
             const executorWithCustomScanner = new MigrationScriptExecutor<IDB>({ handler: handler, migrationScanner: mockMigrationScanner
-}, cfg);
+, config: cfg });
             expect(executorWithCustomScanner.migrationScanner).to.equal(mockMigrationScanner);
         })
 
@@ -192,7 +192,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 schemaVersionService: mockSchemaVersionService,
                 migrationRenderer: mockRenderer,
                 migrationService: mockMigrationService
-}, cfg);
+, config: cfg });
 
             // Logger should be wrapped with LevelAwareLogger for level filtering
             expect(executorWithAllCustom.logger).to.be.instanceOf(LevelAwareLogger);

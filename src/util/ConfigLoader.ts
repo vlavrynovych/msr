@@ -5,6 +5,7 @@ import { ENV } from '../model/env';
 import { LogLevel } from '../interface/ILogger';
 import { ConfigFileLoaderRegistry } from './ConfigFileLoaderRegistry';
 import { JsJsonLoader, YamlLoader, TomlLoader, XmlLoader } from './loaders';
+import { IConfigLoader } from '../interface/IConfigLoader';
 
 /**
  * Options for ConfigLoader.load() method.
@@ -34,22 +35,36 @@ export interface ConfigLoaderOptions {
  *
  * **Design:**
  * - Database-agnostic - no database-specific parsing
- * - Adapter-friendly - adapters can use helper methods for their own env vars
+ * - Adapter-friendly - adapters can extend this class and override methods
  * - Type-safe - automatic type coercion based on default values
+ *
+ * **New in v0.7.0:**
+ * - Implements IConfigLoader interface
+ * - Instance methods (load, applyEnvironmentVariables) can be overridden by adapters
+ * - Static methods maintained for backward compatibility
  *
  * @example
  * ```typescript
- * // Main waterfall loading
+ * // Static usage (backward compatible)
  * const config = ConfigLoader.load();
  *
- * // With overrides
- * const config = ConfigLoader.load({ folder: './custom' });
+ * // Instance usage (v0.7.0+)
+ * const loader = new ConfigLoader();
+ * const config = loader.load();
+ *
+ * // Adapter extending ConfigLoader (v0.7.0+)
+ * class PostgreSqlConfigLoader extends ConfigLoader {
+ *     applyEnvironmentVariables(config: C): void {
+ *         super.applyEnvironmentVariables(config);
+ *         // Add POSTGRES_* env vars
+ *     }
+ * }
  *
  * // Individual helpers (for adapters)
  * dryRun: boolean = ConfigLoader.loadFromEnv('MSR_DRY_RUN', false);
  * ```
  */
-export class ConfigLoader {
+export class ConfigLoader<C extends Config = Config> implements IConfigLoader<C> {
     /**
      * Default config file names to search for (in order).
      * Priority: JS > JSON > YAML > TOML > XML
@@ -80,7 +95,7 @@ export class ConfigLoader {
     })();
 
     /**
-     * Load configuration using waterfall approach.
+     * Instance method: Load configuration using waterfall approach.
      *
      * **Priority Order:**
      * 1. Start with built-in defaults (new Config())
@@ -88,47 +103,31 @@ export class ConfigLoader {
      * 3. Merge with environment variables (MSR_*)
      * 4. Merge with provided overrides
      *
+     * **New in v0.7.0:** Instance method (can be overridden by adapters)
+     *
      * @param overrides - Optional configuration overrides (highest priority)
-     * @param optionsOrBaseDir - Options object or base directory string (for backward compatibility)
+     * @param options - Optional loader options (baseDir, configFile)
      * @returns Fully loaded configuration
      *
      * @example
      * ```typescript
-     * // Load with waterfall (env → file → defaults)
-     * const config = ConfigLoader.load();
+     * // Instance usage
+     * const loader = new ConfigLoader();
+     * const config = loader.load();
      *
-     * // Load with custom overrides
-     * const config = ConfigLoader.load({
-     *   folder: './migrations',
-     *   dryRun: true
-     * });
+     * // With overrides
+     * const config = loader.load({ folder: './migrations' });
      *
-     * // Load from specific directory (backward compatible)
-     * const config = ConfigLoader.load({}, '/app');
-     *
-     * // Load with options object
-     * const config = ConfigLoader.load({}, {
-     *   baseDir: '/app',
-     *   configFile: './config/custom.yaml'
-     * });
-     *
-     * // Load specific config file (bypasses auto-detection)
-     * const config = ConfigLoader.load({}, {
-     *   configFile: './production.yaml'
-     * });
+     * // With options
+     * const config = loader.load({}, { baseDir: '/app' });
      * ```
      */
-    static load(
-        overrides?: Partial<Config>,
-        optionsOrBaseDir?: string | ConfigLoaderOptions
-    ): Config {
-        // Normalize options parameter
-        const options: ConfigLoaderOptions = typeof optionsOrBaseDir === 'string'
-            ? { baseDir: optionsOrBaseDir }
-            : (optionsOrBaseDir || {});
-
-        const baseDir = options.baseDir || process.cwd();
-        const explicitConfigFile = options.configFile;
+    load(
+        overrides?: Partial<C>,
+        options?: ConfigLoaderOptions
+    ): C {
+        const baseDir = options?.baseDir || process.cwd();
+        const explicitConfigFile = options?.configFile;
 
         // Step 1: Start with built-in defaults
         const config = new Config();
@@ -147,12 +146,12 @@ export class ConfigLoader {
             }
         } else {
             // Auto-detect config file in baseDir
-            configFilePath = this.findConfigFile(baseDir);
+            configFilePath = ConfigLoader.findConfigFile(baseDir);
         }
 
         if (configFilePath) {
             try {
-                const fileConfig = this.loadFromFile<Partial<Config>>(configFilePath);
+                const fileConfig = ConfigLoader.loadFromFile<Partial<Config>>(configFilePath);
                 Object.assign(config, fileConfig);
             } catch (error) {
                 /* istanbul ignore next: loadFromFile always throws Error objects */
@@ -165,15 +164,16 @@ export class ConfigLoader {
         }
 
         // Step 3: Merge with environment variables
-        this.applyEnvironmentVariables(config);
+        this.applyEnvironmentVariables(config as C);
 
         // Step 4: Merge with provided overrides (highest priority)
         if (overrides) {
             Object.assign(config, overrides);
         }
 
-        return config;
+        return config as C;
     }
+
 
     /**
      * Find config file in the following order:
@@ -218,22 +218,35 @@ export class ConfigLoader {
     }
 
     /**
-     * Apply environment variables to config object.
+     * Instance method: Apply environment variables to config object.
      *
      * Looks for MSR_* environment variables and applies them to config.
      * Uses type coercion based on existing config property types.
+     *
+     * **New in v0.7.0:** Instance method (can be overridden by adapters)
      *
      * @param config - Config object to apply env vars to
      *
      * @example
      * ```typescript
+     * // Instance usage
+     * const loader = new ConfigLoader();
      * const config = new Config();
-     * ConfigLoader.applyEnvironmentVariables(config);
-     * // MSR_FOLDER=./db/migrations → config.folder = './db/migrations'
-     * // MSR_DRY_RUN=true → config.dryRun = true
+     * loader.applyEnvironmentVariables(config);
+     *
+     * // Adapter extending ConfigLoader
+     * class MyConfigLoader extends ConfigLoader {
+     *     applyEnvironmentVariables(config: C): void {
+     *         super.applyEnvironmentVariables(config); // Apply MSR_* vars
+     *         // Add custom env vars
+     *         if (process.env.MY_DB_HOST) {
+     *             (config as any).host = process.env.MY_DB_HOST;
+     *         }
+     *     }
+     * }
      * ```
      */
-    static applyEnvironmentVariables(config: Config): void {
+    applyEnvironmentVariables(config: C): void {
         // Simple properties
         if (process.env[ENV.MSR_FOLDER]) {
             config.folder = process.env[ENV.MSR_FOLDER]!;
@@ -245,22 +258,22 @@ export class ConfigLoader {
             config.beforeMigrateName = process.env[ENV.MSR_BEFORE_MIGRATE_NAME]!;
         }
         if (process.env[ENV.MSR_DRY_RUN] !== undefined) {
-            config.dryRun = this.parseBoolean(process.env[ENV.MSR_DRY_RUN]!);
+            config.dryRun = ConfigLoader.parseBoolean(process.env[ENV.MSR_DRY_RUN]!);
         }
         if (process.env[ENV.MSR_DISPLAY_LIMIT] !== undefined) {
-            config.displayLimit = this.parseNumber(process.env[ENV.MSR_DISPLAY_LIMIT]!);
+            config.displayLimit = ConfigLoader.parseNumber(process.env[ENV.MSR_DISPLAY_LIMIT]!);
         }
         if (process.env[ENV.MSR_RECURSIVE] !== undefined) {
-            config.recursive = this.parseBoolean(process.env[ENV.MSR_RECURSIVE]!);
+            config.recursive = ConfigLoader.parseBoolean(process.env[ENV.MSR_RECURSIVE]!);
         }
         if (process.env[ENV.MSR_VALIDATE_BEFORE_RUN] !== undefined) {
-            config.validateBeforeRun = this.parseBoolean(process.env[ENV.MSR_VALIDATE_BEFORE_RUN]!);
+            config.validateBeforeRun = ConfigLoader.parseBoolean(process.env[ENV.MSR_VALIDATE_BEFORE_RUN]!);
         }
         if (process.env[ENV.MSR_STRICT_VALIDATION] !== undefined) {
-            config.strictValidation = this.parseBoolean(process.env[ENV.MSR_STRICT_VALIDATION]!);
+            config.strictValidation = ConfigLoader.parseBoolean(process.env[ENV.MSR_STRICT_VALIDATION]!);
         }
         if (process.env[ENV.MSR_SHOW_BANNER] !== undefined) {
-            config.showBanner = this.parseBoolean(process.env[ENV.MSR_SHOW_BANNER]!);
+            config.showBanner = ConfigLoader.parseBoolean(process.env[ENV.MSR_SHOW_BANNER]!);
         }
         if (process.env[ENV.MSR_LOG_LEVEL]) {
             const level = process.env[ENV.MSR_LOG_LEVEL]!;
@@ -294,7 +307,7 @@ export class ConfigLoader {
             }
         }
         // Override with dot-notation env vars (takes precedence)
-        config.logging = this.loadNestedFromEnv(ENV.MSR_LOGGING, config.logging);
+        config.logging = ConfigLoader.loadNestedFromEnv(ENV.MSR_LOGGING, config.logging);
 
         // Backup config
         if (config.backup && process.env[ENV.MSR_BACKUP]) {
@@ -306,7 +319,7 @@ export class ConfigLoader {
             }
         }
         if (config.backup) {
-            config.backup = this.loadNestedFromEnv(ENV.MSR_BACKUP, config.backup);
+            config.backup = ConfigLoader.loadNestedFromEnv(ENV.MSR_BACKUP, config.backup);
         }
 
         // Transaction config (v0.5.0)
@@ -319,7 +332,7 @@ export class ConfigLoader {
             }
         }
         // Override with dot-notation env vars (takes precedence)
-        config.transaction = this.loadNestedFromEnv(ENV.MSR_TRANSACTION, config.transaction);
+        config.transaction = ConfigLoader.loadNestedFromEnv(ENV.MSR_TRANSACTION, config.transaction);
     }
 
     /**

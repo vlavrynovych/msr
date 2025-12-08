@@ -68,7 +68,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
             getVersion(): string { return "1.0.0-test" },
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
         const result = await executor.migrate();
 
         // Should succeed (no migrations to run)
@@ -105,7 +105,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
             getVersion(): string { return "1.0.0-test" },
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
         const result = await executor.migrate();
 
         // Should succeed without backup
@@ -145,7 +145,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
             getVersion(): string { return "1.0.0-test" },
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
         const result = await executor.migrate();
 
         // Should succeed and have created backup
@@ -185,7 +185,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
             getVersion(): string { return "1.0.0-test" },
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
         const result = await executor.migrate();
 
         // Should succeed without creating backup
@@ -220,7 +220,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
             getVersion(): string { return "1.0.0-test" },
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
         const result = await executor.migrate();
 
         expect(result.success).to.be.true;
@@ -261,7 +261,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
             getVersion(): string { return "1.0.0-test" },
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
         const result = await executor.migrate();
 
         // Should succeed even without backup
@@ -297,7 +297,7 @@ describe('MigrationScriptExecutor - Rollback Strategies', () => {
             getVersion(): string { return "1.0.0-test" },
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
         const result = await executor.migrate();
 
         expect(result.success).to.be.true;

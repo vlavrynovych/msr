@@ -138,7 +138,7 @@ MSR supports optional dependency injection for all services, enabling:
 ```typescript
 // Default (uses built-in dependencies)
 const config = new Config();
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 // Uses: ConsoleLogger, BackupService, SchemaVersionService, etc.
 
 // Custom dependencies

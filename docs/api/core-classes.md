@@ -35,12 +35,19 @@ interface IMyDatabase extends IDB {
 
 const handler = new MyDatabaseHandler();  // implements IDatabaseMigrationHandler<IMyDatabase>
 const config = new Config();
-const executor = new MigrationScriptExecutor<IMyDatabase>({ handler }, config);
+const executor = new MigrationScriptExecutor<IMyDatabase>({ handler , config });
 ```
 
 #### Constructor
 
-**Signature (v0.6.0+):**
+**Signature (v0.7.0+):**
+```typescript
+constructor<DB extends IDB>(
+    dependencies: IMigrationExecutorDependencies<DB>
+)
+```
+
+**Old Signature (v0.6.x - REMOVED):**
 ```typescript
 constructor<DB extends IDB>(
     dependencies: IMigrationExecutorDependencies<DB>,
@@ -48,18 +55,11 @@ constructor<DB extends IDB>(
 )
 ```
 
-**Old Signature (v0.5.x - REMOVED):**
-```typescript
-constructor(
-    handler: IDatabaseMigrationHandler,
-    config: Config,
-    dependencies?: IMigrationExecutorDependencies
-)
-```
-
-**Parameters (v0.6.0+):**
+**Parameters (v0.7.0+):**
 - `dependencies`: Object containing required and optional dependencies
   - `handler` (required): Database migration handler implementing `IDatabaseMigrationHandler<DB>`
+  - `config?`: Configuration object (defaults to `ConfigLoader.load()` if not provided) - **MOVED from second parameter in v0.7.0**
+  - `configLoader?`: Custom config loader implementing `IConfigLoader` (defaults to `ConfigLoader`) - **NEW in v0.7.0**
   - `logger?`: Custom logger implementation (defaults to `ConsoleLogger`). **Note:** Automatically wrapped with `LevelAwareLogger` for log level filtering based on `config.logLevel`
   - `backupService?`: Custom backup service implementing `IBackupService` (defaults to `BackupService<DB>`)
   - `rollbackService?`: Custom rollback service implementing `IRollbackService<DB>` (defaults to `RollbackService<DB>`)
@@ -70,10 +70,11 @@ constructor(
   - `validationService?`: Custom validation service implementing `IMigrationValidationService<DB>` (defaults to `MigrationValidationService<DB>`)
   - `renderStrategy?`: Custom render strategy implementing `IRenderStrategy<DB>` (defaults to `AsciiTableRenderStrategy<DB>`)
   - `hooks?`: Lifecycle hooks for migration events implementing `IMigrationHooks<DB>` (defaults to `undefined`)
-- `config` (optional): Configuration object (defaults to `ConfigLoader.load()` if not provided)
+  - `metricsCollectors?`: Array of metrics collectors implementing `IMetricsCollector[]` (defaults to `[]`)
+  - `loaderRegistry?`: Custom loader registry implementing `ILoaderRegistry<DB>` (defaults to `LoaderRegistry.createDefault()`)
 
 {: .important }
-> **Breaking Change (v0.3.0):** Config is now passed as a separate second parameter instead of being accessed from `handler.cfg`. This follows the Single Responsibility Principle and improves testability.
+> **Breaking Change (v0.7.0):** Constructor now takes single parameter. Config moved from second parameter into `dependencies.config`. This improves adapter ergonomics and enables extensible configuration loading via `configLoader`.
 
 {: .important }
 > **Breaking Change (v0.6.0):** Constructor signature changed to use dependency injection pattern with `{ handler }` object syntax. Handler is now required in dependencies object as first parameter. Config is now optional (auto-loads if not provided). Generic type parameter `<DB extends IDB>` provides database-specific type safety.
@@ -96,7 +97,7 @@ The `MigrationScriptExecutor` exposes several service instances as public readon
 
 **Example (Accessing Services):**
 ```typescript
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 
 // Check if backup should be created
 if (executor.rollbackService.shouldCreateBackup()) {
@@ -113,7 +114,7 @@ const results = await executor.validationService.validateAll(scripts, config);
 **Example (Custom Rollback Logic):**
 ```typescript
 // Access rollbackService for custom workflows
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 
 try {
   await executor.migrate();

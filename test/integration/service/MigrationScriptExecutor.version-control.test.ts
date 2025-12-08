@@ -80,7 +80,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
         cfg.validateBeforeRun = false;
         cfg.validateMigratedFiles = false;
 
-        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, cfg);
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() , config: cfg });
         initialized = true;
         created = true;
         valid = true;
@@ -395,7 +395,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             // Create executor with empty hooks object
             const executorWithEmptyHooks = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
                 hooks: {} // Hooks object exists but no methods defined
-}, cfg);
+, config: cfg });
 
             const allMigrations = [createMockMigrationScript(1)];
             scripts = [];
@@ -499,7 +499,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                     onStart: onStartSpy,
                     onComplete: onCompleteSpy
                 }
-}, cfg);
+, config: cfg });
 
             const allMigrations = [createMockMigrationScript(1)];
             scripts = [];
@@ -546,7 +546,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                     onStart: onStartSpy,
                     onComplete: onCompleteSpy
                 }
-}, cfg);
+, config: cfg });
 
             const allMigrations = [createMockMigrationScript(1)];
             const migratedScripts = [createMockMigrationScript(1)];
@@ -986,7 +986,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                 hooks: {
                     onStart: onStartSpy
                 }
-}, cfg);
+, config: cfg });
 
             const allMigrations = [
                 createMockMigrationScript(1),
@@ -1030,7 +1030,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                     onBeforeMigrate: onBeforeMigrateSpy,
                     onAfterMigrate: onAfterMigrateSpy
                 }
-}, cfg);
+, config: cfg });
 
             const allMigrations = [
                 createMockMigrationScript(1),
@@ -1075,7 +1075,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                 hooks: {
                     onComplete: onCompleteSpy
                 }
-}, cfg);
+, config: cfg });
 
             const allMigrations = [
                 createMockMigrationScript(1),
@@ -1118,7 +1118,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                 hooks: {
                     onError: onErrorSpy
                 }
-}, cfg);
+, config: cfg });
 
             // Create migration without down() method
             const migrationWithoutDown = new MigrationScript<IDB>('V1_mig.ts', '/fake/path/V1_mig.ts', 1);

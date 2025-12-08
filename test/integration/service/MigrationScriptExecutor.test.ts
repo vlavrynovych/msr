@@ -55,7 +55,7 @@ describe('MigrationScriptExecutor', () => {
         };
 
         // Create executor without config - should auto-load via ConfigLoader
-        const testExecutor = new MigrationScriptExecutor<IDB>({ handler: mockHandler }, cfg);
+        const testExecutor = new MigrationScriptExecutor<IDB>({ handler: mockHandler , config: cfg });
 
         // Verify config was loaded (check a default property)
         expect(testExecutor['config']).to.not.be.undefined;
@@ -109,7 +109,7 @@ describe('MigrationScriptExecutor', () => {
     })
 
     beforeEach(() => {
-        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, cfg);
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() , config: cfg });
         initialized = true
         created = true
         valid = true
@@ -612,7 +612,7 @@ describe('MigrationScriptExecutor', () => {
 
         it('should throw error when hybrid migrations detected with transactions enabled', async () => {
             // Create executor with transaction mode enabled
-            executor = new MigrationScriptExecutor<IDB>({ handler: handler }, config);
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler , config: config });
 
             // Mock pending migrations (both SQL and TS)
             const mockScripts = {
@@ -642,7 +642,7 @@ describe('MigrationScriptExecutor', () => {
         });
 
         it('should NOT throw error when only SQL migrations', async () => {
-            executor = new MigrationScriptExecutor<IDB>({ handler: handler }, config);
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler , config: config });
 
             const mockScripts = {
                 all: [],
@@ -662,7 +662,7 @@ describe('MigrationScriptExecutor', () => {
         });
 
         it('should NOT throw error when only TypeScript migrations', async () => {
-            executor = new MigrationScriptExecutor<IDB>({ handler: handler }, config);
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler , config: config });
 
             const mockScripts = {
                 all: [],
@@ -683,7 +683,7 @@ describe('MigrationScriptExecutor', () => {
 
         it('should NOT throw error when transaction mode is NONE', async () => {
             config.transaction.mode = TransactionMode.NONE;
-            executor = new MigrationScriptExecutor<IDB>({ handler: handler }, config);
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler , config: config });
 
             const mockScripts = {
                 all: [],
@@ -703,7 +703,7 @@ describe('MigrationScriptExecutor', () => {
         });
 
         it('should NOT check when no pending migrations', async () => {
-            executor = new MigrationScriptExecutor<IDB>({ handler: handler }, config);
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler , config: config });
 
             const mockScripts = {
                 all: [],
@@ -720,7 +720,7 @@ describe('MigrationScriptExecutor', () => {
         });
 
         it('should throw error for hybrid with .js files', async () => {
-            executor = new MigrationScriptExecutor<IDB>({ handler: handler }, config);
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler , config: config });
 
             const mockScripts = {
                 all: [],
@@ -745,7 +745,7 @@ describe('MigrationScriptExecutor', () => {
 
         it('should include transaction mode in error message', async () => {
             config.transaction.mode = TransactionMode.PER_BATCH;
-            executor = new MigrationScriptExecutor<IDB>({ handler: handler }, config);
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler , config: config });
 
             const mockScripts = {
                 all: [],
@@ -768,7 +768,7 @@ describe('MigrationScriptExecutor', () => {
         });
 
         it('should provide helpful solutions in error message', async () => {
-            executor = new MigrationScriptExecutor<IDB>({ handler: handler }, config);
+            executor = new MigrationScriptExecutor<IDB>({ handler: handler , config: config });
 
             const mockScripts = {
                 all: [],

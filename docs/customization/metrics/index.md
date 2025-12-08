@@ -50,8 +50,9 @@ const executor = new MigrationScriptExecutor({
     new JsonMetricsCollector({               // Detailed JSON reports
       filePath: './metrics/migration.json'
     })
-  ]
-}, config);
+  ], 
+  config
+});
 
 await executor.up();
 ```
@@ -326,8 +327,9 @@ const executor = new MigrationScriptExecutor({
     new CsvMetricsCollector({
       filePath: './metrics/history.csv'
     })
-  ]
-}, config);
+  ], 
+  config 
+});
 ```
 
 **Benefits:**

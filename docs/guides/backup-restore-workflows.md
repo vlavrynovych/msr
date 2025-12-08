@@ -463,7 +463,7 @@ async function safeProductionMigration() {
   config.backup.prefix = 'pre-migration';
   config.backup.deleteBackup = false; // Keep all backups
 
-  const executor = new MigrationScriptExecutor({ handler }, config);
+  const executor = new MigrationScriptExecutor({ handler , config });
 
   console.log('🔒 Creating production backup before migration...');
   const backupPath = await executor.createBackup();
@@ -592,7 +592,7 @@ async function createBackup() {
   config.backup.prefix = 'ci-backup';
   config.backup.timestamp = true;
 
-  const executor = new MigrationScriptExecutor({ handler }, config);
+  const executor = new MigrationScriptExecutor({ handler , config });
   const backupPath = await executor.createBackup();
 
   // Write backup path for next steps
@@ -628,7 +628,7 @@ async function runMigrations() {
   const backupPath = fs.readFileSync('backup-path.txt', 'utf8');
   config.backup.existingBackupPath = backupPath;
 
-  const executor = new MigrationScriptExecutor({ handler }, config);
+  const executor = new MigrationScriptExecutor({ handler , config });
 
   console.log('Running migrations with backup restore capability...');
   const result = await executor.migrate();
