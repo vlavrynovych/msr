@@ -229,6 +229,39 @@ No breaking changes.
 - Explain WHAT and WHY, not HOW
 - Mention breaking changes
 
+### Pre-Commit Hooks (v0.7.0+)
+
+{: .note }
+> **Automatic Quality Checks:** Pre-commit hooks run automatically when you commit, ensuring code quality before your changes reach the repository.
+
+When you run `git commit`, these checks run automatically:
+
+1. **TypeScript Type Check** - Validates types (fast check)
+2. **Build Check** - Ensures project compiles successfully
+3. **ESLint** - Code style and error detection
+4. **Full Test Suite** - All unit and integration tests
+5. **Coverage Verification** - Ensures 100% coverage
+
+**If checks fail:**
+```bash
+# Fix the issues, then commit again
+npm run lint       # Check what needs fixing
+npm test          # Ensure tests pass
+git add .
+git commit -m "#123: Fix issues"
+```
+
+**Bypassing hooks (WIP commits only):**
+```bash
+# Use sparingly for work-in-progress commits on feature branches
+git commit --no-verify -m "WIP: work in progress"
+```
+
+{: .warning }
+> **Never bypass hooks** for commits to `master` or `release/*` branches. All merged code must pass quality checks.
+
+See [Pre-Commit Hooks](setup#pre-commit-hooks-v070) in the Setup guide for detailed information.
+
 ### What to Commit
 
 **Do commit:**

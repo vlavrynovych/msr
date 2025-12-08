@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# TypeScript type checking
+echo "📘 Type checking TypeScript..."
+npx tsc --noEmit || exit 1
+
+# Build check
+echo "🔨 Building project..."
+npm run build || exit 1
+
+# Run linting
+echo "📝 Running ESLint..."
+npm run lint || exit 1
+
+# Run tests with coverage
+echo "🧪 Running tests with coverage..."
+npm run test:coverage || exit 1
+
+# Check coverage threshold
+echo "📊 Verifying 100% coverage..."
+npx nyc check-coverage --lines 100 --branches 100 --functions 100 --statements 100 || exit 1
+
+echo "✅ All pre-commit checks passed!"

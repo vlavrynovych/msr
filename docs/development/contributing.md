@@ -80,6 +80,9 @@ npm run lint
 npm run test:report
 ```
 
+{: .note }
+> **Pre-Commit Hooks (v0.7.0+):** When you run `git commit`, these checks run automatically via Husky. If they fail, the commit is blocked. See [Pre-Commit Hooks](setup#pre-commit-hooks-v070) for more details.
+
 ---
 
 ## Publishing New Versions

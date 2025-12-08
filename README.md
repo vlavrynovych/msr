@@ -32,8 +32,7 @@ MSR provides a lightweight, flexible framework for managing database migrations 
 - **💡 Better Error Messages** - Actionable error messages with installation instructions when formats aren't available
 - **✨ 100% Test Coverage** - All statements, branches, functions, and lines covered
 
-> [!IMPORTANT]
-> **v0.6.0 contains breaking changes:** Type parameters are now required for all interfaces (e.g., `IDatabaseMigrationHandler<IDB>`) and the constructor signature changed to dependency injection pattern. Migration takes 10-30 minutes. See the [v0.5.x → v0.6.0 Migration Guide](https://migration-script-runner.github.io/msr-core/version-migration/v0.5-to-v0.6) for step-by-step instructions.
+**⚠️ BREAKING CHANGES in v0.6.0:** Type parameters are now required for all interfaces (e.g., `IDatabaseMigrationHandler<IDB>`) and the constructor signature changed to dependency injection pattern. Migration takes 10-30 minutes. See the [v0.5.x → v0.6.0 Migration Guide](https://migration-script-runner.github.io/msr-core/version-migration/v0.5-to-v0.6) for step-by-step instructions.
 
 **[→ View configuration docs](https://migration-script-runner.github.io/msr-core/configuration/)**
 
@@ -261,14 +260,13 @@ See our [GitHub Issues](https://github.com/migration-script-runner/msr-core/issu
 
 This project is licensed under the **MIT License with Commons Clause and Attribution Requirements**.
 
-> [!NOTE]
-> **Quick Summary:**
-> - ✅ Free to use in your applications (including commercial)
-> - ✅ Free to modify and contribute
-> - ❌ Cannot sell MSR or database adapters as standalone products
-> - 🔒 Database adapters require attribution
->
-> See the [LICENSE](LICENSE) file or read the [License Documentation](https://migration-script-runner.github.io/msr-core/license) for detailed examples and FAQ.
+**Quick Summary:**
+- ✅ Free to use in your applications (including commercial)
+- ✅ Free to modify and contribute
+- ❌ Cannot sell MSR or database adapters as standalone products
+- 🔒 Database adapters require attribution
+
+See the [LICENSE](LICENSE) file or read the [License Documentation](https://migration-script-runner.github.io/msr-core/license) for detailed examples and FAQ.
 
 ---
 
