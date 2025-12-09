@@ -360,11 +360,13 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 log: (msg: string) => {}
             };
 
+            // Enable dry run mode
+            config.dryRun = true;
             const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: capturingLogger
 , config: config });
 
-            // Mock executeWithHooks to throw error immediately
-            (executor as any).executeWithHooks = sinon.stub().rejects(new Error('Execution failed'));
+            // Mock hookExecutor.executeWithHooks to throw error immediately
+            (executor as any).workflowOrchestrator.hookExecutor.executeWithHooks = sinon.stub().rejects(new Error('Execution failed'));
 
             // Create scripts object with empty executed array
             const scripts = {
@@ -384,9 +386,13 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 executed: [] // Empty array - this triggers the optional chaining
             };
 
-            // Call private method directly using reflection
+            // Stub migrationScanner and validation
+            sinon.stub((executor as any).migrationScanner, 'scan').resolves(scripts);
+            sinon.stub((executor as any).workflowOrchestrator.validationOrchestrator, 'validateMigrations').resolves();
+
+            // Call through public API which triggers workflow orchestrator
             try {
-                await (executor as any).executeDryRun(scripts);
+                await executor.up();
                 expect.fail('Should have thrown error');
             } catch (error) {
                 // Expected error

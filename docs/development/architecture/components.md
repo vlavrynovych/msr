@@ -31,19 +31,29 @@ graph TB
     end
 
     subgraph "Orchestration Layer"
-        Executor[MigrationScriptExecutor<br/>Main orchestrator]
+        Executor[MigrationScriptExecutor<br/>Main entry point]
         Config[Config<br/>Settings]
+    end
+
+    subgraph "Orchestrator Services (v0.7.0)"
+        WorkflowOrch[MigrationWorkflowOrchestrator<br/>Coordinates workflow]
+        ValidationOrch[MigrationValidationOrchestrator<br/>Validates scripts]
+        ReportingOrch[MigrationReportingOrchestrator<br/>Handles output]
+        ErrorHandler[MigrationErrorHandler<br/>Error recovery]
+        HookExecutor[MigrationHookExecutor<br/>Lifecycle hooks]
+        RollbackManager[MigrationRollbackManager<br/>Rollback strategies]
     end
 
     subgraph "Service Layer"
         Scanner[MigrationScanner<br/>Gathers state]
         Selector[MigrationScriptSelector<br/>Filters migrations]
         Runner[MigrationRunner<br/>Executes scripts]
-        Validator[MigrationValidator<br/>Validates scripts]
+        ValidationService[MigrationValidationService<br/>Validation logic]
         Backup[BackupService<br/>Creates backups]
         Schema[SchemaVersionService<br/>Tracks history]
-        Rollback[RollbackService<br/>Handles failures]
+        Rollback[RollbackService<br/>Rollback execution]
         Renderer[MigrationRenderer<br/>Formats output]
+        MigrationService[MigrationService<br/>Discovers files]
     end
 
     subgraph "Database Layer"
@@ -53,17 +63,39 @@ graph TB
 
     App --> Executor
     Executor --> Config
-    Executor --> Scanner
-    Executor --> Validator
-    Executor --> Backup
-    Executor --> Rollback
-    Executor --> Renderer
+    Executor --> WorkflowOrch
+    Executor --> ValidationOrch
+    Executor --> ReportingOrch
+    Executor --> ErrorHandler
+    Executor --> HookExecutor
+    Executor --> RollbackManager
+
+    WorkflowOrch --> Scanner
+    WorkflowOrch --> ValidationOrch
+    WorkflowOrch --> ReportingOrch
+    WorkflowOrch --> HookExecutor
+    WorkflowOrch --> ErrorHandler
+    WorkflowOrch --> Backup
+    WorkflowOrch --> Rollback
+
+    ValidationOrch --> ValidationService
+    ValidationOrch --> Scanner
+    ValidationOrch --> Schema
+
+    ReportingOrch --> Renderer
+
+    HookExecutor --> Runner
+
+    RollbackManager --> Scanner
+    RollbackManager --> ValidationService
+    RollbackManager --> ErrorHandler
+
+    ErrorHandler --> Rollback
 
     Scanner --> Selector
     Scanner --> Schema
-    Scanner --> MigrationService[MigrationService<br/>Discovers files]
+    Scanner --> MigrationService
 
-    Executor --> Runner
     Runner --> Scripts
     Runner --> Schema
 
@@ -83,10 +115,16 @@ graph TB
     style Scripts fill:#e1f5ff
     style Executor fill:#fff3cd
     style Config fill:#fff3cd
+    style WorkflowOrch fill:#ffeaa7
+    style ValidationOrch fill:#ffeaa7
+    style ReportingOrch fill:#ffeaa7
+    style ErrorHandler fill:#ffeaa7
+    style HookExecutor fill:#ffeaa7
+    style RollbackManager fill:#ffeaa7
     style Scanner fill:#d4edda
     style Selector fill:#d4edda
     style Runner fill:#d4edda
-    style Validator fill:#d4edda
+    style ValidationService fill:#d4edda
     style Backup fill:#d4edda
     style Schema fill:#d4edda
     style Rollback fill:#d4edda
@@ -100,8 +138,9 @@ graph TB
 
 **Layer Responsibilities:**
 - **Blue (User Layer)**: Your application code and migration scripts
-- **Yellow (Orchestration)**: Main coordinator and configuration
-- **Green (Service Layer)**: Specialized services with focused responsibilities
+- **Yellow (Orchestration)**: Main entry point and configuration
+- **Orange (Orchestrators - v0.7.0)**: Specialized orchestrators following Single Responsibility Principle
+- **Green (Service Layer)**: Focused services with specific responsibilities
 - **Pink (Database Layer)**: Your database handler and database
 - **Gray (Output)**: Rendering and logging strategies
 
@@ -111,36 +150,351 @@ graph TB
 
 ### MigrationScriptExecutor
 
-**Purpose:** Orchestrates the entire migration workflow
+**Purpose:** Main entry point that initializes and delegates to orchestrator services
 
-**Responsibilities:**
-- Initializes all required services
-- Coordinates backup → migrate → restore workflow
-- Handles errors and recovery
-- Displays progress and results
+**Responsibilities (v0.7.0 - Refactored):**
+- Initialize all required services and orchestrators
+- Provide public API (`up()`, `down()`, `list()`, `validate()`)
+- Delegate workflow execution to `MigrationWorkflowOrchestrator`
+- Manage dependency injection and service lifecycle
+- Set up hooks, loggers, and transaction managers
 
-**Key Dependencies:**
-- `IBackupService` - Database backup/restore operations
-- `ISchemaVersionService` - Track executed migrations
-- `IRollbackService` - Handle rollback strategies and failure recovery
-- `IMigrationService` - Discover migration files
-- `IMigrationScanner` - Gather complete migration state
-- `IMigrationRenderer` - Display output
-- `MigrationScriptSelector` - Filter migrations
-- `MigrationRunner` - Execute migrations
-- `IMigrationValidationService` - Validate migration scripts
+**Architecture Evolution:**
+- **v0.6.0 and earlier:** GOD class handling all concerns
+- **v0.7.0:** Refactored - delegates to 6 specialized orchestrators
+
+**Key Orchestrator Dependencies (v0.7.0):**
+- `IMigrationWorkflowOrchestrator` - Coordinates migration workflow
+- `IMigrationValidationOrchestrator` - Validates scripts before execution
+- `IMigrationReportingOrchestrator` - Handles rendering and logging
+- `IMigrationErrorHandler` - Error recovery and rollback decisions
+- `IMigrationHookExecutor` - Lifecycle hook execution
+- `IMigrationRollbackManager` - Rollback strategy execution
+
+**Additional Service Dependencies:**
+- `IBackupService`, `ISchemaVersionService`, `IRollbackService`
+- `IMigrationService`, `IMigrationScanner`, `IMigrationRenderer`
+- `MigrationScriptSelector`, `MigrationRunner`, `IMigrationValidationService`
+- `ILoaderRegistry`, `ITransactionManager`, `ILogger`, `IMigrationHooks`
 
 **Location:** `src/service/MigrationScriptExecutor.ts`
 
 ```typescript
-// Example usage
+// Example usage (public API unchanged)
 const config = new Config();
-const executor = new MigrationScriptExecutor({ handler, 
+const executor = new MigrationScriptExecutor({ handler,
     logger: new SilentLogger(),  // Optional DI
     backupService: customBackup  // Optional DI
 });
 
-const result = await executor.migrate();
+const result = await executor.up();  // Delegates to workflowOrchestrator
+```
+
+---
+
+## Orchestrator Services (v0.7.0)
+
+The following orchestrators were extracted from MigrationScriptExecutor in v0.7.0 to follow the Single Responsibility Principle. Each handles a specific aspect of the migration workflow.
+
+### MigrationWorkflowOrchestrator
+
+**Purpose:** Coordinates the complete migration workflow from start to finish
+
+**Responsibilities:**
+- Orchestrate the full migration lifecycle: prepare → scan → validate → backup → execute → report
+- Coordinate between validation, reporting, and hook orchestrators
+- Handle both `migrateAll()` and `migrateToVersion()` workflows
+- Execute dry-run mode with automatic rollback
+- Detect and prevent hybrid migrations (SQL + TypeScript with transactions enabled)
+- Manage error recovery and rollback coordination
+
+**Key Methods:**
+- `migrateAll()` - Execute all pending migrations
+- `migrateToVersion(targetVersion)` - Migrate to specific version
+
+**Workflow Steps:**
+```
+1. prepareForMigration() - Execute beforeMigrate setup script
+2. scanAndValidate() - Scan filesystem, validate scripts, check transaction config
+3. createBackupIfNeeded() - Create backup based on strategy
+4. checkHybridMigrationsAndDisableTransactions() - Prevent SQL+TS conflicts
+5. executePendingMigrations() or executeDryRun() - Run migrations
+6. Report results via reportingOrchestrator
+7. On error: delegate to errorHandler for rollback
+```
+
+**Location:** `src/service/MigrationWorkflowOrchestrator.ts`
+
+**Example:**
+```typescript
+const workflowOrchestrator = new MigrationWorkflowOrchestrator({
+    migrationScanner,
+    validationOrchestrator,
+    reportingOrchestrator,
+    backupService,
+    hookExecutor,
+    errorHandler,
+    // ... other dependencies
+});
+
+const result = await workflowOrchestrator.migrateAll();
+```
+
+---
+
+### MigrationValidationOrchestrator
+
+**Purpose:** Orchestrates all validation activities before migration execution
+
+**Responsibilities:**
+- Validate migration scripts (file existence, structure, naming)
+- Validate migrated file integrity with checksum verification
+- Validate transaction configuration against database capabilities
+- Validate loader availability for detected file types
+- Coordinate validation service for actual validation logic
+- Render validation errors in user-friendly format
+
+**Key Methods:**
+- `validateMigrations(scripts)` - Validate pending migration scripts
+- `validateMigratedFileIntegrity(scripts)` - Verify checksums of executed migrations
+- `validateTransactionConfiguration(scripts)` - Check database supports transaction mode
+- `validateLoaderAvailability(scripts)` - Ensure loaders exist for file types
+
+**Validation Checks:**
+```
+File Validation:
+- File exists on filesystem
+- Filename follows Vxxxx_description pattern
+- File is readable and loadable
+- Duplicate timestamps detection
+
+Integrity Validation (v0.6.0):
+- Checksum matches database record
+- File hasn't been modified since execution
+- Missing files detection
+
+Transaction Validation (v0.5.0):
+- Database implements ITransactionalDB or ICallbackTransactionalDB
+- Isolation level support verification
+```
+
+**Location:** `src/service/MigrationValidationOrchestrator.ts`
+
+**Example:**
+```typescript
+const validationOrch = new MigrationValidationOrchestrator({
+    validationService,
+    logger,
+    config,
+    loaderRegistry,
+    migrationScanner,
+    schemaVersionService,
+    handler
+});
+
+// Throws ValidationError if any issues found
+await validationOrch.validateMigrations(pendingScripts);
+```
+
+---
+
+### MigrationReportingOrchestrator
+
+**Purpose:** Orchestrates all rendering and logging activities
+
+**Responsibilities:**
+- Render migration status tables (pending, migrated, ignored)
+- Log migration progress and completion
+- Handle dry-run mode logging
+- Display transaction testing messages
+- Log warnings (no pending migrations, backup not created, etc.)
+- Coordinate between renderer and logger for consistent output
+
+**Key Methods:**
+- `renderMigrationStatus(scripts)` - Display migration state table
+- `logMigrationComplete(result)` - Log success/failure summary
+- `logDryRunMode()` - Display dry-run banner
+- `logNoPendingMigrations()` - Warn when no migrations to execute
+- `logDryRunTransactionTesting(mode)` - Log transaction test mode
+
+**Output Coordination:**
+```
+Renderer → Formats tables/JSON/silent output
+Logger → Writes to console/file/silent
+Orchestrator → Coordinates timing and content
+```
+
+**Location:** `src/service/MigrationReportingOrchestrator.ts`
+
+**Example:**
+```typescript
+const reportingOrch = new MigrationReportingOrchestrator({
+    migrationRenderer,
+    logger,
+    config
+});
+
+// Render status table
+reportingOrch.renderMigrationStatus(scripts);
+
+// Log completion
+reportingOrch.logMigrationComplete(result);
+```
+
+---
+
+### MigrationErrorHandler
+
+**Purpose:** Handles errors and orchestrates recovery strategies
+
+**Responsibilities:**
+- Catch and process migration errors
+- Determine rollback strategy based on error type
+- Coordinate with RollbackService for recovery
+- Call lifecycle hooks (onError)
+- Format error messages with context
+- Decide whether to throw or return failure result
+
+**Error Handling Strategy:**
+```
+1. Catch error from migration execution
+2. Log error details with context
+3. Call onError hook if present
+4. Delegate to rollbackService for recovery
+5. Return structured error result or re-throw
+```
+
+**Key Method:**
+```typescript
+async handleMigrationError(
+    error: unknown,
+    targetVersion: number | undefined,
+    executedScripts: MigrationScript[],
+    backupPath: string | undefined,
+    errors: Error[]
+): Promise<IMigrationResult>
+```
+
+**Location:** `src/service/MigrationErrorHandler.ts`
+
+**Example:**
+```typescript
+const errorHandler = new MigrationErrorHandler({
+    logger,
+    hooks,
+    rollbackService
+});
+
+try {
+    await runMigrations();
+} catch (error) {
+    return await errorHandler.handleMigrationError(
+        error,
+        targetVersion,
+        executedScripts,
+        backupPath,
+        errors
+    );
+}
+```
+
+---
+
+### MigrationHookExecutor
+
+**Purpose:** Executes lifecycle hooks around migration scripts
+
+**Responsibilities:**
+- Execute beforeAll/afterAll hooks for batch operations
+- Execute beforeEach/afterEach hooks for individual scripts
+- Wrap script execution with hook lifecycle
+- Pass migration context to hooks (script info, metadata)
+- Handle hook errors gracefully
+- Delegate to MigrationRunner for actual script execution
+
+**Hook Lifecycle:**
+```
+beforeAll(scripts)
+  forEach script:
+    beforeEach(script, info)
+      runner.executeOne(script)  ← Actual execution
+    afterEach(script, info)
+afterAll(scripts)
+```
+
+**Key Method:**
+```typescript
+async executeWithHooks(
+    scripts: MigrationScript[],
+    alreadyExecuted: MigrationScript[]
+): Promise<void>
+```
+
+**Location:** `src/service/MigrationHookExecutor.ts`
+
+**Example:**
+```typescript
+const hookExecutor = new MigrationHookExecutor({
+    runner,
+    hooks
+});
+
+// Execute migrations with full hook lifecycle
+await hookExecutor.executeWithHooks(
+    pendingScripts,
+    alreadyExecutedScripts
+);
+```
+
+---
+
+### MigrationRollbackManager
+
+**Purpose:** Manages rollback operations for down migrations
+
+**Responsibilities:**
+- Execute down migrations (reverse order)
+- Scan and validate scripts for rollback
+- Handle version-specific rollback (downTo)
+- Coordinate error handling during rollback
+- Call lifecycle hooks during rollback
+- Remove schema_version entries after successful rollback
+
+**Rollback Workflow:**
+```
+1. Scan and gather migration state
+2. Select scripts to rollback (getMigratedDownTo)
+3. Initialize and validate scripts
+4. Execute down() methods in reverse order
+5. Remove from schema_version table
+6. Call lifecycle hooks
+7. Handle errors via errorHandler
+```
+
+**Key Method:**
+```typescript
+async down(targetVersion: number): Promise<IMigrationResult>
+```
+
+**Location:** `src/service/MigrationRollbackManager.ts`
+
+**Example:**
+```typescript
+const rollbackManager = new MigrationRollbackManager({
+    handler,
+    schemaVersionService,
+    migrationScanner,
+    selector,
+    logger,
+    config,
+    loaderRegistry,
+    validationService,
+    hooks,
+    errorHandler
+});
+
+// Rollback to version 5 (reverses all migrations > 5)
+const result = await rollbackManager.down(5);
 ```
 
 ---

@@ -2,7 +2,7 @@
 layout: default
 title: Previous
 parent: Version Migration
-nav_order: 2
+nav_order: 1
 has_children: true
 ---
 
@@ -11,4 +11,4 @@ has_children: true
 
 Migration guides for older versions of Migration Script Runner.
 
-For the latest migration guide, see [v0.5.x → v0.6.0](../v0.5-to-v0.6).
+For the latest migration guide, see [v0.6.x → v0.7.0](../v0.6-to-v0.7).

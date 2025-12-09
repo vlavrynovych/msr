@@ -282,7 +282,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
          */
         it('should call validateMigrations when validateBeforeRun is true', async () => {
             // Stub validateMigrations to track calls
-            const validateStub = sinon.stub(executor as any, 'validateMigrations').resolves();
+            const validateStub = sinon.stub((executor as any).validationOrchestrator, 'validateMigrations').resolves();
 
             const allMigrations = [createMockMigrationScript(1)];
             scripts = [];
@@ -314,7 +314,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
          */
         it('should call validateMigratedFileIntegrity when validateMigratedFiles is true', async () => {
             // Stub validateMigratedFileIntegrity to track calls
-            const integrityStub = sinon.stub(executor as any, 'validateMigratedFileIntegrity').resolves();
+            const integrityStub = sinon.stub((executor as any).validationOrchestrator, 'validateMigratedFileIntegrity').resolves();
 
             const allMigrations = [
                 createMockMigrationScript(1),
@@ -892,8 +892,8 @@ describe('MigrationScriptExecutor - Version Control', () => {
          * Validates that the validation method is invoked before rollback
          */
         it('should call validateMigrations when validateBeforeRun is true', async () => {
-            // Stub validateMigrations to track calls without actually validating
-            const validateStub = sinon.stub(executor as any, 'validateMigrations').resolves();
+            // Stub validateAll to track calls without actually validating
+            const validateStub = sinon.stub(executor.validationService, 'validateAll').resolves([]);
 
             const allMigrations = [
                 createMockMigrationScript(1),
@@ -938,7 +938,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
          */
         it('should call validateMigratedFileIntegrity when validateMigratedFiles is true', async () => {
             // Stub validateMigratedFileIntegrity to track calls without actually validating
-            const integrityStub = sinon.stub(executor as any, 'validateMigratedFileIntegrity').resolves();
+            const integrityStub = sinon.stub(executor.validationService, 'validateMigratedFileIntegrity').resolves([]);
 
             const allMigrations = [
                 createMockMigrationScript(1),

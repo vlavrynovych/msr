@@ -21,32 +21,90 @@ Architectural patterns and design decisions in MSR.
 
 ## Class Diagram
 
-This UML class diagram shows the main classes, their properties, methods, and relationships:
+This UML class diagram shows the main classes, their properties, methods, and relationships (v0.7.0 - includes new orchestrators):
 
 ```mermaid
 classDiagram
     class MigrationScriptExecutor {
         -handler: IDatabaseMigrationHandler
-        -backupService: IBackup<IDB>Service
-        -schemaVersionService: ISchemaVersionService<IDB>
-        -migrationService: IMigrationService
+        -workflowOrchestrator: IMigrationWorkflowOrchestrator
+        -validationOrchestrator: IMigrationValidationOrchestrator
+        -reportingOrchestrator: IMigrationReportingOrchestrator
+        -errorHandler: IMigrationErrorHandler
+        -hookExecutor: IMigrationHookExecutor
+        -rollbackManager: IMigrationRollbackManager
+        -backupService: IBackupService
+        -schemaVersionService: ISchemaVersionService
+        -migrationScanner: IMigrationScanner
+        -rollbackService: IRollbackService
+        -logger: ILogger
+        +up(targetVersion?) Promise~IMigrationResult~
+        +down(targetVersion) Promise~IMigrationResult~
+        +list(number) Promise~void~
+        +validate() Promise~ValidationResult~
+    }
+
+    class MigrationWorkflowOrchestrator {
+        <<orchestrator>>
+        -migrationScanner: IMigrationScanner
+        -validationOrchestrator: IMigrationValidationOrchestrator
+        -reportingOrchestrator: IMigrationReportingOrchestrator
+        -backupService: IBackupService
+        -hookExecutor: IMigrationHookExecutor
+        -errorHandler: IMigrationErrorHandler
+        -rollbackService: IRollbackService
+        +migrateAll() Promise~IMigrationResult~
+        +migrateToVersion(version) Promise~IMigrationResult~
+    }
+
+    class MigrationValidationOrchestrator {
+        <<orchestrator>>
+        -validationService: IMigrationValidationService
+        -loaderRegistry: ILoaderRegistry
+        -logger: ILogger
+        +validateMigrations(scripts) Promise~void~
+        +validateMigratedFileIntegrity(scripts) Promise~void~
+        +validateTransactionConfiguration(scripts) Promise~void~
+    }
+
+    class MigrationReportingOrchestrator {
+        <<orchestrator>>
         -migrationRenderer: IMigrationRenderer
+        -logger: ILogger
+        -config: Config
+        +renderMigrationStatus(scripts) void
+        +logMigrationComplete(result) void
+        +logDryRunMode() void
+    }
+
+    class MigrationErrorHandler {
+        <<orchestrator>>
+        -logger: ILogger
+        -hooks: IMigrationHooks
+        -rollbackService: IRollbackService
+        +handleMigrationError(error, ...) Promise~IMigrationResult~
+    }
+
+    class MigrationHookExecutor {
+        <<orchestrator>>
+        -runner: MigrationRunner
+        -hooks: IMigrationHooks
+        +executeWithHooks(scripts, executed) Promise~void~
+    }
+
+    class MigrationRollbackManager {
+        <<orchestrator>>
+        -handler: IDatabaseMigrationHandler
         -migrationScanner: IMigrationScanner
         -selector: MigrationScriptSelector
-        -runner: MigrationRunner
-        -rollbackService: RollbackService
-        -logger: ILogger
-        +migrate() Promise~IMigrationResult~
-        +migrateTo(version) Promise~IMigrationResult~
-        +downTo(version) Promise~IMigrationResult~
-        +list(number) Promise~void~
+        -errorHandler: IMigrationErrorHandler
+        +down(targetVersion) Promise~IMigrationResult~
     }
 
     class MigrationScanner {
         -migrationService: IMigrationService
-        -schemaVersionService: ISchemaVersionService<IDB>
+        -schemaVersionService: ISchemaVersionService
         -selector: MigrationScriptSelector
-        -handler: IDatabaseMigrationHandler
         +scan() Promise~IScripts~
     }
 
@@ -60,7 +118,7 @@ classDiagram
 
     class MigrationRunner {
         -handler: IDatabaseMigrationHandler
-        -schemaVersionService: ISchemaVersionService<IDB>
+        -schemaVersionService: ISchemaVersionService
         -logger: ILogger
         +execute(scripts) Promise~MigrationScript[]~
         +executeOne(script) Promise~void~
@@ -73,21 +131,6 @@ classDiagram
         +backup() Promise~string~
         +restore(backupPath) Promise~void~
         +deleteBackup(backupPath) Promise~void~
-    }
-
-    class SchemaVersionService {
-        -handler: IDatabaseMigrationHandler
-        -logger: ILogger
-        +init() Promise~void~
-        +save(script) Promise~void~
-        +getAllMigrated() Promise~MigrationScript[]~
-        +remove(script) Promise~void~
-    }
-
-    class MigrationService {
-        -logger: ILogger
-        +readMigrationScripts(config) Promise~MigrationScript[]~
-        +parseFilename(filename) ParsedFilename
     }
 
     class RollbackService {
@@ -107,22 +150,105 @@ classDiagram
         +renderMigrated(scripts) void
     }
 
-    MigrationScriptExecutor --> MigrationScanner : uses
-    MigrationScriptExecutor --> MigrationScriptSelector : uses
-    MigrationScriptExecutor --> MigrationRunner : uses
-    MigrationScriptExecutor --> BackupService : uses
-    MigrationScriptExecutor --> SchemaVersionService : uses
-    MigrationScriptExecutor --> RollbackService : uses
-    MigrationScriptExecutor --> MigrationRenderer : uses
+    %% Main executor delegates to orchestrators
+    MigrationScriptExecutor --> MigrationWorkflowOrchestrator : delegates
+    MigrationScriptExecutor --> MigrationValidationOrchestrator : uses
+    MigrationScriptExecutor --> MigrationReportingOrchestrator : uses
+    MigrationScriptExecutor --> MigrationErrorHandler : uses
+    MigrationScriptExecutor --> MigrationHookExecutor : uses
+    MigrationScriptExecutor --> MigrationRollbackManager : uses
 
-    MigrationScanner --> MigrationService : uses
-    MigrationScanner --> SchemaVersionService : uses
+    %% Workflow orchestrator coordinates
+    MigrationWorkflowOrchestrator --> MigrationScanner : uses
+    MigrationWorkflowOrchestrator --> MigrationValidationOrchestrator : uses
+    MigrationWorkflowOrchestrator --> MigrationReportingOrchestrator : uses
+    MigrationWorkflowOrchestrator --> MigrationHookExecutor : uses
+    MigrationWorkflowOrchestrator --> MigrationErrorHandler : uses
+    MigrationWorkflowOrchestrator --> BackupService : uses
+    MigrationWorkflowOrchestrator --> RollbackService : uses
+
+    %% Other orchestrator dependencies
+    MigrationValidationOrchestrator --> MigrationScanner : uses
+    MigrationReportingOrchestrator --> MigrationRenderer : uses
+    MigrationHookExecutor --> MigrationRunner : uses
+    MigrationErrorHandler --> RollbackService : uses
+    MigrationRollbackManager --> MigrationScanner : uses
+    MigrationRollbackManager --> MigrationErrorHandler : uses
+
+    %% Service dependencies
     MigrationScanner --> MigrationScriptSelector : uses
-
-    MigrationRunner --> SchemaVersionService : uses
-
     RollbackService --> BackupService : uses
 ```
+
+---
+
+## Orchestrator Pattern
+
+MSR uses the **Orchestrator Pattern** to break down complex workflows into specialized coordinators that each handle a specific aspect of the migration process.
+
+### Pattern Overview
+
+Instead of a single class handling all migration concerns, MSR delegates to specialized orchestrators:
+
+```
+MigrationScriptExecutor (Main Entry Point)
+├── MigrationWorkflowOrchestrator
+│   └── Coordinates: prepare → scan → validate → backup → execute → report
+├── MigrationValidationOrchestrator
+│   └── Orchestrates: file validation, integrity checks, transaction validation
+├── MigrationReportingOrchestrator
+│   └── Coordinates: rendering tables, logging progress, status updates
+├── MigrationErrorHandler
+│   └── Handles: error recovery, rollback decisions, hook notifications
+├── MigrationHookExecutor
+│   └── Executes: beforeAll/afterAll/beforeEach/afterEach lifecycle hooks
+└── MigrationRollbackManager
+    └── Manages: down migrations, version-specific rollbacks
+```
+
+### Benefits
+
+- ✅ **Single Responsibility** - Each orchestrator has one clear purpose
+- ✅ **Testability** - Easy to test each orchestrator in isolation
+- ✅ **Maintainability** - Changes to workflow don't affect error handling
+- ✅ **Readability** - Clear separation of concerns
+- ✅ **Extensibility** - Easy to add new orchestrators without modifying existing ones
+
+### Example: Workflow Delegation
+
+```typescript
+class MigrationScriptExecutor {
+    // Delegates to specialized orchestrator
+    async up(targetVersion?: number) {
+        await this.checkDatabaseConnection();
+
+        if (targetVersion !== undefined) {
+            return this.workflowOrchestrator.migrateToVersion(targetVersion);
+        }
+
+        return this.workflowOrchestrator.migrateAll();
+    }
+}
+```
+
+### Internal vs Public Services
+
+**Important:** Orchestrators are **internal services** (not exposed in public API):
+
+```typescript
+// ✅ PUBLIC - Users can inject these:
+const executor = new MigrationScriptExecutor({
+    handler,
+    logger: customLogger,           // Public service
+    backupService: customBackup,    // Public service
+    renderStrategy: customStrategy  // Public service
+});
+
+// ❌ INTERNAL - Users cannot inject orchestrators:
+//    (Orchestrators are created internally and coordinate services)
+```
+
+This design keeps the public API stable while allowing internal improvements for maintainability.
 
 ---
 
@@ -276,7 +402,7 @@ const executor = new MigrationScriptExecutor({ handler,
 import { IRenderStrategy, JsonRenderStrategy } from '@migration-script-runner/core';
 
 // Use built-in JSON render strategy
-const executor = new MigrationScriptExecutor({ handler, 
+const executor = new MigrationScriptExecutor({ handler,
     renderStrategy: new JsonRenderStrategy(true)  // pretty-printed JSON
 });
 
@@ -288,7 +414,7 @@ class CustomRenderStrategy implements IRenderStrategy {
     // ... implement other methods
 }
 
-const executor = new MigrationScriptExecutor({ handler, 
+const executor2 = new MigrationScriptExecutor({ handler,
     renderStrategy: new CustomRenderStrategy()
 });
 ```
