@@ -26,22 +26,55 @@ This UML class diagram shows the main classes, their properties, methods, and re
 ```mermaid
 classDiagram
     class MigrationScriptExecutor {
-        -handler: IDatabaseMigrationHandler
-        -workflowOrchestrator: IMigrationWorkflowOrchestrator
-        -validationOrchestrator: IMigrationValidationOrchestrator
-        -reportingOrchestrator: IMigrationReportingOrchestrator
-        -errorHandler: IMigrationErrorHandler
-        -hookExecutor: IMigrationHookExecutor
-        -rollbackManager: IMigrationRollbackManager
-        -backupService: IBackupService
-        -schemaVersionService: ISchemaVersionService
-        -migrationScanner: IMigrationScanner
-        -rollbackService: IRollbackService
-        -logger: ILogger
+        #config: Config
+        #handler: IDatabaseMigrationHandler
+        #loaderRegistry: ILoaderRegistry
+        -hooks: IMigrationHooks
+        #core: CoreServices
+        #execution: ExecutionServices
+        #output: OutputServices
+        #orchestration: OrchestrationServices
         +up(targetVersion?) Promise~IMigrationResult~
         +down(targetVersion) Promise~IMigrationResult~
         +list(number) Promise~void~
         +validate() Promise~ValidationResult~
+        +createBackup() Promise~string~
+        +restoreFromBackup(path?) Promise~void~
+        +deleteBackup() void
+        #checkDatabaseConnection() Promise~void~
+    }
+
+    class CoreServices {
+        <<facade>>
+        +scanner: IMigrationScanner
+        +schemaVersion: ISchemaVersionService
+        +migration: IMigrationService
+        +validation: IMigrationValidationService
+        +backup: IBackupService
+        +rollback: IRollbackService
+    }
+
+    class ExecutionServices {
+        <<facade>>
+        +selector: MigrationScriptSelector
+        +runner: MigrationRunner
+        +transactionManager: ITransactionManager
+    }
+
+    class OutputServices {
+        <<facade>>
+        +logger: ILogger
+        +renderer: IMigrationRenderer
+    }
+
+    class OrchestrationServices {
+        <<facade>>
+        +workflow: IMigrationWorkflowOrchestrator
+        +validation: IMigrationValidationOrchestrator
+        +reporting: IMigrationReportingOrchestrator
+        +error: IMigrationErrorHandler
+        +hooks: IMigrationHookExecutor
+        +rollback: IMigrationRollbackManager
     }
 
     class MigrationWorkflowOrchestrator {
@@ -150,15 +183,30 @@ classDiagram
         +renderMigrated(scripts) void
     }
 
-    %% Main executor delegates to orchestrators
-    MigrationScriptExecutor --> MigrationWorkflowOrchestrator : delegates
-    MigrationScriptExecutor --> MigrationValidationOrchestrator : uses
-    MigrationScriptExecutor --> MigrationReportingOrchestrator : uses
-    MigrationScriptExecutor --> MigrationErrorHandler : uses
-    MigrationScriptExecutor --> MigrationHookExecutor : uses
-    MigrationScriptExecutor --> MigrationRollbackManager : uses
+    %% Main executor uses facades (v0.7.0 Facade Pattern)
+    MigrationScriptExecutor *-- CoreServices : contains
+    MigrationScriptExecutor *-- ExecutionServices : contains
+    MigrationScriptExecutor *-- OutputServices : contains
+    MigrationScriptExecutor *-- OrchestrationServices : contains
 
-    %% Workflow orchestrator coordinates
+    %% Facades group related services (v0.7.0 Facade Pattern)
+    CoreServices o-- MigrationScanner : groups
+    CoreServices o-- BackupService : groups
+    CoreServices o-- RollbackService : groups
+
+    ExecutionServices o-- MigrationScriptSelector : groups
+    ExecutionServices o-- MigrationRunner : groups
+
+    OutputServices o-- MigrationRenderer : groups
+
+    OrchestrationServices o-- MigrationWorkflowOrchestrator : groups
+    OrchestrationServices o-- MigrationValidationOrchestrator : groups
+    OrchestrationServices o-- MigrationReportingOrchestrator : groups
+    OrchestrationServices o-- MigrationErrorHandler : groups
+    OrchestrationServices o-- MigrationHookExecutor : groups
+    OrchestrationServices o-- MigrationRollbackManager : groups
+
+    %% Workflow orchestrator coordinates (v0.7.0 - owns executeBeforeMigrate)
     MigrationWorkflowOrchestrator --> MigrationScanner : uses
     MigrationWorkflowOrchestrator --> MigrationValidationOrchestrator : uses
     MigrationWorkflowOrchestrator --> MigrationReportingOrchestrator : uses
@@ -193,7 +241,7 @@ Instead of a single class handling all migration concerns, MSR delegates to spec
 ```
 MigrationScriptExecutor (Main Entry Point)
 ├── MigrationWorkflowOrchestrator
-│   └── Coordinates: prepare → scan → validate → backup → execute → report
+│   └── Coordinates: prepare → executeBeforeMigrate → scan → validate → backup → execute → report
 ├── MigrationValidationOrchestrator
 │   └── Orchestrates: file validation, integrity checks, transaction validation
 ├── MigrationReportingOrchestrator
@@ -231,24 +279,362 @@ class MigrationScriptExecutor {
 }
 ```
 
-### Internal vs Public Services
+### Service Encapsulation (v0.7.0)
 
-**Important:** Orchestrators are **internal services** (not exposed in public API):
+**Important:** All internal services and orchestrators are **encapsulated within facades** (not exposed as public properties):
 
 ```typescript
-// ✅ PUBLIC - Users can inject these:
+// ✅ PUBLIC - Users can inject service implementations via dependencies:
 const executor = new MigrationScriptExecutor({
     handler,
-    logger: customLogger,           // Public service
-    backupService: customBackup,    // Public service
-    renderStrategy: customStrategy  // Public service
+    logger: customLogger,           // Injected service
+    backupService: customBackup,    // Injected service
+    renderStrategy: customStrategy  // Injected strategy
 });
 
-// ❌ INTERNAL - Users cannot inject orchestrators:
-//    (Orchestrators are created internally and coordinate services)
+// ❌ NOT EXPOSED - Services grouped in protected facades (v0.7.0):
+// executor.backupService         // REMOVED in v0.7.0
+// executor.migrationScanner      // REMOVED in v0.7.0
+// executor.validationService     // REMOVED in v0.7.0
+
+// ✅ ADAPTERS - Can extend and access protected facades:
+class CustomExecutor extends MigrationScriptExecutor {
+    async customOperation() {
+        const scripts = await this.core.scanner.scan();      // Protected access
+        this.output.logger.info('Custom operation');         // Protected access
+        return this.orchestration.workflow.migrateAll();     // Protected access
+    }
+}
 ```
 
-This design keeps the public API stable while allowing internal improvements for maintainability.
+**Benefits:**
+- **Better Encapsulation**: Services not exposed as public API
+- **Adapter Extensibility**: Protected facades allow adapter customization
+- **v0.7.0 Breaking Change**: Direct service access removed (e.g., `executor.backupService` no longer works)
+- **Workflow Ownership**: `executeBeforeMigrate()` now owned by `MigrationWorkflowOrchestrator` (eliminates circular dependency)
+
+This design keeps the public API minimal while enabling adapter extensibility through protected facades.
+
+---
+
+## Facade Pattern
+
+**New in v0.7.0:** MSR uses the **Facade Pattern** to group related services into logical facades, reducing complexity and improving maintainability.
+
+### Pattern Overview
+
+The Facade Pattern provides a simplified, unified interface to a complex subsystem. Instead of MigrationScriptExecutor managing 21+ individual service fields, services are now grouped into 4 logical facades:
+
+```
+MigrationScriptExecutor
+├── CoreServices (Business Logic)
+│   ├── scanner: IMigrationScanner
+│   ├── schemaVersion: ISchemaVersionService
+│   ├── migration: IMigrationService
+│   ├── validation: IMigrationValidationService
+│   ├── backup: IBackupService
+│   └── rollback: IRollbackService
+│
+├── ExecutionServices (Migration Execution)
+│   ├── selector: MigrationScriptSelector
+│   ├── runner: MigrationRunner
+│   └── transactionManager: ITransactionManager
+│
+├── OutputServices (Logging and Rendering)
+│   ├── logger: ILogger
+│   └── renderer: IMigrationRenderer
+│
+└── OrchestrationServices (Workflow Coordination)
+    ├── workflow: IMigrationWorkflowOrchestrator
+    ├── validation: IMigrationValidationOrchestrator
+    ├── reporting: IMigrationReportingOrchestrator
+    ├── error: IMigrationErrorHandler
+    ├── hooks: IMigrationHookExecutor
+    └── rollback: IMigrationRollbackManager
+```
+
+### Benefits
+
+1. **Reduced Complexity**: Constructor reduced from 142 lines to 23 lines (83% reduction)
+2. **Fewer Fields**: From 21 individual fields to 7 protected fields (67% reduction)
+3. **Logical Grouping**: Related services grouped by domain responsibility
+4. **Adapter Extensibility**: Protected facades allow adapters to access services
+5. **Better Encapsulation**: Services not exposed as public properties
+
+### Implementation
+
+```typescript
+// Service facades
+export class CoreServices<DB extends IDB> {
+    constructor(
+        public readonly scanner: IMigrationScanner<DB>,
+        public readonly schemaVersion: ISchemaVersionService<DB>,
+        public readonly migration: IMigrationService<DB>,
+        public readonly validation: IMigrationValidationService<DB>,
+        public readonly backup: IBackupService,
+        public readonly rollback: IRollbackService<DB>
+    ) {}
+}
+
+export class ExecutionServices<DB extends IDB> {
+    constructor(
+        public readonly selector: MigrationScriptSelector<DB>,
+        public readonly runner: MigrationRunner<DB>,
+        public readonly transactionManager?: ITransactionManager<DB>
+    ) {}
+}
+
+// Executor uses facades (protected for adapter extensibility)
+export class MigrationScriptExecutor<DB extends IDB> {
+    protected readonly core: CoreServices<DB>;
+    protected readonly execution: ExecutionServices<DB>;
+    protected readonly output: OutputServices<DB>;
+    protected readonly orchestration: OrchestrationServices<DB>;
+
+    constructor(dependencies: IMigrationExecutorDependencies<DB>) {
+        const services = createMigrationServices(dependencies);
+
+        this.core = services.core;
+        this.execution = services.execution;
+        this.output = services.output;
+        this.orchestration = services.orchestration;
+
+        // ...
+    }
+
+    public async up(targetVersion?: number): Promise<IMigrationResult<DB>> {
+        await this.checkDatabaseConnection();
+
+        if (targetVersion !== undefined) {
+            return this.orchestration.workflow.migrateToVersion(targetVersion);
+        }
+
+        return this.orchestration.workflow.migrateAll();
+    }
+
+    protected async checkDatabaseConnection(): Promise<void> {
+        const isConnected = await this.handler.db.checkConnection();
+        if (!isConnected) {
+            this.output.logger.error('Database connection check failed');
+            throw new Error('Database connection check failed');
+        }
+    }
+}
+```
+
+### Adapter Extensibility
+
+Facades are **protected** (not private) to allow adapters to extend MigrationScriptExecutor and access internal services:
+
+```typescript
+export class CustomMigrationExecutor<DB extends IDB> extends MigrationScriptExecutor<DB> {
+    public async migrateWithMetrics(): Promise<IMigrationResult<DB>> {
+        // Access facade services
+        const scripts = await this.core.scanner.scan();
+        this.output.logger.info(`Found ${scripts.pending.length} pending migrations`);
+
+        // Custom logic before migration
+        await this.trackMetrics(scripts);
+
+        // Use orchestrator
+        return this.orchestration.workflow.migrateAll();
+    }
+}
+```
+
+---
+
+## Factory Pattern
+
+**New in v0.7.0:** MSR uses the **Factory Pattern** to extract service initialization logic from the executor constructor into a dedicated factory function.
+
+### Pattern Overview
+
+The Factory Pattern centralizes object creation logic in a separate function, separating "how to create" from "what to do":
+
+```
+createMigrationServices() Factory
+├── Load Configuration (configLoader)
+├── Create Logger (with level filtering)
+├── Create Hooks (composite of metrics + user + summary)
+├── Create Loader Registry
+│
+├── Build CoreServices facade
+│   ├── Create backup service
+│   ├── Create schema version service
+│   ├── Create migration service
+│   ├── Create selector
+│   ├── Create scanner
+│   ├── Create validation service
+│   └── Create rollback service
+│
+├── Build ExecutionServices facade
+│   ├── Create transaction manager
+│   ├── Create selector
+│   └── Create runner
+│
+├── Build OutputServices facade
+│   └── Create renderer
+│
+└── Build OrchestrationServices facade
+    ├── Create error handler
+    ├── Create hook executor
+    ├── Create validation orchestrator
+    ├── Create reporting orchestrator
+    ├── Create rollback manager
+    └── Create workflow orchestrator
+```
+
+### Benefits
+
+1. **Separation of Concerns**: Construction logic separate from business logic
+2. **Testability**: Factory can be tested independently
+3. **Maintainability**: Changes to initialization in one place
+4. **Reduced Constructor Complexity**: Executor constructor delegates to factory
+5. **Reusability**: Factory logic can be reused in testing
+
+### Implementation
+
+**Factory Function:**
+```typescript
+// src/service/MigrationServicesFactory.ts
+export function createMigrationServices<DB extends IDB>(
+    dependencies: IMigrationExecutorDependencies<DB>
+): MigrationServicesFacades<DB> {
+
+    const handler = dependencies.handler;
+
+    // Load configuration
+    const configLoader = dependencies.configLoader ?? new ConfigLoader();
+    const config = dependencies.config ?? configLoader.load();
+
+    // Create logger
+    const baseLogger = dependencies.logger ?? new ConsoleLogger();
+    const logger = new LevelAwareLogger(baseLogger, config.logLevel);
+
+    // Setup hooks
+    const hooks = createHooksComposite(dependencies, config, logger, handler);
+
+    // Create loader registry
+    const loaderRegistry = dependencies.loaderRegistry ?? LoaderRegistry.createDefault(logger);
+
+    // Build service facades
+    const core = createCoreServices(dependencies, handler, config, logger, hooks);
+    const execution = createExecutionServices(handler, core, config, logger, hooks);
+    const output = createOutputServices(dependencies, handler, config, logger);
+    const orchestration = createOrchestrationServices(
+        handler, core, execution, output, config, logger, loaderRegistry, hooks
+    );
+
+    return {
+        config,
+        handler,
+        core,
+        execution,
+        output,
+        orchestration,
+        loaderRegistry,
+        hooks
+    };
+}
+```
+
+**Simplified Executor Constructor:**
+```typescript
+export class MigrationScriptExecutor<DB extends IDB> {
+    constructor(dependencies: IMigrationExecutorDependencies<DB>) {
+        // Initialize all services via factory
+        const services = createMigrationServices(dependencies);
+
+        // Store infrastructure
+        this.config = services.config;
+        this.handler = services.handler;
+        this.loaderRegistry = services.loaderRegistry;
+        this.hooks = services.hooks;
+
+        // Store service facades
+        this.core = services.core;
+        this.execution = services.execution;
+        this.output = services.output;
+        this.orchestration = services.orchestration;
+
+        if (this.config.showBanner) {
+            this.output.renderer.drawFiglet();
+        }
+    }
+}
+```
+
+### Helper Functions
+
+The factory delegates to specialized helper functions for better organization:
+
+```typescript
+// Create composite hooks from dependencies
+function createHooksComposite<DB extends IDB>(...): IMigrationHooks<DB> | undefined {
+    const hooks: IMigrationHooks<DB>[] = [];
+
+    if (dependencies.metricsCollectors?.length > 0) {
+        hooks.push(new MetricsCollectorHook(dependencies.metricsCollectors, logger));
+    }
+
+    if (dependencies.hooks) {
+        hooks.push(dependencies.hooks);
+    }
+
+    if (config.logging.enabled) {
+        hooks.push(new ExecutionSummaryHook<DB>(config, logger, handler));
+    }
+
+    return hooks.length > 0 ? new CompositeHooks<DB>(hooks) : undefined;
+}
+
+// Create core business logic services
+function createCoreServices<DB extends IDB>(...): CoreServices<DB> {
+    const backup = dependencies.backupService
+        ?? new BackupService<DB>(handler, config, logger);
+
+    const schemaVersion = dependencies.schemaVersionService
+        ?? new SchemaVersionService<DB>(handler.schemaVersion);
+
+    // ... create other services
+
+    return new CoreServices<DB>(scanner, schemaVersion, migration, validation, backup, rollback);
+}
+
+// Create transaction manager if transactions are enabled
+function createTransactionManager<DB extends IDB>(...): ITransactionManager<DB> | undefined {
+    if (config.transaction.mode === TransactionMode.NONE) {
+        return undefined;
+    }
+
+    if (handler.transactionManager) {
+        return handler.transactionManager;
+    }
+
+    // Auto-create based on database interface
+    if (isImperativeTransactional(handler.db)) {
+        return new DefaultTransactionManager<DB>(handler.db, config.transaction, logger);
+    }
+
+    if (isCallbackTransactional(handler.db)) {
+        return new CallbackTransactionManager<DB>(handler.db, config.transaction, logger);
+    }
+
+    return undefined;
+}
+```
+
+### Pattern Interaction
+
+The Facade and Factory patterns work together:
+
+1. **Factory creates facades**: `createMigrationServices()` builds all 4 facades
+2. **Facades group services**: Each facade contains related services
+3. **Executor consumes facades**: MigrationScriptExecutor stores 4 facades instead of 21+ services
+4. **Protected access for adapters**: Facades are protected for extensibility
+
+**Result**: Clean, maintainable architecture with clear separation of concerns.
 
 ---
 

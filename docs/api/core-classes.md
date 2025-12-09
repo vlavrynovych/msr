@@ -79,54 +79,9 @@ constructor<DB extends IDB>(
 {: .important }
 > **Breaking Change (v0.6.0):** Constructor signature changed to use dependency injection pattern with `{ handler }` object syntax. Handler is now required in dependencies object as first parameter. Config is now optional (auto-loads if not provided). Generic type parameter `<DB extends IDB>` provides database-specific type safety.
 
-#### Public Properties
+#### Public API
 
-The `MigrationScriptExecutor` exposes several service instances as public readonly properties for direct access:
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `backupService` | `IBackupService` | Service for creating and managing database backups |
-| `rollbackService` | `IRollbackService` | Service for handling rollback operations and strategies |
-| `schemaVersionService` | `ISchemaVersionService` | Service for tracking executed migrations |
-| `migrationRenderer` | `IMigrationRenderer` | Service for rendering migration output |
-| `migrationService` | `IMigrationService` | Service for discovering migration script files |
-| `migrationScanner` | `IMigrationScanner` | Service for gathering complete migration state |
-| `validationService` | `IMigrationValidationService` | Service for validating migration scripts |
-| `logger` | `ILogger` | Logger instance used across all services |
-| `hooks` | `IMigrationHooks?` | Optional lifecycle hooks for migration events |
-
-**Example (Accessing Services):**
-```typescript
-const executor = new MigrationScriptExecutor({ handler , config });
-
-// Check if backup should be created
-if (executor.rollbackService.shouldCreateBackup()) {
-  console.log('Backup will be created before migration');
-}
-
-// Access backup service directly
-const backupPath = await executor.backupService.backup();
-
-// Access validation service
-const results = await executor.validationService.validateAll(scripts, config);
-```
-
-**Example (Custom Rollback Logic):**
-```typescript
-// Access rollbackService for custom workflows
-const executor = new MigrationScriptExecutor({ handler , config });
-
-try {
-  await executor.migrate();
-} catch (error) {
-  // Custom rollback decision logic
-  if (shouldUseBackupRestore(error)) {
-    await executor.rollbackService.rollback([], backupPath);
-  } else {
-    console.log('Skipping rollback for this error type');
-  }
-}
-```
+The `MigrationScriptExecutor` provides high-level methods for migration operations. Services are not exposed as public properties - use the documented public methods instead (e.g., `createBackup()`, `restoreFromBackup()`, `validate()`).
 
 #### Methods
 

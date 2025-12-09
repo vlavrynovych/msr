@@ -117,8 +117,8 @@ describe('MigrationScriptExecutor', () => {
         spy.on(handler.schemaVersion.migrationRecords, ['save', 'getAllExecuted']);
 
         spy.on(executor, ['migrate', 'execute']);
-        spy.on(executor.backupService, ['restore', 'deleteBackup', 'backup']);
-        spy.on(executor.migrationService, ['findMigrationScripts']);
+        spy.on((executor as any).core.backup, ['restore', 'deleteBackup', 'backup']);
+        spy.on((executor as any).core.migration, ['findMigrationScripts']);
 });
 
     afterEach(() => {
@@ -157,12 +157,12 @@ describe('MigrationScriptExecutor', () => {
             expect(handler.schemaVersion.migrationRecords.save).have.been.called.once
 
             // Verify migration discovery ran
-            expect(executor.migrationService.findMigrationScripts).have.been.called.once
+            expect((executor as any).core.migration.findMigrationScripts).have.been.called.once
 
             // Verify backup lifecycle: created → not restored (success) → deleted
-            expect(executor.backupService.backup).have.been.called.once
-            expect(executor.backupService.restore).have.not.been.called
-            expect(executor.backupService.deleteBackup).have.been.called.once
+            expect((executor as any).core.backup.backup).have.been.called.once
+            expect((executor as any).core.backup.restore).have.not.been.called
+            expect((executor as any).core.backup.deleteBackup).have.been.called.once
 
             // Verify migration workflow method was called
             expect(executor.migrate).have.been.called.once
@@ -198,12 +198,12 @@ describe('MigrationScriptExecutor', () => {
             expect(handler.schemaVersion.migrationRecords.save).have.not.been.called
 
             // Verify script discovery still ran
-            expect(executor.migrationService.findMigrationScripts).have.been.called.once
+            expect((executor as any).core.migration.findMigrationScripts).have.been.called.once
 
             // Verify backup lifecycle completed even with no migrations
-            expect(executor.backupService.backup).have.been.called.once
-            expect(executor.backupService.restore).have.not.been.called
-            expect(executor.backupService.deleteBackup).have.been.called.once
+            expect((executor as any).core.backup.backup).have.been.called.once
+            expect((executor as any).core.backup.restore).have.not.been.called
+            expect((executor as any).core.backup.deleteBackup).have.been.called.once
 
             // Verify workflow ran but no individual migration tasks executed
             expect(executor.migrate).have.been.called.once
@@ -246,13 +246,13 @@ describe('MigrationScriptExecutor', () => {
             // Migration discovery does NOT happen when schema validation fails
             // Fixed flow: init() → scan() → validate migrations → backup
             // Schema validation failure happens during init(), so scan() is never called
-            expect(executor.migrationService.findMigrationScripts).have.not.been.called
+            expect((executor as any).core.migration.findMigrationScripts).have.not.been.called
 
             // Backup/restore NOT called when validation fails BEFORE backup is created
             // Schema validation failure happens during init(), so backup never created
-            expect(executor.backupService.backup).have.not.been.called
-            expect(executor.backupService.restore).have.not.been.called
-            expect(executor.backupService.deleteBackup).have.not.been.called
+            expect((executor as any).core.backup.backup).have.not.been.called
+            expect((executor as any).core.backup.restore).have.not.been.called
+            expect((executor as any).core.backup.deleteBackup).have.not.been.called
 
             // Verify workflow stopped early due to validation failure
             expect(executor.migrate).have.been.called.once
@@ -275,7 +275,7 @@ describe('MigrationScriptExecutor', () => {
                 }
             } as IRunnableScript<IDB>;
 
-            const readStub = sinon.stub(executor.migrationService, 'findMigrationScripts');
+            const readStub = sinon.stub((executor as any).core.migration, 'findMigrationScripts');
             readStub.resolves([failingScript]);
 
             // Execute migration (will fail)
@@ -287,9 +287,9 @@ describe('MigrationScriptExecutor', () => {
             expect(result.errors!.length).to.be.greaterThan(0)
 
             // Verify error recovery workflow: backup → restore → cleanup
-            expect(executor.backupService.backup).have.been.called;
-            expect(executor.backupService.restore).have.been.called;
-            expect(executor.backupService.deleteBackup).have.been.called;
+            expect((executor as any).core.backup.backup).have.been.called;
+            expect((executor as any).core.backup.restore).have.been.called;
+            expect((executor as any).core.backup.deleteBackup).have.been.called;
 
             readStub.restore();
         })
@@ -418,11 +418,11 @@ describe('MigrationScriptExecutor', () => {
             expect(result.errors).to.be.undefined
 
             // then: verify key methods were called
-            expect(executor.backupService.backup).have.been.called;
-            expect(executor.migrationService.findMigrationScripts).have.been.called;
+            expect((executor as any).core.backup.backup).have.been.called;
+            expect((executor as any).core.migration.findMigrationScripts).have.been.called;
             expect(executor.execute).have.been.called;
-            expect(executor.backupService.restore).have.not.been.called;
-            expect(executor.backupService.deleteBackup).have.been.called;
+            expect((executor as any).core.backup.restore).have.not.been.called;
+            expect((executor as any).core.backup.deleteBackup).have.been.called;
         })
 
         /**
@@ -448,10 +448,10 @@ describe('MigrationScriptExecutor', () => {
             expect(result.errors!.length).to.be.greaterThan(0)
 
             // then: verify error handling lifecycle
-            expect(executor.backupService.backup).have.been.called;
-            expect(executor.backupService.restore).have.been.called;
-            expect(executor.backupService.deleteBackup).have.been.called;
-            expect(executor.migrationService.findMigrationScripts).have.not.been.called;
+            expect((executor as any).core.backup.backup).have.been.called;
+            expect((executor as any).core.backup.restore).have.been.called;
+            expect((executor as any).core.backup.deleteBackup).have.been.called;
+            expect((executor as any).core.migration.findMigrationScripts).have.not.been.called;
         })
 
         /**
@@ -565,9 +565,9 @@ describe('MigrationScriptExecutor', () => {
             expect(result.errors).to.be.undefined
 
             // then: should complete without error
-            expect(executor.backupService.backup).have.been.called;
+            expect((executor as any).core.backup.backup).have.been.called;
             expect(executor.execute).have.been.called;
-            expect(executor.backupService.deleteBackup).have.been.called;
+            expect((executor as any).core.backup.deleteBackup).have.been.called;
         })
     })
 
@@ -627,11 +627,11 @@ describe('MigrationScriptExecutor', () => {
             };
 
             // Stub the migrationScanner to return our mock scripts
-            sinon.stub((executor as any).migrationScanner, 'scan').resolves(mockScripts);
+            sinon.stub((executor as any).core.scanner, 'scan').resolves(mockScripts);
 
             // Stub validation to bypass file and transaction checks
-            sinon.stub((executor as any).workflowOrchestrator.validationOrchestrator, 'validateMigrations').resolves();
-            sinon.stub((executor as any).workflowOrchestrator.validationOrchestrator, 'validateTransactionConfiguration').resolves();
+            sinon.stub((executor as any).orchestration.workflow.validationOrchestrator, 'validateMigrations').resolves();
+            sinon.stub((executor as any).orchestration.workflow.validationOrchestrator, 'validateTransactionConfiguration').resolves();
 
             // Stub init to prevent actual script loading
             sinon.stub(sql1, 'init').resolves();
@@ -662,7 +662,7 @@ describe('MigrationScriptExecutor', () => {
                 ignored: []
             };
 
-            sinon.stub((executor as any).workflowOrchestrator, 'migrateAll').resolves(successResult);
+            sinon.stub((executor as any).orchestration.workflow, 'migrateAll').resolves(successResult);
 
             // Should not throw error - test passes if no error thrown
             const result = await executor.up();
@@ -680,7 +680,7 @@ describe('MigrationScriptExecutor', () => {
                 ignored: []
             };
 
-            sinon.stub((executor as any).workflowOrchestrator, 'migrateAll').resolves(successResult);
+            sinon.stub((executor as any).orchestration.workflow, 'migrateAll').resolves(successResult);
 
             // Should not throw error - test passes if no error thrown
             const result = await executor.up();
@@ -699,7 +699,7 @@ describe('MigrationScriptExecutor', () => {
                 ignored: []
             };
 
-            sinon.stub((executor as any).workflowOrchestrator, 'migrateAll').resolves(successResult);
+            sinon.stub((executor as any).orchestration.workflow, 'migrateAll').resolves(successResult);
 
             // Should not throw error even with hybrid migrations when mode is NONE
             const result = await executor.up();
@@ -718,10 +718,10 @@ describe('MigrationScriptExecutor', () => {
             };
 
             // Stub the migrationScanner to return our mock scripts
-            sinon.stub((executor as any).migrationScanner, 'scan').resolves(mockScripts);
+            sinon.stub((executor as any).core.scanner, 'scan').resolves(mockScripts);
 
             // Stub validation to bypass file checks
-            sinon.stub((executor as any).workflowOrchestrator.validationOrchestrator, 'validateMigrations').resolves();
+            sinon.stub((executor as any).orchestration.workflow.validationOrchestrator, 'validateMigrations').resolves();
 
             // Should not throw error when there are no pending migrations
             const result = await executor.up();
@@ -744,11 +744,11 @@ describe('MigrationScriptExecutor', () => {
             };
 
             // Stub the migrationScanner to return our mock scripts
-            sinon.stub((executor as any).migrationScanner, 'scan').resolves(mockScripts);
+            sinon.stub((executor as any).core.scanner, 'scan').resolves(mockScripts);
 
             // Stub validation to bypass file and transaction checks
-            sinon.stub((executor as any).workflowOrchestrator.validationOrchestrator, 'validateMigrations').resolves();
-            sinon.stub((executor as any).workflowOrchestrator.validationOrchestrator, 'validateTransactionConfiguration').resolves();
+            sinon.stub((executor as any).orchestration.workflow.validationOrchestrator, 'validateMigrations').resolves();
+            sinon.stub((executor as any).orchestration.workflow.validationOrchestrator, 'validateTransactionConfiguration').resolves();
 
             // Stub init to prevent actual script loading
             sinon.stub(sql1, 'init').resolves();
@@ -781,11 +781,11 @@ describe('MigrationScriptExecutor', () => {
             };
 
             // Stub the migrationScanner to return our mock scripts
-            sinon.stub((executor as any).migrationScanner, 'scan').resolves(mockScripts);
+            sinon.stub((executor as any).core.scanner, 'scan').resolves(mockScripts);
 
             // Stub validation to bypass file and transaction checks
-            sinon.stub((executor as any).workflowOrchestrator.validationOrchestrator, 'validateMigrations').resolves();
-            sinon.stub((executor as any).workflowOrchestrator.validationOrchestrator, 'validateTransactionConfiguration').resolves();
+            sinon.stub((executor as any).orchestration.workflow.validationOrchestrator, 'validateMigrations').resolves();
+            sinon.stub((executor as any).orchestration.workflow.validationOrchestrator, 'validateTransactionConfiguration').resolves();
 
             // Stub init to prevent actual script loading
             sinon.stub(sql1, 'init').resolves();
@@ -816,11 +816,11 @@ describe('MigrationScriptExecutor', () => {
             };
 
             // Stub the migrationScanner to return our mock scripts
-            sinon.stub((executor as any).migrationScanner, 'scan').resolves(mockScripts);
+            sinon.stub((executor as any).core.scanner, 'scan').resolves(mockScripts);
 
             // Stub validation to bypass file and transaction checks
-            sinon.stub((executor as any).workflowOrchestrator.validationOrchestrator, 'validateMigrations').resolves();
-            sinon.stub((executor as any).workflowOrchestrator.validationOrchestrator, 'validateTransactionConfiguration').resolves();
+            sinon.stub((executor as any).orchestration.workflow.validationOrchestrator, 'validateMigrations').resolves();
+            sinon.stub((executor as any).orchestration.workflow.validationOrchestrator, 'validateTransactionConfiguration').resolves();
 
             // Stub init to prevent actual script loading
             sinon.stub(sql1, 'init').resolves();

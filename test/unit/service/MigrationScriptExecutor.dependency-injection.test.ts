@@ -73,7 +73,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 validationService: customValidationService
 , config: config });
 
-            expect(executor.validationService).to.equal(customValidationService);
+            expect((executor as any).core.validation).to.equal(customValidationService);
         });
 
         /**
@@ -85,9 +85,9 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
 , config: config });
 
-            expect(executor.validationService).to.exist;
-            expect(executor.validationService).to.have.property('validateAll');
-            expect(executor.validationService).to.have.property('validateMigratedFileIntegrity');
+            expect((executor as any).core.validation).to.exist;
+            expect((executor as any).core.validation).to.have.property('validateAll');
+            expect((executor as any).core.validation).to.have.property('validateMigratedFileIntegrity');
         });
 
         /**
@@ -106,7 +106,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 rollbackService: customRollbackService
 , config: config });
 
-            expect(executor.rollbackService).to.equal(customRollbackService);
+            expect((executor as any).core.rollback).to.equal(customRollbackService);
         });
 
         /**
@@ -118,9 +118,9 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
 , config: config });
 
-            expect(executor.rollbackService).to.exist;
-            expect(executor.rollbackService).to.have.property('rollback');
-            expect(executor.rollbackService).to.have.property('shouldCreateBackup');
+            expect((executor as any).core.rollback).to.exist;
+            expect((executor as any).core.rollback).to.have.property('rollback');
+            expect((executor as any).core.rollback).to.have.property('shouldCreateBackup');
         });
 
         /**
@@ -229,8 +229,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
 , config: config });
 
-            // Access private method via reflection
-            const transactionManager = (executor as any).createTransactionManager(handler);
+            // Check that transaction manager was not created via factory
+            const transactionManager = (executor as any).execution.transactionManager;
 
             expect(transactionManager).to.be.undefined;
         });
@@ -257,7 +257,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 logger: new SilentLogger()
             , config: config });
 
-            const transactionManager = (executor as any).createTransactionManager(handlerWithTx);
+            // Check that custom transaction manager was used via factory
+            const transactionManager = (executor as any).execution.transactionManager;
 
             expect(transactionManager).to.equal(customTxManager);
         });
@@ -286,7 +287,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 logger: new SilentLogger()
             , config: config });
 
-            const transactionManager = (executor as any).createTransactionManager(handlerWithTransactionalDB);
+            // Check that transaction manager was auto-created via factory
+            const transactionManager = (executor as any).execution.transactionManager;
 
             expect(transactionManager).to.exist;
             expect(transactionManager.begin).to.be.a('function');
@@ -320,7 +322,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
                 logger: new SilentLogger()
             , config: config });
 
-            const transactionManager = (executor as any).createTransactionManager(handlerWithCallbackDB);
+            // Check that transaction manager was auto-created via factory
+            const transactionManager = (executor as any).execution.transactionManager;
 
             expect(transactionManager).to.exist;
             expect(transactionManager.begin).to.be.a('function');
@@ -366,7 +369,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
 , config: config });
 
             // Mock hookExecutor.executeWithHooks to throw error immediately
-            (executor as any).workflowOrchestrator.hookExecutor.executeWithHooks = sinon.stub().rejects(new Error('Execution failed'));
+            (executor as any).orchestration.workflow.hookExecutor.executeWithHooks = sinon.stub().rejects(new Error('Execution failed'));
 
             // Create scripts object with empty executed array
             const scripts = {
@@ -387,8 +390,8 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             };
 
             // Stub migrationScanner and validation
-            sinon.stub((executor as any).migrationScanner, 'scan').resolves(scripts);
-            sinon.stub((executor as any).workflowOrchestrator.validationOrchestrator, 'validateMigrations').resolves();
+            sinon.stub((executor as any).core.scanner, 'scan').resolves(scripts);
+            sinon.stub((executor as any).orchestration.workflow.validationOrchestrator, 'validateMigrations').resolves();
 
             // Call through public API which triggers workflow orchestrator
             try {

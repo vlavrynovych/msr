@@ -100,7 +100,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
 
         // Stub migrationScanner to return the failing migration
-        sinon.stub(executor.migrationScanner, 'scan').resolves({
+        sinon.stub((executor as any).core.scanner, 'scan').resolves({
             all: [failingMigration],
             migrated: [],
             pending: [failingMigration],
@@ -166,7 +166,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
 
         // Stub migrationScanner to return the failing migration
-        sinon.stub(executor.migrationScanner, 'scan').resolves({
+        sinon.stub((executor as any).core.scanner, 'scan').resolves({
             all: [failingMigration],
             migrated: [],
             pending: [failingMigration],
@@ -233,7 +233,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
 
         // Stub migrationScanner to return the failing migration
-        sinon.stub(executor.migrationScanner, 'scan').resolves({
+        sinon.stub((executor as any).core.scanner, 'scan').resolves({
             all: [failingMigration],
             migrated: [],
             pending: [failingMigration],
@@ -304,7 +304,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
 
         // Stub migrationScanner to return the failing migration
-        sinon.stub(executor.migrationScanner, 'scan').resolves({
+        sinon.stub((executor as any).core.scanner, 'scan').resolves({
             all: [failingMigration],
             migrated: [],
             pending: [failingMigration],
@@ -371,7 +371,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
 
         // Stub migrationScanner to return the failing migration
-        sinon.stub(executor.migrationScanner, 'scan').resolves({
+        sinon.stub((executor as any).core.scanner, 'scan').resolves({
             all: [failingMigration],
             migrated: [],
             pending: [failingMigration],
@@ -510,7 +510,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
         const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
 
         // Test rollbackService.shouldCreateBackup() with DOWN strategy
-        const shouldCreate = executor.rollbackService.shouldCreateBackup();
+        const shouldCreate = (executor as any).core.rollback.shouldCreateBackup();
 
         // Should return false because strategy is DOWN (doesn't need backup)
         expect(shouldCreate).to.be.false;

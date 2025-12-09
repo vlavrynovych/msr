@@ -314,7 +314,7 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
 
         // Test rollbackService.rollback with DOWN strategy and empty array
         // This simulates a scenario where rollback is called but no migrations were executed
-        await executor.rollbackService.rollback([], undefined);
+        await (executor as any).core.rollback.rollback([], undefined);
 
         // Should log "No migrations to rollback"
         expect(infoMessages.some(msg => msg.includes('No migrations to rollback'))).to.be.true;

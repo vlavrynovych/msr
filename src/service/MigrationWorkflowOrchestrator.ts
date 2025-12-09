@@ -17,6 +17,8 @@ import {ISchemaVersionService} from "../interface/service/ISchemaVersionService"
 import {ILoaderRegistry} from "../interface/loader/ILoaderRegistry";
 import {MigrationScriptSelector} from "./MigrationScriptSelector";
 import {ITransactionManager} from "../interface/service/ITransactionManager";
+import {IDatabaseMigrationHandler} from "../interface/IDatabaseMigrationHandler";
+import {IMigrationService} from "../interface/service/IMigrationService";
 
 /**
  * Dependencies for MigrationWorkflowOrchestrator.
@@ -95,9 +97,14 @@ export interface MigrationWorkflowOrchestratorDependencies<DB extends IDB> {
     hooks?: IMigrationHooks<DB>;
 
     /**
-     * Callback to execute beforeMigrate script (optional).
+     * Database migration handler for executing scripts.
      */
-    executeBeforeMigrate?: () => Promise<void>;
+    handler: IDatabaseMigrationHandler<DB>;
+
+    /**
+     * Service for discovering and loading migration script files.
+     */
+    migrationService: IMigrationService<DB>;
 }
 
 /**
@@ -151,7 +158,8 @@ export class MigrationWorkflowOrchestrator<DB extends IDB> implements IMigration
     private readonly config: Config;
     private readonly logger: ILogger;
     private readonly hooks?: IMigrationHooks<DB>;
-    private readonly executeBeforeMigrate?: () => Promise<void>;
+    private readonly handler: IDatabaseMigrationHandler<DB>;
+    private readonly migrationService: IMigrationService<DB>;
 
     constructor(dependencies: MigrationWorkflowOrchestratorDependencies<DB>) {
         this.migrationScanner = dependencies.migrationScanner;
@@ -168,7 +176,63 @@ export class MigrationWorkflowOrchestrator<DB extends IDB> implements IMigration
         this.config = dependencies.config;
         this.logger = dependencies.logger;
         this.hooks = dependencies.hooks;
-        this.executeBeforeMigrate = dependencies.executeBeforeMigrate;
+        this.handler = dependencies.handler;
+        this.migrationService = dependencies.migrationService;
+    }
+
+    /**
+     * Execute the beforeMigrate script if it exists.
+     *
+     * Looks for a beforeMigrate.ts or beforeMigrate.js file in the migrations folder
+     * and executes it before scanning for migrations. This allows the beforeMigrate
+     * script to completely reset or erase the database (e.g., load a prod snapshot).
+     *
+     * The beforeMigrate script is NOT saved to the schema version table.
+     *
+     * @private
+     *
+     * @example
+     * ```typescript
+     * // migrations/beforeMigrate.ts
+     * export default class BeforeMigrate implements IRunnableScript<DB> {
+     *   async up(db, info, handler) {
+     *     await db.query('DROP SCHEMA public CASCADE');
+     *     await db.query('CREATE SCHEMA public');
+     *     return 'Database reset complete';
+     *   }
+     * }
+     * ```
+     */
+    private async executeBeforeMigrate(): Promise<void> {
+        this.logger.info('Checking for beforeMigrate setup script...');
+
+        const beforeMigratePath = await this.migrationService.findBeforeMigrateScript(this.config);
+        if (!beforeMigratePath) {
+            this.logger.info('No beforeMigrate script found, skipping setup phase');
+            return;
+        }
+
+        this.logger.info(`Found beforeMigrate script: ${beforeMigratePath}`);
+        this.logger.info('Executing beforeMigrate setup...');
+
+        const startTime = Date.now();
+
+        // Create a temporary MigrationScript for the beforeMigrate file
+        const beforeMigrateScript = new MigrationScript<DB>(
+            'beforeMigrate',
+            beforeMigratePath,
+            0 // No timestamp for beforeMigrate
+        );
+
+        // Initialize and execute directly (don't save to schema version table)
+        await beforeMigrateScript.init(this.loaderRegistry);
+        const result = await beforeMigrateScript.script.up(this.handler.db, beforeMigrateScript, this.handler);
+
+        const duration = Date.now() - startTime;
+        this.logger.info(`✓ beforeMigrate completed successfully in ${duration}ms`);
+        if (result) {
+            this.logger.info(`Result: ${result}`);
+        }
     }
 
     /**
@@ -288,7 +352,7 @@ export class MigrationWorkflowOrchestrator<DB extends IDB> implements IMigration
      * @private
      */
     private async prepareForMigration(): Promise<void> {
-        if (this.config.beforeMigrateName && !this.config.dryRun && this.executeBeforeMigrate) {
+        if (this.config.beforeMigrateName && !this.config.dryRun) {
             await this.executeBeforeMigrate();
         }
         await this.schemaVersionService.init(this.config.tableName);

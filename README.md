@@ -20,7 +20,29 @@ MSR provides a lightweight, flexible framework for managing database migrations 
 
 ---
 
-## 🎉 What's New in v0.6.0
+## 🎉 What's New in v0.7.0
+
+**Enhanced architecture, adapter extensibility, and improved maintainability:**
+
+- **🎨 Facade Pattern** - Services grouped into 4 logical facades (core, execution, output, orchestration) for better code organization
+- **🏭 Factory Pattern** - Service initialization extracted to dedicated factory, reducing constructor complexity by 83%
+- **🔧 Protected Facades** - Adapters can extend MigrationScriptExecutor and access internal services through protected facades
+- **✨ Extensible Configuration** - New `IConfigLoader` interface allows adapters to customize environment variable handling
+- **🔨 Simplified Constructor** - Single parameter constructor with config moved into dependencies object (**BREAKING**)
+- **🔒 Better Encapsulation** - Internal services no longer exposed as public properties (**BREAKING**)
+- **⚡ Reduced Complexity** - Constructor reduced from 142 lines to 23 lines (83% reduction)
+- **📐 Workflow Ownership** - `executeBeforeMigrate()` moved to MigrationWorkflowOrchestrator for cleaner architecture
+- **✨ 100% Test Coverage** - All statements, branches, functions, and lines covered (1228/1228 tests passing)
+
+**⚠️ BREAKING CHANGES in v0.7.0:** Constructor signature changed (config moved into dependencies), and service properties removed (use public API methods instead). Migration takes 15-30 minutes. See the [v0.6.x → v0.7.0 Migration Guide](https://migration-script-runner.github.io/msr-core/version-migration/v0.6-to-v0.7) for step-by-step instructions.
+
+**[→ View architecture docs](https://migration-script-runner.github.io/msr-core/development/architecture/design-patterns)**
+
+---
+
+## 📜 Previous Releases
+
+### v0.6.0
 
 **Enhanced type safety, metrics collection, and multi-format configuration:**
 
@@ -30,15 +52,8 @@ MSR provides a lightweight, flexible framework for managing database migrations 
 - **🔌 Plugin Architecture** - Extensible loader system with optional peer dependencies keeps core lightweight
 - **🎚️ Log Level Control** - Configurable log levels (`error`, `warn`, `info`, `debug`) to control output verbosity
 - **💡 Better Error Messages** - Actionable error messages with installation instructions when formats aren't available
-- **✨ 100% Test Coverage** - All statements, branches, functions, and lines covered
 
-**⚠️ BREAKING CHANGES in v0.6.0:** Type parameters are now required for all interfaces (e.g., `IDatabaseMigrationHandler<IDB>`) and the constructor signature changed to dependency injection pattern. Migration takes 10-30 minutes. See the [v0.5.x → v0.6.0 Migration Guide](https://migration-script-runner.github.io/msr-core/version-migration/v0.5-to-v0.6) for step-by-step instructions.
-
-**[→ View configuration docs](https://migration-script-runner.github.io/msr-core/configuration/)**
-
----
-
-## 📜 Previous Releases
+**[→ View migration guide](https://migration-script-runner.github.io/msr-core/version-migration/v0.5-to-v0.6)**
 
 ### v0.5.0
 

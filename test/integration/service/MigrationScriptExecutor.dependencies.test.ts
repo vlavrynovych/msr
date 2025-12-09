@@ -72,7 +72,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             const executorWithCustomLogger = new MigrationScriptExecutor<IDB>({ handler: handler, logger: customLogger
 , config: cfg });
             // Logger should be wrapped with LevelAwareLogger for level filtering
-            expect(executorWithCustomLogger.logger).to.be.instanceOf(LevelAwareLogger);
+            expect((executorWithCustomLogger as any).output.logger).to.be.instanceOf(LevelAwareLogger);
         })
 
         /**
@@ -87,7 +87,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             };
             const executorWithCustomBackup = new MigrationScriptExecutor<IDB>({ handler: handler, backupService: mockBackupService
 , config: cfg });
-            expect(executorWithCustomBackup.backupService).to.equal(mockBackupService);
+            expect((executorWithCustomBackup as any).core.backup).to.equal(mockBackupService);
         })
 
         /**
@@ -103,7 +103,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             };
             const executorWithCustomSchema = new MigrationScriptExecutor<IDB>({ handler: handler, schemaVersionService: mockSchemaVersionService
 , config: cfg });
-            expect(executorWithCustomSchema.schemaVersionService).to.equal(mockSchemaVersionService);
+            expect((executorWithCustomSchema as any).core.schemaVersion).to.equal(mockSchemaVersionService);
         })
 
         /**
@@ -121,7 +121,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             };
             const executorWithCustomRenderer = new MigrationScriptExecutor<IDB>({ handler: handler, migrationRenderer: mockRenderer
 , config: cfg });
-            expect(executorWithCustomRenderer.migrationRenderer).to.equal(mockRenderer);
+            expect((executorWithCustomRenderer as any).output.renderer).to.equal(mockRenderer);
             expect(mockRenderer.drawFiglet.calledOnce).to.be.true;
         })
 
@@ -136,7 +136,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             };
             const executorWithCustomMigration = new MigrationScriptExecutor<IDB>({ handler: handler, migrationService: mockMigrationService
 , config: cfg });
-            expect(executorWithCustomMigration.migrationService).to.equal(mockMigrationService);
+            expect((executorWithCustomMigration as any).core.migration).to.equal(mockMigrationService);
         })
 
         /**
@@ -155,7 +155,7 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             };
             const executorWithCustomScanner = new MigrationScriptExecutor<IDB>({ handler: handler, migrationScanner: mockMigrationScanner
 , config: cfg });
-            expect(executorWithCustomScanner.migrationScanner).to.equal(mockMigrationScanner);
+            expect((executorWithCustomScanner as any).core.scanner).to.equal(mockMigrationScanner);
         })
 
         /**
@@ -195,11 +195,11 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
 , config: cfg });
 
             // Logger should be wrapped with LevelAwareLogger for level filtering
-            expect(executorWithAllCustom.logger).to.be.instanceOf(LevelAwareLogger);
-            expect(executorWithAllCustom.backupService).to.equal(mockBackupService);
-            expect(executorWithAllCustom.schemaVersionService).to.equal(mockSchemaVersionService);
-            expect(executorWithAllCustom.migrationRenderer).to.equal(mockRenderer);
-            expect(executorWithAllCustom.migrationService).to.equal(mockMigrationService);
+            expect((executorWithAllCustom as any).output.logger).to.be.instanceOf(LevelAwareLogger);
+            expect((executorWithAllCustom as any).core.backup).to.equal(mockBackupService);
+            expect((executorWithAllCustom as any).core.schemaVersion).to.equal(mockSchemaVersionService);
+            expect((executorWithAllCustom as any).output.renderer).to.equal(mockRenderer);
+            expect((executorWithAllCustom as any).core.migration).to.equal(mockMigrationService);
         })
 
         /**

@@ -80,7 +80,7 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
 , config: config });
 
         // Test rollbackService.rollback with BACKUP strategy
-        await executor.rollbackService.rollback([], '/path/to/backup.bkp');
+        await (executor as any).core.rollback.rollback([], '/path/to/backup.bkp');
 
         // Verify restore hooks were called
         expect((restoreHooks.onBeforeRestore as sinon.SinonStub).calledOnce).to.be.true;
@@ -122,7 +122,7 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
 , config: config });
 
         // Test rollbackService.rollback with BACKUP strategy
-        await executor.rollbackService.rollback([], '/path/to/backup.bkp');
+        await (executor as any).core.rollback.rollback([], '/path/to/backup.bkp');
 
         // Verify order: onBeforeRestore -> restore -> onAfterRestore -> deleteBackup
         expect(callOrder).to.deep.equal(['onBeforeRestore', 'restore', 'onAfterRestore', 'deleteBackup']);
@@ -150,7 +150,7 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
 , config: config });
 
         // Test rollbackService.rollback with BACKUP strategy but no backup path
-        await executor.rollbackService.rollback([], undefined);
+        await (executor as any).core.rollback.rollback([], undefined);
 
         // Verify restore hooks were NOT called
         expect((restoreHooks.onBeforeRestore as sinon.SinonStub).called).to.be.false;
@@ -175,7 +175,7 @@ describe('MigrationScriptExecutor - Restore Hooks (Unit)', () => {
 , config: config });
 
         // Should not throw error - test rollbackService.rollback with BACKUP strategy
-        await executor.rollbackService.rollback([], '/path/to/backup.bkp');
+        await (executor as any).core.rollback.rollback([], '/path/to/backup.bkp');
 
         // Verify restore was still called
         expect((mockBackupService.restore as sinon.SinonStub).calledOnce).to.be.true;
