@@ -215,6 +215,158 @@ class PostgreSqlConfigLoader extends ConfigLoader {
 
 ---
 
+### autoApplyEnvironmentVariables()
+
+**New in v0.7.0:** Automatic environment variable parsing using reflection and type inference.
+
+Automatically discover and apply environment variables for any config object based on its structure. This eliminates the need for manual env var handling in adapters.
+
+**Signature:**
+```typescript
+protected autoApplyEnvironmentVariables(
+    config: C,
+    prefix: string,
+    overrides?: Map<string, (config: C, envVarName: string) => void>
+): void
+```
+
+**Parameters:**
+| Name | Type | Description |
+|------|------|-------------|
+| `config` | `C` | Configuration object to populate from environment variables |
+| `prefix` | `string` | Environment variable prefix (e.g., 'MSR', 'POSTGRES') |
+| `overrides` | `Map<string, Function>` | Optional custom parsers for specific properties |
+
+**Features:**
+- **Automatic Type Detection**: Detects primitives, arrays, nested objects, and complex objects
+- **Type Coercion**: Automatically converts env var strings to correct types
+- **Naming Convention**: Converts `camelCase` properties to `SNAKE_CASE` env vars
+- **Nested Support**: Handles nested objects with dot-notation (`PREFIX_PROP_NESTED`)
+- **Override System**: Allows custom parsing logic for special cases
+
+**How It Works:**
+
+1. **Reflection-based Discovery**: Iterates through all config properties
+2. **Name Conversion**: `poolSize` → `POSTGRES_POOL_SIZE`
+3. **Type Detection**: Analyzes default value type
+4. **Automatic Parsing**:
+   - **Primitives** (string/number/boolean): Direct parsing with type coercion
+   - **Arrays**: JSON parsing (special handling for RegExp arrays)
+   - **Plain Objects**: JSON + dot-notation with precedence
+   - **Complex Objects**: Recursive dot-notation parsing
+
+**Examples:**
+
+```typescript
+// Adapter with automatic parsing
+class PostgreSqlConfigLoader extends ConfigLoader<PostgreSqlConfig> {
+    applyEnvironmentVariables(config: PostgreSqlConfig): void {
+        // Apply base MSR_* vars
+        super.applyEnvironmentVariables(config);
+
+        // Automatically apply POSTGRES_* vars - no manual mapping needed!
+        this.autoApplyEnvironmentVariables(config, 'POSTGRES');
+    }
+}
+
+// Configuration class
+class PostgreSqlConfig extends Config {
+    host: string = 'localhost';
+    port: number = 5432;
+    ssl: boolean = false;
+    poolSize: number = 10;
+    poolConfig: { min: number; max: number } = {
+        min: 2,
+        max: 10
+    };
+}
+
+// Environment variables (automatically mapped):
+// POSTGRES_HOST=db.example.com → config.host = 'db.example.com'
+// POSTGRES_PORT=3306 → config.port = 3306
+// POSTGRES_SSL=true → config.ssl = true
+// POSTGRES_POOL_SIZE=20 → config.poolSize = 20
+// POSTGRES_POOL_CONFIG_MIN=5 → config.poolConfig.min = 5
+// POSTGRES_POOL_CONFIG_MAX=50 → config.poolConfig.max = 50
+```
+
+**With Custom Overrides:**
+
+```typescript
+class CustomConfigLoader extends ConfigLoader<CustomConfig> {
+    applyEnvironmentVariables(config: CustomConfig): void {
+        super.applyEnvironmentVariables(config);
+
+        // Define custom parsing for specific properties
+        const overrides = new Map();
+
+        // Custom validation for port
+        overrides.set('port', (cfg: CustomConfig, envVar: string) => {
+            const value = process.env[envVar];
+            if (value) {
+                const port = parseInt(value, 10);
+                if (port >= 1 && port <= 65535) {
+                    cfg.port = port;
+                } else {
+                    console.warn(`Invalid port ${port}, using default`);
+                }
+            }
+        });
+
+        // Custom parsing for enum values
+        overrides.set('logLevel', (cfg: CustomConfig, envVar: string) => {
+            const level = process.env[envVar];
+            if (level && ['error', 'warn', 'info', 'debug'].includes(level)) {
+                cfg.logLevel = level as LogLevel;
+            }
+        });
+
+        this.autoApplyEnvironmentVariables(config, 'CUSTOM', overrides);
+    }
+}
+```
+
+**Benefits:**
+
+✅ **Zero Manual Mapping**: New config properties automatically get env var support
+✅ **Type Safe**: Uses TypeScript types for automatic coercion
+✅ **Consistent Naming**: Automatic `camelCase` → `SNAKE_CASE` conversion
+✅ **Extensible**: Override system for special cases
+✅ **Maintainable**: No need to update `applyEnvironmentVariables` for new properties
+✅ **Adapter-Friendly**: Works with any prefix (`MSR_`, `POSTGRES_`, `MYSQL_`, etc.)
+
+**Comparison:**
+
+```typescript
+// ❌ OLD WAY: Manual mapping (error-prone, requires updates)
+class OldPostgresLoader extends ConfigLoader<PostgresConfig> {
+    applyEnvironmentVariables(config: PostgresConfig): void {
+        super.applyEnvironmentVariables(config);
+
+        if (process.env.POSTGRES_HOST) {
+            config.host = process.env.POSTGRES_HOST;
+        }
+        if (process.env.POSTGRES_PORT) {
+            config.port = parseInt(process.env.POSTGRES_PORT);
+        }
+        if (process.env.POSTGRES_SSL) {
+            config.ssl = process.env.POSTGRES_SSL === 'true';
+        }
+        // ... add 20 more properties manually ...
+    }
+}
+
+// ✅ NEW WAY: Automatic mapping (maintainable, extensible)
+class NewPostgresLoader extends ConfigLoader<PostgresConfig> {
+    applyEnvironmentVariables(config: PostgresConfig): void {
+        super.applyEnvironmentVariables(config);
+        this.autoApplyEnvironmentVariables(config, 'POSTGRES');
+    }
+}
+```
+
+---
+
 ## Static Helper Methods
 
 These utility methods remain static and can be used by adapters for consistent type coercion:

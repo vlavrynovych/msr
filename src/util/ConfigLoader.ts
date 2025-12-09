@@ -6,6 +6,7 @@ import { LogLevel } from '../interface/ILogger';
 import { ConfigFileLoaderRegistry } from './ConfigFileLoaderRegistry';
 import { JsJsonLoader, YamlLoader, TomlLoader, XmlLoader } from './loaders';
 import { IConfigLoader } from '../interface/IConfigLoader';
+import { EnvVarParser } from './EnvVarParser';
 
 /**
  * Options for ConfigLoader.load() method.
@@ -221,9 +222,12 @@ export class ConfigLoader<C extends Config = Config> implements IConfigLoader<C>
      * Instance method: Apply environment variables to config object.
      *
      * Looks for MSR_* environment variables and applies them to config.
-     * Uses type coercion based on existing config property types.
+     * Uses automatic type-based parsing with reflection.
      *
-     * **New in v0.7.0:** Instance method (can be overridden by adapters)
+     * **New in v0.7.0:**
+     * - Instance method (can be overridden by adapters)
+     * - Uses automatic parsing via `autoApplyEnvironmentVariables`
+     * - Custom overrides for special cases (enum validation)
      *
      * @param config - Config object to apply env vars to
      *
@@ -238,101 +242,32 @@ export class ConfigLoader<C extends Config = Config> implements IConfigLoader<C>
      * class MyConfigLoader extends ConfigLoader {
      *     applyEnvironmentVariables(config: C): void {
      *         super.applyEnvironmentVariables(config); // Apply MSR_* vars
-     *         // Add custom env vars
-     *         if (process.env.MY_DB_HOST) {
-     *             (config as any).host = process.env.MY_DB_HOST;
-     *         }
+     *         this.autoApplyEnvironmentVariables(config, 'MY_DB'); // Apply MY_DB_* vars
      *     }
      * }
      * ```
      */
     applyEnvironmentVariables(config: C): void {
-        // Simple properties
-        if (process.env[ENV.MSR_FOLDER]) {
-            config.folder = process.env[ENV.MSR_FOLDER]!;
-        }
-        if (process.env[ENV.MSR_TABLE_NAME]) {
-            config.tableName = process.env[ENV.MSR_TABLE_NAME]!;
-        }
-        if (process.env[ENV.MSR_BEFORE_MIGRATE_NAME]) {
-            config.beforeMigrateName = process.env[ENV.MSR_BEFORE_MIGRATE_NAME]!;
-        }
-        if (process.env[ENV.MSR_DRY_RUN] !== undefined) {
-            config.dryRun = ConfigLoader.parseBoolean(process.env[ENV.MSR_DRY_RUN]!);
-        }
-        if (process.env[ENV.MSR_DISPLAY_LIMIT] !== undefined) {
-            config.displayLimit = ConfigLoader.parseNumber(process.env[ENV.MSR_DISPLAY_LIMIT]!);
-        }
-        if (process.env[ENV.MSR_RECURSIVE] !== undefined) {
-            config.recursive = ConfigLoader.parseBoolean(process.env[ENV.MSR_RECURSIVE]!);
-        }
-        if (process.env[ENV.MSR_VALIDATE_BEFORE_RUN] !== undefined) {
-            config.validateBeforeRun = ConfigLoader.parseBoolean(process.env[ENV.MSR_VALIDATE_BEFORE_RUN]!);
-        }
-        if (process.env[ENV.MSR_STRICT_VALIDATION] !== undefined) {
-            config.strictValidation = ConfigLoader.parseBoolean(process.env[ENV.MSR_STRICT_VALIDATION]!);
-        }
-        if (process.env[ENV.MSR_SHOW_BANNER] !== undefined) {
-            config.showBanner = ConfigLoader.parseBoolean(process.env[ENV.MSR_SHOW_BANNER]!);
-        }
-        if (process.env[ENV.MSR_LOG_LEVEL]) {
-            const level = process.env[ENV.MSR_LOG_LEVEL]!;
-            if (['error', 'warn', 'info', 'debug'].includes(level)) {
-                config.logLevel = level as LogLevel;
-            } else {
-                console.warn(`Invalid MSR_LOG_LEVEL value: '${level}'. Valid values are: error, warn, info, debug. Using default 'info'.`);
-            }
-        }
+        // Define custom overrides for special cases
+        const overrides = new Map<string, (cfg: C, envVarName: string) => void>();
 
-        // File patterns array
-        if (process.env[ENV.MSR_FILE_PATTERNS]) {
-            try {
-                const patterns = JSON.parse(process.env[ENV.MSR_FILE_PATTERNS]!);
-                if (Array.isArray(patterns)) {
-                    config.filePatterns = patterns.map(p => new RegExp(p));
+        // Special handling for logLevel (enum validation)
+        overrides.set('logLevel', (cfg: C, envVar: string) => {
+            const level = process.env[envVar];
+            if (level) {
+                if (['error', 'warn', 'info', 'debug'].includes(level)) {
+                    (cfg as Config).logLevel = level as LogLevel;
+                } else {
+                    console.warn(
+                        `Invalid ${envVar} value: '${level}'. ` +
+                        `Valid values are: error, warn, info, debug. Using default 'info'.`
+                    );
                 }
-            } catch {
-                console.warn(`Warning: Invalid ${ENV.MSR_FILE_PATTERNS} format. Expected JSON array.`);
             }
-        }
+        });
 
-        // Complex objects - prefer dot-notation, fall back to JSON
-        // Logging config
-        if (process.env[ENV.MSR_LOGGING]) {
-            try {
-                const logging = JSON.parse(process.env[ENV.MSR_LOGGING]!);
-                Object.assign(config.logging, logging);
-            } catch {
-                console.warn(`Warning: Invalid ${ENV.MSR_LOGGING} JSON. Using dot-notation if available.`);
-            }
-        }
-        // Override with dot-notation env vars (takes precedence)
-        config.logging = ConfigLoader.loadNestedFromEnv(ENV.MSR_LOGGING, config.logging);
-
-        // Backup config
-        if (config.backup && process.env[ENV.MSR_BACKUP]) {
-            try {
-                const backup = JSON.parse(process.env[ENV.MSR_BACKUP]!);
-                Object.assign(config.backup, backup);
-            } catch {
-                console.warn(`Warning: Invalid ${ENV.MSR_BACKUP} JSON. Using dot-notation if available.`);
-            }
-        }
-        if (config.backup) {
-            config.backup = ConfigLoader.loadNestedFromEnv(ENV.MSR_BACKUP, config.backup);
-        }
-
-        // Transaction config (v0.5.0)
-        if (process.env[ENV.MSR_TRANSACTION]) {
-            try {
-                const transaction = JSON.parse(process.env[ENV.MSR_TRANSACTION]!);
-                Object.assign(config.transaction, transaction);
-            } catch {
-                console.warn(`Warning: Invalid ${ENV.MSR_TRANSACTION} JSON. Using dot-notation if available.`);
-            }
-        }
-        // Override with dot-notation env vars (takes precedence)
-        config.transaction = ConfigLoader.loadNestedFromEnv(ENV.MSR_TRANSACTION, config.transaction);
+        // Use automatic parser with overrides
+        this.autoApplyEnvironmentVariables(config, 'MSR', overrides);
     }
 
     /**
@@ -369,7 +304,7 @@ export class ConfigLoader<C extends Config = Config> implements IConfigLoader<C>
             return defaultValue;
         }
 
-        return this.coerceValue(value, typeof defaultValue) as T;
+        return EnvVarParser.coerceValue(value, typeof defaultValue) as T;
     }
 
     /**
@@ -425,6 +360,8 @@ export class ConfigLoader<C extends Config = Config> implements IConfigLoader<C>
      * Looks for environment variables with the pattern: PREFIX_KEY=value
      * Automatically coerces types based on default value types.
      *
+     * **New in v0.7.0:** Delegates to EnvVarParser for reusable parsing logic.
+     *
      * **Use Case:** Preferred method for loading complex objects (better than JSON).
      *
      * @param prefix - Prefix for environment variables (e.g., 'MSR_LOGGING')
@@ -451,24 +388,7 @@ export class ConfigLoader<C extends Config = Config> implements IConfigLoader<C>
         prefix: string,
         defaultValue: T
     ): T {
-        const result = { ...defaultValue };
-
-        for (const key in defaultValue) {
-            if (!Object.prototype.hasOwnProperty.call(defaultValue, key)) {
-                continue;
-            }
-
-            // Convert camelCase to SNAKE_CASE for env var name
-            const envKey = `${prefix}_${this.toSnakeCase(key).toUpperCase()}`;
-            const envValue = process.env[envKey];
-
-            if (envValue !== undefined && envValue !== '') {
-                const defaultType = typeof defaultValue[key];
-                result[key] = this.coerceValue(envValue, defaultType) as T[Extract<keyof T, string>];
-            }
-        }
-
-        return result;
+        return EnvVarParser.loadNestedFromEnv(prefix, defaultValue);
     }
 
     /**
@@ -541,56 +461,52 @@ export class ConfigLoader<C extends Config = Config> implements IConfigLoader<C>
     }
 
     /**
-     * Coerce a string value to the specified type.
+     * Automatically apply environment variables to any config object using reflection.
      *
-     * @param value - String value from environment variable
-     * @param type - Target type ('boolean', 'number', 'string')
-     * @returns Coerced value
-     */
-    private static coerceValue(value: string, type: string): string | number | boolean {
-        switch (type) {
-            case 'boolean':
-                return this.parseBoolean(value);
-            case 'number':
-                return this.parseNumber(value);
-            case 'string':
-            default:
-                return value;
-        }
-    }
-
-    /**
-     * Parse a string to boolean.
+     * Uses reflection to discover properties and apply appropriate parsing based on type.
+     * Supports primitives, arrays, nested objects, and complex object structures.
      *
-     * Truthy values: 'true', '1', 'yes', 'on' (case-insensitive)
-     * Everything else is false.
-     */
-    private static parseBoolean(value: string): boolean {
-        const normalized = value.toLowerCase().trim();
-        return ['true', '1', 'yes', 'on'].includes(normalized);
-    }
-
-    /**
-     * Parse a string to number.
+     * **New in v0.7.0:** Delegates to EnvVarParser utility for reusable parsing logic.
      *
-     * @param value - String value
-     * @returns Parsed number or NaN if invalid
-     */
-    private static parseNumber(value: string): number {
-        const parsed = parseFloat(value);
-        if (isNaN(parsed)) {
-            console.warn(`Warning: Invalid number value "${value}", using NaN`);
-        }
-        return parsed;
-    }
-
-    /**
-     * Convert camelCase to snake_case.
+     * **Use Case:** Automatically parse environment variables for any Config object or adapter extension.
      *
-     * @param str - camelCase string
-     * @returns snake_case string
+     * @param config - Config object to populate from environment variables
+     * @param prefix - Environment variable prefix (e.g., 'MSR', 'POSTGRES')
+     * @param overrides - Optional map of property names to custom parser functions
+     *
+     * @example
+     * ```typescript
+     * // Basic usage in ConfigLoader
+     * applyEnvironmentVariables(config: C): void {
+     *     this.autoApplyEnvironmentVariables(config, 'MSR');
+     * }
+     *
+     * // With custom overrides for special cases
+     * applyEnvironmentVariables(config: C): void {
+     *     const overrides = new Map();
+     *     overrides.set('logLevel', (cfg, envVar) => {
+     *         const level = process.env[envVar];
+     *         if (level && ['error', 'warn', 'info', 'debug'].includes(level)) {
+     *             cfg.logLevel = level;
+     *         }
+     *     });
+     *     this.autoApplyEnvironmentVariables(config, 'MSR', overrides);
+     * }
+     *
+     * // Adapter extending ConfigLoader
+     * class PostgreSqlConfigLoader extends ConfigLoader<PostgreSqlConfig> {
+     *     applyEnvironmentVariables(config: PostgreSqlConfig): void {
+     *         super.applyEnvironmentVariables(config); // Apply MSR_* vars
+     *         this.autoApplyEnvironmentVariables(config, 'POSTGRES'); // Apply POSTGRES_* vars
+     *     }
+     * }
+     * ```
      */
-    private static toSnakeCase(str: string): string {
-        return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    protected autoApplyEnvironmentVariables(
+        config: C,
+        prefix: string,
+        overrides?: Map<string, (config: C, envVarName: string) => void>
+    ): void {
+        EnvVarParser.parse(config, prefix, overrides);
     }
 }

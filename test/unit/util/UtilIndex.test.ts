@@ -16,6 +16,11 @@ describe('Util Index Exports', () => {
         expect(UtilIndex.ConfigFileLoaderRegistry).to.be.a('function');
     });
 
+    it('should export EnvVarParser', () => {
+        expect(UtilIndex.EnvVarParser).to.exist;
+        expect(UtilIndex.EnvVarParser).to.be.a('function');
+    });
+
     it('should export loader classes', () => {
         expect(UtilIndex).to.have.property('JsJsonLoader');
         expect(UtilIndex).to.have.property('YamlLoader');

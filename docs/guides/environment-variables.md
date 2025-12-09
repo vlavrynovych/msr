@@ -588,6 +588,328 @@ See [ConfigLoader API Reference](../api/ConfigLoader) for detailed documentation
 
 ---
 
+### Adapter Extensibility with Automatic Parsing
+
+**New in v0.7.0:** Database adapters can extend `ConfigLoader` to add custom environment variables with automatic parsing.
+
+#### Why Use Automatic Parsing?
+
+When building database adapters, you typically need to support additional environment variables (like `POSTGRES_HOST`, `MYSQL_PORT`, etc.). The automatic parsing feature eliminates manual mapping.
+
+#### Before (Manual Mapping)
+
+```typescript
+class PostgresConfigLoader extends ConfigLoader<PostgresConfig> {
+    applyEnvironmentVariables(config: PostgresConfig): void {
+        super.applyEnvironmentVariables(config); // MSR_* vars
+
+        // ❌ Manual mapping - error-prone, requires updates
+        if (process.env.POSTGRES_HOST) {
+            config.host = process.env.POSTGRES_HOST;
+        }
+        if (process.env.POSTGRES_PORT) {
+            config.port = parseInt(process.env.POSTGRES_PORT);
+        }
+        if (process.env.POSTGRES_SSL) {
+            config.ssl = process.env.POSTGRES_SSL === 'true';
+        }
+        if (process.env.POSTGRES_POOL_SIZE) {
+            config.poolSize = parseInt(process.env.POSTGRES_POOL_SIZE);
+        }
+        // ... 20 more properties to map manually
+    }
+}
+```
+
+#### After (Automatic Parsing)
+
+```typescript
+class PostgresConfigLoader extends ConfigLoader<PostgresConfig> {
+    applyEnvironmentVariables(config: PostgresConfig): void {
+        super.applyEnvironmentVariables(config); // MSR_* vars
+
+        // ✅ Automatic parsing - zero manual mapping!
+        this.autoApplyEnvironmentVariables(config, 'POSTGRES');
+    }
+}
+
+// Config class with typed properties
+class PostgresConfig extends Config {
+    host: string = 'localhost';
+    port: number = 5432;
+    ssl: boolean = false;
+    poolSize: number = 10;
+}
+```
+
+#### How It Works
+
+1. **Reflection-based Discovery**: Automatically finds all config properties
+2. **Naming Convention**: Converts `camelCase` → `SNAKE_CASE`
+   - `host` → `POSTGRES_HOST`
+   - `poolSize` → `POSTGRES_POOL_SIZE`
+3. **Type Coercion**: Uses default value types for automatic conversion
+   - `host: string` → `process.env.POSTGRES_HOST` as string
+   - `port: number` → `parseInt(process.env.POSTGRES_PORT)`
+   - `ssl: boolean` → `parseBoolean(process.env.POSTGRES_SSL)`
+
+#### Supported Types
+
+- **Primitives**: `string`, `number`, `boolean`
+- **Arrays**: JSON parsing (e.g., `["pattern1", "pattern2"]`)
+- **Nested Objects**: Dot-notation (e.g., `POSTGRES_POOL_CONFIG_MIN`)
+- **Complex Objects**: Recursive parsing
+
+#### Example with Nested Objects
+
+```typescript
+class PostgresConfig extends Config {
+    poolConfig: {
+        min: number;
+        max: number;
+        idleTimeout: number;
+    } = {
+        min: 2,
+        max: 10,
+        idleTimeout: 30000
+    };
+}
+
+// Environment variables (automatically mapped):
+// POSTGRES_POOL_CONFIG_MIN=5
+// POSTGRES_POOL_CONFIG_MAX=20
+// POSTGRES_POOL_CONFIG_IDLE_TIMEOUT=60000
+```
+
+#### Custom Overrides for Special Cases
+
+For properties requiring validation or special handling:
+
+```typescript
+class PostgresConfigLoader extends ConfigLoader<PostgresConfig> {
+    applyEnvironmentVariables(config: PostgresConfig): void {
+        super.applyEnvironmentVariables(config);
+
+        const overrides = new Map();
+
+        // Custom validation for port
+        overrides.set('port', (cfg: PostgresConfig, envVar: string) => {
+            const value = process.env[envVar];
+            if (value) {
+                const port = parseInt(value, 10);
+                if (port >= 1 && port <= 65535) {
+                    cfg.port = port;
+                } else {
+                    console.warn(`Invalid port ${port}, using default ${cfg.port}`);
+                }
+            }
+        });
+
+        this.autoApplyEnvironmentVariables(config, 'POSTGRES', overrides);
+    }
+}
+```
+
+#### Benefits
+
+✅ **Zero Manual Mapping**: New properties automatically get env var support
+✅ **Type Safe**: Uses TypeScript types for automatic coercion
+✅ **Consistent Naming**: Automatic `camelCase` → `SNAKE_CASE`
+✅ **Maintainable**: No updates needed when adding properties
+✅ **Extensible**: Override system for special cases
+
+#### Complete Adapter Example
+
+```typescript
+import { ConfigLoader, Config } from '@migration-script-runner/core';
+
+// 1. Define adapter config
+class PostgresConfig extends Config {
+    host: string = 'localhost';
+    port: number = 5432;
+    database: string = 'mydb';
+    user: string = 'postgres';
+    password: string = '';
+    ssl: boolean = false;
+    poolSize: number = 10;
+    connectionTimeout: number = 5000;
+}
+
+// 2. Create adapter config loader
+class PostgresConfigLoader extends ConfigLoader<PostgresConfig> {
+    applyEnvironmentVariables(config: PostgresConfig): void {
+        // Apply MSR_* vars
+        super.applyEnvironmentVariables(config);
+
+        // Automatically apply POSTGRES_* vars
+        this.autoApplyEnvironmentVariables(config, 'POSTGRES');
+    }
+}
+
+// 3. Use in your adapter
+const configLoader = new PostgresConfigLoader();
+const config = configLoader.load();
+
+// Environment variables supported automatically:
+// POSTGRES_HOST=db.example.com
+// POSTGRES_PORT=5432
+// POSTGRES_DATABASE=production_db
+// POSTGRES_USER=app_user
+// POSTGRES_PASSWORD=secret
+// POSTGRES_SSL=true
+// POSTGRES_POOL_SIZE=20
+// POSTGRES_CONNECTION_TIMEOUT=10000
+```
+
+See [ConfigLoader API Reference](../api/ConfigLoader#autoapplyenvironmentvariables) for complete documentation.
+
+---
+
+### Using EnvVarParser Directly
+
+**New in v0.7.0:** `EnvVarParser` is available as a standalone utility for parsing environment variables into any object.
+
+#### Why Use EnvVarParser Directly?
+
+- **Framework-agnostic**: Use outside of MSR context
+- **Reusable**: Parse env vars for any configuration object
+- **No inheritance required**: Works with plain objects
+- **Consistent**: Same parsing logic as ConfigLoader
+
+#### Basic Usage
+
+```typescript
+import { EnvVarParser } from '@migration-script-runner/core';
+
+// Your configuration object (can be any object)
+const dbConfig = {
+    host: 'localhost',
+    port: 5432,
+    database: 'mydb',
+    ssl: false,
+    poolSize: 10
+};
+
+// Environment variables:
+// DB_HOST=prod.example.com
+// DB_PORT=5433
+// DB_SSL=true
+// DB_POOL_SIZE=20
+
+// Parse environment variables automatically
+EnvVarParser.parse(dbConfig, 'DB');
+
+// Result:
+console.log(dbConfig.host);     // 'prod.example.com'
+console.log(dbConfig.port);     // 5433 (number)
+console.log(dbConfig.ssl);      // true (boolean)
+console.log(dbConfig.poolSize); // 20 (number)
+```
+
+#### Features
+
+- **Automatic type detection**: Infers types from default values
+- **Naming convention**: Converts `camelCase` → `SNAKE_CASE`
+- **Nested objects**: Supports dot-notation (`DB_POOL_MIN`, `DB_POOL_MAX`)
+- **Type coercion**: Automatically converts strings to correct types
+- **Custom overrides**: Add validation or special handling
+
+#### Example with Nested Objects
+
+```typescript
+const appConfig = {
+    port: 3000,
+    cors: {
+        enabled: true,
+        origin: '*'
+    },
+    rateLimit: {
+        windowMs: 900000,
+        max: 100
+    }
+};
+
+// Environment:
+// APP_PORT=8080
+// APP_CORS_ENABLED=false
+// APP_CORS_ORIGIN=https://example.com
+// APP_RATE_LIMIT_MAX=1000
+
+EnvVarParser.parse(appConfig, 'APP');
+```
+
+#### Example with Custom Validation
+
+```typescript
+const config = {
+    port: 3000,
+    timeout: 5000
+};
+
+// Add custom validation for port
+const overrides = new Map();
+overrides.set('port', (obj, envVar) => {
+    const value = process.env[envVar];
+    if (value) {
+        const port = parseInt(value, 10);
+        if (port >= 1 && port <= 65535) {
+            obj.port = port;
+        } else {
+            console.warn(`Invalid port: ${port}, using default`);
+        }
+    }
+});
+
+// APP_PORT=8080 (valid)
+EnvVarParser.parse(config, 'APP', overrides);
+console.log(config.port); // 8080
+
+// APP_PORT=99999 (invalid, keeps default)
+config.port = 3000; // reset
+EnvVarParser.parse(config, 'APP', overrides);
+console.log(config.port); // 3000
+```
+
+#### Utility Methods
+
+`EnvVarParser` also exposes standalone utility methods:
+
+```typescript
+// Type coercion
+EnvVarParser.coerceValue('true', 'boolean');  // true
+EnvVarParser.coerceValue('42', 'number');     // 42
+
+// Boolean parsing
+EnvVarParser.parseBoolean('true');   // true
+EnvVarParser.parseBoolean('1');      // true
+EnvVarParser.parseBoolean('false');  // false
+
+// Number parsing
+EnvVarParser.parseNumber('42');      // 42
+EnvVarParser.parseNumber('3.14');    // 3.14
+
+// Name conversion
+EnvVarParser.toSnakeCase('poolSize');        // 'pool_size'
+EnvVarParser.toSnakeCase('maxRetries');      // 'max_retries'
+
+// Nested object loading
+const config = EnvVarParser.loadNestedFromEnv('APP_CACHE', {
+    enabled: false,
+    ttl: 3600,
+    maxSize: 1000
+});
+// Uses: APP_CACHE_ENABLED, APP_CACHE_TTL, APP_CACHE_MAX_SIZE
+```
+
+#### Use Cases
+
+1. **Microservices**: Parse service-specific configuration
+2. **CLI tools**: Load tool configuration from environment
+3. **Testing**: Mock configuration with environment variables
+4. **Libraries**: Provide env var configuration without dependencies
+
+---
+
 ### Validation
 
 Ensure required environment variables are set:
