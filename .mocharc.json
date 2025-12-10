@@ -3,7 +3,6 @@
   "package": "./package.json",
   "spec": ["test/**/*.test.ts"],
   "require": ["ts-node/register", "test/setup.ts"],
-  "node-option": ["require=ts-node/register"],
   "color": true,
   "exit": true
 }

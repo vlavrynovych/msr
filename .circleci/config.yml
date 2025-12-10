@@ -26,8 +26,6 @@ jobs:
       - run:
           name: Run Tests with reports
           command: npm run test:report
-          environment:
-            NODE_OPTIONS: "--require ts-node/register"
       - run:
           name: Upload coverage to Coveralls
           command: |
