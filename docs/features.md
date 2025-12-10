@@ -68,6 +68,7 @@ Migration Script Runner is a production-ready migration framework packed with po
 
 ### Extensibility
 - **[Custom Database Handlers](customization/database-handlers)** - Implement handlers for any database
+- **[CLI Factory](guides/cli-adapter-development)** (v0.7.0+) - Create command-line interfaces for database adapters with built-in commands
 - **[Custom Loaders](customization/loaders)** - Add support for new file formats
 - **[Custom Validators](customization/validation/custom-validators)** - Extend validation with custom rules
 - **[Custom Loggers](customization/loggers/)** - Integrate with existing logging infrastructure
@@ -226,7 +227,15 @@ Ready to use these features? Start here:
 
 ## Feature Highlights by Version
 
-### v0.6.0 (Current)
+### v0.7.0 (Current)
+- 🖥️ **CLI Factory** - Create command-line interfaces with built-in commands (migrate, list, down, validate, backup) using Commander.js
+- 🎨 **Facade Pattern** - Services grouped into logical facades for better organization
+- 🏭 **Factory Pattern** - Dedicated service factory reduces constructor complexity by 83%
+- 🔧 **Protected Facades** - Adapters can extend executor and access internal services
+- ✨ **Extensible Configuration** - IConfigLoader interface for custom environment variable handling
+- 🔨 **Simplified Constructor** - Single parameter with config moved to dependencies (**BREAKING**)
+
+### v0.6.0
 - 🛡️ **Generic Type Parameters** - Database-specific type safety with `<DB extends IDB>` throughout API (**BREAKING**)
 - 📊 **Metrics Collection** - Built-in collectors for observability (Console, Logger, JSON, CSV)
 - 📄 **Multi-Format Config** - YAML, TOML, and XML configuration file support

@@ -7,6 +7,7 @@ export * from './hooks';
 export * from './metrics';
 export * from './error';
 export * from './util';
+export * from './cli';
 
 
 

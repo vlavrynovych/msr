@@ -39,6 +39,13 @@ Database backup and restore operations:
 - Database cloning
 - Production to staging workflows
 
+### [CLI Adapter Development](cli-adapter-development)
+Building command-line interfaces for database adapters (v0.7.0+):
+- Creating CLIs with createCLI()
+- Built-in commands (migrate, list, down, validate, backup)
+- Configuration waterfall and CLI flags
+- Extending with custom commands
+
 ---
 
 ## Practical Examples

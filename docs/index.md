@@ -112,17 +112,18 @@ A database-agnostic migration framework for TypeScript and JavaScript projects.
 
 ---
 
-## What's New in v0.6.0
+## What's New in v0.7.0
 
-🎉 Latest release brings database-specific type safety:
+🎉 Latest release brings CLI factory and improved architecture:
 
-- **🎯 Generic Type Parameters** - Full type safety for database-specific operations with `IDatabaseMigrationHandler<DB>`, `IRunnableScript<DB>`, and `MigrationScriptExecutor<DB>` (BREAKING: type parameters now required)
-- **💡 Enhanced IDE Support** - Full autocomplete and IntelliSense for database-specific methods (no more `as any` casting!)
-- **🛡️ Compile-Time Validation** - Catch database errors at compile time, not runtime
-- **🔍 Enhanced Type Guards** - Type-preserving `isImperativeTransactional<DB>()` and `isCallbackTransactional<DB, TxContext>()` functions
-- **🔨 Breaking Changes** - Type parameters required for all interfaces, constructor signature changed to dependency injection pattern
+- **🖥️ CLI Factory** - Create command-line interfaces with built-in commands (migrate, list, down, validate, backup) using Commander.js - see [CLI Adapter Development Guide](guides/cli-adapter-development)
+- **🎨 Facade Pattern** - Services grouped into logical facades (core, execution, output, orchestration) for better code organization
+- **🏭 Factory Pattern** - Dedicated service initialization reduces constructor complexity by 83%
+- **🔧 Protected Facades** - Adapters can extend MigrationScriptExecutor and access internal services through protected facades
+- **✨ Extensible Configuration** - IConfigLoader interface allows custom environment variable handling
+- **🔨 Breaking Changes** - Constructor signature changed (config moved to dependencies object)
 
-**[→ View v0.6.0 migration guide](version-migration/v0.5-to-v0.6)** | **[→ See full changelog](features#feature-highlights-by-version)**
+**[→ View v0.6.x → v0.7.0 migration guide](version-migration/v0.6-to-v0.7)** | **[→ See full changelog](features#feature-highlights-by-version)**
 {: .fs-5 }
 
 ---

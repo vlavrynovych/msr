@@ -438,9 +438,72 @@ if (result.success) {
 }
 ```
 
-#### CLI Usage
+#### CLI Usage (v0.7.0+)
 
-For standalone migration scripts, control the process exit based on results:
+MSR v0.7.0+ provides a built-in CLI factory that creates a full command-line interface for your database adapter:
+
+```typescript
+// create-cli.ts
+import { createCLI } from '@migration-script-runner/core';
+import { MyDatabaseHandler } from './database-handler';
+import { Config } from '@migration-script-runner/core';
+
+const program = createCLI({
+  name: 'myapp-migrate',
+  description: 'Migration tool for MyApp',
+  version: '1.0.0',
+
+  // Provide default config
+  config: {
+    folder: './migrations',
+    tableName: 'schema_version'
+  },
+
+  // Factory function receives merged config
+  createExecutor: (config: Config) => {
+    const handler = new MyDatabaseHandler();
+    return new MigrationScriptExecutor({ handler, config });
+  }
+});
+
+program.parse(process.argv);
+```
+
+This automatically provides commands:
+```bash
+# Run migrations
+myapp-migrate migrate [targetVersion]
+
+# List migrations
+myapp-migrate list [-n <count>]
+
+# Roll back migrations
+myapp-migrate down <targetVersion>
+
+# Validate migrations
+myapp-migrate validate
+
+# Backup operations
+myapp-migrate backup create
+myapp-migrate backup restore [path]
+myapp-migrate backup delete
+```
+
+Common CLI flags (available on all commands):
+```bash
+--config-file <path>     # Configuration file path
+--folder <path>          # Migrations folder
+--logger <type>          # Logger type (console|file|silent)
+--log-level <level>      # Log level (error|warn|info|debug)
+--dry-run                # Simulate without executing
+--format <format>        # Output format (table|json)
+```
+
+**Learn More:** [CLI Adapter Development Guide](guides/cli-adapter-development)
+
+#### Standalone Script Usage
+
+For standalone migration scripts without CLI, control the process exit based on results:
 
 ```typescript
 import { MigrationScriptExecutor, Config } from '@migration-script-runner/core';

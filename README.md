@@ -71,6 +71,7 @@ MSR provides a lightweight, flexible framework for managing database migrations 
 
 ## ✨ Features
 
+- **🖥️ CLI Factory** - Built-in command-line interface with migrate, list, down, validate, and backup commands (v0.7.0)
 - **🔌 Database Agnostic** - Works with any database (SQL, NoSQL, NewSQL) by implementing a simple interface
 - **🛡️ Type Safe** - Full TypeScript support with complete type definitions
 - **💾 Smart Rollback** - Multiple strategies: backup/restore, down() methods, both, or none
