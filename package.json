@@ -23,7 +23,7 @@
     "test:watch:integration": "npm run _mocha -- --watch test/integration/**/*.test.ts",
     "test:debug": "npm run test:mocha -- --inspect-brk",
     "test:one": "npm run _mocha --",
-    "test:mocha:report": "npm run test:mocha -- --reporter mocha-junit-reporter --reporter-options mochaFile=./reports/mocha/test-results.xml test/**/*.test.ts",
+    "test:mocha:report": "npm run test:mocha -- --reporter mocha-junit-reporter --reporter-options mochaFile=./reports/mocha/test-results.xml",
     "test:coverage": "nyc npm run test:mocha:report",
     "test:report": "rimraf ./reports && npm run lint:report && npm run test:coverage",
     "test:mutation": "stryker run",
