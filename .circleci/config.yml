@@ -11,14 +11,15 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "package.json" }}
+            - v2-dependencies-{{ checksum "package-lock.json" }}
+            - v2-dependencies-
       - run:
           name: Install Dependencies
-          command: npm install
+          command: npm ci
       - save_cache:
           paths:
             - node_modules
-          key: v1-dependencies-{{ checksum "package.json" }}
+          key: v2-dependencies-{{ checksum "package-lock.json" }}
       - run:
           name: Creates backups folder
           command: mkdir backups
