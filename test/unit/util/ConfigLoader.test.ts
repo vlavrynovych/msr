@@ -210,9 +210,9 @@ describe('ConfigLoader', () => {
          * Validates that PREFIX_KEY env vars are correctly mapped to object properties.
          */
         it('should load nested object from dot-notation env vars', () => {
-            process.env.TEST_CONFIG_ENABLED = 'true';
-            process.env.TEST_CONFIG_PATH = './custom/path';
-            process.env.TEST_CONFIG_MAX_FILES = '25';
+            process.env.TESTCONFIG_ENABLED = 'true';
+            process.env.TESTCONFIG_PATH = './custom/path';
+            process.env.TESTCONFIG_MAX_FILES = '25';
 
             const defaultValue = {
                 enabled: false,
@@ -220,7 +220,7 @@ describe('ConfigLoader', () => {
                 maxFiles: 10
             };
 
-            const result = ConfigLoader.loadNestedFromEnv('TEST_CONFIG', defaultValue);
+            const result = ConfigLoader.loadNestedFromEnv('TESTCONFIG', defaultValue);
 
             expect(result).to.deep.equal({
                 enabled: true,
@@ -234,15 +234,15 @@ describe('ConfigLoader', () => {
          * Validates that camelCase property names are converted to SNAKE_CASE.
          */
         it('should convert camelCase to SNAKE_CASE', () => {
-            process.env.TEST_NESTED_LOG_SUCCESSFUL = 'true';
-            process.env.TEST_NESTED_TIMESTAMP_FORMAT = 'YYYY-MM-DD';
+            process.env.TESTNESTED_LOG_SUCCESSFUL = 'true';
+            process.env.TESTNESTED_TIMESTAMP_FORMAT = 'YYYY-MM-DD';
 
             const defaultValue = {
                 logSuccessful: false,
                 timestampFormat: 'ISO'
             };
 
-            const result = ConfigLoader.loadNestedFromEnv('TEST_NESTED', defaultValue);
+            const result = ConfigLoader.loadNestedFromEnv('TESTNESTED', defaultValue);
 
             expect(result.logSuccessful).to.be.true;
             expect(result.timestampFormat).to.equal('YYYY-MM-DD');
@@ -253,7 +253,7 @@ describe('ConfigLoader', () => {
          * Validates that properties not set via env vars keep their default values.
          */
         it('should use defaults for missing env vars', () => {
-            process.env.TEST_PARTIAL_ENABLED = 'true';
+            process.env.TESTPARTIAL_ENABLED = 'true';
 
             const defaultValue = {
                 enabled: false,
@@ -261,7 +261,7 @@ describe('ConfigLoader', () => {
                 maxFiles: 10
             };
 
-            const result = ConfigLoader.loadNestedFromEnv('TEST_PARTIAL', defaultValue);
+            const result = ConfigLoader.loadNestedFromEnv('TESTPARTIAL', defaultValue);
 
             expect(result).to.deep.equal({
                 enabled: true,
@@ -275,9 +275,9 @@ describe('ConfigLoader', () => {
          * Validates that env var values are coerced to match default value types.
          */
         it('should coerce types for nested values', () => {
-            process.env.TEST_TYPES_FLAG = 'true';
-            process.env.TEST_TYPES_COUNT = '42';
-            process.env.TEST_TYPES_NAME = 'test';
+            process.env.TESTTYPES_FLAG = 'true';
+            process.env.TESTTYPES_COUNT = '42';
+            process.env.TESTTYPES_NAME = 'test';
 
             const defaultValue = {
                 flag: false,
@@ -285,7 +285,7 @@ describe('ConfigLoader', () => {
                 name: ''
             };
 
-            const result = ConfigLoader.loadNestedFromEnv('TEST_TYPES', defaultValue);
+            const result = ConfigLoader.loadNestedFromEnv('TESTTYPES', defaultValue);
 
             expect(result.flag).to.be.a('boolean');
             expect(result.count).to.be.a('number');
@@ -300,15 +300,15 @@ describe('ConfigLoader', () => {
          * Validates that only own properties are processed.
          */
         it('should skip inherited properties from prototype', () => {
-            process.env.TEST_PROTO_INHERITED = 'from-env';
-            process.env.TEST_PROTO_VALUE = 'from-env';
+            process.env.TESTPROTO_INHERITED = 'from-env';
+            process.env.TESTPROTO_VALUE = 'from-env';
 
             // Create object with prototype property and own property
             const protoObject = { inherited: 'proto-value' };
             const defaultValue = Object.create(protoObject) as { inherited: string; value: string };
             defaultValue.value = 'default';
 
-            const result = ConfigLoader.loadNestedFromEnv('TEST_PROTO', defaultValue);
+            const result = ConfigLoader.loadNestedFromEnv('TESTPROTO', defaultValue);
 
             // Own property should be updated from env var
             expect(result.value).to.equal('from-env');
@@ -1120,7 +1120,7 @@ describe('ConfigLoader', () => {
                 super.applyEnvironmentVariables(config);
 
                 // Then apply adapter-specific vars with custom prefix
-                this.autoApplyEnvironmentVariables(config, 'TEST_DB');
+                this.autoApplyEnvironmentVariables(config, 'TESTDB');
             }
         }
 
@@ -1129,10 +1129,10 @@ describe('ConfigLoader', () => {
          * Validates that adapters can use autoApplyEnvironmentVariables with their own prefix.
          */
         it('should automatically parse env vars with custom prefix', () => {
-            process.env.TEST_DB_HOST = 'db.example.com';
-            process.env.TEST_DB_PORT = '3306';
-            process.env.TEST_DB_SSL = 'true';
-            process.env.TEST_DB_POOL_SIZE = '20';
+            process.env.TESTDB_HOST = 'db.example.com';
+            process.env.TESTDB_PORT = '3306';
+            process.env.TESTDB_SSL = 'true';
+            process.env.TESTDB_POOL_SIZE = '20';
 
             const config = new TestAdapterConfig();
             const loader = new TestAdapterConfigLoader();
@@ -1149,8 +1149,8 @@ describe('ConfigLoader', () => {
          * Validates that nested objects are automatically parsed with dot-notation.
          */
         it('should automatically parse nested objects', () => {
-            process.env.TEST_DB_CUSTOM_OBJECT_ENABLED = 'true';
-            process.env.TEST_DB_CUSTOM_OBJECT_TIMEOUT = '10000';
+            process.env.TESTDB_CUSTOM_OBJECT_ENABLED = 'true';
+            process.env.TESTDB_CUSTOM_OBJECT_TIMEOUT = '10000';
 
             const config = new TestAdapterConfig();
             const loader = new TestAdapterConfigLoader();
@@ -1165,7 +1165,7 @@ describe('ConfigLoader', () => {
          * Validates that property names are correctly converted to env var names.
          */
         it('should convert camelCase property names to SNAKE_CASE env vars', () => {
-            process.env.TEST_DB_POOL_SIZE = '15';
+            process.env.TESTDB_POOL_SIZE = '15';
 
             const config = new TestAdapterConfig();
             const loader = new TestAdapterConfigLoader();
@@ -1179,9 +1179,9 @@ describe('ConfigLoader', () => {
          * Validates that automatic type coercion works for all primitive types.
          */
         it('should automatically coerce types based on default values', () => {
-            process.env.TEST_DB_HOST = 'string-value';
-            process.env.TEST_DB_PORT = '9999';
-            process.env.TEST_DB_SSL = 'true';
+            process.env.TESTDB_HOST = 'string-value';
+            process.env.TESTDB_PORT = '9999';
+            process.env.TESTDB_SSL = 'true';
 
             const config = new TestAdapterConfig();
             const loader = new TestAdapterConfigLoader();
@@ -1216,18 +1216,18 @@ describe('ConfigLoader', () => {
                         }
                     });
 
-                    this.autoApplyEnvironmentVariables(config, 'TEST_DB', overrides);
+                    this.autoApplyEnvironmentVariables(config, 'TESTDB', overrides);
                 }
             }
 
             // Valid port
-            process.env.TEST_DB_PORT = '8080';
+            process.env.TESTDB_PORT = '8080';
             let config = new TestAdapterConfig();
             new CustomLoaderWithOverrides().applyEnvironmentVariables(config);
             expect(config.port).to.equal(8080);
 
             // Invalid port (out of range)
-            process.env.TEST_DB_PORT = '99999';
+            process.env.TESTDB_PORT = '99999';
             config = new TestAdapterConfig();
             new CustomLoaderWithOverrides().applyEnvironmentVariables(config);
             expect(config.port).to.equal(5432); // Should use default
@@ -1240,8 +1240,8 @@ describe('ConfigLoader', () => {
         it('should apply both MSR_* and adapter-specific vars', () => {
             process.env.MSR_FOLDER = './custom/migrations';
             process.env.MSR_DRY_RUN = 'true';
-            process.env.TEST_DB_HOST = 'db.example.com';
-            process.env.TEST_DB_PORT = '3306';
+            process.env.TESTDB_HOST = 'db.example.com';
+            process.env.TESTDB_PORT = '3306';
 
             const config = new TestAdapterConfig();
             const loader = new TestAdapterConfigLoader();
@@ -1266,17 +1266,17 @@ describe('ConfigLoader', () => {
                     super.applyEnvironmentVariables(config);
 
                     // Manual handling for some vars
-                    if (process.env.TEST_DB_HOST) {
-                        config.host = process.env.TEST_DB_HOST;
+                    if (process.env.TESTDB_HOST) {
+                        config.host = process.env.TESTDB_HOST;
                     }
 
                     // Automatic handling for others
-                    this.autoApplyEnvironmentVariables(config, 'TEST_DB');
+                    this.autoApplyEnvironmentVariables(config, 'TESTDB');
                 }
             }
 
-            process.env.TEST_DB_HOST = 'manual.example.com';
-            process.env.TEST_DB_PORT = '3306';
+            process.env.TESTDB_HOST = 'manual.example.com';
+            process.env.TESTDB_PORT = '3306';
 
             const config = new TestAdapterConfig();
             new MixedLoader().applyEnvironmentVariables(config);

@@ -6,7 +6,7 @@ import { LogLevel } from '../interface/ILogger';
 import { ConfigFileLoaderRegistry } from './ConfigFileLoaderRegistry';
 import { JsJsonLoader, YamlLoader, TomlLoader, XmlLoader } from './loaders';
 import { IConfigLoader } from '../interface/IConfigLoader';
-import { EnvVarParser } from './EnvVarParser';
+import { parse } from 'auto-envparse';
 
 /**
  * Options for ConfigLoader.load() method.
@@ -304,7 +304,20 @@ export class ConfigLoader<C extends Config = Config> implements IConfigLoader<C>
             return defaultValue;
         }
 
-        return EnvVarParser.coerceValue(value, typeof defaultValue) as T;
+        // Type coercion based on default value type
+        const valueType = typeof defaultValue;
+        switch (valueType) {
+            case 'boolean':
+                return (value.toLowerCase().trim() === 'true' ||
+                    value === '1' ||
+                    value.toLowerCase().trim() === 'yes' ||
+                    value.toLowerCase().trim() === 'on') as T;
+            case 'number':
+                return parseFloat(value) as T;
+            case 'string':
+            default:
+                return value as T;
+        }
     }
 
     /**
@@ -360,7 +373,7 @@ export class ConfigLoader<C extends Config = Config> implements IConfigLoader<C>
      * Looks for environment variables with the pattern: PREFIX_KEY=value
      * Automatically coerces types based on default value types.
      *
-     * **New in v0.7.0:** Delegates to EnvVarParser for reusable parsing logic.
+     * **New in v0.7.0:** Delegates to auto-envparse for reusable parsing logic.
      *
      * **Use Case:** Preferred method for loading complex objects (better than JSON).
      *
@@ -388,7 +401,9 @@ export class ConfigLoader<C extends Config = Config> implements IConfigLoader<C>
         prefix: string,
         defaultValue: T
     ): T {
-        return EnvVarParser.loadNestedFromEnv(prefix, defaultValue);
+        const result = { ...defaultValue };
+        parse(result, prefix);
+        return result;
     }
 
     /**
@@ -466,7 +481,7 @@ export class ConfigLoader<C extends Config = Config> implements IConfigLoader<C>
      * Uses reflection to discover properties and apply appropriate parsing based on type.
      * Supports primitives, arrays, nested objects, and complex object structures.
      *
-     * **New in v0.7.0:** Delegates to EnvVarParser utility for reusable parsing logic.
+     * **New in v0.7.0:** Delegates to auto-envparse library for reusable parsing logic.
      *
      * **Use Case:** Automatically parse environment variables for any Config object or adapter extension.
      *
@@ -507,6 +522,6 @@ export class ConfigLoader<C extends Config = Config> implements IConfigLoader<C>
         prefix: string,
         overrides?: Map<string, (config: C, envVarName: string) => void>
     ): void {
-        EnvVarParser.parse(config, prefix, overrides);
+        parse(config, prefix, overrides);
     }
 }

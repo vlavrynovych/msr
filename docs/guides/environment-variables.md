@@ -765,21 +765,25 @@ See [ConfigLoader API Reference](../api/ConfigLoader#autoapplyenvironmentvariabl
 
 ---
 
-### Using EnvVarParser Directly
+### Using auto-envparse Directly
 
-**New in v0.7.0:** `EnvVarParser` is available as a standalone utility for parsing environment variables into any object.
+**New in v0.7.0:** MSR uses the [`auto-envparse`](https://www.npmjs.com/package/auto-envparse) library for automatic environment variable parsing. This library was extracted from MSR and is available as a standalone npm package.
 
-#### Why Use EnvVarParser Directly?
+#### Why Use auto-envparse?
 
 - **Framework-agnostic**: Use outside of MSR context
 - **Reusable**: Parse env vars for any configuration object
 - **No inheritance required**: Works with plain objects
-- **Consistent**: Same parsing logic as ConfigLoader
+- **Zero dependencies**: Lightweight and fast
+- **12-Factor App compliant**: Best practices for configuration
+
+**Package:** `npm install auto-envparse`
+**Repository:** https://github.com/vlavrynovych/auto-envparse
 
 #### Basic Usage
 
 ```typescript
-import { EnvVarParser } from '@migration-script-runner/core';
+import { parse } from 'auto-envparse';
 
 // Your configuration object (can be any object)
 const dbConfig = {
@@ -797,7 +801,7 @@ const dbConfig = {
 // DB_POOL_SIZE=20
 
 // Parse environment variables automatically
-EnvVarParser.parse(dbConfig, 'DB');
+parse(dbConfig, 'DB');
 
 // Result:
 console.log(dbConfig.host);     // 'prod.example.com'
@@ -835,18 +839,20 @@ const appConfig = {
 // APP_CORS_ORIGIN=https://example.com
 // APP_RATE_LIMIT_MAX=1000
 
-EnvVarParser.parse(appConfig, 'APP');
+parse(appConfig, 'APP');
 ```
 
 #### Example with Custom Validation
 
 ```typescript
+import { parse, enumValidator } from 'auto-envparse';
+
 const config = {
     port: 3000,
-    timeout: 5000
+    environment: 'development'
 };
 
-// Add custom validation for port
+// Add custom validation for port and environment
 const overrides = new Map();
 overrides.set('port', (obj, envVar) => {
     const value = process.env[envVar];
@@ -860,45 +866,35 @@ overrides.set('port', (obj, envVar) => {
     }
 });
 
-// APP_PORT=8080 (valid)
-EnvVarParser.parse(config, 'APP', overrides);
-console.log(config.port); // 8080
+// Use built-in enum validator
+overrides.set('environment', enumValidator('environment',
+    ['development', 'staging', 'production'],
+    { caseSensitive: false }
+));
 
-// APP_PORT=99999 (invalid, keeps default)
-config.port = 3000; // reset
-EnvVarParser.parse(config, 'APP', overrides);
-console.log(config.port); // 3000
+// APP_PORT=8080 APP_ENVIRONMENT=production
+parse(config, 'APP', overrides);
+console.log(config.port);        // 8080
+console.log(config.environment); // 'production'
 ```
 
-#### Utility Methods
+#### Advanced Features
 
-`EnvVarParser` also exposes standalone utility methods:
+**Class Instance Creation:**
 
 ```typescript
-// Type coercion
-EnvVarParser.coerceValue('true', 'boolean');  // true
-EnvVarParser.coerceValue('42', 'number');     // 42
+import { createFrom } from 'auto-envparse';
 
-// Boolean parsing
-EnvVarParser.parseBoolean('true');   // true
-EnvVarParser.parseBoolean('1');      // true
-EnvVarParser.parseBoolean('false');  // false
+class DatabaseConfig {
+    host = 'localhost';
+    port = 5432;
+    ssl = false;
+}
 
-// Number parsing
-EnvVarParser.parseNumber('42');      // 42
-EnvVarParser.parseNumber('3.14');    // 3.14
-
-// Name conversion
-EnvVarParser.toSnakeCase('poolSize');        // 'pool_size'
-EnvVarParser.toSnakeCase('maxRetries');      // 'max_retries'
-
-// Nested object loading
-const config = EnvVarParser.loadNestedFromEnv('APP_CACHE', {
-    enabled: false,
-    ttl: 3600,
-    maxSize: 1000
-});
-// Uses: APP_CACHE_ENABLED, APP_CACHE_TTL, APP_CACHE_MAX_SIZE
+// Environment: DB_HOST=prod.example.com DB_PORT=5433 DB_SSL=true
+const dbConfig = createFrom(DatabaseConfig, 'DB');
+console.log(dbConfig instanceof DatabaseConfig); // true
+console.log(dbConfig.host); // 'prod.example.com'
 ```
 
 #### Use Cases
@@ -907,6 +903,11 @@ const config = EnvVarParser.loadNestedFromEnv('APP_CACHE', {
 2. **CLI tools**: Load tool configuration from environment
 3. **Testing**: Mock configuration with environment variables
 4. **Libraries**: Provide env var configuration without dependencies
+5. **Any Node.js project**: Zero-config environment variable parsing
+
+#### MSR Integration
+
+MSR's `ConfigLoader` internally uses `auto-envparse` for environment variable parsing. When you extend `ConfigLoader` for adapters, you're using the same battle-tested parsing logic that's available as a standalone package.
 
 ---
 

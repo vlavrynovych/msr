@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import { EnvVarParser } from '../../../src/util/EnvVarParser';
+import { parse } from 'auto-envparse';
 
-describe('EnvVarParser - Standalone Usage', () => {
+describe('auto-envparse Integration Tests', () => {
     // Store original env vars to restore after tests
     const originalEnv: Record<string, string | undefined> = {};
 
@@ -42,7 +42,7 @@ describe('EnvVarParser - Standalone Usage', () => {
             process.env.TEST_SSL = 'true';
             process.env.TEST_POOL_SIZE = '20';
 
-            EnvVarParser.parse(config, 'TEST');
+            parse(config, 'TEST');
 
             expect(config.host).to.equal('db.example.com');
             expect(config.port).to.equal(3306);
@@ -59,7 +59,7 @@ describe('EnvVarParser - Standalone Usage', () => {
             process.env.DB_DATABASE = 'production';
             process.env.DB_TIMEOUT = '10000';
 
-            EnvVarParser.parse(dbConfig, 'DB');
+            parse(dbConfig, 'DB');
 
             expect(dbConfig.database).to.equal('production');
             expect(dbConfig.timeout).to.equal(10000);
@@ -76,7 +76,7 @@ describe('EnvVarParser - Standalone Usage', () => {
             process.env.TEST_CONNECTION_HOST = 'remote.example.com';
             process.env.TEST_CONNECTION_PORT = '3307';
 
-            EnvVarParser.parse(config, 'TEST');
+            parse(config, 'TEST');
 
             expect(config.connection.host).to.equal('remote.example.com');
             expect(config.connection.port).to.equal(3307);
@@ -105,7 +105,7 @@ describe('EnvVarParser - Standalone Usage', () => {
             process.env.TEST_PORT = '8080';
             process.env.TEST_RETRIES = '5';
 
-            EnvVarParser.parse(config, 'TEST', overrides);
+            parse(config, 'TEST', overrides);
 
             expect(config.port).to.equal(8080);
             expect(config.retries).to.equal(5);
@@ -113,7 +113,7 @@ describe('EnvVarParser - Standalone Usage', () => {
             // Invalid port (out of range) - should keep original
             process.env.TEST_PORT = '99999';
             const config2 = { port: 5432, retries: 3 };
-            EnvVarParser.parse(config2, 'TEST', overrides);
+            parse(config2, 'TEST', overrides);
 
             expect(config2.port).to.equal(5432);
         });
@@ -128,7 +128,7 @@ describe('EnvVarParser - Standalone Usage', () => {
             process.env.TEST_OPTIONAL = 'from-env';
             process.env.TEST_UNSET = 'also-from-env';
 
-            EnvVarParser.parse(config, 'TEST');
+            parse(config, 'TEST');
 
             expect(config.optional).to.equal('from-env');
             expect(config.unset).to.equal('also-from-env');
@@ -144,7 +144,7 @@ describe('EnvVarParser - Standalone Usage', () => {
             const config = Object.create(protoObject) as { inherited: string; own: string };
             config.own = 'default';
 
-            EnvVarParser.parse(config, 'TEST');
+            parse(config, 'TEST');
 
             // Own property should be updated
             expect(config.own).to.equal('own-value');
@@ -161,7 +161,7 @@ describe('EnvVarParser - Standalone Usage', () => {
             process.env.TEST_TAGS = '["tag1", "tag2", "tag3"]';
             process.env.TEST_NUMBERS = '[10, 20, 30]';
 
-            EnvVarParser.parse(config, 'TEST');
+            parse(config, 'TEST');
 
             expect(config.tags).to.deep.equal(['tag1', 'tag2', 'tag3']);
             expect(config.numbers).to.deep.equal([10, 20, 30]);
@@ -180,7 +180,7 @@ describe('EnvVarParser - Standalone Usage', () => {
             process.env.TEST_NESTED_VALUE = '200';
             process.env.TEST_NESTED_INHERITED = 'should-not-apply';
 
-            EnvVarParser.parse(config, 'TEST');
+            parse(config, 'TEST');
 
             // Own property should be updated
             expect(config.nested.value).to.equal(200);
@@ -204,107 +204,12 @@ describe('EnvVarParser - Standalone Usage', () => {
             process.env.TEST_COMPLEX_VALUE = '200';
             process.env.TEST_COMPLEX_INHERITED = 'should-not-apply';
 
-            EnvVarParser.parse(config, 'TEST');
+            parse(config, 'TEST');
 
             // Own property should be updated
             expect(config.complex.value).to.equal(200);
             // Inherited property should not be on instance
             expect(config.complex.hasOwnProperty('inherited')).to.be.false;
-        });
-    });
-
-    describe('Type coercion methods', () => {
-        describe('parseBoolean()', () => {
-            it('should parse truthy values correctly', () => {
-                expect(EnvVarParser.parseBoolean('true')).to.be.true;
-                expect(EnvVarParser.parseBoolean('TRUE')).to.be.true;
-                expect(EnvVarParser.parseBoolean('1')).to.be.true;
-                expect(EnvVarParser.parseBoolean('yes')).to.be.true;
-                expect(EnvVarParser.parseBoolean('YES')).to.be.true;
-                expect(EnvVarParser.parseBoolean('on')).to.be.true;
-                expect(EnvVarParser.parseBoolean('ON')).to.be.true;
-            });
-
-            it('should parse falsy values correctly', () => {
-                expect(EnvVarParser.parseBoolean('false')).to.be.false;
-                expect(EnvVarParser.parseBoolean('0')).to.be.false;
-                expect(EnvVarParser.parseBoolean('no')).to.be.false;
-                expect(EnvVarParser.parseBoolean('off')).to.be.false;
-                expect(EnvVarParser.parseBoolean('random')).to.be.false;
-            });
-        });
-
-        describe('parseNumber()', () => {
-            it('should parse valid numbers', () => {
-                expect(EnvVarParser.parseNumber('42')).to.equal(42);
-                expect(EnvVarParser.parseNumber('3.14')).to.equal(3.14);
-                expect(EnvVarParser.parseNumber('-10')).to.equal(-10);
-            });
-
-            it('should return NaN for invalid numbers', () => {
-                expect(EnvVarParser.parseNumber('not-a-number')).to.be.NaN;
-            });
-        });
-
-        describe('toSnakeCase()', () => {
-            it('should convert camelCase to snake_case', () => {
-                expect(EnvVarParser.toSnakeCase('poolSize')).to.equal('pool_size');
-                expect(EnvVarParser.toSnakeCase('maxRetries')).to.equal('max_retries');
-                expect(EnvVarParser.toSnakeCase('connectionTimeout')).to.equal('connection_timeout');
-                expect(EnvVarParser.toSnakeCase('host')).to.equal('host');
-            });
-        });
-
-        describe('coerceValue()', () => {
-            it('should coerce to boolean', () => {
-                expect(EnvVarParser.coerceValue('true', 'boolean')).to.be.true;
-                expect(EnvVarParser.coerceValue('false', 'boolean')).to.be.false;
-            });
-
-            it('should coerce to number', () => {
-                expect(EnvVarParser.coerceValue('42', 'number')).to.equal(42);
-                expect(EnvVarParser.coerceValue('3.14', 'number')).to.equal(3.14);
-            });
-
-            it('should return string for string type', () => {
-                expect(EnvVarParser.coerceValue('hello', 'string')).to.equal('hello');
-            });
-        });
-    });
-
-    describe('loadNestedFromEnv()', () => {
-        it('should load nested object from dot-notation env vars', () => {
-            process.env.TEST_LOGGING_ENABLED = 'true';
-            process.env.TEST_LOGGING_PATH = './custom/logs';
-            process.env.TEST_LOGGING_MAX_FILES = '25';
-
-            const result = EnvVarParser.loadNestedFromEnv('TEST_LOGGING', {
-                enabled: false,
-                path: './logs',
-                maxFiles: 10
-            });
-
-            expect(result).to.deep.equal({
-                enabled: true,
-                path: './custom/logs',
-                maxFiles: 25
-            });
-        });
-
-        it('should preserve defaults for unset env vars', () => {
-            process.env.TEST_CONFIG_ENABLED = 'true';
-
-            const result = EnvVarParser.loadNestedFromEnv('TEST_CONFIG', {
-                enabled: false,
-                path: './default',
-                maxFiles: 10
-            });
-
-            expect(result).to.deep.equal({
-                enabled: true,
-                path: './default',
-                maxFiles: 10
-            });
         });
     });
 
@@ -332,7 +237,7 @@ describe('EnvVarParser - Standalone Usage', () => {
             process.env.DB_POOL_MIN = '5';
             process.env.DB_POOL_MAX = '50';
 
-            EnvVarParser.parse(dbConfig, 'DB');
+            parse(dbConfig, 'DB');
 
             expect(dbConfig.host).to.equal('prod-db.example.com');
             expect(dbConfig.port).to.equal(5433);
@@ -364,7 +269,7 @@ describe('EnvVarParser - Standalone Usage', () => {
             process.env.APP_CORS_ORIGIN = 'https://example.com';
             process.env.APP_RATE_LIMIT_MAX = '1000';
 
-            EnvVarParser.parse(appConfig, 'APP');
+            parse(appConfig, 'APP');
 
             expect(appConfig.port).to.equal(8080);
             expect(appConfig.debug).to.be.true;
