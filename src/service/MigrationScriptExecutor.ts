@@ -64,6 +64,7 @@ export class MigrationScriptExecutor<DB extends IDB> {
     protected readonly loaderRegistry: ILoaderRegistry<DB>;
 
     /** Lifecycle hooks (stored for test access only - not for adapter use) */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private readonly hooks?: IMigrationHooks<DB>;
 
     /** Core business logic services (scanning, validation, backup, rollback) */
