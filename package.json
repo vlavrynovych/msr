@@ -47,6 +47,9 @@
     "url": "https://www.instagram.com/vlavrynovych/"
   },
   "license": "SEE LICENSE IN LICENSE",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "devDependencies": {
     "@iarna/toml": "^2.2.5",
     "@stryker-mutator/core": "^9.3.0",
