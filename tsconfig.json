@@ -20,6 +20,11 @@
     "skipLibCheck": true,
 //    "noEmit": true // disables
   },
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs"
+    }
+  },
   "include": ["index.ts", "src/**/*", "test/**/*"],
   "exclude": ["dist", "node_modules"]
 }
