@@ -399,11 +399,23 @@ class FirestoreDB implements ICallbackTransactionalDB<Transaction> {
 
 ## Running Migrations
 
+{: .important }
+> **Production Deployment Warning**
+>
+> For production environments, **always use the CLI** to run migrations, not the programmatic API. The API approach shown below is designed for development and testing only.
+>
+> **Why?** Running migrations from application code in production causes:
+> - ❌ Security risks (app needs elevated DDL permissions)
+> - ❌ Race conditions (multiple instances run migrations simultaneously)
+> - ❌ Difficult debugging (migration failures hidden in app logs)
+>
+> **See:** [CLI vs API Usage](guides/cli-vs-api) | [Production Deployment Guide](guides/production-deployment)
+
 ### Execute Pending Migrations
 
-MSR can be used either as a library (recommended) or as a CLI tool.
+MSR can be used either as a library or as a CLI tool. **Use CLI for production, API for development/testing.**
 
-#### Library Usage (Recommended)
+#### Library Usage (Development & Testing)
 
 Use MSR as a library to integrate migrations into your application without terminating the process:
 
@@ -438,9 +450,12 @@ if (result.success) {
 }
 ```
 
-#### CLI Usage (v0.7.0+)
+#### CLI Usage (Production & All Environments) - v0.7.0+
 
-MSR v0.7.0+ provides a built-in CLI factory that creates a full command-line interface for your database adapter:
+MSR v0.7.0+ provides a built-in CLI factory that creates a full command-line interface for your database adapter.
+
+{: .note }
+> **Recommended for production deployments.** The CLI approach is safer, more auditable, and prevents common production issues.
 
 ```typescript
 // create-cli.ts
@@ -800,10 +815,18 @@ config.beforeMigrateName = null;
 
 ## Next Steps
 
+### Production Deployment
+- **[CLI vs API Usage](guides/cli-vs-api)** - Understand when to use each approach
+- **[Production Deployment Guide](guides/production-deployment)** - Security best practices and deployment patterns
+- **[CI/CD Integration](guides/ci-cd-integration)** - GitHub Actions, GitLab, Jenkins examples
+- **[Docker & Kubernetes](guides/docker-kubernetes)** - Container orchestration patterns
+
+### Development & Configuration
 - [Configuration Guide](configuration) - Learn about all configuration options
 - [API Reference](api/) - Explore the full API
 - [Writing Migrations](guides/writing-migrations) - Best practices for migration scripts
 - [Testing](testing/) - How to test your migrations
+- [CLI Adapter Development](guides/cli-adapter-development) - Create CLIs for your adapters
 
 ---
 

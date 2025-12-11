@@ -224,6 +224,13 @@ if (result.success) {
 - **[Getting Started](getting-started)** - Installation, basic usage, and quick start
 - **[Guides](guides/)** - Comprehensive guides and practical examples
 
+### Production Deployment
+
+- **[CLI vs API Usage](guides/cli-vs-api)** - When to use command-line vs programmatic approach
+- **[Production Deployment](guides/production-deployment)** - Security best practices and platform-specific patterns
+- **[CI/CD Integration](guides/ci-cd-integration)** - GitHub Actions, GitLab, Jenkins, and more
+- **[Docker & Kubernetes](guides/docker-kubernetes)** - Container orchestration and deployment patterns
+
 ### Reference
 
 - **[API Reference](api/)** - Complete API documentation for all classes and interfaces
