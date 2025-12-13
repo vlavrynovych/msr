@@ -994,7 +994,7 @@ describe('ConfigLoader', () => {
         it('should throw error when file not found', () => {
             const nonExistentFile = path.resolve(__dirname, 'does-not-exist.json');
 
-            expect(() => ConfigLoader.loadFromFile(nonExistentFile)).to.throw();
+            expect(() => ConfigLoader.loadFromFile(nonExistentFile)).to.throw(Error, 'does-not-exist.json');
         });
 
         /**

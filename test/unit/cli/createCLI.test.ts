@@ -321,7 +321,7 @@ describe('createCLI', () => {
             const program = createCLI({createExecutor: createExecutorStub});
             program.exitOverride(); // Prevent process.exit in tests
 
-            expect(() => program.parse(['node', 'test', '--version'])).to.throw();
+            expect(() => program.parse(['node', 'test', '--version'])).to.throw(Error, '1.0.0');
         });
 
         /**

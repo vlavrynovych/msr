@@ -194,7 +194,7 @@ describe('ChecksumService', () => {
 
             expect(() => {
                 ChecksumService.calculateChecksum(nonExistentPath, 'sha256');
-            }).to.throw();
+            }).to.throw(Error, 'does-not-exist.txt');
         });
 
         /**
@@ -205,7 +205,7 @@ describe('ChecksumService', () => {
         it('should throw error for directory path', () => {
             expect(() => {
                 ChecksumService.calculateChecksum(tempDir, 'sha256');
-            }).to.throw();
+            }).to.throw(Error, 'EISDIR');
         });
 
         /**
