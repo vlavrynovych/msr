@@ -89,7 +89,7 @@
   },
   "dependencies": {
     "ascii-table3": "^1.0.1",
-    "auto-envparse": "^1.1.1",
+    "auto-envparse": "^2.1.0",
     "commander": "^12.1.0",
     "figlet": "^1.9.4",
     "lodash": "^4.17.21",

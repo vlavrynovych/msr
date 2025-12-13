@@ -305,7 +305,15 @@ config.transaction.retries = 3;  // Retry on transient errors
 // Configure logging (v0.6.0+)
 config.logLevel = 'info';  // 'error' | 'warn' | 'info' | 'debug' (default: 'info')
 config.showBanner = true;  // Show version banner (default: true)
+
+// Configure .env file loading (v0.7.0+)
+config.envFileSources = ['.env.local', '.env', 'env'];  // Default: loads .env files
+// config.envFileSources = ['.env.production', '.env'];  // For production
+// config.envFileSources = [];  // Disable .env loading (use system env vars only)
 ```
+
+{: .note }
+> **.env File Support (v0.7.0+):** MSR automatically loads environment variables from `.env` files. Use `.env.local` for local development (add to .gitignore), `.env.production` for production, and `.env` as fallback. Files are loaded in priority order. See the [Environment Variables Guide](guides/environment-variables#env-file-support-v070) for details.
 
 ### Rollback Strategies
 

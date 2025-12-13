@@ -28,6 +28,7 @@ MSR is designed for **production safety, developer experience, and flexibility**
 | **Multi-Format Config** | ✅ YAML, TOML, XML, JSON, JS (v0.6.0) | Limited formats |
 | **Transaction Management** | ✅ Configurable modes with retry (v0.5.0) | Basic or none |
 | **Environment Variables** | ✅ Full 12-factor config (v0.5.0) | Limited |
+| **.env File Support** | ✅ Multi-source with priority (v0.7.0) | Varies |
 | **Dry Run Mode** | ✅ Built-in, free | Often paid/enterprise only |
 | **Execution Summaries** | ✅ Detailed success/failure logs | Basic output only |
 | **Lifecycle Hooks** | ✅ Process, script, backup, transaction (v0.5.0) | Rare |
@@ -45,6 +46,7 @@ MSR is designed for **production safety, developer experience, and flexibility**
 | Multi-Format Config | ✅ v0.6.0 - YAML, TOML, XML, JSON, JS |
 | Transaction Support | ✅ v0.5.0 - Configurable modes, isolation levels, auto-retry |
 | Environment Variables | ✅ v0.5.0 - 33 MSR_* variables |
+| .env File Support | ✅ v0.7.0 - .env, .env.production, .env.local with priority control |
 | Rollback | ✅ |
 | Connection Validation | ✅ v0.4.0 |
 | Programmatic API | ✅ |
@@ -102,7 +104,7 @@ MSR is a great fit when you:
 - ✅ Want flexibility to use TypeScript OR SQL migrations
 - ✅ Need production-ready safety features (dry run, summaries)
 - ✅ Need reliable transaction management with automatic retry
-- ✅ Deploy in containers/Kubernetes with environment variable config
+- ✅ Deploy in containers/Kubernetes with environment variable and .env file config
 - ✅ Value developer experience and type safety
 - ✅ Want lifecycle hooks for custom logic
 - ✅ Need multi-database support in one tool

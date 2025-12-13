@@ -647,4 +647,36 @@ export class Config {
      * ```
      */
     logLevel: LogLevel = 'info'
+
+    /**
+     * List of .env file paths to load for environment variable configuration.
+     *
+     * Files are loaded in priority order (first file takes precedence).
+     * MSR will automatically search for and load these files before parsing environment variables.
+     *
+     * **Supported since:** auto-envparse v2.1.0 (MSR v0.7.0+)
+     *
+     * @default ['.env.local', '.env', 'env']
+     *
+     * @example
+     * ```typescript
+     * // Default behavior - load .env.local, .env, and env in priority order
+     * config.envFileSources = ['.env.local', '.env', 'env'];
+     *
+     * // Production environment - load production-specific file first
+     * config.envFileSources = ['.env.production', '.env'];
+     *
+     * // Development with local overrides
+     * config.envFileSources = ['.env.development.local', '.env.development', '.env'];
+     *
+     * // Disable .env file loading (use system environment variables only)
+     * config.envFileSources = [];
+     *
+     * // Custom file names
+     * config.envFileSources = ['database.env', 'secrets.env'];
+     * ```
+     *
+     * @see https://github.com/vlavrynovych/auto-envparse#env-file-loading
+     */
+    envFileSources: string[] = ['.env.local', '.env', 'env']
 }

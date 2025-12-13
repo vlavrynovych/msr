@@ -128,8 +128,9 @@ interface ConfigLoaderOptions {
 **Priority Order:**
 1. Built-in defaults (lowest)
 2. Config file
-3. Environment variables
-4. Constructor overrides (highest)
+3. .env files (v0.7.0+) - Loaded from `config.envFileSources`
+4. Environment variables
+5. Constructor overrides (highest)
 
 **Examples:**
 
@@ -242,6 +243,7 @@ protected autoApplyEnvironmentVariables(
 - **Type Coercion**: Automatically converts env var strings to correct types
 - **Naming Convention**: Converts `camelCase` properties to `SNAKE_CASE` env vars
 - **Nested Support**: Handles nested objects with dot-notation (`PREFIX_PROP_NESTED`)
+- **.env File Support** (v0.7.0+): Automatically loads from files specified in `config.envFileSources`
 - **Override System**: Allows custom parsing logic for special cases
 
 **How It Works:**
@@ -1012,8 +1014,11 @@ await executor.migrate();
 
 ### Development with .env File
 
+{: .note }
+> **Auto-loading in v0.7.0+:** MSR automatically loads `.env` files without requiring `dotenv` package. By default, it looks for `.env.local`, `.env`, and `env` files in priority order.
+
 ```bash
-# .env.development
+# .env.local (for local development, add to .gitignore)
 MSR_FOLDER=./migrations
 MSR_DRY_RUN=false
 MSR_LOGGING_ENABLED=true
@@ -1022,11 +1027,19 @@ MSR_BACKUP_DELETE_BACKUP=true
 ```
 
 ```typescript
-import 'dotenv/config';  // Load .env file
 import { MigrationScriptExecutor } from '@migration-script-runner/core';
 
-// Automatically uses environment variables from .env
+// v0.7.0+: Automatically loads from .env files
 const executor = new MigrationScriptExecutor({ handler });
+await executor.up();
+
+// Or configure which .env files to load
+const config = new Config();
+config.envFileSources = ['.env.local', '.env']; // Default
+// config.envFileSources = ['.env.production', '.env']; // Production
+// config.envFileSources = []; // Disable .env loading
+
+const executor = new MigrationScriptExecutor({ handler, config });
 await executor.up();
 ```
 

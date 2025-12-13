@@ -59,6 +59,7 @@ Migration Script Runner is a production-ready migration framework packed with po
 
 ### Configuration
 - **[Environment Variables](guides/environment-variables)** - 12-factor app configuration with MSR_* variables
+- **[.env File Support](guides/environment-variables#env-file-support-v070)** (v0.7.0+) - Load configuration from .env, .env.production, .env.local files with priority control
 - **[Config Files](configuration/)** - Support for JS, JSON, YAML, TOML, and XML formats
 - **[Programmatic API](api/)** - Full TypeScript API for application integration
 - **[Migration Settings](configuration/migration-settings)** - File patterns, display limits, folder configuration
@@ -132,6 +133,7 @@ Migration Script Runner is a production-ready migration framework packed with po
 | Feature | Description |
 |---------|-------------|
 | **🌍 Environment Variables** | Configure via MSR_* environment variables following 12-factor app principles |
+| **🗂️ .env File Support** | Load configuration from .env, .env.production, .env.local files with configurable priority (v0.7.0) |
 | **📄 Config Files** | Support for JS, JSON, YAML, TOML, and XML config formats with automatic discovery and optional dependencies |
 | **⚙️ Programmatic API** | Full TypeScript API for integration into your applications |
 | **🔌 Extensible Loaders** | Add custom loaders for new file formats beyond TypeScript, JavaScript, SQL |
@@ -206,9 +208,9 @@ Compare MSR features across different use cases:
 
 | Use Case | Key Features |
 |----------|--------------|
-| **Development** | Fast iteration, down() methods, flexible validation, dry run testing, debug logging |
+| **Development** | Fast iteration, down() methods, flexible validation, dry run testing, debug logging, .env file loading |
 | **CI/CD** | Strict validation, checksum verification, automated testing, environment variables |
-| **Production** | Automatic backups, transaction management, retry logic, execution summaries, log level control |
+| **Production** | Automatic backups, transaction management, retry logic, execution summaries, log level control, .env.production files |
 | **Enterprise** | Audit trails, custom validators, hooks for monitoring, comprehensive logging |
 | **Multi-Database** | Custom handlers, flexible loaders, both SQL and NoSQL support |
 
@@ -229,6 +231,7 @@ Ready to use these features? Start here:
 
 ### v0.7.0 (Current)
 - 🖥️ **CLI Factory** - Create command-line interfaces with built-in commands (migrate, list, down, validate, backup) using Commander.js
+- 🗂️ **.env File Support** - Load configuration from .env, .env.production, .env.local files with priority control
 - 🎨 **Facade Pattern** - Services grouped into logical facades for better organization
 - 🏭 **Factory Pattern** - Dedicated service factory reduces constructor complexity by 83%
 - 🔧 **Protected Facades** - Adapters can extend executor and access internal services

@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { parse } from 'auto-envparse';
+import AutoEnvParse from 'auto-envparse';
 
 describe('auto-envparse Integration Tests', () => {
     // Store original env vars to restore after tests
@@ -42,7 +42,7 @@ describe('auto-envparse Integration Tests', () => {
             process.env.TEST_SSL = 'true';
             process.env.TEST_POOL_SIZE = '20';
 
-            parse(config, 'TEST');
+            AutoEnvParse.parse(config, { prefix: 'TEST' });
 
             expect(config.host).to.equal('db.example.com');
             expect(config.port).to.equal(3306);
@@ -59,7 +59,7 @@ describe('auto-envparse Integration Tests', () => {
             process.env.DB_DATABASE = 'production';
             process.env.DB_TIMEOUT = '10000';
 
-            parse(dbConfig, 'DB');
+            AutoEnvParse.parse(dbConfig, { prefix: 'DB' });
 
             expect(dbConfig.database).to.equal('production');
             expect(dbConfig.timeout).to.equal(10000);
@@ -76,7 +76,7 @@ describe('auto-envparse Integration Tests', () => {
             process.env.TEST_CONNECTION_HOST = 'remote.example.com';
             process.env.TEST_CONNECTION_PORT = '3307';
 
-            parse(config, 'TEST');
+            AutoEnvParse.parse(config, { prefix: 'TEST' });
 
             expect(config.connection.host).to.equal('remote.example.com');
             expect(config.connection.port).to.equal(3307);
@@ -105,7 +105,7 @@ describe('auto-envparse Integration Tests', () => {
             process.env.TEST_PORT = '8080';
             process.env.TEST_RETRIES = '5';
 
-            parse(config, 'TEST', overrides);
+            AutoEnvParse.parse(config, { prefix: 'TEST', overrides });
 
             expect(config.port).to.equal(8080);
             expect(config.retries).to.equal(5);
@@ -113,7 +113,7 @@ describe('auto-envparse Integration Tests', () => {
             // Invalid port (out of range) - should keep original
             process.env.TEST_PORT = '99999';
             const config2 = { port: 5432, retries: 3 };
-            parse(config2, 'TEST', overrides);
+            AutoEnvParse.parse(config2, { prefix: 'TEST', overrides });
 
             expect(config2.port).to.equal(5432);
         });
@@ -128,7 +128,7 @@ describe('auto-envparse Integration Tests', () => {
             process.env.TEST_OPTIONAL = 'from-env';
             process.env.TEST_UNSET = 'also-from-env';
 
-            parse(config, 'TEST');
+            AutoEnvParse.parse(config, { prefix: 'TEST' });
 
             expect(config.optional).to.equal('from-env');
             expect(config.unset).to.equal('also-from-env');
@@ -144,7 +144,7 @@ describe('auto-envparse Integration Tests', () => {
             const config = Object.create(protoObject) as { inherited: string; own: string };
             config.own = 'default';
 
-            parse(config, 'TEST');
+            AutoEnvParse.parse(config, { prefix: 'TEST' });
 
             // Own property should be updated
             expect(config.own).to.equal('own-value');
@@ -161,7 +161,7 @@ describe('auto-envparse Integration Tests', () => {
             process.env.TEST_TAGS = '["tag1", "tag2", "tag3"]';
             process.env.TEST_NUMBERS = '[10, 20, 30]';
 
-            parse(config, 'TEST');
+            AutoEnvParse.parse(config, { prefix: 'TEST' });
 
             expect(config.tags).to.deep.equal(['tag1', 'tag2', 'tag3']);
             expect(config.numbers).to.deep.equal([10, 20, 30]);
@@ -180,7 +180,7 @@ describe('auto-envparse Integration Tests', () => {
             process.env.TEST_NESTED_VALUE = '200';
             process.env.TEST_NESTED_INHERITED = 'should-not-apply';
 
-            parse(config, 'TEST');
+            AutoEnvParse.parse(config, { prefix: 'TEST' });
 
             // Own property should be updated
             expect(config.nested.value).to.equal(200);
@@ -204,7 +204,7 @@ describe('auto-envparse Integration Tests', () => {
             process.env.TEST_COMPLEX_VALUE = '200';
             process.env.TEST_COMPLEX_INHERITED = 'should-not-apply';
 
-            parse(config, 'TEST');
+            AutoEnvParse.parse(config, { prefix: 'TEST' });
 
             // Own property should be updated
             expect(config.complex.value).to.equal(200);
@@ -237,7 +237,7 @@ describe('auto-envparse Integration Tests', () => {
             process.env.DB_POOL_MIN = '5';
             process.env.DB_POOL_MAX = '50';
 
-            parse(dbConfig, 'DB');
+            AutoEnvParse.parse(dbConfig, { prefix: 'DB' });
 
             expect(dbConfig.host).to.equal('prod-db.example.com');
             expect(dbConfig.port).to.equal(5433);
@@ -269,7 +269,7 @@ describe('auto-envparse Integration Tests', () => {
             process.env.APP_CORS_ORIGIN = 'https://example.com';
             process.env.APP_RATE_LIMIT_MAX = '1000';
 
-            parse(appConfig, 'APP');
+            AutoEnvParse.parse(appConfig, { prefix: 'APP' });
 
             expect(appConfig.port).to.equal(8080);
             expect(appConfig.debug).to.be.true;

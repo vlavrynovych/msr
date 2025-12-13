@@ -29,6 +29,7 @@ MSR provides a lightweight, flexible framework for managing database migrations 
 - **🏭 Factory Pattern** - Service initialization extracted to dedicated factory, reducing constructor complexity by 83%
 - **🔧 Protected Facades** - Adapters can extend MigrationScriptExecutor and access internal services through protected facades
 - **✨ Extensible Configuration** - New `IConfigLoader` interface allows adapters to customize environment variable handling
+- **🗂️ .env File Support** - Load configuration from `.env`, `.env.production`, `.env.local` files with configurable priority
 - **🔨 Simplified Constructor** - Single parameter constructor with config moved into dependencies object (**BREAKING**)
 - **🔒 Better Encapsulation** - Internal services no longer exposed as public properties (**BREAKING**)
 - **⚡ Reduced Complexity** - Constructor reduced from 142 lines to 23 lines (83% reduction)
@@ -77,6 +78,7 @@ MSR provides a lightweight, flexible framework for managing database migrations 
 - **💾 Smart Rollback** - Multiple strategies: backup/restore, down() methods, both, or none
 - **🔒 Transaction Control** - Configurable transaction modes with automatic retry and isolation levels (v0.5.0)
 - **⚙️ Environment Variables** - Full 12-factor app configuration support with MSR_* variables (v0.5.0)
+- **🗂️ .env File Support** - Load configuration from .env, .env.production, .env.local, etc. with priority control (v0.7.0)
 - **📄 Multi-Format Config** - Support for JS, JSON, YAML, TOML, and XML configuration files (v0.6.0)
 - **🎚️ Log Level Control** - Configurable verbosity (error, warn, info, debug) for different environments (v0.6.0)
 - **📊 Migration Tracking** - Maintains execution history in your database with checksums

@@ -6,7 +6,7 @@ import { LogLevel } from '../interface/ILogger';
 import { ConfigFileLoaderRegistry } from './ConfigFileLoaderRegistry';
 import { JsJsonLoader, YamlLoader, TomlLoader, XmlLoader } from './loaders';
 import { IConfigLoader } from '../interface/IConfigLoader';
-import { parse } from 'auto-envparse';
+import AutoEnvParse from 'auto-envparse';
 
 /**
  * Options for ConfigLoader.load() method.
@@ -402,7 +402,7 @@ export class ConfigLoader<C extends Config = Config> implements IConfigLoader<C>
         defaultValue: T
     ): T {
         const result = { ...defaultValue };
-        parse(result, prefix);
+        AutoEnvParse.parse(result, { prefix });
         return result;
     }
 
@@ -522,6 +522,10 @@ export class ConfigLoader<C extends Config = Config> implements IConfigLoader<C>
         prefix: string,
         overrides?: Map<string, (config: C, envVarName: string) => void>
     ): void {
-        parse(config, prefix, overrides);
+        AutoEnvParse.parse(config, {
+            prefix,
+            overrides,
+            sources: config.envFileSources
+        });
     }
 }
