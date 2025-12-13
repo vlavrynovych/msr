@@ -203,6 +203,52 @@ folder: ./migrations
 logLevel: debug  # error | warn | info | debug
 ```
 
+### CLI Usage (v0.7.0)
+
+**Create a CLI for your database adapter:**
+
+```typescript
+// cli.ts
+import { createCLI, MigrationScriptExecutor } from '@migration-script-runner/core';
+import { MyDatabaseHandler } from './database-handler';
+
+const program = createCLI({
+  name: 'my-db-migrate',
+  version: '1.0.0',
+  description: 'Database migration CLI',
+  createExecutor: (config) => {
+    const handler = new MyDatabaseHandler();
+    return new MigrationScriptExecutor({ handler, config });
+  }
+});
+
+program.parse(process.argv);
+```
+
+**Run migrations from command line:**
+
+```bash
+# Run all pending migrations
+npx my-db-migrate migrate
+
+# List all migrations with status
+npx my-db-migrate list
+
+# Rollback last migration
+npx my-db-migrate down
+
+# Validate migrations without running
+npx my-db-migrate validate
+
+# Create database backup
+npx my-db-migrate backup
+
+# Use environment-specific config
+npx my-db-migrate migrate --config-file .env.production
+```
+
+**[→ Full CLI Documentation](https://migration-script-runner.github.io/msr-core/guides/cli-adapter-development)**
+
 ---
 
 ## 📚 Documentation
