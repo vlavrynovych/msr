@@ -114,9 +114,10 @@ A database-agnostic migration framework for TypeScript and JavaScript projects.
 
 ## What's New in v0.7.0
 
-🎉 Latest release brings CLI factory and improved architecture:
+🎉 Latest release brings CLI factory, .env file support, and improved architecture:
 
 - **🖥️ CLI Factory** - Create command-line interfaces with built-in commands (migrate, list, down, validate, backup) using Commander.js - see [CLI Adapter Development Guide](guides/cli-adapter-development)
+- **🗂️ .env File Support** - Load configuration from .env, .env.production, .env.local files with configurable priority
 - **🎨 Facade Pattern** - Services grouped into logical facades (core, execution, output, orchestration) for better code organization
 - **🏭 Factory Pattern** - Dedicated service initialization reduces constructor complexity by 83%
 - **🔧 Protected Facades** - Adapters can extend MigrationScriptExecutor and access internal services through protected facades
