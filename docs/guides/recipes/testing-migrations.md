@@ -257,7 +257,7 @@ describe('Migration Integration Tests', () => {
     config.folder = './migrations';
     config.backup.folder = './test/backups';
 
-    executor = new MigrationScriptExecutor({ handler }, config);
+    executor = new MigrationScriptExecutor({ handler , config });
 
     // Initialize schema version table
     await handler.schemaVersion.init();
@@ -402,7 +402,7 @@ describe('Migration Integration Tests', () => {
       // This test assumes a migration that will fail
       config.folder = './test/fixtures/failing-migrations';
 
-      const failingExecutor = new MigrationScriptExecutor({ handler }, config);
+      const failingExecutor = new MigrationScriptExecutor({ handler , config });
 
       const result = await failingExecutor.migrate();
 
@@ -677,7 +677,7 @@ async function validateMigrations() {
   config.validateBeforeRun = true;
   config.folder = './migrations';
 
-  const executor = new MigrationScriptExecutor({ handler }, config);
+  const executor = new MigrationScriptExecutor({ handler , config });
 
   try {
     const result = await executor.up();
@@ -796,7 +796,7 @@ describe('Migration Performance', () => {
 
     const handler = new TestDatabaseHandler();
     const config = new Config();
-    const executor = new MigrationScriptExecutor({ handler }, config);
+    const executor = new MigrationScriptExecutor({ handler , config });
 
     const startTime = Date.now();
     await executor.up();
@@ -889,7 +889,7 @@ describe('Complete Migration Test Suite', () => {
   describe('Standard Migration Flow', () => {
     it('should execute all migrations successfully', async () => {
       const config = new Config();
-      const executor = new MigrationScriptExecutor({ handler }, config);
+      const executor = new MigrationScriptExecutor({ handler , config });
 
       const result = await executor.up();
 
@@ -902,7 +902,7 @@ describe('Complete Migration Test Suite', () => {
     it('should rollback using BACKUP strategy', async () => {
       const config = new Config();
       config.rollbackStrategy = RollbackStrategy.BACKUP;
-      const executor = new MigrationScriptExecutor({ handler }, config);
+      const executor = new MigrationScriptExecutor({ handler , config });
 
       // Test with failing migration...
     });
@@ -910,7 +910,7 @@ describe('Complete Migration Test Suite', () => {
     it('should rollback using DOWN strategy', async () => {
       const config = new Config();
       config.rollbackStrategy = RollbackStrategy.DOWN;
-      const executor = new MigrationScriptExecutor({ handler }, config);
+      const executor = new MigrationScriptExecutor({ handler , config });
 
       // Test rollback...
     });
@@ -919,7 +919,7 @@ describe('Complete Migration Test Suite', () => {
   describe('Version Control', () => {
     it('should migrate to specific version', async () => {
       const config = new Config();
-      const executor = new MigrationScriptExecutor({ handler }, config);
+      const executor = new MigrationScriptExecutor({ handler , config });
 
       const result = await executor.up(202501220200);
 

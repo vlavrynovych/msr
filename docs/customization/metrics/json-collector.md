@@ -48,8 +48,9 @@ const executor = new MigrationScriptExecutor({
       filePath: './metrics/migration.json',
       pretty: true
     })
-  ]
-}, config);
+  ], 
+  config
+});
 
 await executor.up();
 ```

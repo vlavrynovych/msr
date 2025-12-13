@@ -80,15 +80,15 @@ describe('MigrationScriptExecutor - Version Control', () => {
         cfg.validateBeforeRun = false;
         cfg.validateMigratedFiles = false;
 
-        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, cfg);
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() , config: cfg });
         initialized = true;
         created = true;
         valid = true;
         removedTimestamps = [];
         spy.on(handler.schemaVersion, ['isInitialized', 'createTable', 'validateTable']);
         spy.on(handler.schemaVersion.migrationRecords, ['save', 'getAllExecuted', 'remove']);
-        spy.on(executor.backupService, ['restore', 'deleteBackup', 'backup']);
-        spy.on(executor.migrationService, ['findMigrationScripts']);
+        spy.on((executor as any).core.backup, ['restore', 'deleteBackup', 'backup']);
+        spy.on((executor as any).core.migration, ['findMigrationScripts']);
 });
 
     afterEach(() => {
@@ -137,7 +137,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             scripts = [];
 
             // Stub the scanner to return all migrations as available (pending) since none are in database
-            const scanStub = sinon.stub(executor.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executor as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: [],
@@ -183,7 +183,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             ];
 
             // Stub the scanner - no pending since all are already migrated
-            const scanStub = sinon.stub(executor.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executor as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: scripts,
@@ -227,7 +227,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             scripts = migratedScripts;
 
             // Stub the scanner - migrations 3, 4, 5 are pending
-            const scanStub = sinon.stub(executor.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executor as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: migratedScripts,
@@ -260,7 +260,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             scripts = [];
 
             // Stub the scanner
-            const scanStub = sinon.stub(executor.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executor as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: [],
@@ -272,7 +272,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             await executor.up(1);
 
             // Verify backup was created
-            expect(executor.backupService.backup).to.have.been.called.once;
+            expect((executor as any).core.backup.backup).to.have.been.called.once;
 
             scanStub.restore();
         });
@@ -282,12 +282,12 @@ describe('MigrationScriptExecutor - Version Control', () => {
          */
         it('should call validateMigrations when validateBeforeRun is true', async () => {
             // Stub validateMigrations to track calls
-            const validateStub = sinon.stub(executor as any, 'validateMigrations').resolves();
+            const validateStub = sinon.stub((executor as any).orchestration.validation, 'validateMigrations').resolves();
 
             const allMigrations = [createMockMigrationScript(1)];
             scripts = [];
 
-            const scanStub = sinon.stub(executor.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executor as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: [],
@@ -314,7 +314,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
          */
         it('should call validateMigratedFileIntegrity when validateMigratedFiles is true', async () => {
             // Stub validateMigratedFileIntegrity to track calls
-            const integrityStub = sinon.stub(executor as any, 'validateMigratedFileIntegrity').resolves();
+            const integrityStub = sinon.stub((executor as any).orchestration.validation, 'validateMigratedFileIntegrity').resolves();
 
             const allMigrations = [
                 createMockMigrationScript(1),
@@ -323,7 +323,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             const migratedScripts = [createMockMigrationScript(1)];
             scripts = migratedScripts;
 
-            const scanStub = sinon.stub(executor.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executor as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: migratedScripts,
@@ -360,7 +360,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                 }
             } as IRunnableScript<IDB>;
 
-            const scanStub = sinon.stub(executor.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executor as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: [failingMigration],
                 migrated: [],
@@ -370,7 +370,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             });
 
             // Stub rollbackService.rollback to prevent actual rollback
-            const rollbackStub = sinon.stub(executor.rollbackService, 'rollback').resolves();
+            const rollbackStub = sinon.stub((executor as any).core.rollback, 'rollback').resolves();
 
             try {
                 await executor.up(1);
@@ -395,12 +395,12 @@ describe('MigrationScriptExecutor - Version Control', () => {
             // Create executor with empty hooks object
             const executorWithEmptyHooks = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
                 hooks: {} // Hooks object exists but no methods defined
-}, cfg);
+, config: cfg });
 
             const allMigrations = [createMockMigrationScript(1)];
             scripts = [];
 
-            const scanStub = sinon.stub(executorWithEmptyHooks.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executorWithEmptyHooks as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: [],
@@ -433,7 +433,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             ];
             scripts = migratedScripts;
 
-            const scanStub = sinon.stub(executor.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executor as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: migratedScripts,
@@ -461,7 +461,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             const allMigrations = [createMockMigrationScript(1)];
             scripts = [];
 
-            const scanStub = sinon.stub(executor.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executor as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: [],
@@ -471,7 +471,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             });
 
             // Stub backup to return undefined
-            const backupStub = sinon.stub(executor.backupService, 'backup').resolves(undefined);
+            const backupStub = sinon.stub((executor as any).core.backup, 'backup').resolves(undefined);
 
             const result = await executor.up(1);
 
@@ -499,12 +499,12 @@ describe('MigrationScriptExecutor - Version Control', () => {
                     onStart: onStartSpy,
                     onComplete: onCompleteSpy
                 }
-}, cfg);
+, config: cfg });
 
             const allMigrations = [createMockMigrationScript(1)];
             scripts = [];
 
-            const scanStub = sinon.stub(executorWithAllHooks.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executorWithAllHooks as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: [],
@@ -514,7 +514,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             });
 
             // Ensure backup returns a valid path
-            const backupStub = sinon.stub(executorWithAllHooks.backupService, 'backup').resolves('/fake/backup.sql');
+            const backupStub = sinon.stub((executorWithAllHooks as any).core.backup, 'backup').resolves('/fake/backup.sql');
 
             const result = await executorWithAllHooks.up(1);
 
@@ -546,13 +546,13 @@ describe('MigrationScriptExecutor - Version Control', () => {
                     onStart: onStartSpy,
                     onComplete: onCompleteSpy
                 }
-}, cfg);
+, config: cfg });
 
             const allMigrations = [createMockMigrationScript(1)];
             const migratedScripts = [createMockMigrationScript(1)];
             scripts = migratedScripts;
 
-            const scanStub = sinon.stub(executorWithHooks.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executorWithHooks as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: migratedScripts,
@@ -607,7 +607,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             scripts = migratedScripts;
 
             // Stub the scanner - all migrations are migrated
-            const scanStub = sinon.stub(executor.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executor as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: migratedScripts,
@@ -654,7 +654,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             scripts = migratedScripts;
 
             // Stub the scanner - no pending rollbacks
-            const scanStub = sinon.stub(executor.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executor as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: migratedScripts,
@@ -696,7 +696,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             scripts = migratedScripts;
 
             // Stub the scanner - all migrations are migrated
-            const scanStub = sinon.stub(executor.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executor as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: migratedScripts,
@@ -741,7 +741,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             scripts = [migrationWithoutDown];
 
             // Stub the scanner - migration is migrated (needs rollback)
-            const scanStub = sinon.stub(executor.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executor as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: [migrationWithoutDown],
                 migrated: [migrationWithoutDown],
@@ -790,7 +790,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             scripts = migratedScripts;
 
             // Stub the scanner - all are migrated
-            const scanStub = sinon.stub(executor.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executor as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: migratedScripts,
@@ -829,7 +829,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             scripts = [];
 
             // Stub scanner for initial migrateTo call - no migrations executed yet
-            let scanStub = sinon.stub(executor.migrationScanner, 'scan');
+            let scanStub = sinon.stub((executor as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: [],
@@ -864,7 +864,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             scripts = migratedScripts;
 
             // Stub scanner for downTo call - migrations 1, 2, 3 are migrated, 4, 5 pending
-            scanStub = sinon.stub(executor.migrationScanner, 'scan');
+            scanStub = sinon.stub((executor as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: migratedScripts,
@@ -892,8 +892,8 @@ describe('MigrationScriptExecutor - Version Control', () => {
          * Validates that the validation method is invoked before rollback
          */
         it('should call validateMigrations when validateBeforeRun is true', async () => {
-            // Stub validateMigrations to track calls without actually validating
-            const validateStub = sinon.stub(executor as any, 'validateMigrations').resolves();
+            // Stub validateAll to track calls without actually validating
+            const validateStub = sinon.stub((executor as any).core.validation, 'validateAll').resolves([]);
 
             const allMigrations = [
                 createMockMigrationScript(1),
@@ -907,7 +907,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
 
             scripts = migratedScripts;
 
-            const scanStub = sinon.stub(executor.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executor as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: migratedScripts,
@@ -938,7 +938,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
          */
         it('should call validateMigratedFileIntegrity when validateMigratedFiles is true', async () => {
             // Stub validateMigratedFileIntegrity to track calls without actually validating
-            const integrityStub = sinon.stub(executor as any, 'validateMigratedFileIntegrity').resolves();
+            const integrityStub = sinon.stub((executor as any).core.validation, 'validateMigratedFileIntegrity').resolves([]);
 
             const allMigrations = [
                 createMockMigrationScript(1),
@@ -952,7 +952,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
 
             scripts = migratedScripts;
 
-            const scanStub = sinon.stub(executor.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executor as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: migratedScripts,
@@ -986,7 +986,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                 hooks: {
                     onStart: onStartSpy
                 }
-}, cfg);
+, config: cfg });
 
             const allMigrations = [
                 createMockMigrationScript(1),
@@ -1000,7 +1000,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
 
             scripts = migratedScripts;
 
-            const scanStub = sinon.stub(executorWithHooks.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executorWithHooks as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: migratedScripts,
@@ -1030,7 +1030,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                     onBeforeMigrate: onBeforeMigrateSpy,
                     onAfterMigrate: onAfterMigrateSpy
                 }
-}, cfg);
+, config: cfg });
 
             const allMigrations = [
                 createMockMigrationScript(1),
@@ -1044,7 +1044,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
 
             scripts = migratedScripts;
 
-            const scanStub = sinon.stub(executorWithHooks.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executorWithHooks as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: migratedScripts,
@@ -1075,7 +1075,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                 hooks: {
                     onComplete: onCompleteSpy
                 }
-}, cfg);
+, config: cfg });
 
             const allMigrations = [
                 createMockMigrationScript(1),
@@ -1089,7 +1089,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
 
             scripts = migratedScripts;
 
-            const scanStub = sinon.stub(executorWithHooks.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executorWithHooks as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: allMigrations,
                 migrated: migratedScripts,
@@ -1118,7 +1118,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
                 hooks: {
                     onError: onErrorSpy
                 }
-}, cfg);
+, config: cfg });
 
             // Create migration without down() method
             const migrationWithoutDown = new MigrationScript<IDB>('V1_mig.ts', '/fake/path/V1_mig.ts', 1);
@@ -1133,7 +1133,7 @@ describe('MigrationScriptExecutor - Version Control', () => {
             const migratedScripts = [migrationWithoutDown];
             scripts = migratedScripts;
 
-            const scanStub = sinon.stub(executorWithHooks.migrationScanner, 'scan');
+            const scanStub = sinon.stub((executorWithHooks as any).core.scanner, 'scan');
             scanStub.resolves({
                 all: [migrationWithoutDown],
                 migrated: migratedScripts,

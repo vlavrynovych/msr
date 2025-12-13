@@ -1082,7 +1082,7 @@ if (process.env.NODE_ENV === 'production') {
 config.customValidators = validators;
 
 // 3. Run migrations
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 
 try {
     const result = await executor.migrate();

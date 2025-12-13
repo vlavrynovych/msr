@@ -49,8 +49,8 @@ const executor = new MigrationScriptExecutor({
   handler,
   metricsCollectors: [
     new ConsoleMetricsCollector()  // That's it!
-  ]
-}, config);
+  ], config
+});
 
 await executor.up();
 ```
@@ -249,8 +249,9 @@ import { ConsoleMetricsCollector } from '@vlavrynovych/msr';
 
 const executor = new MigrationScriptExecutor({
   handler,
-  metricsCollectors: [new ConsoleMetricsCollector()]
-}, config);
+  metricsCollectors: [new ConsoleMetricsCollector()], 
+  config 
+});
 
 await executor.up();
 ```
@@ -267,8 +268,9 @@ const executor = new MigrationScriptExecutor({
     new JsonMetricsCollector({      // Detailed analysis
       filePath: './metrics/migration.json'
     })
-  ]
-}, config);
+  ], 
+  config 
+});
 ```
 
 ---
@@ -290,8 +292,9 @@ collectors.push(new JsonMetricsCollector({
 
 const executor = new MigrationScriptExecutor({
   handler,
-  metricsCollectors: collectors
-}, config);
+  metricsCollectors: collectors, 
+  config
+});
 ```
 
 ---

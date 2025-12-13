@@ -21,11 +21,13 @@ Utility class for loading configuration using environment variables and config f
 
 ## Overview
 
-`ConfigLoader` is a utility class that provides waterfall configuration loading with support for:
+`ConfigLoader` is an extensible utility class that provides waterfall configuration loading with support for:
 - Environment variables (`MSR_*`)
 - Configuration files in multiple formats (`.js`, `.json`, `.yaml`, `.yml`, `.toml`, `.xml`)
 - Built-in defaults
 - Constructor overrides
+
+**New in v0.7.0:** Generic class design with instance methods that can be extended by database adapters for custom environment variable handling
 
 **New in v0.6.0:** YAML, TOML, and XML configuration file support with optional peer dependencies
 
@@ -61,7 +63,39 @@ const tableName = process.env[ENV.MSR_TABLE_NAME];
 
 ---
 
-## Static Methods
+## Generic Type Parameter
+
+**New in v0.7.0:**
+
+```typescript
+class ConfigLoader<C extends Config = Config> implements IConfigLoader<C>
+```
+
+The `ConfigLoader` is now generic, allowing database adapters to extend it with custom configuration types.
+
+**Example:**
+```typescript
+// Core usage (default)
+const loader = new ConfigLoader();
+const config = loader.load();
+
+// Adapter usage with custom config
+class PostgreSqlConfigLoader extends ConfigLoader<PostgreSqlConfig> {
+    applyEnvironmentVariables(config: PostgreSqlConfig): void {
+        super.applyEnvironmentVariables(config); // Apply MSR_* vars
+        // Add POSTGRES_* env vars
+        if (process.env.POSTGRES_HOST) {
+            config.host = process.env.POSTGRES_HOST;
+        }
+    }
+}
+```
+
+---
+
+## Instance Methods
+
+**New in v0.7.0:** `load()` and `applyEnvironmentVariables()` are now instance methods that can be overridden by adapters extending `ConfigLoader`.
 
 ### load()
 
@@ -69,17 +103,17 @@ Load configuration using waterfall approach.
 
 **Signature:**
 ```typescript
-static load(
-    overrides?: Partial<Config>,
-    optionsOrBaseDir?: string | ConfigLoaderOptions
-): Config
+load(
+    overrides?: Partial<C>,
+    options?: ConfigLoaderOptions
+): C
 ```
 
 **Parameters:**
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
-| `overrides` | `Partial<Config>` | `undefined` | Optional configuration overrides (highest priority) |
-| `optionsOrBaseDir` | `string \| ConfigLoaderOptions` | `process.cwd()` | Base directory (string) or options object |
+| `overrides` | `Partial<C>` | `undefined` | Optional configuration overrides (highest priority) |
+| `options` | `ConfigLoaderOptions` | `undefined` | Loader options (baseDir, configFile) |
 
 **ConfigLoaderOptions:**
 ```typescript
@@ -89,47 +123,255 @@ interface ConfigLoaderOptions {
 }
 ```
 
-**Returns:** `Config` - Fully loaded configuration object
+**Returns:** `C` - Fully loaded configuration object
 
 **Priority Order:**
 1. Built-in defaults (lowest)
 2. Config file
-3. Environment variables
-4. Constructor overrides (highest)
+3. .env files (v0.7.0+) - Loaded from `config.envFileSources`
+4. Environment variables
+5. Constructor overrides (highest)
 
 **Examples:**
 
 ```typescript
-// Basic usage - load with waterfall
-const config = ConfigLoader.load();
+// Basic usage - instance method
+const loader = new ConfigLoader();
+const config = loader.load();
 
 // With overrides (highest priority)
-const config = ConfigLoader.load({
+const config = loader.load({
     folder: './migrations',
     dryRun: true
 });
 
-// From specific directory (string)
-const config = ConfigLoader.load({}, '/app');
-
 // Using options object
-const config = ConfigLoader.load({}, {
+const config = loader.load({}, {
     baseDir: '/app',
     configFile: './config/production.config.json'
 });
 
 // Specify config file explicitly
-const config = ConfigLoader.load({}, {
+const config = loader.load({}, {
     configFile: './custom-config.yaml'
 });
 
 // Use with MigrationScriptExecutor
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({
+    handler,
+    config: loader.load()
+});
+
+// Or pass loader to executor
+const executor = new MigrationScriptExecutor({
+    handler,
+    configLoader: loader
+});
 ```
 
 **Error Handling:**
 - Invalid config files are logged as warnings but don't stop loading
 - Falls back to defaults + environment variables if file loading fails
+
+---
+
+### applyEnvironmentVariables()
+
+**New in v0.7.0:** Instance method that can be overridden by adapters.
+
+Apply environment variables to configuration object.
+
+**Signature:**
+```typescript
+applyEnvironmentVariables(config: C): void
+```
+
+**Parameters:**
+| Name | Type | Description |
+|------|------|-------------|
+| `config` | `C` | Configuration object to modify with env vars |
+
+**Base Implementation:**
+- Applies all `MSR_*` environment variables
+- Uses type coercion based on default values
+- Called automatically during `load()`
+
+**Extending for Adapters:**
+```typescript
+class PostgreSqlConfigLoader extends ConfigLoader {
+    applyEnvironmentVariables(config: Config): void {
+        // Apply base MSR_* variables
+        super.applyEnvironmentVariables(config);
+
+        // Add custom POSTGRES_* variables
+        if (process.env.POSTGRES_HOST) {
+            (config as any).host = process.env.POSTGRES_HOST;
+        }
+        if (process.env.POSTGRES_PORT) {
+            (config as any).port = parseInt(process.env.POSTGRES_PORT);
+        }
+    }
+}
+```
+
+---
+
+### autoApplyEnvironmentVariables()
+
+**New in v0.7.0:** Automatic environment variable parsing using reflection and type inference.
+
+Automatically discover and apply environment variables for any config object based on its structure. This eliminates the need for manual env var handling in adapters.
+
+**Signature:**
+```typescript
+protected autoApplyEnvironmentVariables(
+    config: C,
+    prefix: string,
+    overrides?: Map<string, (config: C, envVarName: string) => void>
+): void
+```
+
+**Parameters:**
+| Name | Type | Description |
+|------|------|-------------|
+| `config` | `C` | Configuration object to populate from environment variables |
+| `prefix` | `string` | Environment variable prefix (e.g., 'MSR', 'POSTGRES') |
+| `overrides` | `Map<string, Function>` | Optional custom parsers for specific properties |
+
+**Features:**
+- **Automatic Type Detection**: Detects primitives, arrays, nested objects, and complex objects
+- **Type Coercion**: Automatically converts env var strings to correct types
+- **Naming Convention**: Converts `camelCase` properties to `SNAKE_CASE` env vars
+- **Nested Support**: Handles nested objects with dot-notation (`PREFIX_PROP_NESTED`)
+- **.env File Support** (v0.7.0+): Automatically loads from files specified in `config.envFileSources`
+- **Override System**: Allows custom parsing logic for special cases
+
+**How It Works:**
+
+1. **Reflection-based Discovery**: Iterates through all config properties
+2. **Name Conversion**: `poolSize` → `POSTGRES_POOL_SIZE`
+3. **Type Detection**: Analyzes default value type
+4. **Automatic Parsing**:
+   - **Primitives** (string/number/boolean): Direct parsing with type coercion
+   - **Arrays**: JSON parsing (special handling for RegExp arrays)
+   - **Plain Objects**: JSON + dot-notation with precedence
+   - **Complex Objects**: Recursive dot-notation parsing
+
+**Examples:**
+
+```typescript
+// Adapter with automatic parsing
+class PostgreSqlConfigLoader extends ConfigLoader<PostgreSqlConfig> {
+    applyEnvironmentVariables(config: PostgreSqlConfig): void {
+        // Apply base MSR_* vars
+        super.applyEnvironmentVariables(config);
+
+        // Automatically apply POSTGRES_* vars - no manual mapping needed!
+        this.autoApplyEnvironmentVariables(config, 'POSTGRES');
+    }
+}
+
+// Configuration class
+class PostgreSqlConfig extends Config {
+    host: string = 'localhost';
+    port: number = 5432;
+    ssl: boolean = false;
+    poolSize: number = 10;
+    poolConfig: { min: number; max: number } = {
+        min: 2,
+        max: 10
+    };
+}
+
+// Environment variables (automatically mapped):
+// POSTGRES_HOST=db.example.com → config.host = 'db.example.com'
+// POSTGRES_PORT=3306 → config.port = 3306
+// POSTGRES_SSL=true → config.ssl = true
+// POSTGRES_POOL_SIZE=20 → config.poolSize = 20
+// POSTGRES_POOL_CONFIG_MIN=5 → config.poolConfig.min = 5
+// POSTGRES_POOL_CONFIG_MAX=50 → config.poolConfig.max = 50
+```
+
+**With Custom Overrides:**
+
+```typescript
+class CustomConfigLoader extends ConfigLoader<CustomConfig> {
+    applyEnvironmentVariables(config: CustomConfig): void {
+        super.applyEnvironmentVariables(config);
+
+        // Define custom parsing for specific properties
+        const overrides = new Map();
+
+        // Custom validation for port
+        overrides.set('port', (cfg: CustomConfig, envVar: string) => {
+            const value = process.env[envVar];
+            if (value) {
+                const port = parseInt(value, 10);
+                if (port >= 1 && port <= 65535) {
+                    cfg.port = port;
+                } else {
+                    console.warn(`Invalid port ${port}, using default`);
+                }
+            }
+        });
+
+        // Custom parsing for enum values
+        overrides.set('logLevel', (cfg: CustomConfig, envVar: string) => {
+            const level = process.env[envVar];
+            if (level && ['error', 'warn', 'info', 'debug'].includes(level)) {
+                cfg.logLevel = level as LogLevel;
+            }
+        });
+
+        this.autoApplyEnvironmentVariables(config, 'CUSTOM', overrides);
+    }
+}
+```
+
+**Benefits:**
+
+✅ **Zero Manual Mapping**: New config properties automatically get env var support
+✅ **Type Safe**: Uses TypeScript types for automatic coercion
+✅ **Consistent Naming**: Automatic `camelCase` → `SNAKE_CASE` conversion
+✅ **Extensible**: Override system for special cases
+✅ **Maintainable**: No need to update `applyEnvironmentVariables` for new properties
+✅ **Adapter-Friendly**: Works with any prefix (`MSR_`, `POSTGRES_`, `MYSQL_`, etc.)
+
+**Comparison:**
+
+```typescript
+// ❌ OLD WAY: Manual mapping (error-prone, requires updates)
+class OldPostgresLoader extends ConfigLoader<PostgresConfig> {
+    applyEnvironmentVariables(config: PostgresConfig): void {
+        super.applyEnvironmentVariables(config);
+
+        if (process.env.POSTGRES_HOST) {
+            config.host = process.env.POSTGRES_HOST;
+        }
+        if (process.env.POSTGRES_PORT) {
+            config.port = parseInt(process.env.POSTGRES_PORT);
+        }
+        if (process.env.POSTGRES_SSL) {
+            config.ssl = process.env.POSTGRES_SSL === 'true';
+        }
+        // ... add 20 more properties manually ...
+    }
+}
+
+// ✅ NEW WAY: Automatic mapping (maintainable, extensible)
+class NewPostgresLoader extends ConfigLoader<PostgresConfig> {
+    applyEnvironmentVariables(config: PostgresConfig): void {
+        super.applyEnvironmentVariables(config);
+        this.autoApplyEnvironmentVariables(config, 'POSTGRES');
+    }
+}
+```
+
+---
+
+## Static Helper Methods
+
+These utility methods remain static and can be used by adapters for consistent type coercion:
 
 ---
 
@@ -604,7 +846,7 @@ const config = ConfigLoader.load({
     strictValidation: true
 });
 
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 await executor.migrate();
 ```
 
@@ -764,7 +1006,7 @@ const config = ConfigLoader.load({
 
 // Create executor
 const handler = new PostgreSQLHandler(process.env.DATABASE_URL);
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 
 // Run migrations
 await executor.migrate();
@@ -772,8 +1014,11 @@ await executor.migrate();
 
 ### Development with .env File
 
+{: .note }
+> **Auto-loading in v0.7.0+:** MSR automatically loads `.env` files without requiring `dotenv` package. By default, it looks for `.env.local`, `.env`, and `env` files in priority order.
+
 ```bash
-# .env.development
+# .env.local (for local development, add to .gitignore)
 MSR_FOLDER=./migrations
 MSR_DRY_RUN=false
 MSR_LOGGING_ENABLED=true
@@ -782,11 +1027,19 @@ MSR_BACKUP_DELETE_BACKUP=true
 ```
 
 ```typescript
-import 'dotenv/config';  // Load .env file
 import { MigrationScriptExecutor } from '@migration-script-runner/core';
 
-// Automatically uses environment variables from .env
+// v0.7.0+: Automatically loads from .env files
 const executor = new MigrationScriptExecutor({ handler });
+await executor.up();
+
+// Or configure which .env files to load
+const config = new Config();
+config.envFileSources = ['.env.local', '.env']; // Default
+// config.envFileSources = ['.env.production', '.env']; // Production
+// config.envFileSources = []; // Disable .env loading
+
+const executor = new MigrationScriptExecutor({ handler, config });
 await executor.up();
 ```
 

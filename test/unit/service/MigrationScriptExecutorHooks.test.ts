@@ -78,11 +78,11 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
         it('should call onBeforeMigrate for each migration', async () => {
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
-            // Access private method via any cast
+            // Access hookExecutor via any cast
             const executedArray: MigrationScript<IDB>[] = [];
-            await (executor as any).executeWithHooks([script1, script2], executedArray);
+            await (executor as any).orchestration.hooks.executeWithHooks([script1, script2], executedArray);
 
             expect(executedArray).to.have.lengthOf(2);
             expect((mockHooks.onBeforeMigrate as sinon.SinonStub).callCount).to.equal(2);
@@ -97,10 +97,10 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
         it('should call onAfterMigrate after each successful migration', async () => {
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             const executedArray: MigrationScript<IDB>[] = [];
-            await (executor as any).executeWithHooks([script1, script2], executedArray);
+            await (executor as any).orchestration.hooks.executeWithHooks([script1, script2], executedArray);
 
             expect(executedArray).to.have.lengthOf(2);
             expect((mockHooks.onAfterMigrate as sinon.SinonStub).callCount).to.equal(2);
@@ -126,11 +126,11 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
 
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             try {
                 const executedArray: MigrationScript<IDB>[] = [];
-                await (executor as any).executeWithHooks([script1, script2], executedArray);
+                await (executor as any).orchestration.hooks.executeWithHooks([script1, script2], executedArray);
                 expect.fail('Should have thrown error');
             } catch (error) {
                 expect(error).to.equal(testError);
@@ -155,11 +155,11 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
 
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             try {
                 const executedArray: MigrationScript<IDB>[] = [];
-                await (executor as any).executeWithHooks([script1, script2], executedArray);
+                await (executor as any).orchestration.hooks.executeWithHooks([script1, script2], executedArray);
                 expect.fail('Should have thrown error');
             } catch (error) {
                 // Expected
@@ -182,10 +182,10 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
 
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             const executedArray: MigrationScript<IDB>[] = [];
-            await (executor as any).executeWithHooks([script1], executedArray);
+            await (executor as any).orchestration.hooks.executeWithHooks([script1], executedArray);
 
             expect((mockHooks.onAfterMigrate as sinon.SinonStub).calledOnce).to.be.true;
             const [, result] = (mockHooks.onAfterMigrate as sinon.SinonStub).firstCall.args;
@@ -201,10 +201,10 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
 
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             const executedArray: MigrationScript<IDB>[] = [];
-            await (executor as any).executeWithHooks([script1], executedArray);
+            await (executor as any).orchestration.hooks.executeWithHooks([script1], executedArray);
 
             expect((mockHooks.onAfterMigrate as sinon.SinonStub).calledOnce).to.be.true;
             const [, result] = (mockHooks.onAfterMigrate as sinon.SinonStub).firstCall.args;
@@ -228,10 +228,10 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
 
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: noMigrationHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             const result: MigrationScript<IDB>[] = [];
-            await (executor as any).executeWithHooks([script1, script2], result);
+            await (executor as any).orchestration.hooks.executeWithHooks([script1, script2], result);
 
             // Verify both scripts were executed
             expect(result).to.have.lengthOf(2);
@@ -252,10 +252,10 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
 
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: partialHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             const result: MigrationScript<IDB>[] = [];
-            await (executor as any).executeWithHooks([script1], result);
+            await (executor as any).orchestration.hooks.executeWithHooks([script1], result);
 
             // Verify script was executed and onBeforeMigrate was called
             expect(result).to.have.lengthOf(1);
@@ -277,11 +277,11 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
 
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: errorOnlyHook,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             try {
                 const executedArray: MigrationScript<IDB>[] = [];
-            await (executor as any).executeWithHooks([script1], executedArray);
+            await (executor as any).orchestration.hooks.executeWithHooks([script1], executedArray);
                 expect.fail('Should have thrown error');
             } catch (err) {
                 // Expected
@@ -302,10 +302,10 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
         it('should handle empty scripts array', async () => {
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: mockHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             const result: MigrationScript<IDB>[] = [];
-            await (executor as any).executeWithHooks([], result);
+            await (executor as any).orchestration.hooks.executeWithHooks([], result);
 
             expect(result).to.be.an('array').that.is.empty;
             expect((mockHooks.onBeforeMigrate as sinon.SinonStub).called).to.be.false;
@@ -339,10 +339,10 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
 
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: orderTrackingHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             const executedArray: MigrationScript<IDB>[] = [];
-            await (executor as any).executeWithHooks([script1], executedArray);
+            await (executor as any).orchestration.hooks.executeWithHooks([script1], executedArray);
 
             expect(callOrder).to.deep.equal(['before', 'execute', 'after']);
         });
@@ -373,11 +373,11 @@ describe('MigrationScriptExecutor - Hooks Execution', () => {
 
             executor = new MigrationScriptExecutor<IDB>({ handler: handler, hooks: orderTrackingHooks,
                 logger: new SilentLogger()
-}, cfg);
+, config: cfg });
 
             try {
                 const executedArray: MigrationScript<IDB>[] = [];
-            await (executor as any).executeWithHooks([script1], executedArray);
+            await (executor as any).orchestration.hooks.executeWithHooks([script1], executedArray);
             } catch (error) {
                 // Expected
             }

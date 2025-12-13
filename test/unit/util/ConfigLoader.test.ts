@@ -210,9 +210,9 @@ describe('ConfigLoader', () => {
          * Validates that PREFIX_KEY env vars are correctly mapped to object properties.
          */
         it('should load nested object from dot-notation env vars', () => {
-            process.env.TEST_CONFIG_ENABLED = 'true';
-            process.env.TEST_CONFIG_PATH = './custom/path';
-            process.env.TEST_CONFIG_MAX_FILES = '25';
+            process.env.TESTCONFIG_ENABLED = 'true';
+            process.env.TESTCONFIG_PATH = './custom/path';
+            process.env.TESTCONFIG_MAX_FILES = '25';
 
             const defaultValue = {
                 enabled: false,
@@ -220,7 +220,7 @@ describe('ConfigLoader', () => {
                 maxFiles: 10
             };
 
-            const result = ConfigLoader.loadNestedFromEnv('TEST_CONFIG', defaultValue);
+            const result = ConfigLoader.loadNestedFromEnv('TESTCONFIG', defaultValue);
 
             expect(result).to.deep.equal({
                 enabled: true,
@@ -234,15 +234,15 @@ describe('ConfigLoader', () => {
          * Validates that camelCase property names are converted to SNAKE_CASE.
          */
         it('should convert camelCase to SNAKE_CASE', () => {
-            process.env.TEST_NESTED_LOG_SUCCESSFUL = 'true';
-            process.env.TEST_NESTED_TIMESTAMP_FORMAT = 'YYYY-MM-DD';
+            process.env.TESTNESTED_LOG_SUCCESSFUL = 'true';
+            process.env.TESTNESTED_TIMESTAMP_FORMAT = 'YYYY-MM-DD';
 
             const defaultValue = {
                 logSuccessful: false,
                 timestampFormat: 'ISO'
             };
 
-            const result = ConfigLoader.loadNestedFromEnv('TEST_NESTED', defaultValue);
+            const result = ConfigLoader.loadNestedFromEnv('TESTNESTED', defaultValue);
 
             expect(result.logSuccessful).to.be.true;
             expect(result.timestampFormat).to.equal('YYYY-MM-DD');
@@ -253,7 +253,7 @@ describe('ConfigLoader', () => {
          * Validates that properties not set via env vars keep their default values.
          */
         it('should use defaults for missing env vars', () => {
-            process.env.TEST_PARTIAL_ENABLED = 'true';
+            process.env.TESTPARTIAL_ENABLED = 'true';
 
             const defaultValue = {
                 enabled: false,
@@ -261,7 +261,7 @@ describe('ConfigLoader', () => {
                 maxFiles: 10
             };
 
-            const result = ConfigLoader.loadNestedFromEnv('TEST_PARTIAL', defaultValue);
+            const result = ConfigLoader.loadNestedFromEnv('TESTPARTIAL', defaultValue);
 
             expect(result).to.deep.equal({
                 enabled: true,
@@ -275,9 +275,9 @@ describe('ConfigLoader', () => {
          * Validates that env var values are coerced to match default value types.
          */
         it('should coerce types for nested values', () => {
-            process.env.TEST_TYPES_FLAG = 'true';
-            process.env.TEST_TYPES_COUNT = '42';
-            process.env.TEST_TYPES_NAME = 'test';
+            process.env.TESTTYPES_FLAG = 'true';
+            process.env.TESTTYPES_COUNT = '42';
+            process.env.TESTTYPES_NAME = 'test';
 
             const defaultValue = {
                 flag: false,
@@ -285,7 +285,7 @@ describe('ConfigLoader', () => {
                 name: ''
             };
 
-            const result = ConfigLoader.loadNestedFromEnv('TEST_TYPES', defaultValue);
+            const result = ConfigLoader.loadNestedFromEnv('TESTTYPES', defaultValue);
 
             expect(result.flag).to.be.a('boolean');
             expect(result.count).to.be.a('number');
@@ -300,15 +300,15 @@ describe('ConfigLoader', () => {
          * Validates that only own properties are processed.
          */
         it('should skip inherited properties from prototype', () => {
-            process.env.TEST_PROTO_INHERITED = 'from-env';
-            process.env.TEST_PROTO_VALUE = 'from-env';
+            process.env.TESTPROTO_INHERITED = 'from-env';
+            process.env.TESTPROTO_VALUE = 'from-env';
 
             // Create object with prototype property and own property
             const protoObject = { inherited: 'proto-value' };
             const defaultValue = Object.create(protoObject) as { inherited: string; value: string };
             defaultValue.value = 'default';
 
-            const result = ConfigLoader.loadNestedFromEnv('TEST_PROTO', defaultValue);
+            const result = ConfigLoader.loadNestedFromEnv('TESTPROTO', defaultValue);
 
             // Own property should be updated from env var
             expect(result.value).to.equal('from-env');
@@ -331,7 +331,7 @@ describe('ConfigLoader', () => {
 
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             expect(config.folder).to.equal('./custom/migrations');
             expect(config.tableName).to.equal('custom_table');
@@ -351,7 +351,7 @@ describe('ConfigLoader', () => {
 
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             expect(config.logging.enabled).to.be.true;
             expect(config.logging.path).to.equal('./custom/logs');
@@ -370,7 +370,7 @@ describe('ConfigLoader', () => {
 
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             expect(config.filePatterns).to.have.lengthOf(2);
             expect(config.filePatterns[0]).to.be.instanceOf(RegExp);
@@ -389,7 +389,7 @@ describe('ConfigLoader', () => {
 
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             expect(config.recursive).to.be.false;
             expect(config.validateBeforeRun).to.be.true;
@@ -409,7 +409,7 @@ describe('ConfigLoader', () => {
 
                 const config = new Config();
                 config.showBanner = false;
-                ConfigLoader.applyEnvironmentVariables(config);
+                new ConfigLoader().applyEnvironmentVariables(config);
 
                 expect(config.logLevel).to.equal(level);
 
@@ -427,7 +427,7 @@ describe('ConfigLoader', () => {
 
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             // Should keep default 'info' when invalid value provided
             expect(config.logLevel).to.equal('info');
@@ -440,7 +440,7 @@ describe('ConfigLoader', () => {
         it('should use default log level when MSR_LOG_LEVEL not set', () => {
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             // Should use default 'info' from Config class
             expect(config.logLevel).to.equal('info');
@@ -457,7 +457,7 @@ describe('ConfigLoader', () => {
             config.showBanner = false;
             const originalPatterns = [...config.filePatterns];
 
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             // Should keep original patterns when JSON is invalid
             expect(config.filePatterns).to.deep.equal(originalPatterns);
@@ -473,7 +473,7 @@ describe('ConfigLoader', () => {
 
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             // Dot-notation should still work even when JSON is invalid
             expect(config.logging.enabled).to.be.true;
@@ -489,7 +489,7 @@ describe('ConfigLoader', () => {
 
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             // Dot-notation should still work even when JSON is invalid
             if (config.backup) {
@@ -513,7 +513,7 @@ describe('ConfigLoader', () => {
 
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             expect(config.logging.enabled).to.be.true;
             expect(config.logging.path).to.equal('./json/logs');
@@ -536,7 +536,7 @@ describe('ConfigLoader', () => {
 
             const config = new Config();
             config.showBanner = false;
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             expect(config.transaction.mode).to.equal('PER_BATCH');
             expect(config.transaction.retries).to.equal(5);
@@ -553,7 +553,7 @@ describe('ConfigLoader', () => {
             config.showBanner = false;
 
             // Should not throw
-            ConfigLoader.applyEnvironmentVariables(config);
+            new ConfigLoader().applyEnvironmentVariables(config);
 
             // Should keep default values
             expect(config.transaction.mode).to.equal('PER_MIGRATION');
@@ -716,7 +716,7 @@ describe('ConfigLoader', () => {
          * Validates that load() returns a proper Config object.
          */
         it('should return Config instance with defaults', () => {
-            const config = ConfigLoader.load();
+            const config = new ConfigLoader().load();
 
             expect(config).to.be.instanceOf(Config);
             expect(config.folder).to.be.a('string');
@@ -731,7 +731,7 @@ describe('ConfigLoader', () => {
             process.env.MSR_FOLDER = './env/migrations';
             process.env.MSR_DRY_RUN = 'true';
 
-            const config = ConfigLoader.load();
+            const config = new ConfigLoader().load();
 
             expect(config.folder).to.equal('./env/migrations');
             expect(config.dryRun).to.be.true;
@@ -744,7 +744,7 @@ describe('ConfigLoader', () => {
         it('should apply overrides over env vars (waterfall)', () => {
             process.env.MSR_FOLDER = './env/migrations';
 
-            const config = ConfigLoader.load({
+            const config = new ConfigLoader().load({
                 folder: './override/migrations'
             });
 
@@ -768,7 +768,7 @@ describe('ConfigLoader', () => {
             `);
 
             try {
-                const config = ConfigLoader.load(undefined, testDir);
+                const config = new ConfigLoader().load(undefined, { baseDir: testDir });
 
                 expect(config.folder).to.equal('./file/migrations');
                 expect(config.tableName).to.equal('file_table');
@@ -804,9 +804,9 @@ describe('ConfigLoader', () => {
             process.env.MSR_DRY_RUN = 'true';
 
             try {
-                const config = ConfigLoader.load({
+                const config = new ConfigLoader().load({
                     tableName: 'override_table'
-                }, testDir);
+                }, { baseDir: testDir });
 
                 // Override wins
                 expect(config.tableName).to.equal('override_table');
@@ -837,7 +837,7 @@ describe('ConfigLoader', () => {
             fs.writeFileSync(configFile, 'module.exports = { invalid syntax');
 
             try {
-                const config = ConfigLoader.load(undefined, testDir);
+                const config = new ConfigLoader().load(undefined, { baseDir: testDir });
 
                 // Should still return a valid Config with defaults
                 expect(config).to.be.instanceOf(Config);
@@ -863,7 +863,7 @@ describe('ConfigLoader', () => {
             fs.writeFileSync(configFile, 'throw "String error not Error instance";');
 
             try {
-                const config = ConfigLoader.load(undefined, testDir);
+                const config = new ConfigLoader().load(undefined, { baseDir: testDir });
 
                 // Should still return a valid Config with defaults
                 expect(config).to.be.instanceOf(Config);
@@ -882,7 +882,7 @@ describe('ConfigLoader', () => {
          * Validates that specifying a non-existent config file falls back to defaults.
          */
         it('should warn and use defaults when explicit config file does not exist', () => {
-            const config = ConfigLoader.load(undefined, {
+            const config = new ConfigLoader().load(undefined, {
                 configFile: './non-existent-config.yaml'
             });
 
@@ -897,7 +897,7 @@ describe('ConfigLoader', () => {
          */
         it('should accept ConfigLoaderOptions with baseDir', () => {
             const testDir = process.cwd();
-            const config = ConfigLoader.load(undefined, {
+            const config = new ConfigLoader().load(undefined, {
                 baseDir: testDir
             });
 
@@ -994,7 +994,7 @@ describe('ConfigLoader', () => {
         it('should throw error when file not found', () => {
             const nonExistentFile = path.resolve(__dirname, 'does-not-exist.json');
 
-            expect(() => ConfigLoader.loadFromFile(nonExistentFile)).to.throw();
+            expect(() => ConfigLoader.loadFromFile(nonExistentFile)).to.throw(Error, 'does-not-exist.json');
         });
 
         /**
@@ -1093,6 +1093,196 @@ describe('ConfigLoader', () => {
                 expect(message).to.include('TEST_MISSING');
                 expect(message).to.not.include('TEST_PRESENT');
             }
+        });
+    });
+
+    describe('autoApplyEnvironmentVariables - Adapter Extensibility', () => {
+        /**
+         * Extended config for testing adapter scenarios
+         */
+        class TestAdapterConfig extends Config {
+            host: string = 'localhost';
+            port: number = 5432;
+            ssl: boolean = false;
+            poolSize: number = 10;
+            customObject: { enabled: boolean; timeout: number } = {
+                enabled: false,
+                timeout: 5000
+            };
+        }
+
+        /**
+         * Extended ConfigLoader for testing adapter scenarios
+         */
+        class TestAdapterConfigLoader extends ConfigLoader<TestAdapterConfig> {
+            applyEnvironmentVariables(config: TestAdapterConfig): void {
+                // First apply MSR_* vars (base config)
+                super.applyEnvironmentVariables(config);
+
+                // Then apply adapter-specific vars with custom prefix
+                this.autoApplyEnvironmentVariables(config, 'TESTDB');
+            }
+        }
+
+        /**
+         * Test: Automatic parsing with custom prefix for adapters
+         * Validates that adapters can use autoApplyEnvironmentVariables with their own prefix.
+         */
+        it('should automatically parse env vars with custom prefix', () => {
+            process.env.TESTDB_HOST = 'db.example.com';
+            process.env.TESTDB_PORT = '3306';
+            process.env.TESTDB_SSL = 'true';
+            process.env.TESTDB_POOL_SIZE = '20';
+
+            const config = new TestAdapterConfig();
+            const loader = new TestAdapterConfigLoader();
+            loader.applyEnvironmentVariables(config);
+
+            expect(config.host).to.equal('db.example.com');
+            expect(config.port).to.equal(3306);
+            expect(config.ssl).to.be.true;
+            expect(config.poolSize).to.equal(20);
+        });
+
+        /**
+         * Test: Automatic parsing of nested objects
+         * Validates that nested objects are automatically parsed with dot-notation.
+         */
+        it('should automatically parse nested objects', () => {
+            process.env.TESTDB_CUSTOM_OBJECT_ENABLED = 'true';
+            process.env.TESTDB_CUSTOM_OBJECT_TIMEOUT = '10000';
+
+            const config = new TestAdapterConfig();
+            const loader = new TestAdapterConfigLoader();
+            loader.applyEnvironmentVariables(config);
+
+            expect(config.customObject.enabled).to.be.true;
+            expect(config.customObject.timeout).to.equal(10000);
+        });
+
+        /**
+         * Test: CamelCase to SNAKE_CASE conversion
+         * Validates that property names are correctly converted to env var names.
+         */
+        it('should convert camelCase property names to SNAKE_CASE env vars', () => {
+            process.env.TESTDB_POOL_SIZE = '15';
+
+            const config = new TestAdapterConfig();
+            const loader = new TestAdapterConfigLoader();
+            loader.applyEnvironmentVariables(config);
+
+            expect(config.poolSize).to.equal(15);
+        });
+
+        /**
+         * Test: Type coercion for different types
+         * Validates that automatic type coercion works for all primitive types.
+         */
+        it('should automatically coerce types based on default values', () => {
+            process.env.TESTDB_HOST = 'string-value';
+            process.env.TESTDB_PORT = '9999';
+            process.env.TESTDB_SSL = 'true';
+
+            const config = new TestAdapterConfig();
+            const loader = new TestAdapterConfigLoader();
+            loader.applyEnvironmentVariables(config);
+
+            expect(config.host).to.be.a('string');
+            expect(config.port).to.be.a('number');
+            expect(config.ssl).to.be.a('boolean');
+        });
+
+        /**
+         * Test: Override system for special cases
+         * Validates that custom overrides can be used for properties requiring special handling.
+         */
+        it('should support custom overrides for special case properties', () => {
+            class CustomLoaderWithOverrides extends ConfigLoader<TestAdapterConfig> {
+                applyEnvironmentVariables(config: TestAdapterConfig): void {
+                    super.applyEnvironmentVariables(config);
+
+                    const overrides = new Map<string, (cfg: TestAdapterConfig, envVar: string) => void>();
+
+                    // Custom validation for port
+                    overrides.set('port', (cfg: TestAdapterConfig, envVar: string) => {
+                        const value = process.env[envVar];
+                        if (value) {
+                            const port = parseInt(value, 10);
+                            if (port >= 1 && port <= 65535) {
+                                cfg.port = port;
+                            } else {
+                                console.warn(`Invalid port ${port}, using default`);
+                            }
+                        }
+                    });
+
+                    this.autoApplyEnvironmentVariables(config, 'TESTDB', overrides);
+                }
+            }
+
+            // Valid port
+            process.env.TESTDB_PORT = '8080';
+            let config = new TestAdapterConfig();
+            new CustomLoaderWithOverrides().applyEnvironmentVariables(config);
+            expect(config.port).to.equal(8080);
+
+            // Invalid port (out of range)
+            process.env.TESTDB_PORT = '99999';
+            config = new TestAdapterConfig();
+            new CustomLoaderWithOverrides().applyEnvironmentVariables(config);
+            expect(config.port).to.equal(5432); // Should use default
+        });
+
+        /**
+         * Test: Base config and adapter config vars work together
+         * Validates that MSR_* and adapter-specific vars can coexist.
+         */
+        it('should apply both MSR_* and adapter-specific vars', () => {
+            process.env.MSR_FOLDER = './custom/migrations';
+            process.env.MSR_DRY_RUN = 'true';
+            process.env.TESTDB_HOST = 'db.example.com';
+            process.env.TESTDB_PORT = '3306';
+
+            const config = new TestAdapterConfig();
+            const loader = new TestAdapterConfigLoader();
+            loader.applyEnvironmentVariables(config);
+
+            // Base MSR config
+            expect(config.folder).to.equal('./custom/migrations');
+            expect(config.dryRun).to.be.true;
+
+            // Adapter-specific config
+            expect(config.host).to.equal('db.example.com');
+            expect(config.port).to.equal(3306);
+        });
+
+        /**
+         * Test: Backward compatibility with manual env var handling
+         * Validates that adapters can still manually handle env vars if needed.
+         */
+        it('should allow mixing automatic and manual env var handling', () => {
+            class MixedLoader extends ConfigLoader<TestAdapterConfig> {
+                applyEnvironmentVariables(config: TestAdapterConfig): void {
+                    super.applyEnvironmentVariables(config);
+
+                    // Manual handling for some vars
+                    if (process.env.TESTDB_HOST) {
+                        config.host = process.env.TESTDB_HOST;
+                    }
+
+                    // Automatic handling for others
+                    this.autoApplyEnvironmentVariables(config, 'TESTDB');
+                }
+            }
+
+            process.env.TESTDB_HOST = 'manual.example.com';
+            process.env.TESTDB_PORT = '3306';
+
+            const config = new TestAdapterConfig();
+            new MixedLoader().applyEnvironmentVariables(config);
+
+            expect(config.host).to.equal('manual.example.com');
+            expect(config.port).to.equal(3306);
         });
     });
 });

@@ -1,6 +1,7 @@
 # Migration Script Runner
 
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/migration-script-runner/msr-core/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/migration-script-runner/msr-core/tree/master)
+[![Test](https://github.com/migration-script-runner/msr-core/actions/workflows/test.yml/badge.svg)](https://github.com/migration-script-runner/msr-core/actions/workflows/test.yml)
 [![Coverage Status](https://coveralls.io/repos/github/migration-script-runner/msr-core/badge.svg?branch=master)](https://coveralls.io/github/migration-script-runner/msr-core?branch=master)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=vlavrynovych_msr&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=vlavrynovych_msr)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=vlavrynovych_msr&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=vlavrynovych_msr)
@@ -20,7 +21,30 @@ MSR provides a lightweight, flexible framework for managing database migrations 
 
 ---
 
-## 🎉 What's New in v0.6.0
+## 🎉 What's New in v0.7.0
+
+**Enhanced architecture, adapter extensibility, and improved maintainability:**
+
+- **🎨 Facade Pattern** - Services grouped into 4 logical facades (core, execution, output, orchestration) for better code organization
+- **🏭 Factory Pattern** - Service initialization extracted to dedicated factory, reducing constructor complexity by 83%
+- **🔧 Protected Facades** - Adapters can extend MigrationScriptExecutor and access internal services through protected facades
+- **✨ Extensible Configuration** - New `IConfigLoader` interface allows adapters to customize environment variable handling
+- **🗂️ .env File Support** - Load configuration from `.env`, `.env.production`, `.env.local` files with configurable priority
+- **🔨 Simplified Constructor** - Single parameter constructor with config moved into dependencies object (**BREAKING**)
+- **🔒 Better Encapsulation** - Internal services no longer exposed as public properties (**BREAKING**)
+- **⚡ Reduced Complexity** - Constructor reduced from 142 lines to 23 lines (83% reduction)
+- **📐 Workflow Ownership** - `executeBeforeMigrate()` moved to MigrationWorkflowOrchestrator for cleaner architecture
+- **✨ 100% Test Coverage** - All statements, branches, functions, and lines covered (1228/1228 tests passing)
+
+**⚠️ BREAKING CHANGES in v0.7.0:** Constructor signature changed (config moved into dependencies), and service properties removed (use public API methods instead). Migration takes 15-30 minutes. See the [v0.6.x → v0.7.0 Migration Guide](https://migration-script-runner.github.io/msr-core/version-migration/v0.6-to-v0.7) for step-by-step instructions.
+
+**[→ View architecture docs](https://migration-script-runner.github.io/msr-core/development/architecture/design-patterns)**
+
+---
+
+## 📜 Previous Releases
+
+### v0.6.0
 
 **Enhanced type safety, metrics collection, and multi-format configuration:**
 
@@ -30,16 +54,8 @@ MSR provides a lightweight, flexible framework for managing database migrations 
 - **🔌 Plugin Architecture** - Extensible loader system with optional peer dependencies keeps core lightweight
 - **🎚️ Log Level Control** - Configurable log levels (`error`, `warn`, `info`, `debug`) to control output verbosity
 - **💡 Better Error Messages** - Actionable error messages with installation instructions when formats aren't available
-- **✨ 100% Test Coverage** - All statements, branches, functions, and lines covered
 
-> [!IMPORTANT]
-> **v0.6.0 contains breaking changes:** Type parameters are now required for all interfaces (e.g., `IDatabaseMigrationHandler<IDB>`) and the constructor signature changed to dependency injection pattern. Migration takes 10-30 minutes. See the [v0.5.x → v0.6.0 Migration Guide](https://migration-script-runner.github.io/msr-core/version-migration/v0.5-to-v0.6) for step-by-step instructions.
-
-**[→ View configuration docs](https://migration-script-runner.github.io/msr-core/configuration/)**
-
----
-
-## 📜 Previous Releases
+**[→ View migration guide](https://migration-script-runner.github.io/msr-core/version-migration/v0.5-to-v0.6)**
 
 ### v0.5.0
 
@@ -56,11 +72,13 @@ MSR provides a lightweight, flexible framework for managing database migrations 
 
 ## ✨ Features
 
+- **🖥️ CLI Factory** - Built-in command-line interface with migrate, list, down, validate, and backup commands (v0.7.0)
 - **🔌 Database Agnostic** - Works with any database (SQL, NoSQL, NewSQL) by implementing a simple interface
 - **🛡️ Type Safe** - Full TypeScript support with complete type definitions
 - **💾 Smart Rollback** - Multiple strategies: backup/restore, down() methods, both, or none
 - **🔒 Transaction Control** - Configurable transaction modes with automatic retry and isolation levels (v0.5.0)
 - **⚙️ Environment Variables** - Full 12-factor app configuration support with MSR_* variables (v0.5.0)
+- **🗂️ .env File Support** - Load configuration from .env, .env.production, .env.local, etc. with priority control (v0.7.0)
 - **📄 Multi-Format Config** - Support for JS, JSON, YAML, TOML, and XML configuration files (v0.6.0)
 - **🎚️ Log Level Control** - Configurable verbosity (error, warn, info, debug) for different environments (v0.6.0)
 - **📊 Migration Tracking** - Maintains execution history in your database with checksums
@@ -159,7 +177,7 @@ config.folder = './migrations';
 config.logLevel = 'info';  // v0.6.0: 'error' | 'warn' | 'info' | 'debug'
 
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor<IMyDatabase>({ handler }, config);
+const executor = new MigrationScriptExecutor<IMyDatabase>({ handler, config });
 
 // Library usage - returns structured result
 const result = await executor.up();
@@ -261,14 +279,13 @@ See our [GitHub Issues](https://github.com/migration-script-runner/msr-core/issu
 
 This project is licensed under the **MIT License with Commons Clause and Attribution Requirements**.
 
-> [!NOTE]
-> **Quick Summary:**
-> - ✅ Free to use in your applications (including commercial)
-> - ✅ Free to modify and contribute
-> - ❌ Cannot sell MSR or database adapters as standalone products
-> - 🔒 Database adapters require attribution
->
-> See the [LICENSE](LICENSE) file or read the [License Documentation](https://migration-script-runner.github.io/msr-core/license) for detailed examples and FAQ.
+**Quick Summary:**
+- ✅ Free to use in your applications (including commercial)
+- ✅ Free to modify and contribute
+- ❌ Cannot sell MSR or database adapters as standalone products
+- 🔒 Database adapters require attribution
+
+See the [LICENSE](LICENSE) file or read the [License Documentation](https://migration-script-runner.github.io/msr-core/license) for detailed examples and FAQ.
 
 ---
 

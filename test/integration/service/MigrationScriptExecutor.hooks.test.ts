@@ -61,7 +61,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
             getName(): string { return "Test Implementation" }
             getVersion(): string { return "1.0.0-test" }
         }
-        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, cfg);
+        executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: cfg });
 });
 
     beforeEach(() => {
@@ -87,7 +87,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
     it('should call all success path hooks during migration', async () => {
         executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: mockHooks
-}, cfg);
+, config: cfg });
 
         const result = await executor.migrate();
 
@@ -115,7 +115,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
     it('should call hooks with correct parameters', async () => {
         executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: mockHooks
-}, cfg);
+, config: cfg });
 
         const result = await executor.migrate();
 
@@ -150,7 +150,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
     it('should work without hooks provided', async () => {
         executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
             // No hooks provided
-}, cfg);
+, config: cfg });
 
         const result = await executor.migrate();
 
@@ -170,7 +170,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
 
         executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: partialHooks
-}, cfg);
+, config: cfg });
 
         const result = await executor.migrate();
 
@@ -206,7 +206,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
 
         executor = new MigrationScriptExecutor<IDB>({ handler: failingHandler, logger: new SilentLogger(),
             hooks: mockHooks
-}, cfg);
+, config: cfg });
 
         try {
             await executor.migrate();
@@ -253,7 +253,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
 
         executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: orderTrackingHooks
-}, cfg);
+, config: cfg });
 
         await executor.migrate();
 
@@ -281,7 +281,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
     it('should pass backup path to onAfterBackup hook', async () => {
         executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: mockHooks
-}, cfg);
+, config: cfg });
 
         await executor.migrate();
 
@@ -326,7 +326,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
 
         executor = new MigrationScriptExecutor<IDB>({ handler: allMigratedHandler, logger: new SilentLogger(),
             hooks: mockHooks
-}, cfg);
+, config: cfg });
 
         const result = await executor.migrate();
 
@@ -358,7 +358,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
 
         executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: nonMigrationHooks
-}, cfg);
+, config: cfg });
 
         const result = await executor.migrate();
 
@@ -383,7 +383,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
 
         executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: partialMigrationHooks
-}, cfg);
+, config: cfg });
 
         const result = await executor.migrate();
 
@@ -403,7 +403,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
 
         executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: partialMigrationHooks
-}, cfg);
+, config: cfg });
 
         const result = await executor.migrate();
 
@@ -423,7 +423,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
 
         executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: errorOnlyHook
-}, cfg);
+, config: cfg });
 
         const result = await executor.migrate();
 
@@ -451,7 +451,7 @@ describe('MigrationScriptExecutor - Hooks Integration', () => {
 
         executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: compositeHooks
-}, cfg);
+, config: cfg });
 
         const result = await executor.migrate();
 

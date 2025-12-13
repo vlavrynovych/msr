@@ -323,7 +323,7 @@ async function runMigrations() {
   config.backup.folder = './backups';
 
   // Create executor
-  const executor = new MigrationScriptExecutor({ handler }, config);
+  const executor = new MigrationScriptExecutor({ handler , config });
 
   try {
     console.log('Running migrations...');
@@ -586,7 +586,7 @@ describe('MongoDB Migration Integration', () => {
     const config = new Config();
     config.folder = './migrations';
 
-    executor = new MigrationScriptExecutor({ handler }, config);
+    executor = new MigrationScriptExecutor({ handler , config });
   });
 
   after(async () => {

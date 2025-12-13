@@ -94,7 +94,7 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
             // No backup interface
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: testLogger}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: testLogger, config: config });
         const result = await executor.migrate();
 
         expect(result.success).to.be.false;
@@ -162,7 +162,7 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: testLogger}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: testLogger, config: config });
         const result = await executor.migrate();
 
         expect(result.success).to.be.false;
@@ -244,7 +244,7 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: testLogger}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: testLogger, config: config });
         const result = await executor.migrate();
 
         expect(result.success).to.be.false;
@@ -310,11 +310,11 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: testLogger}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: testLogger, config: config });
 
         // Test rollbackService.rollback with DOWN strategy and empty array
         // This simulates a scenario where rollback is called but no migrations were executed
-        await executor.rollbackService.rollback([], undefined);
+        await (executor as any).core.rollback.rollback([], undefined);
 
         // Should log "No migrations to rollback"
         expect(infoMessages.some(msg => msg.includes('No migrations to rollback'))).to.be.true;
@@ -369,7 +369,7 @@ describe('MigrationScriptExecutor - Rollback Edge Cases', () => {
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: testLogger}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: testLogger, config: config });
         const result = await executor.migrate();
 
         expect(result.success).to.be.false;

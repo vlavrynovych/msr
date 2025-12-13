@@ -27,6 +27,7 @@ MSR v0.5.0+ supports configuration through environment variables, following [12-
 - **Container-friendly deployment** (Docker, Kubernetes)
 - **CI/CD integration** with secrets management
 - **Production-ready practices** for configuration management
+- **.env file support** (v0.7.0+) for local development and environment-specific overrides
 
 ---
 
@@ -39,12 +40,17 @@ MSR loads configuration using a waterfall approach with clear priority:
    ↓
 2. Config file          (msr.config.js/json)
    ↓
-3. Environment variables (MSR_*)
+3. .env files           (.env.local, .env, env) - v0.7.0+
    ↓
-4. Constructor overrides (highest priority)
+4. Environment variables (MSR_*)
+   ↓
+5. Constructor overrides (highest priority)
 ```
 
 **Each level overrides the previous one**, allowing flexible configuration strategies.
+
+{: .note }
+> **.env files** (v0.7.0+): MSR automatically loads .env files using `config.envFileSources`. Files are loaded in priority order (first file wins). By default: `['.env.local', '.env', 'env']`.
 
 ---
 
@@ -114,6 +120,156 @@ npm start
 const executor = new MigrationScriptExecutor({ handler }, {
     dryRun: true  // Override for this specific run
 });
+```
+
+---
+
+## .env File Support (v0.7.0+)
+
+MSR automatically loads environment variables from `.env` files using the `config.envFileSources` property. This is perfect for:
+
+- **Local development** - Keep credentials out of version control
+- **Environment-specific configuration** - Use `.env.production`, `.env.development`, etc.
+- **Quick configuration** - Simple key=value format without code changes
+- **Team consistency** - Share configuration templates via `.env.example`
+
+### Default Behavior
+
+By default, MSR looks for these files (in priority order):
+
+```typescript
+config.envFileSources = ['.env.local', '.env', 'env'];
+```
+
+**Priority:** First file takes precedence. If `.env.local` exists, values from `.env` are only used when not defined in `.env.local`.
+
+### Basic Example
+
+Create a `.env` file in your project root:
+
+```bash
+# .env
+MSR_FOLDER=./database/migrations
+MSR_TABLE_NAME=migration_history
+MSR_DRY_RUN=false
+MSR_LOG_LEVEL=info
+```
+
+That's it! MSR will automatically load these values:
+
+```typescript
+const executor = new MigrationScriptExecutor({ handler });
+// Configuration loaded from .env automatically
+```
+
+### Environment-Specific Files
+
+#### Development Setup
+
+```bash
+# .env.development
+MSR_FOLDER=./migrations
+MSR_LOG_LEVEL=debug
+MSR_DRY_RUN=true
+```
+
+```typescript
+const config = new Config();
+config.envFileSources = ['.env.development', '.env'];
+```
+
+#### Production Setup
+
+```bash
+# .env.production
+MSR_FOLDER=/app/migrations
+MSR_LOG_LEVEL=error
+MSR_DRY_RUN=false
+MSR_ROLLBACK_STRATEGY=BACKUP
+```
+
+```typescript
+const config = new Config();
+config.envFileSources = ['.env.production', '.env'];
+```
+
+### Local Overrides
+
+Use `.env.local` for personal overrides (add to `.gitignore`):
+
+```bash
+# .env.local (not in version control)
+MSR_FOLDER=./my-local-migrations
+MSR_LOG_LEVEL=debug
+```
+
+```typescript
+// Default behavior - automatically uses .env.local if it exists
+const config = new Config();
+// config.envFileSources = ['.env.local', '.env', 'env'] (default)
+```
+
+### Custom File Names
+
+```typescript
+const config = new Config();
+config.envFileSources = ['database.env', 'secrets.env'];
+```
+
+### Disable .env Loading
+
+To use only system environment variables:
+
+```typescript
+const config = new Config();
+config.envFileSources = []; // Disable .env file loading
+```
+
+### File Format
+
+.env files use simple `KEY=VALUE` format:
+
+```bash
+# Comments are supported
+MSR_FOLDER=./migrations
+MSR_TABLE_NAME=schema_version
+
+# Quotes are optional for strings
+MSR_LOG_LEVEL=info
+
+# Booleans
+MSR_DRY_RUN=false
+
+# Numbers
+MSR_DISPLAY_LIMIT=10
+
+# Nested properties (dot notation)
+MSR_BACKUP_FOLDER=./backups
+MSR_BACKUP_DELETE_BACKUP=true
+MSR_BACKUP_TIMESTAMP=true
+```
+
+### Best Practices
+
+1. **Version control** - Commit `.env.example` with dummy values, ignore `.env` and `.env.local`
+2. **Documentation** - Document all env vars in `.env.example`
+3. **Validation** - Check required vars at startup
+4. **Security** - Never commit real credentials
+5. **Consistency** - Use same file names across environments
+
+```bash
+# .env.example (commit this)
+MSR_FOLDER=./migrations
+MSR_TABLE_NAME=schema_version
+MSR_LOG_LEVEL=info
+# Add your database credentials here
+```
+
+```bash
+# .gitignore
+.env
+.env.local
+.env.*.local
 ```
 
 ---
@@ -581,10 +737,352 @@ const config = ConfigLoader.load({
 // Load from specific directory
 const config = ConfigLoader.load({}, '/app');
 
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 ```
 
 See [ConfigLoader API Reference](../api/ConfigLoader) for detailed documentation.
+
+---
+
+### Adapter Extensibility with Automatic Parsing
+
+**New in v0.7.0:** Database adapters can extend `ConfigLoader` to add custom environment variables with automatic parsing.
+
+#### Why Use Automatic Parsing?
+
+When building database adapters, you typically need to support additional environment variables (like `POSTGRES_HOST`, `MYSQL_PORT`, etc.). The automatic parsing feature eliminates manual mapping.
+
+#### Before (Manual Mapping)
+
+```typescript
+class PostgresConfigLoader extends ConfigLoader<PostgresConfig> {
+    applyEnvironmentVariables(config: PostgresConfig): void {
+        super.applyEnvironmentVariables(config); // MSR_* vars
+
+        // ❌ Manual mapping - error-prone, requires updates
+        if (process.env.POSTGRES_HOST) {
+            config.host = process.env.POSTGRES_HOST;
+        }
+        if (process.env.POSTGRES_PORT) {
+            config.port = parseInt(process.env.POSTGRES_PORT);
+        }
+        if (process.env.POSTGRES_SSL) {
+            config.ssl = process.env.POSTGRES_SSL === 'true';
+        }
+        if (process.env.POSTGRES_POOL_SIZE) {
+            config.poolSize = parseInt(process.env.POSTGRES_POOL_SIZE);
+        }
+        // ... 20 more properties to map manually
+    }
+}
+```
+
+#### After (Automatic Parsing)
+
+```typescript
+class PostgresConfigLoader extends ConfigLoader<PostgresConfig> {
+    applyEnvironmentVariables(config: PostgresConfig): void {
+        super.applyEnvironmentVariables(config); // MSR_* vars
+
+        // ✅ Automatic parsing - zero manual mapping!
+        this.autoApplyEnvironmentVariables(config, 'POSTGRES');
+    }
+}
+
+// Config class with typed properties
+class PostgresConfig extends Config {
+    host: string = 'localhost';
+    port: number = 5432;
+    ssl: boolean = false;
+    poolSize: number = 10;
+}
+```
+
+#### How It Works
+
+1. **Reflection-based Discovery**: Automatically finds all config properties
+2. **Naming Convention**: Converts `camelCase` → `SNAKE_CASE`
+   - `host` → `POSTGRES_HOST`
+   - `poolSize` → `POSTGRES_POOL_SIZE`
+3. **Type Coercion**: Uses default value types for automatic conversion
+   - `host: string` → `process.env.POSTGRES_HOST` as string
+   - `port: number` → `parseInt(process.env.POSTGRES_PORT)`
+   - `ssl: boolean` → `parseBoolean(process.env.POSTGRES_SSL)`
+
+#### Supported Types
+
+- **Primitives**: `string`, `number`, `boolean`
+- **Arrays**: JSON parsing (e.g., `["pattern1", "pattern2"]`)
+- **Nested Objects**: Dot-notation (e.g., `POSTGRES_POOL_CONFIG_MIN`)
+- **Complex Objects**: Recursive parsing
+
+#### Example with Nested Objects
+
+```typescript
+class PostgresConfig extends Config {
+    poolConfig: {
+        min: number;
+        max: number;
+        idleTimeout: number;
+    } = {
+        min: 2,
+        max: 10,
+        idleTimeout: 30000
+    };
+}
+
+// Environment variables (automatically mapped):
+// POSTGRES_POOL_CONFIG_MIN=5
+// POSTGRES_POOL_CONFIG_MAX=20
+// POSTGRES_POOL_CONFIG_IDLE_TIMEOUT=60000
+```
+
+#### Custom Overrides for Special Cases
+
+For properties requiring validation or special handling:
+
+```typescript
+class PostgresConfigLoader extends ConfigLoader<PostgresConfig> {
+    applyEnvironmentVariables(config: PostgresConfig): void {
+        super.applyEnvironmentVariables(config);
+
+        const overrides = new Map();
+
+        // Custom validation for port
+        overrides.set('port', (cfg: PostgresConfig, envVar: string) => {
+            const value = process.env[envVar];
+            if (value) {
+                const port = parseInt(value, 10);
+                if (port >= 1 && port <= 65535) {
+                    cfg.port = port;
+                } else {
+                    console.warn(`Invalid port ${port}, using default ${cfg.port}`);
+                }
+            }
+        });
+
+        this.autoApplyEnvironmentVariables(config, 'POSTGRES', overrides);
+    }
+}
+```
+
+#### Benefits
+
+✅ **Zero Manual Mapping**: New properties automatically get env var support
+✅ **Type Safe**: Uses TypeScript types for automatic coercion
+✅ **Consistent Naming**: Automatic `camelCase` → `SNAKE_CASE`
+✅ **Maintainable**: No updates needed when adding properties
+✅ **Extensible**: Override system for special cases
+
+#### Complete Adapter Example
+
+```typescript
+import { ConfigLoader, Config } from '@migration-script-runner/core';
+
+// 1. Define adapter config
+class PostgresConfig extends Config {
+    host: string = 'localhost';
+    port: number = 5432;
+    database: string = 'mydb';
+    user: string = 'postgres';
+    password: string = '';
+    ssl: boolean = false;
+    poolSize: number = 10;
+    connectionTimeout: number = 5000;
+}
+
+// 2. Create adapter config loader
+class PostgresConfigLoader extends ConfigLoader<PostgresConfig> {
+    applyEnvironmentVariables(config: PostgresConfig): void {
+        // Apply MSR_* vars
+        super.applyEnvironmentVariables(config);
+
+        // Automatically apply POSTGRES_* vars
+        this.autoApplyEnvironmentVariables(config, 'POSTGRES');
+    }
+}
+
+// 3. Use in your adapter
+const configLoader = new PostgresConfigLoader();
+const config = configLoader.load();
+
+// Environment variables supported automatically:
+// POSTGRES_HOST=db.example.com
+// POSTGRES_PORT=5432
+// POSTGRES_DATABASE=production_db
+// POSTGRES_USER=app_user
+// POSTGRES_PASSWORD=secret
+// POSTGRES_SSL=true
+// POSTGRES_POOL_SIZE=20
+// POSTGRES_CONNECTION_TIMEOUT=10000
+```
+
+See [ConfigLoader API Reference](../api/ConfigLoader#autoapplyenvironmentvariables) for complete documentation.
+
+---
+
+### Using auto-envparse Directly
+
+**New in v0.7.0:** MSR uses the [`auto-envparse`](https://www.npmjs.com/package/auto-envparse) library for automatic environment variable parsing. This library was extracted from MSR and is available as a standalone npm package.
+
+#### Why Use auto-envparse?
+
+- **Framework-agnostic**: Use outside of MSR context
+- **Reusable**: Parse env vars for any configuration object
+- **No inheritance required**: Works with plain objects
+- **Zero dependencies**: Lightweight and fast
+- **12-Factor App compliant**: Best practices for configuration
+
+**Package:** `npm install auto-envparse`
+**Repository:** https://github.com/vlavrynovych/auto-envparse
+
+#### Basic Usage
+
+```typescript
+import AutoEnvParse from 'auto-envparse';
+
+// Your configuration object (can be any object)
+const dbConfig = {
+    host: 'localhost',
+    port: 5432,
+    database: 'mydb',
+    ssl: false,
+    poolSize: 10
+};
+
+// Environment variables:
+// DB_HOST=prod.example.com
+// DB_PORT=5433
+// DB_SSL=true
+// DB_POOL_SIZE=20
+
+// Parse environment variables automatically
+AutoEnvParse.parse(dbConfig, { prefix: 'DB' });
+
+// Result:
+console.log(dbConfig.host);     // 'prod.example.com'
+console.log(dbConfig.port);     // 5433 (number)
+console.log(dbConfig.ssl);      // true (boolean)
+console.log(dbConfig.poolSize); // 20 (number)
+```
+
+#### Features
+
+- **Automatic type detection**: Infers types from default values
+- **Naming convention**: Converts `camelCase` → `SNAKE_CASE`
+- **Nested objects**: Supports dot-notation (`DB_POOL_MIN`, `DB_POOL_MAX`)
+- **Nested arrays** (v2.1+): Supports array indexing (`APP_SERVERS_0_HOST`, `APP_SERVERS_1_HOST`)
+- **Type coercion**: Automatically converts strings to correct types
+- **Custom overrides**: Add validation or special handling
+- **Transform functions** (v2.1+): Custom transformations before assignment
+- **.env file loading** (v2.1+): Multi-source .env file support
+
+#### Example with Nested Objects
+
+```typescript
+const appConfig = {
+    port: 3000,
+    cors: {
+        enabled: true,
+        origin: '*'
+    },
+    rateLimit: {
+        windowMs: 900000,
+        max: 100
+    }
+};
+
+// Environment:
+// APP_PORT=8080
+// APP_CORS_ENABLED=false
+// APP_CORS_ORIGIN=https://example.com
+// APP_RATE_LIMIT_MAX=1000
+
+AutoEnvParse.parse(appConfig, { prefix: 'APP' });
+```
+
+#### Example with Custom Validation
+
+```typescript
+import AutoEnvParse from 'auto-envparse';
+
+const config = {
+    port: 3000,
+    environment: 'development'
+};
+
+// Add custom validation for port and environment
+const overrides = new Map();
+overrides.set('port', (obj, envVar) => {
+    const value = process.env[envVar];
+    if (value) {
+        const port = parseInt(value, 10);
+        if (port >= 1 && port <= 65535) {
+            obj.port = port;
+        } else {
+            console.warn(`Invalid port: ${port}, using default`);
+        }
+    }
+});
+
+// Use AutoEnvParse enum validator
+overrides.set('environment', AutoEnvParse.enumValidator('environment',
+    ['development', 'staging', 'production'],
+    { caseSensitive: false }
+));
+
+// APP_PORT=8080 APP_ENVIRONMENT=production
+AutoEnvParse.parse(config, { prefix: 'APP', overrides });
+console.log(config.port);        // 8080
+console.log(config.environment); // 'production'
+```
+
+#### Advanced Features (v2.1+)
+
+**Transform Functions:**
+
+```typescript
+import AutoEnvParse from 'auto-envparse';
+
+const config = {
+    timeout: AutoEnvParse.transform(30, (val) => val * 1000), // Convert seconds to ms
+    maxRetries: 3
+};
+
+// Environment: APP_TIMEOUT=60 APP_MAX_RETRIES=5
+AutoEnvParse.parse(config, { prefix: 'APP' });
+console.log(config.timeout);     // 60000 (60 seconds * 1000)
+console.log(config.maxRetries);  // 5
+```
+
+**.env File Loading:**
+
+```typescript
+import AutoEnvParse from 'auto-envparse';
+
+const config = {
+    host: 'localhost',
+    port: 5432
+};
+
+// Auto-loads from .env, .env.local, etc.
+AutoEnvParse.parse(config, {
+    prefix: 'DB',
+    sources: ['.env.local', '.env', 'env'] // Priority order
+});
+```
+
+#### Use Cases
+
+1. **Microservices**: Parse service-specific configuration
+2. **CLI tools**: Load tool configuration from environment
+3. **Testing**: Mock configuration with environment variables
+4. **Libraries**: Provide env var configuration without dependencies
+5. **Any Node.js project**: Zero-config environment variable parsing
+
+#### MSR Integration
+
+MSR's `ConfigLoader` internally uses `auto-envparse` for environment variable parsing. When you extend `ConfigLoader` for adapters, you're using the same battle-tested parsing logic that's available as a standalone package.
 
 ---
 

@@ -48,8 +48,9 @@ const executor = new MigrationScriptExecutor({
       filePath: './metrics/migrations.csv',
       includeHeader: true
     })
-  ]
-}, config);
+  ], 
+  config 
+});
 
 await executor.up();
 ```

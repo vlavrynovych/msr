@@ -23,7 +23,7 @@
     "test:watch:integration": "npm run _mocha -- --watch test/integration/**/*.test.ts",
     "test:debug": "npm run test:mocha -- --inspect-brk",
     "test:one": "npm run _mocha --",
-    "test:mocha:report": "npm run test:mocha -- --reporter mocha-junit-reporter --reporter-options mochaFile=./reports/mocha/test-results.xml test/**/*.ts",
+    "test:mocha:report": "npm run test:mocha -- --reporter mocha-junit-reporter --reporter-options mochaFile=./reports/mocha/test-results.xml",
     "test:coverage": "nyc npm run test:mocha:report",
     "test:report": "rimraf ./reports && npm run lint:report && npm run test:coverage",
     "test:mutation": "stryker run",
@@ -33,7 +33,8 @@
     "docs:install": "cd docs && bundle install",
     "docs:serve": "cd docs && bundle exec jekyll serve",
     "docs:build": "cd docs && bundle exec jekyll build",
-    "postinstall": "[ -f node_modules/fsevents/fsevents.node ] && xattr -d com.apple.quarantine node_modules/fsevents/fsevents.node 2>/dev/null || true"
+    "postinstall": "[ -f node_modules/fsevents/fsevents.node ] && xattr -d com.apple.quarantine node_modules/fsevents/fsevents.node 2>/dev/null || true",
+    "prepare": "husky"
   },
   "keywords": [
     "migration",
@@ -46,6 +47,9 @@
     "url": "https://www.instagram.com/vlavrynovych/"
   },
   "license": "SEE LICENSE IN LICENSE",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "devDependencies": {
     "@iarna/toml": "^2.2.5",
     "@stryker-mutator/core": "^9.3.0",
@@ -71,6 +75,7 @@
     "eslint-formatter-junit": "^9.0.1",
     "eslint-plugin-only-warn": "^1.1.0",
     "fast-xml-parser": "^5.3.2",
+    "husky": "^9.1.7",
     "js-yaml": "^4.1.1",
     "mocha": "^11.7.5",
     "mocha-junit-reporter": "^2.2.1",
@@ -84,6 +89,8 @@
   },
   "dependencies": {
     "ascii-table3": "^1.0.1",
+    "auto-envparse": "^2.1.0",
+    "commander": "^12.1.0",
     "figlet": "^1.9.4",
     "lodash": "^4.17.21",
     "moment": "^2.30.1"

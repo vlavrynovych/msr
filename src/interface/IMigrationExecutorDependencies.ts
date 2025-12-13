@@ -1,33 +1,27 @@
-import {IBackupService} from "./service/IBackupService";
-import {ISchemaVersionService} from "./service/ISchemaVersionService";
-import {IMigrationRenderer} from "./service/IMigrationRenderer";
-import {IRenderStrategy} from "./service/IRenderStrategy";
-import {IMigrationService} from "./service/IMigrationService";
-import {IMigrationScanner} from "./service/IMigrationScanner";
-import {IMigrationValidationService} from "./service/IMigrationValidationService";
-import {IRollbackService} from "./service/IRollbackService";
-import {ILogger} from "./ILogger";
-import {IMigrationHooks} from "./IMigrationHooks";
-import {ILoaderRegistry} from "./loader/ILoaderRegistry";
 import {IDatabaseMigrationHandler} from "./IDatabaseMigrationHandler";
 import {IDB} from "./dao";
-import {IMetricsCollector} from "./IMetricsCollector";
+import {IExecutorOptions} from "./IExecutorOptions";
+import {IConfigLoader} from "./IConfigLoader";
 
 /**
  * Dependencies for MigrationScriptExecutor.
  *
- * Allows customization of service implementations through dependency injection.
- * The handler is required; all other dependencies are optional.
+ * Requires database migration handler and optionally allows customization of
+ * configuration loading and all service implementations through dependency injection.
  *
- * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
+ * **Generic Type Parameters:**
  * - `DB` - Your specific database interface extending IDB (REQUIRED)
  *
  * @template DB - Database interface type
  *
- * **Breaking Change in v0.6.0:**
- * - Constructor signature changed to `constructor(dependencies, config?)`
- * - Handler moved from separate parameter to dependencies object
- * - All service interfaces now require generic type parameter
+ * **New in v0.7.0:**
+ * - Extends IExecutorOptions for better adapter ergonomics
+ * - Config moved from constructor's second parameter to this interface (via IExecutorOptions)
+ * - Added configLoader for extensible configuration loading
+ * - Single parameter constructor: `constructor(dependencies)`
+ *
+ * **Previous Versions:**
+ * - v0.6.0: Constructor signature was `constructor(dependencies, config?)`
  *
  * @example
  * ```typescript
@@ -36,10 +30,17 @@ import {IMetricsCollector} from "./IMetricsCollector";
  *     handler: myDatabaseHandler
  * });
  *
- * // With config
+ * // With config (v0.7.0+)
  * const executor = new MigrationScriptExecutor<IDB>({
- *     handler: myDatabaseHandler
- * }, config);
+ *     handler: myDatabaseHandler,
+ *     config: myConfig  // Now in dependencies object
+ * });
+ *
+ * // With custom config loader (v0.7.0+)
+ * const executor = new MigrationScriptExecutor<IDB>({
+ *     handler: myDatabaseHandler,
+ *     configLoader: new CustomConfigLoader()
+ * });
  *
  * // Use custom logger across all services
  * const executor = new MigrationScriptExecutor<IDB>({
@@ -53,12 +54,6 @@ import {IMetricsCollector} from "./IMetricsCollector";
  *     renderStrategy: new JsonRenderStrategy()
  * });
  *
- * // Use silent output for testing
- * const executor = new MigrationScriptExecutor<IDB>({
- *     handler: myDatabaseHandler,
- *     renderStrategy: new SilentRenderStrategy()
- * });
- *
  * // Inject mock services for testing
  * const executor = new MigrationScriptExecutor<IDB>({
  *     handler: mockHandler,
@@ -69,7 +64,7 @@ import {IMetricsCollector} from "./IMetricsCollector";
  * });
  * ```
  */
-export interface IMigrationExecutorDependencies<DB extends IDB> {
+export interface IMigrationExecutorDependencies<DB extends IDB> extends IExecutorOptions<DB> {
     /**
      * Database migration handler (REQUIRED).
      * Implements database-specific operations for migrations.
@@ -90,183 +85,38 @@ export interface IMigrationExecutorDependencies<DB extends IDB> {
      * ```
      */
     handler: IDatabaseMigrationHandler<DB>;
-    /**
-     * Custom backup service implementation.
-     * If not provided, uses BackupService with default configuration.
-     */
-    backupService?: IBackupService;
 
     /**
-     * Custom schema version tracking service implementation.
-     * If not provided, uses SchemaVersionService with handler's schema version.
-     */
-    schemaVersionService?: ISchemaVersionService<DB>;
-
-    /**
-     * Custom migration renderer implementation.
-     * If not provided, uses MigrationRenderer with default configuration.
-     */
-    migrationRenderer?: IMigrationRenderer<DB>;
-
-    /**
-     * Custom render strategy for migration output.
-     * Determines the format of migration output (ASCII tables, JSON, silent, etc.).
-     * If not provided, uses AsciiTableRenderStrategy (default ASCII tables).
+     * Config loader for loading and processing configuration (v0.7.0).
      *
-     * Note: This is ignored if migrationRenderer is provided.
+     * If not provided, uses ConfigLoader instance with default behavior.
+     * Adapters can provide custom ConfigLoader implementations to add
+     * database-specific environment variable handling.
      *
      * @example
      * ```typescript
-     * // JSON output
-     * renderStrategy: new JsonRenderStrategy()
-     *
-     * // Silent output
-     * renderStrategy: new SilentRenderStrategy()
-     * ```
-     */
-    renderStrategy?: IRenderStrategy<DB>;
-
-    /**
-     * Custom migration service implementation.
-     * If not provided, uses MigrationService with default configuration.
-     */
-    migrationService?: IMigrationService<DB>;
-
-    /**
-     * Custom migration scanner implementation.
-     * If not provided, uses MigrationScanner with default configuration.
-     *
-     * The scanner is responsible for gathering the complete state of migrations by:
-     * - Querying the database for executed migrations
-     * - Reading migration files from the filesystem
-     * - Determining which migrations are pending, ignored, or already executed
-     *
-     * @example
-     * ```typescript
-     * // Use custom scanner
-     * migrationScanner: new CustomMigrationScanner()
-     * ```
-     */
-    migrationScanner?: IMigrationScanner<DB>;
-
-    /**
-     * Logger instance to use across all services.
-     * If not provided, uses ConsoleLogger.
-     */
-    logger?: ILogger;
-
-    /**
-     * Custom migration validation service implementation.
-     * If not provided, uses MigrationValidationService with config.customValidators.
-     *
-     * @example
-     * ```typescript
-     * // Use custom validation service
-     * validationService: new CustomValidationService(logger)
-     * ```
-     */
-    validationService?: IMigrationValidationService<DB>;
-
-    /**
-     * Lifecycle hooks for extending migration behavior.
-     * If not provided, no hooks will be called during migration.
-     * Typed with the generic DB parameter (v0.6.0).
-     *
-     * @example
-     * ```typescript
-     * // Add Slack notifications
+     * // Use default ConfigLoader
      * const executor = new MigrationScriptExecutor<IDB>({
-     *     handler: myDatabaseHandler,
-     *     hooks: new SlackNotificationHooks(webhookUrl)
+     *     handler: myDatabaseHandler
      * });
-     * ```
-     */
-    hooks?: IMigrationHooks<DB>;
-
-    /**
-     * Array of metrics collectors for observability (v0.6.0).
+     * // ConfigLoader automatically used
      *
-     * Automatically wrapped in MetricsCollectorHook and combined with user-provided hooks.
-     * Multiple collectors can be used simultaneously (e.g., Console + JSON + CSV).
-     *
-     * Collector failures are logged but don't break migrations.
-     *
-     * **Built-in Collectors:**
-     * - ConsoleMetricsCollector - Real-time console output
-     * - JsonMetricsCollector - Structured JSON for CI/CD
-     * - CsvMetricsCollector - CSV format for Excel/Sheets analysis
-     *
-     * @example
-     * ```typescript
-     * // Single collector - console output
-     * const executor = new MigrationScriptExecutor<IDB>({
-     *     handler: myDatabaseHandler,
-     *     metricsCollectors: [new ConsoleMetricsCollector()]
-     * });
-     *
-     * // Multiple collectors simultaneously
-     * const executor = new MigrationScriptExecutor<IDB>({
-     *     handler: myDatabaseHandler,
-     *     metricsCollectors: [
-     *         new ConsoleMetricsCollector(),
-     *         new JsonMetricsCollector({ filePath: './metrics.json' }),
-     *         new CsvMetricsCollector({ filePath: './metrics.csv' })
-     *     ]
-     * });
-     *
-     * // Custom collector for DataDog/Prometheus
-     * class DataDogCollector implements IMetricsCollector {
-     *     recordScriptComplete(script, duration) {
-     *         statsd.timing('migration.duration', duration);
+     * // Use custom ConfigLoader
+     * class MyConfigLoader extends ConfigLoader {
+     *     applyEnvironmentVariables(config: Config): void {
+     *         super.applyEnvironmentVariables(config);
+     *         // Add custom env vars
+     *         if (process.env.MY_DB_HOST) {
+     *             (config as any).host = process.env.MY_DB_HOST;
+     *         }
      *     }
      * }
-     * ```
-     */
-    metricsCollectors?: IMetricsCollector[];
-
-    /**
-     * Custom rollback service implementation.
-     * If not provided, uses RollbackService with default configuration.
      *
-     * The rollback service handles all rollback strategies (BACKUP, DOWN, BOTH, NONE)
-     * and backup mode logic, determining when to create and restore backups.
-     *
-     * @example
-     * ```typescript
-     * // Use custom rollback service
-     * rollbackService: new CustomRollbackService(handler, config, backupService, logger, hooks)
-     * ```
-     */
-    rollbackService?: IRollbackService<DB>;
-
-    /**
-     * Custom loader registry for migration script loading.
-     *
-     * If not provided, uses LoaderRegistry.createDefault() which includes:
-     * - TypeScriptLoader (handles .ts and .js files)
-     * - SqlLoader (handles .up.sql and .down.sql files)
-     *
-     * Use this to register custom loaders for additional file types (Python, Ruby, shell scripts, etc.)
-     * or to customize the behavior of existing loaders.
-     *
-     * @example
-     * ```typescript
-     * // Use default loaders
-     * const executor = new MigrationScriptExecutor<DB>(handler);
-     * // Automatically uses TypeScript and SQL loaders
-     *
-     * // Register custom loader
-     * const registry = LoaderRegistry.createDefault();
-     * registry.register(new PythonLoader());
-     * const executor = new MigrationScriptExecutor<DB>(handler, {
-     *     loaderRegistry: registry
+     * const executor = new MigrationScriptExecutor<IDB>({
+     *     handler: myDatabaseHandler,
+     *     configLoader: new MyConfigLoader()
      * });
-     *
-     * // Use only specific loaders
-     * const registry = new LoaderRegistry<DB>();
-     * registry.register(new TypeScriptLoader<DB>());
-     * // SQL files will not be supported
      * ```
      */
-    loaderRegistry?: ILoaderRegistry<DB>;
+    configLoader?: IConfigLoader;
 }

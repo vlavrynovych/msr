@@ -97,10 +97,10 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
 
         // Stub migrationScanner to return the failing migration
-        sinon.stub(executor.migrationScanner, 'scan').resolves({
+        sinon.stub((executor as any).core.scanner, 'scan').resolves({
             all: [failingMigration],
             migrated: [],
             pending: [failingMigration],
@@ -163,10 +163,10 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
 
         // Stub migrationScanner to return the failing migration
-        sinon.stub(executor.migrationScanner, 'scan').resolves({
+        sinon.stub((executor as any).core.scanner, 'scan').resolves({
             all: [failingMigration],
             migrated: [],
             pending: [failingMigration],
@@ -230,10 +230,10 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
 
         // Stub migrationScanner to return the failing migration
-        sinon.stub(executor.migrationScanner, 'scan').resolves({
+        sinon.stub((executor as any).core.scanner, 'scan').resolves({
             all: [failingMigration],
             migrated: [],
             pending: [failingMigration],
@@ -301,10 +301,10 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
 
         // Stub migrationScanner to return the failing migration
-        sinon.stub(executor.migrationScanner, 'scan').resolves({
+        sinon.stub((executor as any).core.scanner, 'scan').resolves({
             all: [failingMigration],
             migrated: [],
             pending: [failingMigration],
@@ -368,10 +368,10 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
 
         // Stub migrationScanner to return the failing migration
-        sinon.stub(executor.migrationScanner, 'scan').resolves({
+        sinon.stub((executor as any).core.scanner, 'scan').resolves({
             all: [failingMigration],
             migrated: [],
             pending: [failingMigration],
@@ -419,7 +419,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
 
         // Call the public method directly
         const backupPath = await executor.createBackup();
@@ -467,7 +467,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
 
         // Call the public method directly with specific path
         await executor.restoreFromBackup(testBackupPath);
@@ -507,10 +507,10 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
 
         // Test rollbackService.shouldCreateBackup() with DOWN strategy
-        const shouldCreate = executor.rollbackService.shouldCreateBackup();
+        const shouldCreate = (executor as any).core.rollback.shouldCreateBackup();
 
         // Should return false because strategy is DOWN (doesn't need backup)
         expect(shouldCreate).to.be.false;
@@ -545,7 +545,7 @@ describe('MigrationScriptExecutor - BackupMode Coverage', () => {
             getVersion(): string { return "1.0.0-test" }
         };
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()}, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(), config: config });
 
         // Create a backup first
         const backupPath = await executor.createBackup();

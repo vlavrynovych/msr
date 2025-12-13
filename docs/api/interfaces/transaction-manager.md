@@ -682,6 +682,6 @@ const handler: IDatabaseMigrationHandler = {
   getVersion: () => '1.0.0'
 };
 
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 // Uses custom transaction manager instead of default
 ```

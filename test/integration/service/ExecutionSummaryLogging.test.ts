@@ -107,7 +107,7 @@ describe('Execution Summary Logging Integration', () => {
     });
 
     it('should create execution summary file for successful migration', async () => {
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() , config: config });
 
         const result = await executor.up();
 
@@ -134,7 +134,7 @@ describe('Execution Summary Logging Integration', () => {
 
     it('should not create summary file when logging is disabled', async () => {
         config.logging.enabled = false;
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() , config: config });
 
         await executor.up();
 
@@ -144,7 +144,7 @@ describe('Execution Summary Logging Integration', () => {
 
     it('should not create summary for successful runs when logSuccessful is false', async () => {
         config.logging.logSuccessful = false;
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() , config: config });
 
         await executor.up();
 
@@ -154,7 +154,7 @@ describe('Execution Summary Logging Integration', () => {
 
     it('should create summary in both JSON and TEXT formats', async () => {
         config.logging.format = SummaryFormat.BOTH;
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() , config: config });
 
         await executor.up();
 
@@ -185,7 +185,7 @@ describe('Execution Summary Logging Integration', () => {
 
         const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger(),
             hooks: customHooks
-}, config);
+, config: config });
 
         await executor.up();
 
@@ -200,7 +200,7 @@ describe('Execution Summary Logging Integration', () => {
     });
 
     it('should include migration details in summary', async () => {
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() , config: config });
 
         await executor.up();
 
@@ -219,7 +219,7 @@ describe('Execution Summary Logging Integration', () => {
     it('should work without hooks when logging disabled and no user hooks', async () => {
         config.logging.enabled = false;
         // Don't provide hooks in dependencies - this makes this.hooks undefined
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() , config: config });
 
         // This should work fine even with this.hooks being undefined
         // All the optional chaining (?.) branches should handle undefined gracefully
@@ -235,7 +235,7 @@ describe('Execution Summary Logging Integration', () => {
         config.transaction.isolation = IsolationLevel.SERIALIZABLE;
         config.transaction.retries = 5;
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() , config: config });
 
         await executor.up();
 
@@ -258,7 +258,7 @@ describe('Execution Summary Logging Integration', () => {
         // Ensure transactions are disabled
         config.transaction.mode = TransactionMode.NONE;
 
-        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() }, config);
+        const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger() , config: config });
 
         await executor.up();
 

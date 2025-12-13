@@ -84,7 +84,7 @@ describe('MigrationScriptExecutor - Validation Error Paths Coverage', () => {
         }];
 
         const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
-}, config);
+, config: config });
 
         const result = await executor.migrate();
 
@@ -117,7 +117,7 @@ describe('MigrationScriptExecutor - Validation Error Paths Coverage', () => {
         );
 
         const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
-}, config);
+, config: config });
 
         // Should succeed with warnings
         const result = await executor.migrate();
@@ -148,7 +148,7 @@ describe('MigrationScriptExecutor - Validation Error Paths Coverage', () => {
         );
 
         const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
-}, config);
+, config: config });
 
         const result = await executor.migrate();
 
@@ -194,7 +194,7 @@ describe('MigrationScriptExecutor - Validation Error Paths Coverage', () => {
         fs.writeFileSync(filepath, migrationContent + '// Modified');
 
         const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
-}, config);
+, config: config });
 
         const result = await executor.migrate();
 
@@ -273,7 +273,7 @@ describe('MigrationScriptExecutor - Validation Error Paths Coverage', () => {
 
         const executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: capturingLogger,
             migrationScanner: mockScanner as any
-}, config);
+, config: config });
 
         try {
             await executor.migrate();

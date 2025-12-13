@@ -76,7 +76,7 @@ import {
 
 // Default ASCII tables (no configuration needed)
 const config = new Config();
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 
 // Pretty JSON for readability
 const executor = new MigrationScriptExecutor({ handler, 

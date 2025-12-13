@@ -295,8 +295,9 @@ const executor = new MigrationScriptExecutor({
   handler,
   metricsCollectors: [
     new SimpleMetricsCollector()
-  ]
-}, config);
+  ], 
+  config 
+});
 
 await executor.up();
 ```
@@ -314,8 +315,9 @@ const executor = new MigrationScriptExecutor({
     new DatadogCollector({              // Production monitoring
       apiKey: process.env.DD_API_KEY
     })
-  ]
-}, config);
+  ], 
+  config 
+});
 ```
 
 ---

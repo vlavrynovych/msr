@@ -48,7 +48,7 @@ config.folder = './migrations';
 
 // Initialize and run
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 
 await executor.up();
 ```
@@ -73,6 +73,7 @@ const config = new Config();
 |----------|-----------|-------------|
 | 🎯 [Migration Settings](migration-settings) | `folder`, `filePattern`, `tableName`, `displayLimit`, `beforeMigrateName`, `recursive` | Control how migrations are discovered and tracked |
 | 🎚️ Logging Settings | `logLevel`, `showBanner` | Configure output verbosity and display options |
+| 🗂️ Environment Settings | `envFileSources` | Configure .env file loading (v0.7.0+) |
 | ✅ [Validation Settings](validation-settings) | `validateBeforeRun`, `strictValidation`, `downMethodPolicy`, `customValidators` | Control validation behavior and rules |
 | 🔄 [Rollback Settings](rollback-settings) | `rollbackStrategy` | Choose backup, down(), both, or none |
 | 💾 [Backup Settings](backup-settings) | `backup` (BackupConfig) | Configure backup file naming and storage |
@@ -161,7 +162,24 @@ config.transaction.mode = TransactionMode.NONE;
 
 See [Transaction Settings](transaction-settings) for all transaction options.
 
-### 5. Configure Backup (if using BACKUP strategy)
+### 5. Configure Environment Loading (v0.7.0+)
+
+Control how .env files are loaded:
+
+```typescript
+// Default: load .env.local, .env, and env files
+config.envFileSources = ['.env.local', '.env', 'env'];
+
+// Production: prioritize .env.production
+config.envFileSources = ['.env.production', '.env'];
+
+// Disable .env loading (use system environment variables only)
+config.envFileSources = [];
+```
+
+See [Environment Variables Guide](../guides/environment-variables#env-file-support-v070) for details.
+
+### 6. Configure Backup (if using BACKUP strategy)
 
 If using `BACKUP` or `BOTH` strategies:
 
@@ -216,6 +234,9 @@ config.transaction.retries = 3;
 config.transaction.retryDelay = 100;
 config.transaction.retryBackoff = true;
 
+// Environment loading (v0.7.0+)
+config.envFileSources = ['.env.production', '.env'];
+
 // Rollback strategy
 config.rollbackStrategy = RollbackStrategy.BOTH;
 
@@ -237,7 +258,7 @@ if (process.env.NODE_ENV === 'production') {
 
 // Initialize executor
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 
 // Run migrations
 await executor.migrate();
@@ -299,7 +320,7 @@ const config = ConfigLoader.load({}, {
 });
 
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 ```
 
 ---

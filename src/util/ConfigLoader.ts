@@ -5,6 +5,8 @@ import { ENV } from '../model/env';
 import { LogLevel } from '../interface/ILogger';
 import { ConfigFileLoaderRegistry } from './ConfigFileLoaderRegistry';
 import { JsJsonLoader, YamlLoader, TomlLoader, XmlLoader } from './loaders';
+import { IConfigLoader } from '../interface/IConfigLoader';
+import AutoEnvParse from 'auto-envparse';
 
 /**
  * Options for ConfigLoader.load() method.
@@ -34,22 +36,36 @@ export interface ConfigLoaderOptions {
  *
  * **Design:**
  * - Database-agnostic - no database-specific parsing
- * - Adapter-friendly - adapters can use helper methods for their own env vars
+ * - Adapter-friendly - adapters can extend this class and override methods
  * - Type-safe - automatic type coercion based on default values
+ *
+ * **New in v0.7.0:**
+ * - Implements IConfigLoader interface
+ * - Instance methods (load, applyEnvironmentVariables) can be overridden by adapters
+ * - Static methods maintained for backward compatibility
  *
  * @example
  * ```typescript
- * // Main waterfall loading
+ * // Static usage (backward compatible)
  * const config = ConfigLoader.load();
  *
- * // With overrides
- * const config = ConfigLoader.load({ folder: './custom' });
+ * // Instance usage (v0.7.0+)
+ * const loader = new ConfigLoader();
+ * const config = loader.load();
+ *
+ * // Adapter extending ConfigLoader (v0.7.0+)
+ * class PostgreSqlConfigLoader extends ConfigLoader {
+ *     applyEnvironmentVariables(config: C): void {
+ *         super.applyEnvironmentVariables(config);
+ *         // Add POSTGRES_* env vars
+ *     }
+ * }
  *
  * // Individual helpers (for adapters)
  * dryRun: boolean = ConfigLoader.loadFromEnv('MSR_DRY_RUN', false);
  * ```
  */
-export class ConfigLoader {
+export class ConfigLoader<C extends Config = Config> implements IConfigLoader<C> {
     /**
      * Default config file names to search for (in order).
      * Priority: JS > JSON > YAML > TOML > XML
@@ -80,7 +96,7 @@ export class ConfigLoader {
     })();
 
     /**
-     * Load configuration using waterfall approach.
+     * Instance method: Load configuration using waterfall approach.
      *
      * **Priority Order:**
      * 1. Start with built-in defaults (new Config())
@@ -88,47 +104,31 @@ export class ConfigLoader {
      * 3. Merge with environment variables (MSR_*)
      * 4. Merge with provided overrides
      *
+     * **New in v0.7.0:** Instance method (can be overridden by adapters)
+     *
      * @param overrides - Optional configuration overrides (highest priority)
-     * @param optionsOrBaseDir - Options object or base directory string (for backward compatibility)
+     * @param options - Optional loader options (baseDir, configFile)
      * @returns Fully loaded configuration
      *
      * @example
      * ```typescript
-     * // Load with waterfall (env → file → defaults)
-     * const config = ConfigLoader.load();
+     * // Instance usage
+     * const loader = new ConfigLoader();
+     * const config = loader.load();
      *
-     * // Load with custom overrides
-     * const config = ConfigLoader.load({
-     *   folder: './migrations',
-     *   dryRun: true
-     * });
+     * // With overrides
+     * const config = loader.load({ folder: './migrations' });
      *
-     * // Load from specific directory (backward compatible)
-     * const config = ConfigLoader.load({}, '/app');
-     *
-     * // Load with options object
-     * const config = ConfigLoader.load({}, {
-     *   baseDir: '/app',
-     *   configFile: './config/custom.yaml'
-     * });
-     *
-     * // Load specific config file (bypasses auto-detection)
-     * const config = ConfigLoader.load({}, {
-     *   configFile: './production.yaml'
-     * });
+     * // With options
+     * const config = loader.load({}, { baseDir: '/app' });
      * ```
      */
-    static load(
-        overrides?: Partial<Config>,
-        optionsOrBaseDir?: string | ConfigLoaderOptions
-    ): Config {
-        // Normalize options parameter
-        const options: ConfigLoaderOptions = typeof optionsOrBaseDir === 'string'
-            ? { baseDir: optionsOrBaseDir }
-            : (optionsOrBaseDir || {});
-
-        const baseDir = options.baseDir || process.cwd();
-        const explicitConfigFile = options.configFile;
+    load(
+        overrides?: Partial<C>,
+        options?: ConfigLoaderOptions
+    ): C {
+        const baseDir = options?.baseDir || process.cwd();
+        const explicitConfigFile = options?.configFile;
 
         // Step 1: Start with built-in defaults
         const config = new Config();
@@ -147,12 +147,12 @@ export class ConfigLoader {
             }
         } else {
             // Auto-detect config file in baseDir
-            configFilePath = this.findConfigFile(baseDir);
+            configFilePath = ConfigLoader.findConfigFile(baseDir);
         }
 
         if (configFilePath) {
             try {
-                const fileConfig = this.loadFromFile<Partial<Config>>(configFilePath);
+                const fileConfig = ConfigLoader.loadFromFile<Partial<Config>>(configFilePath);
                 Object.assign(config, fileConfig);
             } catch (error) {
                 /* istanbul ignore next: loadFromFile always throws Error objects */
@@ -165,15 +165,16 @@ export class ConfigLoader {
         }
 
         // Step 3: Merge with environment variables
-        this.applyEnvironmentVariables(config);
+        this.applyEnvironmentVariables(config as C);
 
         // Step 4: Merge with provided overrides (highest priority)
         if (overrides) {
             Object.assign(config, overrides);
         }
 
-        return config;
+        return config as C;
     }
+
 
     /**
      * Find config file in the following order:
@@ -218,108 +219,55 @@ export class ConfigLoader {
     }
 
     /**
-     * Apply environment variables to config object.
+     * Instance method: Apply environment variables to config object.
      *
      * Looks for MSR_* environment variables and applies them to config.
-     * Uses type coercion based on existing config property types.
+     * Uses automatic type-based parsing with reflection.
+     *
+     * **New in v0.7.0:**
+     * - Instance method (can be overridden by adapters)
+     * - Uses automatic parsing via `autoApplyEnvironmentVariables`
+     * - Custom overrides for special cases (enum validation)
      *
      * @param config - Config object to apply env vars to
      *
      * @example
      * ```typescript
+     * // Instance usage
+     * const loader = new ConfigLoader();
      * const config = new Config();
-     * ConfigLoader.applyEnvironmentVariables(config);
-     * // MSR_FOLDER=./db/migrations → config.folder = './db/migrations'
-     * // MSR_DRY_RUN=true → config.dryRun = true
+     * loader.applyEnvironmentVariables(config);
+     *
+     * // Adapter extending ConfigLoader
+     * class MyConfigLoader extends ConfigLoader {
+     *     applyEnvironmentVariables(config: C): void {
+     *         super.applyEnvironmentVariables(config); // Apply MSR_* vars
+     *         this.autoApplyEnvironmentVariables(config, 'MY_DB'); // Apply MY_DB_* vars
+     *     }
+     * }
      * ```
      */
-    static applyEnvironmentVariables(config: Config): void {
-        // Simple properties
-        if (process.env[ENV.MSR_FOLDER]) {
-            config.folder = process.env[ENV.MSR_FOLDER]!;
-        }
-        if (process.env[ENV.MSR_TABLE_NAME]) {
-            config.tableName = process.env[ENV.MSR_TABLE_NAME]!;
-        }
-        if (process.env[ENV.MSR_BEFORE_MIGRATE_NAME]) {
-            config.beforeMigrateName = process.env[ENV.MSR_BEFORE_MIGRATE_NAME]!;
-        }
-        if (process.env[ENV.MSR_DRY_RUN] !== undefined) {
-            config.dryRun = this.parseBoolean(process.env[ENV.MSR_DRY_RUN]!);
-        }
-        if (process.env[ENV.MSR_DISPLAY_LIMIT] !== undefined) {
-            config.displayLimit = this.parseNumber(process.env[ENV.MSR_DISPLAY_LIMIT]!);
-        }
-        if (process.env[ENV.MSR_RECURSIVE] !== undefined) {
-            config.recursive = this.parseBoolean(process.env[ENV.MSR_RECURSIVE]!);
-        }
-        if (process.env[ENV.MSR_VALIDATE_BEFORE_RUN] !== undefined) {
-            config.validateBeforeRun = this.parseBoolean(process.env[ENV.MSR_VALIDATE_BEFORE_RUN]!);
-        }
-        if (process.env[ENV.MSR_STRICT_VALIDATION] !== undefined) {
-            config.strictValidation = this.parseBoolean(process.env[ENV.MSR_STRICT_VALIDATION]!);
-        }
-        if (process.env[ENV.MSR_SHOW_BANNER] !== undefined) {
-            config.showBanner = this.parseBoolean(process.env[ENV.MSR_SHOW_BANNER]!);
-        }
-        if (process.env[ENV.MSR_LOG_LEVEL]) {
-            const level = process.env[ENV.MSR_LOG_LEVEL]!;
-            if (['error', 'warn', 'info', 'debug'].includes(level)) {
-                config.logLevel = level as LogLevel;
-            } else {
-                console.warn(`Invalid MSR_LOG_LEVEL value: '${level}'. Valid values are: error, warn, info, debug. Using default 'info'.`);
-            }
-        }
+    applyEnvironmentVariables(config: C): void {
+        // Define custom overrides for special cases
+        const overrides = new Map<string, (cfg: C, envVarName: string) => void>();
 
-        // File patterns array
-        if (process.env[ENV.MSR_FILE_PATTERNS]) {
-            try {
-                const patterns = JSON.parse(process.env[ENV.MSR_FILE_PATTERNS]!);
-                if (Array.isArray(patterns)) {
-                    config.filePatterns = patterns.map(p => new RegExp(p));
+        // Special handling for logLevel (enum validation)
+        overrides.set('logLevel', (cfg: C, envVar: string) => {
+            const level = process.env[envVar];
+            if (level) {
+                if (['error', 'warn', 'info', 'debug'].includes(level)) {
+                    (cfg as Config).logLevel = level as LogLevel;
+                } else {
+                    console.warn(
+                        `Invalid ${envVar} value: '${level}'. ` +
+                        `Valid values are: error, warn, info, debug. Using default 'info'.`
+                    );
                 }
-            } catch {
-                console.warn(`Warning: Invalid ${ENV.MSR_FILE_PATTERNS} format. Expected JSON array.`);
             }
-        }
+        });
 
-        // Complex objects - prefer dot-notation, fall back to JSON
-        // Logging config
-        if (process.env[ENV.MSR_LOGGING]) {
-            try {
-                const logging = JSON.parse(process.env[ENV.MSR_LOGGING]!);
-                Object.assign(config.logging, logging);
-            } catch {
-                console.warn(`Warning: Invalid ${ENV.MSR_LOGGING} JSON. Using dot-notation if available.`);
-            }
-        }
-        // Override with dot-notation env vars (takes precedence)
-        config.logging = this.loadNestedFromEnv(ENV.MSR_LOGGING, config.logging);
-
-        // Backup config
-        if (config.backup && process.env[ENV.MSR_BACKUP]) {
-            try {
-                const backup = JSON.parse(process.env[ENV.MSR_BACKUP]!);
-                Object.assign(config.backup, backup);
-            } catch {
-                console.warn(`Warning: Invalid ${ENV.MSR_BACKUP} JSON. Using dot-notation if available.`);
-            }
-        }
-        if (config.backup) {
-            config.backup = this.loadNestedFromEnv(ENV.MSR_BACKUP, config.backup);
-        }
-
-        // Transaction config (v0.5.0)
-        if (process.env[ENV.MSR_TRANSACTION]) {
-            try {
-                const transaction = JSON.parse(process.env[ENV.MSR_TRANSACTION]!);
-                Object.assign(config.transaction, transaction);
-            } catch {
-                console.warn(`Warning: Invalid ${ENV.MSR_TRANSACTION} JSON. Using dot-notation if available.`);
-            }
-        }
-        // Override with dot-notation env vars (takes precedence)
-        config.transaction = this.loadNestedFromEnv(ENV.MSR_TRANSACTION, config.transaction);
+        // Use automatic parser with overrides
+        this.autoApplyEnvironmentVariables(config, 'MSR', overrides);
     }
 
     /**
@@ -356,7 +304,20 @@ export class ConfigLoader {
             return defaultValue;
         }
 
-        return this.coerceValue(value, typeof defaultValue) as T;
+        // Type coercion based on default value type
+        const valueType = typeof defaultValue;
+        switch (valueType) {
+            case 'boolean':
+                return (value.toLowerCase().trim() === 'true' ||
+                    value === '1' ||
+                    value.toLowerCase().trim() === 'yes' ||
+                    value.toLowerCase().trim() === 'on') as T;
+            case 'number':
+                return parseFloat(value) as T;
+            case 'string':
+            default:
+                return value as T;
+        }
     }
 
     /**
@@ -412,6 +373,8 @@ export class ConfigLoader {
      * Looks for environment variables with the pattern: PREFIX_KEY=value
      * Automatically coerces types based on default value types.
      *
+     * **New in v0.7.0:** Delegates to auto-envparse for reusable parsing logic.
+     *
      * **Use Case:** Preferred method for loading complex objects (better than JSON).
      *
      * @param prefix - Prefix for environment variables (e.g., 'MSR_LOGGING')
@@ -439,22 +402,7 @@ export class ConfigLoader {
         defaultValue: T
     ): T {
         const result = { ...defaultValue };
-
-        for (const key in defaultValue) {
-            if (!Object.prototype.hasOwnProperty.call(defaultValue, key)) {
-                continue;
-            }
-
-            // Convert camelCase to SNAKE_CASE for env var name
-            const envKey = `${prefix}_${this.toSnakeCase(key).toUpperCase()}`;
-            const envValue = process.env[envKey];
-
-            if (envValue !== undefined && envValue !== '') {
-                const defaultType = typeof defaultValue[key];
-                result[key] = this.coerceValue(envValue, defaultType) as T[Extract<keyof T, string>];
-            }
-        }
-
+        AutoEnvParse.parse(result, { prefix });
         return result;
     }
 
@@ -528,56 +476,56 @@ export class ConfigLoader {
     }
 
     /**
-     * Coerce a string value to the specified type.
+     * Automatically apply environment variables to any config object using reflection.
      *
-     * @param value - String value from environment variable
-     * @param type - Target type ('boolean', 'number', 'string')
-     * @returns Coerced value
-     */
-    private static coerceValue(value: string, type: string): string | number | boolean {
-        switch (type) {
-            case 'boolean':
-                return this.parseBoolean(value);
-            case 'number':
-                return this.parseNumber(value);
-            case 'string':
-            default:
-                return value;
-        }
-    }
-
-    /**
-     * Parse a string to boolean.
+     * Uses reflection to discover properties and apply appropriate parsing based on type.
+     * Supports primitives, arrays, nested objects, and complex object structures.
      *
-     * Truthy values: 'true', '1', 'yes', 'on' (case-insensitive)
-     * Everything else is false.
-     */
-    private static parseBoolean(value: string): boolean {
-        const normalized = value.toLowerCase().trim();
-        return ['true', '1', 'yes', 'on'].includes(normalized);
-    }
-
-    /**
-     * Parse a string to number.
+     * **New in v0.7.0:** Delegates to auto-envparse library for reusable parsing logic.
      *
-     * @param value - String value
-     * @returns Parsed number or NaN if invalid
-     */
-    private static parseNumber(value: string): number {
-        const parsed = parseFloat(value);
-        if (isNaN(parsed)) {
-            console.warn(`Warning: Invalid number value "${value}", using NaN`);
-        }
-        return parsed;
-    }
-
-    /**
-     * Convert camelCase to snake_case.
+     * **Use Case:** Automatically parse environment variables for any Config object or adapter extension.
      *
-     * @param str - camelCase string
-     * @returns snake_case string
+     * @param config - Config object to populate from environment variables
+     * @param prefix - Environment variable prefix (e.g., 'MSR', 'POSTGRES')
+     * @param overrides - Optional map of property names to custom parser functions
+     *
+     * @example
+     * ```typescript
+     * // Basic usage in ConfigLoader
+     * applyEnvironmentVariables(config: C): void {
+     *     this.autoApplyEnvironmentVariables(config, 'MSR');
+     * }
+     *
+     * // With custom overrides for special cases
+     * applyEnvironmentVariables(config: C): void {
+     *     const overrides = new Map();
+     *     overrides.set('logLevel', (cfg, envVar) => {
+     *         const level = process.env[envVar];
+     *         if (level && ['error', 'warn', 'info', 'debug'].includes(level)) {
+     *             cfg.logLevel = level;
+     *         }
+     *     });
+     *     this.autoApplyEnvironmentVariables(config, 'MSR', overrides);
+     * }
+     *
+     * // Adapter extending ConfigLoader
+     * class PostgreSqlConfigLoader extends ConfigLoader<PostgreSqlConfig> {
+     *     applyEnvironmentVariables(config: PostgreSqlConfig): void {
+     *         super.applyEnvironmentVariables(config); // Apply MSR_* vars
+     *         this.autoApplyEnvironmentVariables(config, 'POSTGRES'); // Apply POSTGRES_* vars
+     *     }
+     * }
+     * ```
      */
-    private static toSnakeCase(str: string): string {
-        return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    protected autoApplyEnvironmentVariables(
+        config: C,
+        prefix: string,
+        overrides?: Map<string, (config: C, envVarName: string) => void>
+    ): void {
+        AutoEnvParse.parse(config, {
+            prefix,
+            overrides,
+            sources: config.envFileSources
+        });
     }
 }

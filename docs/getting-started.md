@@ -305,7 +305,15 @@ config.transaction.retries = 3;  // Retry on transient errors
 // Configure logging (v0.6.0+)
 config.logLevel = 'info';  // 'error' | 'warn' | 'info' | 'debug' (default: 'info')
 config.showBanner = true;  // Show version banner (default: true)
+
+// Configure .env file loading (v0.7.0+)
+config.envFileSources = ['.env.local', '.env', 'env'];  // Default: loads .env files
+// config.envFileSources = ['.env.production', '.env'];  // For production
+// config.envFileSources = [];  // Disable .env loading (use system env vars only)
 ```
+
+{: .note }
+> **.env File Support (v0.7.0+):** MSR automatically loads environment variables from `.env` files. Use `.env.local` for local development (add to .gitignore), `.env.production` for production, and `.env` as fallback. Files are loaded in priority order. See the [Environment Variables Guide](guides/environment-variables#env-file-support-v070) for details.
 
 ### Rollback Strategies
 
@@ -399,11 +407,23 @@ class FirestoreDB implements ICallbackTransactionalDB<Transaction> {
 
 ## Running Migrations
 
+{: .important }
+> **Production Deployment Warning**
+>
+> For production environments, **always use the CLI** to run migrations, not the programmatic API. The API approach shown below is designed for development and testing only.
+>
+> **Why?** Running migrations from application code in production causes:
+> - ❌ Security risks (app needs elevated DDL permissions)
+> - ❌ Race conditions (multiple instances run migrations simultaneously)
+> - ❌ Difficult debugging (migration failures hidden in app logs)
+>
+> **See:** [CLI vs API Usage](guides/cli-vs-api) | [Production Deployment Guide](guides/production-deployment)
+
 ### Execute Pending Migrations
 
-MSR can be used either as a library (recommended) or as a CLI tool.
+MSR can be used either as a library or as a CLI tool. **Use CLI for production, API for development/testing.**
 
-#### Library Usage (Recommended)
+#### Library Usage (Development & Testing)
 
 Use MSR as a library to integrate migrations into your application without terminating the process:
 
@@ -413,7 +433,7 @@ import { IMyDatabase } from './types';
 
 const config = new Config();
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor<IMyDatabase>({ handler }, config);
+const executor = new MigrationScriptExecutor<IMyDatabase>({ handler , config });
 
 // Run migrations and get structured results
 const result: IMigrationResult = await executor.up();
@@ -438,9 +458,75 @@ if (result.success) {
 }
 ```
 
-#### CLI Usage
+#### CLI Usage (Production & All Environments) - v0.7.0+
 
-For standalone migration scripts, control the process exit based on results:
+MSR v0.7.0+ provides a built-in CLI factory that creates a full command-line interface for your database adapter.
+
+{: .note }
+> **Recommended for production deployments.** The CLI approach is safer, more auditable, and prevents common production issues.
+
+```typescript
+// create-cli.ts
+import { createCLI } from '@migration-script-runner/core';
+import { MyDatabaseHandler } from './database-handler';
+import { Config } from '@migration-script-runner/core';
+
+const program = createCLI({
+  name: 'myapp-migrate',
+  description: 'Migration tool for MyApp',
+  version: '1.0.0',
+
+  // Provide default config
+  config: {
+    folder: './migrations',
+    tableName: 'schema_version'
+  },
+
+  // Factory function receives merged config
+  createExecutor: (config: Config) => {
+    const handler = new MyDatabaseHandler();
+    return new MigrationScriptExecutor({ handler, config });
+  }
+});
+
+program.parse(process.argv);
+```
+
+This automatically provides commands:
+```bash
+# Run migrations
+myapp-migrate migrate [targetVersion]
+
+# List migrations
+myapp-migrate list [-n <count>]
+
+# Roll back migrations
+myapp-migrate down <targetVersion>
+
+# Validate migrations
+myapp-migrate validate
+
+# Backup operations
+myapp-migrate backup create
+myapp-migrate backup restore [path]
+myapp-migrate backup delete
+```
+
+Common CLI flags (available on all commands):
+```bash
+--config-file <path>     # Configuration file path
+--folder <path>          # Migrations folder
+--logger <type>          # Logger type (console|file|silent)
+--log-level <level>      # Log level (error|warn|info|debug)
+--dry-run                # Simulate without executing
+--format <format>        # Output format (table|json)
+```
+
+**Learn More:** [CLI Adapter Development Guide](guides/cli-adapter-development)
+
+#### Standalone Script Usage
+
+For standalone migration scripts without CLI, control the process exit based on results:
 
 ```typescript
 import { MigrationScriptExecutor, Config } from '@migration-script-runner/core';
@@ -448,7 +534,7 @@ import { IMyDatabase } from './types';
 
 const config = new Config();
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor<IMyDatabase>({ handler }, config);
+const executor = new MigrationScriptExecutor<IMyDatabase>({ handler , config });
 
 const result = await executor.up();
 process.exit(result.success ? 0 : 1);
@@ -737,10 +823,18 @@ config.beforeMigrateName = null;
 
 ## Next Steps
 
+### Production Deployment
+- **[CLI vs API Usage](guides/cli-vs-api)** - Understand when to use each approach
+- **[Production Deployment Guide](guides/production-deployment)** - Security best practices and deployment patterns
+- **[CI/CD Integration](guides/ci-cd-integration)** - GitHub Actions, GitLab, Jenkins examples
+- **[Docker & Kubernetes](guides/docker-kubernetes)** - Container orchestration patterns
+
+### Development & Configuration
 - [Configuration Guide](configuration) - Learn about all configuration options
 - [API Reference](api/) - Explore the full API
 - [Writing Migrations](guides/writing-migrations) - Best practices for migration scripts
 - [Testing](testing/) - How to test your migrations
+- [CLI Adapter Development](guides/cli-adapter-development) - Create CLIs for your adapters
 
 ---
 

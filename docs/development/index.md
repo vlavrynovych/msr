@@ -84,6 +84,7 @@ Release and publishing workflow:
 - **Documentation**: JSDoc for all public APIs, comprehensive guides
 - **Testing**: Unit + Integration + Mutation testing
 - **Git**: Conventional commits, feature branches
+- **Pre-Commit Hooks** (v0.7.0+): Automatic ESLint, tests, and coverage checks before every commit
 
 ---
 

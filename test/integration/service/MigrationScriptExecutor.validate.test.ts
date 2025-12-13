@@ -56,7 +56,7 @@ describe('MigrationScriptExecutor - validate() method', () => {
      */
     function createExecutor(): void {
         executor = new MigrationScriptExecutor<IDB>({ handler: handler, logger: new SilentLogger()
-}, config);
+, config: config });
     }
 
     afterEach(() => {

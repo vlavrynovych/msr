@@ -58,6 +58,10 @@ This installs:
 - ESLint for linting
 - NYC for coverage
 - Stryker for mutation testing
+- **Husky** for pre-commit hooks (v0.7.0+)
+
+{: .note }
+> **Pre-Commit Hooks (v0.7.0+):** The `npm install` command automatically sets up Git hooks via Husky. These hooks run TypeScript type checking, build verification, ESLint, tests, and coverage checks before every commit to ensure code quality.
 
 ### 3. Verify Installation
 
@@ -260,6 +264,80 @@ git push origin feature/my-feature
 ```
 
 Then create a Pull Request on GitHub.
+
+---
+
+## Pre-Commit Hooks (v0.7.0+)
+
+MSR uses [Husky](https://typicode.github.io/husky/) to automatically run quality checks before every commit.
+
+### What Gets Checked
+
+Pre-commit hooks run these checks in sequence:
+
+1. **TypeScript Type Check** - Validates types without emitting files (`tsc --noEmit`)
+2. **Build Check** - Ensures project compiles successfully
+3. **ESLint** - Enforces code style and catches errors
+4. **Full Test Suite** - Runs all unit and integration tests
+5. **Coverage Verification** - Ensures 100% code coverage
+
+**Expected output when committing:**
+```
+🔍 Running pre-commit checks...
+📘 Type checking TypeScript...
+🔨 Building project...
+📝 Running ESLint...
+🧪 Running tests with coverage...
+📊 Verifying 100% coverage...
+✅ All pre-commit checks passed!
+```
+
+### Automatic Setup
+
+Hooks are automatically installed when you run:
+```bash
+npm install
+```
+
+This is handled by the `prepare` script in `package.json`.
+
+### Bypassing Hooks
+
+{: .warning }
+> **Use sparingly!** Bypassing hooks should only be done for work-in-progress commits on feature branches.
+
+To bypass pre-commit hooks (for WIP commits):
+```bash
+git commit --no-verify -m "WIP: work in progress"
+```
+
+{: .important }
+> **Never bypass hooks** when committing to `master` or `release/*` branches. All code merged to these branches must pass all quality checks.
+
+### Troubleshooting Hooks
+
+**Issue:** Hooks don't run after `npm install`
+
+**Solution:**
+```bash
+# Reinstall Husky manually
+npx husky install
+```
+
+**Issue:** Hooks fail even though manual checks pass
+
+**Solution:**
+```bash
+# Run the hook manually to see the exact error
+./.husky/pre-commit
+```
+
+**Issue:** Hooks run but take too long
+
+**Note:** Pre-commit checks typically take 60-90 seconds (includes type check, build, lint, tests, and coverage). This is expected and ensures code quality. If checks take longer, consider:
+- Running tests in watch mode during development: `npm run test:watch`
+- Committing more frequently with smaller changes
+- Using WIP commits (with `--no-verify`) during active development, then squashing before PR
 
 ---
 

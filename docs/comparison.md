@@ -28,6 +28,7 @@ MSR is designed for **production safety, developer experience, and flexibility**
 | **Multi-Format Config** | ✅ YAML, TOML, XML, JSON, JS (v0.6.0) | Limited formats |
 | **Transaction Management** | ✅ Configurable modes with retry (v0.5.0) | Basic or none |
 | **Environment Variables** | ✅ Full 12-factor config (v0.5.0) | Limited |
+| **.env File Support** | ✅ Multi-source with priority (v0.7.0) | Varies |
 | **Dry Run Mode** | ✅ Built-in, free | Often paid/enterprise only |
 | **Execution Summaries** | ✅ Detailed success/failure logs | Basic output only |
 | **Lifecycle Hooks** | ✅ Process, script, backup, transaction (v0.5.0) | Rare |
@@ -45,6 +46,7 @@ MSR is designed for **production safety, developer experience, and flexibility**
 | Multi-Format Config | ✅ v0.6.0 - YAML, TOML, XML, JSON, JS |
 | Transaction Support | ✅ v0.5.0 - Configurable modes, isolation levels, auto-retry |
 | Environment Variables | ✅ v0.5.0 - 33 MSR_* variables |
+| .env File Support | ✅ v0.7.0 - .env, .env.production, .env.local with priority control |
 | Rollback | ✅ |
 | Connection Validation | ✅ v0.4.0 |
 | Programmatic API | ✅ |
@@ -102,7 +104,7 @@ MSR is a great fit when you:
 - ✅ Want flexibility to use TypeScript OR SQL migrations
 - ✅ Need production-ready safety features (dry run, summaries)
 - ✅ Need reliable transaction management with automatic retry
-- ✅ Deploy in containers/Kubernetes with environment variable config
+- ✅ Deploy in containers/Kubernetes with environment variable and .env file config
 - ✅ Value developer experience and type safety
 - ✅ Want lifecycle hooks for custom logic
 - ✅ Need multi-database support in one tool
@@ -146,30 +148,17 @@ When migrations fail in production, you need to know:
 
 **MSR's execution summaries** (v0.4.0) provide a detailed trace of every step, making debugging and recovery straightforward.
 
-## Latest Release: v0.6.0
+## Latest Release: v0.7.0
 
-Version 0.6.0 brings enhanced type safety, metrics collection, and multi-format configuration:
+MSR v0.7.0 introduces CLI factory for database adapters, improved architecture with Facade and Factory patterns, and enhanced extensibility for adapter developers.
 
-- 🛡️ **Generic Type Parameters** (#114) - Database-specific type safety with `<DB extends IDB>` throughout the API
-- 📊 **Metrics Collection** (#80) - Built-in collectors for observability (Console, Logger, JSON, CSV)
-- 📄 **Multi-Format Config** (#100) - YAML, TOML, and XML configuration file support
-- 🔌 **Plugin Architecture** - Extensible loader system with optional peer dependencies
-- 🎚️ **Log Level Control** - Configure output verbosity (error, warn, info, debug)
-- ⚠️ **Breaking Changes** - Type parameters required for all interfaces + constructor signature changed
-
-See the [v0.5.x → v0.6.0 Migration Guide](version-migration/v0.5-to-v0.6) for upgrade instructions.
-
-## Previous Releases
-
-**v0.5.0** brought production-grade transaction management and cloud-native configuration. See [v0.4.x → v0.5.0 Migration Guide](version-migration/v0.4-to-v0.5) for details.
-
-**v0.4.0** brought SQL migrations, dry run mode, and execution summaries. See [v0.3.x → v0.4.0 Migration Guide](version-migration/v0.3-to-v0.4) for details.
+**[→ View full v0.7.0 feature list](features#feature-highlights-by-version)** | **[→ View migration guide](version-migration/v0.6-to-v0.7)**
+{: .fs-5 }
 
 ## Future Roadmap
 
 Upcoming features we're considering:
 
-- **CLI Commands** (#59) - Full command-line interface
 - **Template Generator** (#83) - Scaffold new migrations easily
 - **Bash Script Adapter** (#99) - Use MSR patterns for infrastructure management
 - **Migration Preview** - Visual diff of schema changes

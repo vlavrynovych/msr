@@ -52,7 +52,7 @@ import { MigrationScriptExecutor, Config } from '@migration-script-runner/core';
 
 const config = new Config();
 const handler = new MyDatabaseHandler();
-const executor = new MigrationScriptExecutor({ handler }, config);
+const executor = new MigrationScriptExecutor({ handler , config });
 
 // Migrate to specific version
 const targetVersion = 202501220300;
