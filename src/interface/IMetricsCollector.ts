@@ -25,7 +25,6 @@ export interface IMigrationContext {
  * - ConsoleMetricsCollector - console output for development/debugging
  * - JsonMetricsCollector - structured JSON format for CI/CD
  * - CsvMetricsCollector - CSV format for analysis in Excel/Sheets
- * - PrometheusCollector - Prometheus metrics for Grafana dashboards
  * - DataDogCollector - DataDog APM for monitoring
  * - CloudWatchCollector - AWS CloudWatch metrics
  *

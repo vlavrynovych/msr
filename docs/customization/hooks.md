@@ -303,20 +303,22 @@ class DatadogTransactionMetrics extends TransactionMetricsHooks {
     }
 }
 
-// Prometheus
-class PrometheusTransactionMetrics extends TransactionMetricsHooks {
-    private commitCounter = new promClient.Counter({
-        name: 'migration_transaction_commits_total',
-        help: 'Total number of transaction commits',
-        labelNames: ['script', 'status']
-    });
+// CloudWatch
+class CloudWatchTransactionMetrics extends TransactionMetricsHooks {
+    private cloudwatch = new AWS.CloudWatch();
 
     async onAfterMigrate(script: MigrationScript, result: string): Promise<void> {
-        this.commitCounter.inc({ script: script.name, status: 'success' });
-    }
+        await super.onAfterMigrate(script, result);
 
-    async onMigrationError(script: MigrationScript, error: Error): Promise<void> {
-        this.commitCounter.inc({ script: script.name, status: 'rollback' });
+        await this.cloudwatch.putMetricData({
+            Namespace: 'MSR/Migrations',
+            MetricData: [{
+                MetricName: 'TransactionDuration',
+                Value: Date.now() - this.transactionStartTime!,
+                Unit: 'Milliseconds',
+                Dimensions: [{ Name: 'Script', Value: script.name }]
+            }]
+        }).promise();
     }
 }
 ```

@@ -30,7 +30,7 @@ Interface for collecting metrics during migration execution.
 - Track migration performance
 - Monitor execution times in production
 - Debug slow migrations
-- Send metrics to APM tools (Datadog, CloudWatch, Prometheus)
+- Send metrics to APM tools (Datadog, CloudWatch)
 - Create audit trails
 
 ---

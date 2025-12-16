@@ -594,15 +594,20 @@ export async function checkDatabaseHealth() {
 Set up alerts for migration failures:
 
 ```yaml
-# Prometheus alert
-- alert: MigrationFailed
-  expr: migration_success == 0
-  for: 1m
-  labels:
-    severity: critical
-  annotations:
-    summary: "Database migration failed"
-    description: "Migration job failed in production"
+# CloudWatch alarm (example)
+MigrationFailureAlarm:
+  Type: AWS::CloudWatch::Alarm
+  Properties:
+    AlarmName: migration-failure
+    MetricName: MigrationFailures
+    Namespace: MSR/Migrations
+    Statistic: Sum
+    Period: 60
+    EvaluationPeriods: 1
+    Threshold: 1
+    ComparisonOperator: GreaterThanOrEqualToThreshold
+    AlarmActions:
+      - !Ref SNSTopic
 ```
 
 ---

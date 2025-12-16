@@ -670,23 +670,6 @@ volumes:
     name: fluent-bit-config
 ```
 
-### Prometheus Metrics
-
-```yaml
-# ServiceMonitor for migration metrics
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: myapp-migrations
-spec:
-  selector:
-    matchLabels:
-      app: myapp-migrations
-  endpoints:
-  - port: metrics
-    interval: 30s
-```
-
 ---
 
 ## Troubleshooting
