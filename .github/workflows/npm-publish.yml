@@ -36,25 +36,28 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write  # Required for OIDC token-less publishing
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: "16"
 
-      - run: npm install
-      - run: mkdir backups
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci
+      - run: mkdir -p backups
 
       - run: npm run test:mocha
       - run: npm run build
 
-      - uses: JS-DevTools/npm-publish@v3
-        with:
-          token: ${{ secrets.NPM_AUTH_TOKEN }}
-          access: public
+      # Token-less publishing with OIDC and provenance
+      - name: Publish to npm
+        run: npm publish --provenance --access public
 
-      - uses: thejeff77/action-push-tag@v1.0.0
+      - name: Create Git Tag
+        uses: thejeff77/action-push-tag@v1.0.0
         with:
           tag: 'v${{ needs.check.outputs.version }}'

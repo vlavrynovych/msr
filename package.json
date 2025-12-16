@@ -34,6 +34,7 @@
     "docs:serve": "cd docs && bundle exec jekyll serve",
     "docs:build": "cd docs && bundle exec jekyll build",
     "postinstall": "[ -f node_modules/fsevents/fsevents.node ] && xattr -d com.apple.quarantine node_modules/fsevents/fsevents.node 2>/dev/null || true",
+    "prepublishOnly": "npm run build && npm test",
     "prepare": "husky"
   },
   "keywords": [
@@ -119,5 +120,9 @@
     "url": "https://github.com/migration-script-runner/msr-core/issues",
     "email": "volodyalavrynovych@gmail.com"
   },
-  "homepage": "https://core.msr.lavr.site/"
+  "homepage": "https://core.msr.lavr.site/",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
 }
