@@ -50,10 +50,8 @@ jobs:
       - run: npm ci
       - run: mkdir -p backups
 
-      - run: npm run test:mocha
-      - run: npm run build
-
-      # Token-less publishing with OIDC and provenance
+      # Publish with provenance using trusted publisher (OIDC)
+      # prepublishOnly hook runs build and test automatically
       - name: Publish to npm
         run: npm publish --provenance --access public
 
