@@ -1,4 +1,4 @@
-import {BackupConfig, RollbackStrategy, DownMethodPolicy, BackupMode, DuplicateTimestampMode, TransactionConfig} from "./index";
+import {BackupConfig, RollbackStrategy, DownMethodPolicy, BackupMode, DuplicateTimestampMode, TransactionConfig, LockingConfig} from "./index";
 import {IMigrationValidator} from "../interface/validation/IMigrationValidator";
 import {IExecutionSummaryConfig, SummaryFormat} from "../interface/logging/IExecutionSummary";
 import {LogLevel} from "../interface/ILogger";
@@ -134,6 +134,45 @@ export class Config {
      * @see {@link IsolationLevel} for isolation level details
      */
     transaction:TransactionConfig = new TransactionConfig()
+
+    /**
+     * Locking mechanism configuration.
+     *
+     * Controls how migration locks are acquired and managed to prevent
+     * concurrent migration execution across multiple instances or processes.
+     *
+     * **Critical for Production:**
+     * - Enable in production to prevent race conditions
+     * - Enable in CI/CD to prevent parallel pipeline conflicts
+     * - Disable in development/testing for faster iteration
+     *
+     * **New in v0.8.0**
+     *
+     * @default new LockingConfig()
+     *
+     * @example
+     * ```typescript
+     * // Default configuration (fail fast)
+     * config.locking = new LockingConfig();
+     * // enabled: true, timeout: 10 minutes, retries: 0
+     *
+     * // Production with retries
+     * config.locking.enabled = true;
+     * config.locking.timeout = 600_000;  // 10 minutes
+     * config.locking.retryAttempts = 5;
+     * config.locking.retryDelay = 2000;  // 2 seconds
+     *
+     * // Disable for development
+     * config.locking.enabled = false;
+     *
+     * // Custom lock table name
+     * config.locking.tableName = 'migration_locks';
+     * ```
+     *
+     * @see {@link LockingConfig} for all configuration options
+     * @see {@link ILockingService} for implementation details
+     */
+    locking:LockingConfig = new LockingConfig()
 
     /**
      * Limits the number of migrated scripts displayed in console output.

@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { Config, BackupConfig } from '../../../src/index';
+import { Config, BackupConfig, LockingConfig, TransactionConfig } from '../../../src/index';
 
 describe('Config', () => {
 
@@ -27,6 +27,12 @@ describe('Config', () => {
 
         // Verify backup config is initialized
         expect(config.backup).to.be.instanceOf(BackupConfig);
+
+        // Verify transaction config is initialized
+        expect(config.transaction).to.be.instanceOf(TransactionConfig);
+
+        // Verify locking config is initialized
+        expect(config.locking).to.be.instanceOf(LockingConfig);
 
         // Verify displayLimit defaults to 0 (show all)
         expect(config.displayLimit).to.eq(0);
