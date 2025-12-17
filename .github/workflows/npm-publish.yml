@@ -1,42 +1,19 @@
-name: npm-publish
+name: Publish to npm
+
 on:
   push:
-    branches:
-      - master
+    tags:
+      - 'v*'  # Trigger on version tags (v0.8.0, v1.0.0, etc.)
+  workflow_dispatch:  # Manual trigger
 
 jobs:
-  check:
-    name: Check Version
-    runs-on: ubuntu-latest
-    outputs:
-      changed: ${{ steps.check.outputs.changed }}
-      version: ${{ steps.check.outputs.version }}
-      commit: ${{ steps.check.outputs.commit }}
-      type: ${{ steps.check.outputs.type }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Check if version has been updated
-        id: check
-        uses: EndBug/version-check@v2
-
-      - name: Log when unchanged
-        if: steps.check.outputs.changed == 'false'
-        run: 'echo "No version change"'
-
-      - name: Log when changed
-        if: steps.check.outputs.changed == 'true'
-        run: 'echo "Version change found in commit ${{ steps.check.outputs.commit }}! New version: ${{ steps.check.outputs.version }} (${{ steps.check.outputs.type }})"'
   publish:
-    needs:
-      - check
-    if: needs.check.outputs.changed == 'true'
-    name: Publish
+    name: Publish to npm
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      id-token: write  # Required for OIDC token-less publishing
+      contents: read
+      id-token: write  # Required for provenance
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -47,15 +24,15 @@ jobs:
           node-version: "20"
           registry-url: 'https://registry.npmjs.org'
 
-      - run: npm ci
-      - run: mkdir -p backups
+      - name: Install dependencies
+        run: npm ci
 
-      # Publish with provenance using trusted publisher (OIDC)
-      # prepublishOnly hook runs build and test automatically
+      - name: Create backups directory
+        run: mkdir -p backups
+
       - name: Publish to npm
-        run: npm publish --provenance --access public
-
-      - name: Create Git Tag
-        uses: thejeff77/action-push-tag@v1.0.0
-        with:
-          tag: 'v${{ needs.check.outputs.version }}'
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        # prepublishOnly hook runs build and test automatically
+        # Provenance is signed automatically via id-token: write
