@@ -35,7 +35,9 @@ jobs:
       - name: Create backups directory
         run: mkdir -p backups
 
-      - name: Publish to npm
+      - name: Publish to npm (OIDC preferred, token fallback)
         run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         # prepublishOnly hook runs build and test automatically
-        # Provenance is automatic with trusted publishing (OIDC)
+        # Will try OIDC first, fall back to token if OIDC fails
