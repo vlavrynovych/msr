@@ -1,6 +1,6 @@
 {
   "name": "@migration-script-runner/core",
-  "version": "0.7.0",
+  "version": "0.7.3",
   "description": "Migration Script Runner - Core Framework",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -34,6 +34,7 @@
     "docs:serve": "cd docs && bundle exec jekyll serve",
     "docs:build": "cd docs && bundle exec jekyll build",
     "postinstall": "[ -f node_modules/fsevents/fsevents.node ] && xattr -d com.apple.quarantine node_modules/fsevents/fsevents.node 2>/dev/null || true",
+    "prepublishOnly": "npm run build && npm test",
     "prepare": "husky"
   },
   "keywords": [
@@ -113,11 +114,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/migration-script-runner/msr-core.git"
+    "url": "git+https://github.com/migration-script-runner/msr-core.git"
   },
   "bugs": {
     "url": "https://github.com/migration-script-runner/msr-core/issues",
     "email": "volodyalavrynovych@gmail.com"
   },
-  "homepage": "https://core.msr.lavr.site/"
+  "homepage": "https://core.msr.lavr.site/",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
 }
