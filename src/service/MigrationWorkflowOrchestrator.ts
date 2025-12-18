@@ -19,6 +19,8 @@ import {MigrationScriptSelector} from "./MigrationScriptSelector";
 import {ITransactionManager} from "../interface/service/ITransactionManager";
 import {IDatabaseMigrationHandler} from "../interface/IDatabaseMigrationHandler";
 import {IMigrationService} from "../interface/service/IMigrationService";
+import {randomUUID} from "node:crypto";
+import {hostname} from "node:os";
 
 /**
  * Dependencies for MigrationWorkflowOrchestrator.
@@ -236,9 +238,141 @@ export class MigrationWorkflowOrchestrator<DB extends IDB> implements IMigration
     }
 
     /**
+     * Generate unique executor ID for lock tracking.
+     *
+     * Format: hostname-pid-uuid
+     * Example: macbook-pro-12345-a1b2c3d4-e5f6-7890-abcd-ef1234567890
+     *
+     * @private
+     * @returns Unique executor identifier
+     */
+    private generateExecutorId(): string {
+        return `${hostname()}-${process.pid}-${randomUUID()}`;
+    }
+
+    /**
+     * Acquire migration lock with retry logic.
+     *
+     * Implements two-phase locking:
+     * 1. Clean up expired locks
+     * 2. Attempt to acquire lock (with retries if configured)
+     * 3. Verify ownership of acquired lock
+     *
+     * @private
+     * @param executorId - Unique identifier for this executor
+     * @returns Promise that resolves when lock is acquired and verified
+     * @throws Error if lock acquisition fails or ownership verification fails
+     */
+    private async acquireLockWithRetries(executorId: string): Promise<void> {
+        const lockingService = this.handler.lockingService;
+        if (!lockingService) {
+            return; // Locking not configured
+        }
+
+        if (!this.config.locking.enabled) {
+            this.logger.debug('Locking is disabled in configuration, skipping lock acquisition');
+            return;
+        }
+
+        // Step 1: Clean up expired locks
+        this.logger.debug('Cleaning up expired locks...');
+        await lockingService.checkAndReleaseExpiredLock();
+
+        // Step 2: Acquire lock with retries
+        const maxAttempts = this.config.locking.retryAttempts + 1; // +1 for initial attempt
+        let attempts = 0;
+
+        while (attempts < maxAttempts) {
+            attempts++;
+            this.logger.debug(`Attempting to acquire lock (attempt ${attempts}/${maxAttempts})...`);
+
+            const acquired = await lockingService.acquireLock(executorId);
+
+            if (acquired) {
+                // Step 3: Verify ownership (two-phase verification)
+                this.logger.debug('Lock acquired, verifying ownership...');
+                const verified = await lockingService.verifyLockOwnership(executorId);
+
+                if (verified) {
+                    this.logger.info(`Migration lock acquired successfully (executor: ${executorId})`);
+                    return;
+                } else {
+                    throw new Error(
+                        `Lock ownership verification failed. Lock was acquired but is no longer owned by this executor. ` +
+                        `This may indicate a race condition or clock skew between servers.`
+                    );
+                }
+            }
+
+            // Lock not acquired
+            if (attempts < maxAttempts) {
+                this.logger.debug(
+                    `Lock already held by another executor, waiting ${this.config.locking.retryDelay}ms before retry...`
+                );
+                await this.sleep(this.config.locking.retryDelay);
+            }
+        }
+
+        // All attempts exhausted
+        const status = await lockingService.getLockStatus();
+        const lockInfo = status?.isLocked
+            ? `currently held by: ${status.lockedBy}${status.expiresAt ? ` (expires: ${status.expiresAt.toISOString()})` : ''}`
+            : 'lock status unknown';
+
+        throw new Error(
+            `Failed to acquire migration lock after ${maxAttempts} attempt(s). ` +
+            `Another migration is likely running (${lockInfo}). ` +
+            `If you believe this is a stale lock, use: msr lock:release --force`
+        );
+    }
+
+    /**
+     * Release migration lock.
+     *
+     * Safe to call even if lock was never acquired.
+     * Logs errors but doesn't throw to ensure cleanup can continue.
+     *
+     * @private
+     * @param executorId - Unique identifier for this executor
+     */
+    private async releaseLock(executorId: string): Promise<void> {
+        const lockingService = this.handler.lockingService;
+        if (!lockingService) {
+            return; // Locking not configured
+        }
+
+        if (!this.config.locking.enabled) {
+            return; // Locking disabled
+        }
+
+        try {
+            this.logger.debug(`Releasing migration lock (executor: ${executorId})...`);
+            await lockingService.releaseLock(executorId);
+            this.logger.info('Migration lock released successfully');
+        } catch (error) {
+            // Log but don't throw - we don't want lock release failure to mask original error
+            this.logger.warn(`Failed to release migration lock: ${error}`);
+        }
+    }
+
+    /**
+     * Sleep for specified milliseconds.
+     *
+     * @private
+     * @param ms - Milliseconds to sleep
+     */
+    private sleep(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
      * Execute all pending database migrations.
      */
     public async migrateAll(): Promise<IMigrationResult<DB>> {
+        // Generate unique executor ID and acquire lock before starting
+        const executorId = this.generateExecutorId();
+        await this.acquireLockWithRetries(executorId);
+
         let scripts: IScripts<DB> = {
             all: [],
             migrated: [],
@@ -292,6 +426,9 @@ export class MigrationWorkflowOrchestrator<DB extends IDB> implements IMigration
                 ignored: scripts.ignored,
                 errors
             };
+        } finally {
+            // Always release lock, even on error
+            await this.releaseLock(executorId);
         }
     }
 
@@ -299,6 +436,10 @@ export class MigrationWorkflowOrchestrator<DB extends IDB> implements IMigration
      * Execute migrations up to a specific target version.
      */
     public async migrateToVersion(targetVersion: number): Promise<IMigrationResult<DB>> {
+        // Generate unique executor ID and acquire lock before starting
+        const executorId = this.generateExecutorId();
+        await this.acquireLockWithRetries(executorId);
+
         let scripts: IScripts<DB> = {
             all: [],
             migrated: [],
@@ -340,6 +481,9 @@ export class MigrationWorkflowOrchestrator<DB extends IDB> implements IMigration
 
         } catch (error) {
             throw await this.errorHandler.handleMigrationError(error, targetVersion, scripts.executed, backupPath, errors);
+        } finally {
+            // Always release lock, even on error
+            await this.releaseLock(executorId);
         }
     }
 
