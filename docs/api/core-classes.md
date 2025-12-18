@@ -23,7 +23,9 @@ The main classes for executing and managing migrations.
 
 The main class for executing database migrations.
 
-**New in v0.6.0:** Generic type parameters provide full type safety for database-specific operations.
+**Generic Type Parameters:**
+- **v0.6.0:** Database type parameter (`DB extends IDB`) provides database-specific type safety
+- **v0.8.0:** Handler type parameter (`THandler extends IDatabaseMigrationHandler<DB>`) provides type-safe handler access in adapters
 
 ```typescript
 import { MigrationScriptExecutor, IDatabaseMigrationHandler, Config, IDB } from '@migration-script-runner/core';
@@ -33,14 +35,33 @@ interface IMyDatabase extends IDB {
   query(sql: string): Promise<any>;
 }
 
+// Basic usage - handler type inferred
 const handler = new MyDatabaseHandler();  // implements IDatabaseMigrationHandler<IMyDatabase>
 const config = new Config();
 const executor = new MigrationScriptExecutor<IMyDatabase>({ handler , config });
+
+// v0.8.0: Type-safe adapter with handler generic (for custom adapters)
+class MyAdapter extends MigrationScriptExecutor<IMyDatabase, MyDatabaseHandler> {
+  // this.handler is now typed as MyDatabaseHandler (no casting needed!)
+  getConnectionInfo() {
+    return this.handler.customProperty;  // Full IDE autocomplete
+  }
+}
 ```
 
 #### Constructor
 
-**Signature (v0.7.0+):**
+**Signature (v0.8.0+):**
+```typescript
+constructor<
+    DB extends IDB,
+    THandler extends IDatabaseMigrationHandler<DB> = IDatabaseMigrationHandler<DB>
+>(
+    dependencies: IMigrationExecutorDependencies<DB, THandler>
+)
+```
+
+**Signature (v0.7.0 - v0.7.x):**
 ```typescript
 constructor<DB extends IDB>(
     dependencies: IMigrationExecutorDependencies<DB>

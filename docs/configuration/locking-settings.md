@@ -32,7 +32,7 @@ Locking settings prevent multiple processes from running migrations simultaneous
 MSR uses database-level locking similar to Knex.js and Liquibase, making it one of the few Node.js migration tools with built-in concurrency protection.
 
 {: .tip }
-> **Automatic Protection**: Locking is enabled by default. Configure it for your environment, but keep it enabled in production.
+> **Opt-In Feature (v0.8.0)**: Locking is disabled by default for backwards compatibility. Enable it by adding a `lockingService` to your handler. Once enabled, locking is active by default (recommended for production).
 
 ---
 

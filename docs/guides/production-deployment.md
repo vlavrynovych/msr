@@ -725,10 +725,29 @@ npx msr down 202501150100
 **Problem:** Race condition from concurrent execution
 
 **Solutions:**
-1. **Use CLI** - run once before scaling
-2. **Implement locking** - database-level locks
-3. **Init container** - one per pod
-4. **Deployment hook** - platform-level guarantee
+
+1. **Enable MSR Locking (v0.8.0+)** - Built-in database-level locking:
+   ```typescript
+   // Implement ILockingService in your handler
+   handler.lockingService = new MyDatabaseLockingService(db);
+
+   // Configure locking (optional - enabled by default)
+   config.locking.enabled = true;
+   config.locking.timeout = 600_000;  // 10 minutes
+   ```
+   See [Locking Configuration](../configuration/locking-settings) for full implementation guide.
+
+2. **Use Init Container (Kubernetes)** - One migration per deployment:
+   ```yaml
+   initContainers:
+     - name: migrations
+       image: myapp:latest
+       command: ["npx", "msr", "migrate"]
+   ```
+
+3. **Use Deployment Hook** - Platform-level guarantee (Heroku, Railway, etc.)
+
+4. **Run Before Scaling** - Execute migrations before spinning up multiple instances
 
 ---
 

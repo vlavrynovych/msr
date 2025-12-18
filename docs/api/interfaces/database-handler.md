@@ -27,7 +27,7 @@ Interface that must be implemented for your specific database.
 {: .note }
 > **Design Origin**: The handler pattern emerged from MSR's 2017 Firebase prototype, where an `EntityService` provided clean helper methods like `updateAll(callback)` and `findAllBy(propertyName, value)`. Instead of raw database SDK calls in every migration, this service layer made migrations declarative and maintainable. This pattern proved so valuable it became core to MSR's architecture - allowing you to inject your own services, repositories, and business logic into migrations. Read more in the [origin story](../../about/origin-story).
 
-**Signature (v0.6.0+):**
+**Signature (v0.8.0+):**
 ```typescript
 interface IDatabaseMigrationHandler<DB extends IDB> {
   getName(): string;
@@ -36,6 +36,7 @@ interface IDatabaseMigrationHandler<DB extends IDB> {
   schemaVersion: ISchemaVersion<DB>;
   backup?: IBackup<DB>;  // Optional - only needed for BACKUP or BOTH strategies
   transactionManager?: ITransactionManager<DB>;  // Optional - auto-created if db supports transactions
+  lockingService?: ILockingService<DB>;  // Optional (v0.8.0) - enables concurrent migration prevention
 }
 ```
 
@@ -121,6 +122,122 @@ backup?: IBackup
 **Optional:** Only required for BACKUP or BOTH rollback strategies. Can be omitted when using DOWN or NONE strategies.
 
 Handles database backup and restore operations. See [`IBackup` interface](backup) for details.
+
+---
+
+### lockingService
+
+Locking interface for preventing concurrent migrations (optional, v0.8.0).
+
+```typescript
+lockingService?: ILockingService<DB>
+```
+
+**Optional (v0.8.0):** Provides database-level locking to prevent multiple processes from running migrations simultaneously. When not provided, locking is disabled.
+
+**Use Cases:**
+- **Multi-instance deployments** - Multiple application servers running migrations
+- **Kubernetes/Docker** - Prevent concurrent migrations during rolling deployments
+- **CI/CD pipelines** - Avoid conflicts when parallel builds trigger migrations
+
+**Example:**
+```typescript
+import { ILockingService } from '@migration-script-runner/core';
+
+class PostgresLockingService implements ILockingService<PostgresDB> {
+  constructor(private db: PostgresDB) {}
+
+  async acquireLock(executorId: string, timeout: number): Promise<boolean> {
+    // Use SELECT FOR UPDATE NOWAIT or INSERT with ON CONFLICT
+    const result = await this.db.query(`
+      INSERT INTO migration_locks (executor_id, locked_at, expires_at)
+      VALUES ($1, NOW(), NOW() + INTERVAL '${timeout}ms')
+      ON CONFLICT (id) DO NOTHING
+      RETURNING id
+    `, [executorId]);
+    return result.rows.length > 0;
+  }
+
+  async verifyLockOwnership(executorId: string): Promise<boolean> {
+    const result = await this.db.query(
+      'SELECT executor_id FROM migration_locks WHERE id = 1'
+    );
+    return result.rows[0]?.executor_id === executorId;
+  }
+
+  async releaseLock(executorId: string): Promise<void> {
+    await this.db.query(
+      'DELETE FROM migration_locks WHERE executor_id = $1',
+      [executorId]
+    );
+  }
+
+  async forceReleaseLock(): Promise<void> {
+    await this.db.query('DELETE FROM migration_locks WHERE id = 1');
+  }
+
+  async checkAndReleaseExpiredLock(): Promise<void> {
+    await this.db.query(
+      'DELETE FROM migration_locks WHERE expires_at < NOW()'
+    );
+  }
+
+  async getLockStatus(): Promise<ILockStatus> {
+    const result = await this.db.query(`
+      SELECT executor_id, locked_at, expires_at
+      FROM migration_locks WHERE id = 1
+    `);
+
+    if (result.rows.length === 0) {
+      return {
+        isLocked: false,
+        lockedBy: null,
+        lockedAt: null,
+        expiresAt: null
+      };
+    }
+
+    const row = result.rows[0];
+    return {
+      isLocked: true,
+      lockedBy: row.executor_id,
+      lockedAt: new Date(row.locked_at),
+      expiresAt: new Date(row.expires_at)
+    };
+  }
+}
+
+// Add to handler
+class PostgresHandler implements IDatabaseMigrationHandler<PostgresDB> {
+  db: PostgresDB;
+  schemaVersion: PostgresSchemaVersion;
+  backup?: PostgresBackup;
+  lockingService?: ILockingService<PostgresDB>;
+
+  constructor(pool: Pool, options: { useBackup?: boolean; useLocking?: boolean } = {}) {
+    this.db = new PostgresDB(pool);
+    this.schemaVersion = new PostgresSchemaVersion(this.db);
+
+    if (options.useBackup) {
+      this.backup = new PostgresBackup(this.db, config);
+    }
+
+    if (options.useLocking) {
+      this.lockingService = new PostgresLockingService(this.db);
+    }
+  }
+
+  getName(): string {
+    return 'PostgreSQL Handler';
+  }
+
+  getVersion(): string {
+    return '1.0.0';
+  }
+}
+```
+
+See [Locking Configuration](../configuration/locking-settings) for configuration options and [Lock Commands](../guides/lock-commands) for CLI usage.
 
 ---
 

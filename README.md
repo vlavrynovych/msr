@@ -21,60 +21,36 @@ MSR provides a lightweight, flexible framework for managing database migrations 
 
 ---
 
-## 🎉 What's New in v0.7.0
+## 🎉 What's New in v0.8.0
 
-**Enhanced architecture, adapter extensibility, and improved maintainability:**
+**Production-ready locking, enhanced type safety, and critical bug fixes:**
 
-- **🎨 Facade Pattern** - Services grouped into 4 logical facades (core, execution, output, orchestration) for better code organization
-- **🏭 Factory Pattern** - Service initialization extracted to dedicated factory, reducing constructor complexity by 83%
-- **🔧 Protected Facades** - Adapters can extend MigrationScriptExecutor and access internal services through protected facades
-- **✨ Extensible Configuration** - New `IConfigLoader` interface allows adapters to customize environment variable handling
-- **🗂️ .env File Support** - Load configuration from `.env`, `.env.production`, `.env.local` files with configurable priority
-- **🔨 Simplified Constructor** - Single parameter constructor with config moved into dependencies object (**BREAKING**)
-- **🔒 Better Encapsulation** - Internal services no longer exposed as public properties (**BREAKING**)
-- **⚡ Reduced Complexity** - Constructor reduced from 142 lines to 23 lines (83% reduction)
-- **📐 Workflow Ownership** - `executeBeforeMigrate()` moved to MigrationWorkflowOrchestrator for cleaner architecture
-- **✨ 100% Test Coverage** - All statements, branches, functions, and lines covered (1228/1228 tests passing)
+- **🔒 Migration Locking** - Prevent concurrent migrations with database-level locking mechanism for multi-instance deployments
+- **🛡️ Lock Ownership Verification** - Two-phase locking with ownership verification prevents race conditions and ensures safe execution
+- **🖥️ Lock CLI Commands** - New `lock:status` and `lock:release` commands for managing locks in production environments
+- **🔧 Handler Generic Type** - Type-safe handler access in adapters with optional second generic parameter (no more casting!)
+- **🐛 Down Migration Fix** - Fixed TypeError when rolling back migrations (migration records now properly matched with filesystem scripts)
+- **📦 npm Provenance** - Enhanced supply chain security with build provenance attestations
+- **✨ 100% Backwards Compatible** - Zero breaking changes from v0.7.x, all features are opt-in
 
-**⚠️ BREAKING CHANGES in v0.7.0:** Constructor signature changed (config moved into dependencies), and service properties removed (use public API methods instead). Migration takes 15-30 minutes. See the [v0.6.x → v0.7.0 Migration Guide](https://migration-script-runner.github.io/msr-core/version-migration/v0.6-to-v0.7) for step-by-step instructions.
+**✅ NO BREAKING CHANGES in v0.8.0:** Fully backwards compatible with v0.7.x. Locking is disabled by default and can be enabled when ready. Handler generic type is optional with sensible defaults. See the [v0.7.x → v0.8.0 Migration Guide](https://migration-script-runner.github.io/msr-core/version-migration/v0.7-to-v0.8) for upgrade instructions and new features.
 
-**[→ View architecture docs](https://migration-script-runner.github.io/msr-core/development/architecture/design-patterns)**
+**[→ View locking documentation](https://migration-script-runner.github.io/msr-core/configuration/locking-settings)**
 
 ---
 
 ## 📜 Previous Releases
 
-### v0.6.0
-
-**Enhanced type safety, metrics collection, and multi-format configuration:**
-
-- **🛡️ Generic Type Parameters** - Database-specific type safety with `<DB extends IDB>` generics throughout the API (**BREAKING**: type parameters now required)
-- **📊 Metrics Collection** - Built-in collectors for observability with console, JSON, CSV, and logger-based output
-- **📄 YAML, TOML, and XML Support** - Use your preferred config format (`.yaml`, `.toml`, `.xml`) alongside JS/JSON
-- **🔌 Plugin Architecture** - Extensible loader system with optional peer dependencies keeps core lightweight
-- **🎚️ Log Level Control** - Configurable log levels (`error`, `warn`, `info`, `debug`) to control output verbosity
-- **💡 Better Error Messages** - Actionable error messages with installation instructions when formats aren't available
-
-**[→ View migration guide](https://migration-script-runner.github.io/msr-core/version-migration/v0.5-to-v0.6)**
-
-### v0.5.0
-
-**Production-grade transaction management and cloud-native configuration:**
-
-- **🔒 Transaction Management** - Configurable modes (per-migration, per-batch, none) with automatic retry logic and isolation level control
-- **⚙️ Environment Variables** - Complete MSR_* configuration support following 12-factor app principles for Docker, Kubernetes, and CI/CD
-- **📊 Enhanced Hooks** - Transaction lifecycle hooks for monitoring and metrics collection
-- **🚀 100% Backward Compatible** - Zero breaking changes from v0.4.x
-
-**[→ View migration guide](https://migration-script-runner.github.io/msr-core/version-migration/v0.4-to-v0.5)**
+For information about previous releases, see the [Version Migration Guide](https://migration-script-runner.github.io/msr-core/version-migration/).
 
 ---
 
 ## ✨ Features
 
-- **🖥️ CLI Factory** - Built-in command-line interface with migrate, list, down, validate, and backup commands (v0.7.0)
+- **🔒 Migration Locking** - Database-level locking prevents concurrent migrations in multi-instance deployments (v0.8.0)
+- **🖥️ CLI Factory** - Built-in command-line interface with migrate, list, down, validate, backup, and lock commands (v0.7.0+)
 - **🔌 Database Agnostic** - Works with any database (SQL, NoSQL, NewSQL) by implementing a simple interface
-- **🛡️ Type Safe** - Full TypeScript support with complete type definitions
+- **🛡️ Type Safe** - Full TypeScript support with complete type definitions and handler generics (v0.8.0)
 - **💾 Smart Rollback** - Multiple strategies: backup/restore, down() methods, both, or none
 - **🔒 Transaction Control** - Configurable transaction modes with automatic retry and isolation levels (v0.5.0)
 - **⚙️ Environment Variables** - Full 12-factor app configuration support with MSR_* variables (v0.5.0)
@@ -242,6 +218,15 @@ npx my-db-migrate validate
 
 # Create database backup
 npx my-db-migrate backup
+
+# Check lock status (v0.8.0)
+npx my-db-migrate lock:status
+
+# Force-release stuck lock (v0.8.0)
+npx my-db-migrate lock:release --force
+
+# Run migration without locking (v0.8.0)
+npx my-db-migrate migrate --no-lock
 
 # Use environment-specific config
 npx my-db-migrate migrate --config-file .env.production
