@@ -778,14 +778,5 @@ Available in the repository:
 
 ---
 
-## Related Documentation
-
-- [Production Deployment](production-deployment) - Deployment best practices
-- [CI/CD Integration](ci-cd-integration) - Pipeline examples
-- [CLI vs API Usage](cli-vs-api) - When to use CLI
-- [Environment Variables](environment-variables) - Configuration options
-
----
-
 {: .note }
 > **Container Rule**: Always run migrations as a separate step before application containers start. Use Jobs for production, init containers for development.

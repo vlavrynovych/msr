@@ -1,5 +1,6 @@
 import {IBackup, IDB, ISchemaVersion} from "./dao";
 import {ITransactionManager} from "./service/ITransactionManager";
+import {ILockingService} from "./service/ILockingService";
 
 /**
  * Main interface for database-specific migration handling.
@@ -146,4 +147,111 @@ export interface IDatabaseMigrationHandler<DB extends IDB> {
      * ```
      */
     transactionManager?: ITransactionManager<DB>
+
+    /**
+     * Locking service for preventing concurrent migration execution (optional).
+     *
+     * If provided, MSR will use this service to acquire and release locks around
+     * migration execution, preventing race conditions when multiple instances or
+     * processes attempt to run migrations simultaneously.
+     * Typed with the generic DB parameter (v0.8.0).
+     *
+     * **If not provided:**
+     * - No locking mechanism is used
+     * - Concurrent migrations may run simultaneously (risk of conflicts)
+     *
+     * **Critical for Production:**
+     * - Multi-instance deployments (Kubernetes, Docker Swarm, etc.)
+     * - CI/CD pipelines with parallel builds
+     * - Scheduled migration jobs that might overlap
+     *
+     * **New in v0.8.0**
+     *
+     * @see {@link ILockingService} for interface documentation
+     * @see {@link Config.locking} for locking configuration
+     * @see {@link LockingConfig} for configuration options
+     *
+     * @example
+     * ```typescript
+     * // PostgreSQL implementation
+     * import { ILockingService, ILockStatus } from '@migration-script-runner/core';
+     *
+     * class PostgreSqlLockingService implements ILockingService<PostgreSqlDB> {
+     *   constructor(
+     *     private readonly db: PostgreSqlDB,
+     *     private readonly config: LockingConfig
+     *   ) {}
+     *
+     *   async acquireLock(executorId: string): Promise<boolean> {
+     *     const result = await this.db.query(
+     *       `INSERT INTO ${this.config.tableName} (executor_id, locked_at, expires_at)
+     *        VALUES ($1, NOW(), NOW() + INTERVAL '${this.config.timeout / 1000} seconds')
+     *        ON CONFLICT DO NOTHING RETURNING id`,
+     *       [executorId]
+     *     );
+     *     return result.rows.length > 0;
+     *   }
+     *
+     *   async verifyLockOwnership(executorId: string): Promise<boolean> {
+     *     const result = await this.db.query(
+     *       `SELECT executor_id FROM ${this.config.tableName}
+     *        WHERE expires_at > NOW()`,
+     *       []
+     *     );
+     *     return result.rows[0]?.executor_id === executorId;
+     *   }
+     *
+     *   async releaseLock(executorId: string): Promise<void> {
+     *     await this.db.query(
+     *       `DELETE FROM ${this.config.tableName} WHERE executor_id = $1`,
+     *       [executorId]
+     *     );
+     *   }
+     *
+     *   async getLockStatus(): Promise<ILockStatus | null> {
+     *     const result = await this.db.query(
+     *       `SELECT executor_id, locked_at, expires_at
+     *        FROM ${this.config.tableName}
+     *        WHERE expires_at > NOW()`,
+     *       []
+     *     );
+     *
+     *     if (result.rows.length === 0) {
+     *       return null;
+     *     }
+     *
+     *     const row = result.rows[0];
+     *     const parts = row.executor_id.split('-');
+     *     return {
+     *       isLocked: true,
+     *       lockedBy: row.executor_id,
+     *       lockedAt: new Date(row.locked_at),
+     *       expiresAt: new Date(row.expires_at),
+     *       processId: parts.length >= 2 ? parts[1] : undefined
+     *     };
+     *   }
+     *
+     *   async forceReleaseLock(): Promise<void> {
+     *     await this.db.query(`DELETE FROM ${this.config.tableName}`, []);
+     *   }
+     *
+     *   async checkAndReleaseExpiredLock(): Promise<void> {
+     *     await this.db.query(
+     *       `DELETE FROM ${this.config.tableName} WHERE expires_at <= NOW()`,
+     *       []
+     *     );
+     *   }
+     * }
+     *
+     * // Usage in handler
+     * const handler: IDatabaseMigrationHandler<PostgreSqlDB> = {
+     *   db: postgresDb,
+     *   schemaVersion: schemaVersionImpl,
+     *   lockingService: new PostgreSqlLockingService(postgresDb, config.locking),
+     *   getName: () => 'PostgreSQL Handler',
+     *   getVersion: () => '1.0.0'
+     * };
+     * ```
+     */
+    lockingService?: ILockingService<DB>
 }

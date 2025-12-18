@@ -762,14 +762,5 @@ npx msr down 202501150100
 
 ---
 
-## Related Documentation
-
-- [CLI vs API Usage](cli-vs-api) - When to use each approach
-- [CI/CD Integration](ci-cd-integration) - Pipeline examples
-- [Docker & Kubernetes](docker-kubernetes) - Container deployment
-- [Environment Variables](environment-variables) - Configuration management
-
----
-
 {: .note }
 > **Production Rule**: When deploying to production, always use CLI, always test in staging, always have a rollback plan.

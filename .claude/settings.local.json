@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test:*)",
+      "Bash(npm run coverage:*)",
+      "Bash(npm run test:mocha:report:*)",
+      "Bash(gh issue view:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run test:coverage:*)",
+      "Bash(ls:*)",
+      "Bash(done)",
+      "Bash(gh pr view:*)",
+      "Bash(npm run test:one:*)",
+      "Bash(cat:*)",
+      "Bash(npx nyc report:*)",
+      "Bash(find:*)",
+      "Bash(npx nyc:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

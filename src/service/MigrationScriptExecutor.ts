@@ -6,6 +6,7 @@ import {IMigrationHooks} from "../interface/IMigrationHooks";
 import {Config} from "../model";
 import {IValidationResult, IValidationIssue, IDB} from "../interface";
 import {ILoaderRegistry} from "../interface/loader/ILoaderRegistry";
+import {ILockStatus} from "../interface/service/ILockingService";
 import {createMigrationServices} from "./MigrationServicesFactory";
 import {CoreServices} from "./facade/CoreServices";
 import {ExecutionServices} from "./facade/ExecutionServices";
@@ -448,6 +449,81 @@ export class MigrationScriptExecutor<DB extends IDB> {
      */
     public async down(targetVersion: number): Promise<IMigrationResult<DB>> {
         return this.orchestration.rollback.rollbackToVersion(targetVersion);
+    }
+
+    /**
+     * Get current migration lock status.
+     *
+     * Returns information about the current lock holder, including:
+     * - Whether a lock is currently held
+     * - Executor ID of the lock holder
+     * - When the lock was acquired
+     * - When the lock will expire
+     *
+     * @returns Lock status information, or null if no lock exists or locking is not configured
+     *
+     * @example
+     * ```typescript
+     * const status = await executor.getLockStatus();
+     * if (status?.isLocked) {
+     *   console.log(`Lock held by: ${status.lockedBy}`);
+     *   console.log(`Acquired at: ${status.lockedAt}`);
+     *   console.log(`Expires at: ${status.expiresAt}`);
+     * } else {
+     *   console.log('No active lock');
+     * }
+     * ```
+     */
+    public async getLockStatus(): Promise<ILockStatus | null> {
+        const lockingService = this.handler.lockingService;
+        if (!lockingService) {
+            return null;
+        }
+
+        return lockingService.getLockStatus();
+    }
+
+    /**
+     * Force-release the migration lock.
+     *
+     * **⚠️ DANGEROUS:** Only use when certain no migration is running.
+     *
+     * This method unconditionally releases any existing lock, regardless of who holds it.
+     * If another migration process is actually running, this could lead to:
+     * - Race conditions
+     * - Corrupted migration state
+     * - Data loss
+     *
+     * **Use Cases:**
+     * - Stale lock from crashed process
+     * - Emergency unlock during incident
+     * - Testing and development
+     *
+     * @throws {Error} If locking service is not configured
+     * @throws {Error} If force release operation fails
+     *
+     * @example
+     * ```typescript
+     * // Check status first
+     * const status = await executor.getLockStatus();
+     * if (status?.isLocked) {
+     *   console.log(`Warning: Lock held by ${status.lockedBy}`);
+     *   // Only proceed if you're sure it's safe
+     *   await executor.forceReleaseLock();
+     *   console.log('Lock forcibly released');
+     * }
+     * ```
+     */
+    public async forceReleaseLock(): Promise<void> {
+        const lockingService = this.handler.lockingService;
+        if (!lockingService) {
+            throw new Error(
+                'Locking service is not configured. ' +
+                'Cannot release lock without a locking implementation in your database handler.'
+            );
+        }
+
+        await lockingService.forceReleaseLock();
     }
 
     /**

@@ -10,7 +10,9 @@ import {
     addListCommand,
     addDownCommand,
     addValidateCommand,
-    addBackupCommand
+    addBackupCommand,
+    addLockStatusCommand,
+    addLockReleaseCommand
 } from './commands';
 
 /**
@@ -175,6 +177,7 @@ export function createCLI<DB extends IDB, TExecutor extends MigrationScriptExecu
         .option('--table-name <name>', 'Schema version table name')
         .option('--display-limit <number>', 'Maximum migrations to display', parseInt)
         .option('--dry-run', 'Simulate without executing')
+        .option('--no-lock', 'Disable migration locking for this run')
         .option('--logger <type>', 'Logger type (console|file|silent)')
         .option('--log-level <level>', 'Log level (error|warn|info|debug)')
         .option('--log-file <path>', 'Log file path (required with --logger file)')
@@ -218,6 +221,8 @@ export function createCLI<DB extends IDB, TExecutor extends MigrationScriptExecu
     addDownCommand(program, createExecutorWithFlags);
     addValidateCommand(program, createExecutorWithFlags);
     addBackupCommand(program, createExecutorWithFlags);
+    addLockStatusCommand(program, createExecutorWithFlags);
+    addLockReleaseCommand(program, createExecutorWithFlags);
 
     // Call extendCLI callback if provided
     if (options.extendCLI) {

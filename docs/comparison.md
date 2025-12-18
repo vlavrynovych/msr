@@ -22,6 +22,7 @@ MSR is designed for **production safety, developer experience, and flexibility**
 
 | Feature | MSR | Typical Tools |
 |---------|-----|---------------|
+| **Concurrent Execution Protection** | ✅ Database-level locking (v0.8.0) | Only 2 out of 10 tools |
 | **Hybrid Migrations** | ✅ Both TypeScript & SQL | Usually one or the other |
 | **Generic Type Safety** | ✅ Database-specific types (v0.6.0) | Limited or none |
 | **Metrics Collection** | ✅ Built-in collectors (v0.6.0) | Usually custom |
@@ -41,6 +42,7 @@ MSR is designed for **production safety, developer experience, and flexibility**
 |------------|-----------|
 | Up/Down Migrations | ✅ |
 | SQL Migrations | ✅ v0.4.0 |
+| Concurrent Execution Protection | ✅ v0.8.0 - Database-level locking with CLI management |
 | Generic Type Safety | ✅ v0.6.0 - Database-specific types with `<DB extends IDB>` |
 | Metrics Collection | ✅ v0.6.0 - Console, Logger, JSON, CSV collectors |
 | Multi-Format Config | ✅ v0.6.0 - YAML, TOML, XML, JSON, JS |
@@ -101,8 +103,9 @@ MSR is designed for **production safety, developer experience, and flexibility**
 
 MSR is a great fit when you:
 
+- ✅ Run migrations in environments with concurrent deployments (CI/CD, Kubernetes)
 - ✅ Want flexibility to use TypeScript OR SQL migrations
-- ✅ Need production-ready safety features (dry run, summaries)
+- ✅ Need production-ready safety features (dry run, summaries, locking)
 - ✅ Need reliable transaction management with automatic retry
 - ✅ Deploy in containers/Kubernetes with environment variable and .env file config
 - ✅ Value developer experience and type safety
@@ -147,6 +150,24 @@ When migrations fail in production, you need to know:
 - How do I recover?
 
 **MSR's execution summaries** (v0.4.0) provide a detailed trace of every step, making debugging and recovery straightforward.
+
+### Why Concurrent Execution Protection?
+
+Modern deployment practices can trigger multiple migration attempts:
+- Rolling deployments in Kubernetes
+- Parallel CI/CD pipelines
+- Multiple developers running locally
+- Auto-scaling application starts
+
+Without protection, this leads to:
+- **Race conditions**: Two processes applying the same migration
+- **Corrupted state**: Inconsistent migration tracking
+- **Data loss**: Conflicting schema changes
+- **Production incidents**: Hard-to-debug database issues
+
+**MSR's locking mechanism** (v0.8.0) uses database-level locks to ensure only one migration runs at a time, making it one of the few Node.js tools with built-in concurrency protection (along with Knex.js and node-pg-migrate).
+
+See [Locking Settings](/configuration/locking-settings) for configuration.
 
 ## Latest Release: v0.7.0
 
