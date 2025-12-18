@@ -209,9 +209,19 @@ Optional callback to add custom commands with full type safety. Called after bas
 
 **Example**:
 ```typescript
-class PostgresAdapter extends MigrationScriptExecutor<IPostgresDB> {
+// v0.8.0+: Type-safe handler access with second generic parameter
+class PostgresAdapter extends MigrationScriptExecutor<IPostgresDB, PostgresHandler> {
   async vacuum(): Promise<void> {
+    // ✓ this.handler is typed as PostgresHandler (full IDE autocomplete!)
     await this.handler.db.query('VACUUM ANALYZE');
+  }
+
+  getConnectionInfo() {
+    // ✓ Access handler-specific properties without casting
+    return {
+      host: this.handler.config.host,
+      port: this.handler.config.port
+    };
   }
 }
 
@@ -228,9 +238,22 @@ const program = createCLI({
         console.log('✓ Vacuum completed');
         process.exit(0);
       });
+
+    program
+      .command('connection-info')
+      .description('Display connection information')
+      .action(async () => {
+        const adapter = createExecutor();
+        const info = adapter.getConnectionInfo(); // ✓ Full type safety
+        console.log(`Host: ${info.host}:${info.port}`);
+        process.exit(0);
+      });
   }
 });
 ```
+
+{: .tip }
+> **v0.8.0+**: Use the second generic parameter (`THandler`) for type-safe handler access in your adapter. This eliminates the need for casting and provides full IDE autocomplete for handler-specific properties.
 
 {: .note }
 > The `createExecutor` function passed to `extendCLI` returns your adapter with the exact type you specified, enabling full IntelliSense and compile-time checking.

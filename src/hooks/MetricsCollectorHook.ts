@@ -9,7 +9,7 @@ import { IDB } from '../interface/dao';
  * Hook implementation that delegates to multiple IMetricsCollector instances.
  *
  * Translates hook lifecycle events into metrics collection calls.
- * Supports multiple collectors simultaneously (e.g., Prometheus + DataDog + Console).
+ * Supports multiple collectors simultaneously (e.g., DataDog + CloudWatch + Console).
  *
  * **Error Handling:**
  * Collector failures are logged but don't break migrations. If a metrics collector

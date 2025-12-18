@@ -112,19 +112,19 @@ A database-agnostic migration framework for TypeScript and JavaScript projects.
 
 ---
 
-## What's New in v0.7.0
+## What's New in v0.8.0
 
-🎉 Latest release brings CLI factory, .env file support, and improved architecture:
+🎉 Latest release brings production-ready locking and enhanced type safety:
 
-- **🖥️ CLI Factory** - Create command-line interfaces with built-in commands (migrate, list, down, validate, backup) using Commander.js - see [CLI Adapter Development Guide](guides/cli-adapter-development)
-- **🗂️ .env File Support** - Load configuration from .env, .env.production, .env.local files with configurable priority
-- **🎨 Facade Pattern** - Services grouped into logical facades (core, execution, output, orchestration) for better code organization
-- **🏭 Factory Pattern** - Dedicated service initialization reduces constructor complexity by 83%
-- **🔧 Protected Facades** - Adapters can extend MigrationScriptExecutor and access internal services through protected facades
-- **✨ Extensible Configuration** - IConfigLoader interface allows custom environment variable handling
-- **🔨 Breaking Changes** - Constructor signature changed (config moved to dependencies object)
+- **🔒 Migration Locking** - Database-level locking prevents concurrent migrations in multi-instance deployments
+- **🛡️ Lock Ownership Verification** - Two-phase locking with ownership verification prevents race conditions
+- **🖥️ Lock CLI Commands** - New `lock:status` and `lock:release` commands for managing locks in production
+- **🔧 Handler Generic Type** - Type-safe handler access in adapters with optional second generic parameter (no more casting!)
+- **🐛 Down Migration Fix** - Fixed TypeError when rolling back migrations (proper filesystem script matching)
+- **📦 npm Provenance** - Enhanced supply chain security with build provenance attestations
+- **✅ 100% Backwards Compatible** - Zero breaking changes from v0.7.x, all features are opt-in
 
-**[→ View v0.6.x → v0.7.0 migration guide](version-migration/v0.6-to-v0.7)** | **[→ See full changelog](features#feature-highlights-by-version)**
+**[→ View v0.7.x → v0.8.0 migration guide](version-migration/v0.7-to-v0.8)** | **[→ See full changelog](features#feature-highlights-by-version)**
 {: .fs-5 }
 
 ---

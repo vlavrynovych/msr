@@ -54,6 +54,26 @@ describe('flagMapper', () => {
         });
 
         /**
+         * Test: Maps noLock flag to config.locking.enabled
+         * Validates that noLock=true disables locking
+         */
+        it('should map noLock=true to config.locking.enabled=false', () => {
+            const flags: CLIFlags = {noLock: true};
+            mapFlagsToConfig(config, flags);
+            expect(config.locking.enabled).to.equal(false);
+        });
+
+        /**
+         * Test: Maps noLock=false to config.locking.enabled=true
+         * Validates that noLock=false enables locking
+         */
+        it('should map noLock=false to config.locking.enabled=true', () => {
+            const flags: CLIFlags = {noLock: false};
+            mapFlagsToConfig(config, flags);
+            expect(config.locking.enabled).to.equal(true);
+        });
+
+        /**
          * Test: Maps multiple flags to config
          * Validates that multiple flags can be mapped simultaneously
          */

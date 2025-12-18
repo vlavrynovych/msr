@@ -801,14 +801,6 @@ migrate:
   resource_group: production-migrations
 ```
 
----
-
-## Related Documentation
-
-- [Production Deployment](production-deployment) - Deployment best practices
-- [CLI vs API Usage](cli-vs-api) - When to use CLI
-- [Docker & Kubernetes](docker-kubernetes) - Container deployment
-- [Environment Variables](environment-variables) - Configuration options
 
 ---
 

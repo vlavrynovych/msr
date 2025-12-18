@@ -190,7 +190,7 @@ export interface IExecutorOptions<DB extends IDB> {
      *     ]
      * });
      *
-     * // Custom collector for DataDog/Prometheus
+     * // Custom collector for DataDog/CloudWatch
      * class DataDogCollector implements IMetricsCollector {
      *     recordScriptComplete(script, duration) {
      *         statsd.timing('migration.duration', duration);

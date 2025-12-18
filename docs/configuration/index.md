@@ -29,6 +29,7 @@ Migration Script Runner uses the `Config` class to control all aspects of migrat
 - **🔄 [Rollback Settings](rollback-settings)** - Rollback strategies and behavior
 - **💾 [Backup Settings](backup-settings)** - Backup configuration for BACKUP strategy
 - **🔒 [Transaction Settings](transaction-settings)** - Transaction management and retry configuration
+- **🔐 [Locking Settings](locking-settings)** - Prevent concurrent migration execution
 
 ---
 
@@ -78,6 +79,7 @@ const config = new Config();
 | 🔄 [Rollback Settings](rollback-settings) | `rollbackStrategy` | Choose backup, down(), both, or none |
 | 💾 [Backup Settings](backup-settings) | `backup` (BackupConfig) | Configure backup file naming and storage |
 | 🔒 [Transaction Settings](transaction-settings) | `transaction` (TransactionConfig) | Configure transaction mode, isolation level, and retry behavior |
+| 🔐 [Locking Settings](locking-settings) | `locking` (LockingConfig) | Prevent concurrent migrations with database-level locking |
 
 ---
 

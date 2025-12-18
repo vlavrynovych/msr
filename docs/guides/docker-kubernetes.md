@@ -670,23 +670,6 @@ volumes:
     name: fluent-bit-config
 ```
 
-### Prometheus Metrics
-
-```yaml
-# ServiceMonitor for migration metrics
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: myapp-migrations
-spec:
-  selector:
-    matchLabels:
-      app: myapp-migrations
-  endpoints:
-  - port: metrics
-    interval: 30s
-```
-
 ---
 
 ## Troubleshooting
@@ -792,15 +775,6 @@ Available in the repository:
 Available in the repository:
 - `examples/docker-compose/development.yml` - Local development setup
 - `examples/docker-compose/production.yml` - Production-like setup
-
----
-
-## Related Documentation
-
-- [Production Deployment](production-deployment) - Deployment best practices
-- [CI/CD Integration](ci-cd-integration) - Pipeline examples
-- [CLI vs API Usage](cli-vs-api) - When to use CLI
-- [Environment Variables](environment-variables) - Configuration options
 
 ---
 

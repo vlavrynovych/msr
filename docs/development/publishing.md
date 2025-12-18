@@ -123,35 +123,48 @@ npm run test:coverage
 npm run test:mutation
 ```
 
-### 5. Publish to npm
+### 5. Push Tag to Trigger Automated Publishing
 
 ```bash
-# Login to npm (if not already)
-npm login
+# Push tag to GitHub (triggers automated workflow)
+git push origin v0.4.0
 
-# Publish (dry run first)
-npm publish --dry-run
-
-# Publish for real
-npm publish --access public
+# Or push commit and tag together
+git push origin master --tags
 ```
+
+**What happens automatically:**
+1. GitHub Actions workflow triggers on tag push
+2. Installs dependencies (`npm ci`)
+3. Runs build and tests (via `prepublishOnly` hook)
+4. Publishes to npm with provenance
+5. Package appears on npm with cryptographic signature
+
+**Monitor the workflow:**
+- GitHub → Actions → "Publish to npm"
+- Check logs if publish fails
 
 ### 6. Post-Publication
 
-1. **Push to GitHub**
+1. **Create GitHub Release**
    ```bash
-   git push origin master --tags
+   # Create release from tag
+   gh release create v0.4.0 --generate-notes
+
+   # Or manually via GitHub UI
+   # Go to GitHub → Releases → "Draft a new release"
+   # Select the version tag
+   # Title: v0.4.0
+   # Description: Copy from CHANGELOG.md
    ```
 
-2. **Create GitHub Release**
-   - Go to GitHub → Releases → "Draft a new release"
-   - Select the version tag
-   - Title: `v0.4.0`
-   - Description: Copy from CHANGELOG.md
-   - Attach any binaries if needed
+2. **Verify npm Package**
+   - Visit https://www.npmjs.com/package/@migration-script-runner/core
+   - Verify new version is published
+   - Check for "Provenance" badge (cryptographic proof)
 
 3. **Announce Release**
-   - Update project README
+   - Update project README if needed
    - Post in discussions if major release
    - Tweet/social media if significant
 
@@ -245,31 +258,57 @@ v1.0.0
 
 ## Release Automation
 
-### CI/CD Pipeline
+### Automated Publishing Workflow
 
-**On Push to Master:**
-1. Run tests
-2. Check coverage (must be 100%)
-3. Run linting
-4. Build package
-5. Run mutation tests (optional)
+**Workflow:** `.github/workflows/npm-publish.yml`
 
-**On Tag Push:**
-1. All of the above
-2. Publish to npm (if tests pass)
-3. Create GitHub release
+**Triggers:**
+- Push of version tags (e.g., `v0.8.0`, `v1.0.0`)
+- Manual trigger via GitHub Actions UI
 
-### NPM Scripts for Release
+**Process:**
+1. Checkout repository
+2. Setup Node.js 20
+3. Install dependencies (`npm ci`)
+4. Run build and tests (via `prepublishOnly` hook)
+5. Publish to npm with provenance signature
+6. Authenticate using `NPM_TOKEN` secret (granular access token)
+
+**Security Features:**
+- ✅ Cryptographic provenance (build transparency)
+- ✅ Granular npm token (package-specific permissions)
+- ✅ 90-day token expiration (enforced security)
+- ✅ No long-lived credentials in code
+
+### Token Management
+
+**NPM_TOKEN Secret:**
+- Type: Granular Access Token
+- Scope: `@migration-script-runner/core` (read/write)
+- Expiration: 90 days
+- Bypass 2FA: Enabled (for CI/CD automation)
+
+**Renewal Process:**
+1. Create new token on npmjs.com 80 days before expiration
+2. Update GitHub secret: `gh secret set NPM_TOKEN`
+3. Delete old token on npmjs.com
+
+### Manual Publishing (Emergency)
+
+If automated workflow fails, you can publish manually:
 
 ```bash
-# Pre-release checks
-npm run prerelease
+# Ensure you're on the tagged commit
+git checkout v0.8.0
 
-# This could run:
-# - npm test
-# - npm run test:coverage
-# - npm run lint
-# - npm run build
+# Build and test
+npm ci
+npm run build
+npm test
+
+# Publish with provenance
+npm publish --access public
+# Will prompt for 2FA code
 ```
 
 ---
@@ -411,7 +450,9 @@ npm publish
 | Bump patch version | `npm version patch` |
 | Bump minor version | `npm version minor` |
 | Bump major version | `npm version major` |
-| Publish (dry run) | `npm publish --dry-run` |
-| Publish to npm | `npm publish --access public` |
-| Deprecate version | `npm deprecate <pkg>@<version> "<message>"` |
+| Push tag (triggers publish) | `git push origin v0.8.0` |
+| Create GitHub release | `gh release create v0.8.0 --generate-notes` |
+| Manual publish (emergency) | `npm publish --access public` |
+| Deprecate version | `npm deprecate @migration-script-runner/core@0.8.0 "message"` |
 | View published versions | `npm view @migration-script-runner/core versions` |
+| Check workflow status | GitHub → Actions → "Publish to npm" |

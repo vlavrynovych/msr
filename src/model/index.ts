@@ -11,3 +11,4 @@ export * from "./env";  // Organized env var structure (v0.5.0+)
 export * from "./TransactionMode";
 export * from "./IsolationLevel";
 export * from "./TransactionConfig";
+export * from "./LockingConfig";

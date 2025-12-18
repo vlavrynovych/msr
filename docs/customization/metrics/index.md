@@ -355,10 +355,9 @@ class DatadogCollector implements IMetricsCollector {
 }
 ```
 
-**Popular collectors like Datadog, CloudWatch, and Prometheus** are documented with full implementations in the custom collector guide. They will be added as built-in collectors in future releases:
+**Popular collectors like Datadog and CloudWatch** are documented with full implementations in the custom collector guide. They will be added as built-in collectors in future releases:
 - [#118 - DatadogCollector](https://github.com/migration-script-runner/msr-core/issues/118)
 - [#119 - CloudWatchCollector](https://github.com/migration-script-runner/msr-core/issues/119)
-- [#120 - PrometheusCollector](https://github.com/migration-script-runner/msr-core/issues/120)
 
 [View custom collector guide →](custom-collectors){: .btn }
 
@@ -463,13 +462,13 @@ export default {
   folder: './migrations',
 
   metrics: {
-    prometheus: {
-      enabled: true,
-      port: 9090
-    },
     datadog: {
       enabled: true,
       apiKey: process.env.DD_API_KEY
+    },
+    cloudwatch: {
+      enabled: true,
+      region: process.env.AWS_REGION
     },
     console: {
       enabled: process.env.NODE_ENV === 'development'

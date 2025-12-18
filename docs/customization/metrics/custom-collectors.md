@@ -22,11 +22,11 @@ Build collectors for your monitoring service or custom use case.
 
 ## Overview
 
-Create custom collectors by implementing the `IMetricsCollector` interface. Send metrics to Datadog, Prometheus, CloudWatch, or any monitoring service.
+Create custom collectors by implementing the `IMetricsCollector` interface. Send metrics to Datadog, CloudWatch, or any monitoring service.
 
 **Build collectors for:**
 - Cloud monitoring services (Datadog, CloudWatch, etc.)
-- Time-series databases (Prometheus, InfluxDB)
+- Time-series databases (InfluxDB, TimescaleDB)
 - Custom analytics platforms
 - Notification systems (Slack, PagerDuty)
 - Internal monitoring tools
@@ -116,7 +116,6 @@ The examples below show production-ready integrations with popular cloud monitor
 **Note:** These collectors are currently custom implementations. They will be added as built-in collectors in future releases:
 - [#118 - DatadogCollector](https://github.com/migration-script-runner/msr-core/issues/118)
 - [#119 - CloudWatchCollector](https://github.com/migration-script-runner/msr-core/issues/119)
-- [#120 - PrometheusCollector](https://github.com/migration-script-runner/msr-core/issues/120)
 
 ---
 
@@ -382,49 +381,6 @@ npm install @aws-sdk/client-cloudwatch
 - Alert on `MigrationFailures` > 0
 - Monitor `MigrationDuration` for performance
 - Track `RollbackAttempts` for stability issues
-
----
-
-### Prometheus Collector
-
-**Status:** Custom implementation (will be built-in in [future release](https://github.com/migration-script-runner/msr-core/issues/120))
-
-```typescript
-import { register, Gauge, Counter } from 'prom-client';
-
-export class PrometheusMetricsCollector implements IMetricsCollector {
-  private durationGauge: Gauge;
-  private successCounter: Counter;
-  private failureCounter: Counter;
-
-  constructor() {
-    this.durationGauge = new Gauge({
-      name: 'msr_script_duration_ms',
-      help: 'Migration script execution duration',
-      labelNames: ['script_name']
-    });
-
-    this.successCounter = new Counter({
-      name: 'msr_migrations_success_total',
-      help: 'Total successful migrations'
-    });
-
-    this.failureCounter = new Counter({
-      name: 'msr_migrations_failed_total',
-      help: 'Total failed migrations'
-    });
-  }
-
-  recordScriptComplete(script: MigrationScript, duration: number): void {
-    this.durationGauge.set({ script_name: script.name }, duration);
-    this.successCounter.inc();
-  }
-
-  recordScriptError(script: MigrationScript, error: Error): void {
-    this.failureCounter.inc();
-  }
-}
-```
 
 ---
 

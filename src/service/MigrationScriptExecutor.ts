@@ -6,6 +6,7 @@ import {IMigrationHooks} from "../interface/IMigrationHooks";
 import {Config} from "../model";
 import {IValidationResult, IValidationIssue, IDB} from "../interface";
 import {ILoaderRegistry} from "../interface/loader/ILoaderRegistry";
+import {ILockStatus} from "../interface/service/ILockingService";
 import {createMigrationServices} from "./MigrationServicesFactory";
 import {CoreServices} from "./facade/CoreServices";
 import {ExecutionServices} from "./facade/ExecutionServices";
@@ -25,8 +26,10 @@ import {OrchestrationServices} from "./facade/OrchestrationServices";
  *
  * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
  * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ * - `THandler` - Your specific handler type extending IDatabaseMigrationHandler<DB> (OPTIONAL, v0.8.0)
  *
  * @template DB - Database interface type
+ * @template THandler - Handler interface type (defaults to IDatabaseMigrationHandler<DB>)
  *
  * **New in v0.5.0:** Automatic transaction management with configurable modes
  * **Breaking Change in v0.6.0:** Constructor signature changed to `(dependencies, config?)`
@@ -50,15 +53,37 @@ import {OrchestrationServices} from "./facade/OrchestrationServices";
  *
  * // List all migrations
  * await executor.list();
+ *
+ * // **New in v0.8.0:** Using handler type parameter for type-safe adapters
+ * interface MyHandler extends IDatabaseMigrationHandler<IDB> {
+ *     customMethod(): void;
+ *     cfg: { host: string };
+ * }
+ *
+ * class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler> {
+ *     getConnectionInfo() {
+ *         // this.handler is now typed as MyHandler (no casting needed!)
+ *         return {
+ *             host: this.handler.cfg.host
+ *         };
+ *     }
+ *
+ *     useCustomMethod() {
+ *         this.handler.customMethod();  // Type-safe access!
+ *     }
+ * }
  * ```
  */
-export class MigrationScriptExecutor<DB extends IDB> {
+export class MigrationScriptExecutor<
+    DB extends IDB,
+    THandler extends IDatabaseMigrationHandler<DB> = IDatabaseMigrationHandler<DB>
+> {
 
     /** Configuration for the migration system */
     protected readonly config: Config;
 
     /** Database migration handler implementing database-specific operations */
-    protected readonly handler: IDatabaseMigrationHandler<DB>;
+    protected readonly handler: THandler;
 
     /** Registry for loading migration scripts of different types (TypeScript, SQL, etc.) */
     protected readonly loaderRegistry: ILoaderRegistry<DB>;
@@ -138,13 +163,13 @@ export class MigrationScriptExecutor<DB extends IDB> {
      * });
      * ```
      */
-    constructor(dependencies: IMigrationExecutorDependencies<DB>) {
+    constructor(dependencies: IMigrationExecutorDependencies<DB, THandler>) {
         // Initialize all services via factory
         const services = createMigrationServices(dependencies);
 
         // Store infrastructure
         this.config = services.config;
-        this.handler = services.handler;
+        this.handler = dependencies.handler;  // Get handler directly from dependencies to preserve type
         this.loaderRegistry = services.loaderRegistry;
         this.hooks = services.hooks;  // For test access only
 
@@ -448,6 +473,81 @@ export class MigrationScriptExecutor<DB extends IDB> {
      */
     public async down(targetVersion: number): Promise<IMigrationResult<DB>> {
         return this.orchestration.rollback.rollbackToVersion(targetVersion);
+    }
+
+    /**
+     * Get current migration lock status.
+     *
+     * Returns information about the current lock holder, including:
+     * - Whether a lock is currently held
+     * - Executor ID of the lock holder
+     * - When the lock was acquired
+     * - When the lock will expire
+     *
+     * @returns Lock status information, or null if no lock exists or locking is not configured
+     *
+     * @example
+     * ```typescript
+     * const status = await executor.getLockStatus();
+     * if (status?.isLocked) {
+     *   console.log(`Lock held by: ${status.lockedBy}`);
+     *   console.log(`Acquired at: ${status.lockedAt}`);
+     *   console.log(`Expires at: ${status.expiresAt}`);
+     * } else {
+     *   console.log('No active lock');
+     * }
+     * ```
+     */
+    public async getLockStatus(): Promise<ILockStatus | null> {
+        const lockingService = this.handler.lockingService;
+        if (!lockingService) {
+            return null;
+        }
+
+        return lockingService.getLockStatus();
+    }
+
+    /**
+     * Force-release the migration lock.
+     *
+     * **⚠️ DANGEROUS:** Only use when certain no migration is running.
+     *
+     * This method unconditionally releases any existing lock, regardless of who holds it.
+     * If another migration process is actually running, this could lead to:
+     * - Race conditions
+     * - Corrupted migration state
+     * - Data loss
+     *
+     * **Use Cases:**
+     * - Stale lock from crashed process
+     * - Emergency unlock during incident
+     * - Testing and development
+     *
+     * @throws {Error} If locking service is not configured
+     * @throws {Error} If force release operation fails
+     *
+     * @example
+     * ```typescript
+     * // Check status first
+     * const status = await executor.getLockStatus();
+     * if (status?.isLocked) {
+     *   console.log(`Warning: Lock held by ${status.lockedBy}`);
+     *   // Only proceed if you're sure it's safe
+     *   await executor.forceReleaseLock();
+     *   console.log('Lock forcibly released');
+     * }
+     * ```
+     */
+    public async forceReleaseLock(): Promise<void> {
+        const lockingService = this.handler.lockingService;
+        if (!lockingService) {
+            throw new Error(
+                'Locking service is not configured. ' +
+                'Cannot release lock without a locking implementation in your database handler.'
+            );
+        }
+
+        await lockingService.forceReleaseLock();
     }
 
     /**

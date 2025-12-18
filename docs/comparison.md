@@ -22,6 +22,7 @@ MSR is designed for **production safety, developer experience, and flexibility**
 
 | Feature | MSR | Typical Tools |
 |---------|-----|---------------|
+| **Concurrent Execution Protection** | ✅ Database-level locking (v0.8.0) | Only 2 out of 10 tools |
 | **Hybrid Migrations** | ✅ Both TypeScript & SQL | Usually one or the other |
 | **Generic Type Safety** | ✅ Database-specific types (v0.6.0) | Limited or none |
 | **Metrics Collection** | ✅ Built-in collectors (v0.6.0) | Usually custom |
@@ -41,6 +42,7 @@ MSR is designed for **production safety, developer experience, and flexibility**
 |------------|-----------|
 | Up/Down Migrations | ✅ |
 | SQL Migrations | ✅ v0.4.0 |
+| Concurrent Execution Protection | ✅ v0.8.0 - Database-level locking with CLI management |
 | Generic Type Safety | ✅ v0.6.0 - Database-specific types with `<DB extends IDB>` |
 | Metrics Collection | ✅ v0.6.0 - Console, Logger, JSON, CSV collectors |
 | Multi-Format Config | ✅ v0.6.0 - YAML, TOML, XML, JSON, JS |
@@ -101,8 +103,9 @@ MSR is designed for **production safety, developer experience, and flexibility**
 
 MSR is a great fit when you:
 
+- ✅ Run migrations in environments with concurrent deployments (CI/CD, Kubernetes)
 - ✅ Want flexibility to use TypeScript OR SQL migrations
-- ✅ Need production-ready safety features (dry run, summaries)
+- ✅ Need production-ready safety features (dry run, summaries, locking)
 - ✅ Need reliable transaction management with automatic retry
 - ✅ Deploy in containers/Kubernetes with environment variable and .env file config
 - ✅ Value developer experience and type safety
@@ -121,59 +124,60 @@ Consider other tools if you:
 - Want a schema-first approach (Prisma)
 - Need enterprise governance features (Liquibase Enterprise)
 
-## Design Decisions
+## Detailed Comparison Table
 
-### Why Both TypeScript and SQL?
+Comprehensive comparison of MSR with popular migration tools in the JavaScript/TypeScript ecosystem:
 
-Different teams have different needs:
-- **Development teams** often prefer TypeScript for type safety and IDE support
-- **DBAs and ops teams** often prefer SQL for reviewability and control
-- **MSR supports both** so you can choose what works best for each migration
+| Feature | MSR | Knex.js | TypeORM | Prisma Migrate | Sequelize | node-pg-migrate | Umzug |
+|---------|-----|---------|---------|----------------|-----------|-----------------|-------|
+| **Language** | TypeScript | JavaScript | TypeScript | TypeScript | JavaScript | JavaScript | TypeScript |
+| **Database Support** | Any (adapter-based) | PostgreSQL, MySQL, SQLite, MSSQL | PostgreSQL, MySQL, SQLite, MSSQL, MongoDB, Oracle | PostgreSQL, MySQL, SQLite, MSSQL, CockroachDB | PostgreSQL, MySQL, SQLite, MSSQL, MariaDB, Oracle | PostgreSQL only | Any (storage-based) |
+| **Migration Format** | TypeScript + SQL | JavaScript/TypeScript | TypeScript | Prisma Schema DSL | JavaScript | SQL + JavaScript | JavaScript/TypeScript |
+| **Hybrid Migrations** | ✅ Both TS & SQL | ❌ JS/TS only | ❌ TS only | ❌ Schema DSL only | ❌ JS only | ✅ SQL + JS | ❌ JS/TS only |
+| **Concurrent Protection** | ✅ Database locks | ✅ Database locks | ❌ None | ⚠️ Limited | ❌ None | ✅ Advisory locks | ❌ None |
+| **Transaction Support** | ✅ Configurable modes + retry | ✅ Basic | ✅ Basic | ✅ Automatic | ✅ Basic | ✅ Automatic | ⚠️ Custom only |
+| **Rollback Strategy** | ✅ Multiple (backup, down(), both, none) | ✅ Down migrations | ✅ Down migrations | ⚠️ Limited (shadow DB) | ✅ Down migrations | ✅ Down migrations | ✅ Down migrations |
+| **Dry Run Mode** | ✅ Built-in | ❌ None | ❌ None | ✅ Built-in | ❌ None | ⚠️ Via --dry-run flag | ❌ None |
+| **Environment Variables** | ✅ 33 MSR_* variables | ⚠️ Limited | ⚠️ Limited | ✅ Good support | ⚠️ Limited | ⚠️ Via custom code | ⚠️ Via custom code |
+| **.env File Support** | ✅ Multi-source with priority | ⚠️ Manual | ⚠️ Manual | ✅ Built-in | ⚠️ Manual | ⚠️ Manual | ⚠️ Manual |
+| **Config Formats** | ✅ JS, JSON, YAML, TOML, XML | ✅ JS, JSON | ✅ JS, JSON, YAML, XML | ✅ Prisma schema | ✅ JS, JSON | ⚠️ Via custom code | ⚠️ Via custom code |
+| **Type Safety** | ✅ Generic types `<DB>` | ⚠️ Partial | ✅ Full with ORM | ✅ Generated types | ⚠️ Partial | ❌ None | ⚠️ Partial |
+| **Lifecycle Hooks** | ✅ Process, script, backup, transaction | ❌ None | ⚠️ Limited | ⚠️ Limited | ⚠️ Limited | ❌ None | ✅ Before/After hooks |
+| **Metrics Collection** | ✅ Built-in collectors | ❌ Custom only | ❌ Custom only | ❌ Custom only | ❌ Custom only | ❌ Custom only | ❌ Custom only |
+| **Output Formats** | ✅ Table, JSON, Silent | ⚠️ Fixed | ⚠️ Fixed | ⚠️ Fixed | ⚠️ Fixed | ⚠️ Fixed | ⚠️ Via custom code |
+| **Backup Integration** | ✅ Built-in interface | ❌ Custom only | ❌ Custom only | ❌ None | ❌ Custom only | ❌ Custom only | ❌ Custom only |
+| **Migration Tracking** | ✅ Custom table | ✅ Custom table | ✅ Custom table | ✅ _prisma_migrations | ✅ Custom table | ✅ pgmigrations | ✅ Custom storage |
+| **CLI** | ✅ Extensible factory | ✅ Built-in | ✅ Built-in | ✅ Built-in | ✅ Built-in | ✅ Built-in | ⚠️ Custom only |
+| **Programmatic API** | ✅ Library-first | ✅ Available | ✅ Available | ⚠️ Limited | ✅ Available | ✅ Available | ✅ Library-first |
+| **ORM Integration** | ❌ Database-agnostic | ✅ Knex query builder | ✅ TypeORM entities | ✅ Prisma Client | ✅ Sequelize models | ❌ None | ❌ None |
+| **Auto-generation** | ❌ Manual | ❌ Manual | ✅ From entities | ✅ From schema | ✅ From models | ❌ Manual | ❌ Manual |
+| **Schema Drift Detection** | ❌ None | ❌ None | ⚠️ Via sync | ✅ Built-in | ⚠️ Via sync | ❌ None | ❌ None |
+| **Maturity** | 🟢 Active | 🟢 Mature | 🟢 Mature | 🟢 Mature | 🟢 Mature | 🟢 Mature | 🟢 Mature |
+| **Best For** | Multi-DB, production safety, flexibility | Knex users, PostgreSQL | TypeORM projects | Prisma users, modern DX | Sequelize projects | PostgreSQL experts | Custom migration logic |
 
-### Why Dry Run Mode?
+**Legend:**
+- ✅ Full support / Built-in
+- ⚠️ Partial support / Requires custom code
+- ❌ Not supported / None
 
-Testing migrations before production is critical but often requires:
-- Cloning production databases
-- Manual testing workflows
-- Hoping things work the same
+## Comparison with Cross-Platform Tools
 
-**MSR's dry run mode** (v0.4.0) shows exactly what will change before applying anything.
+Comparing MSR with popular migration tools from other ecosystems:
 
-### Why Execution Summaries?
+| Feature | MSR (Node.js) | Flyway (Java) | Liquibase (Java) | Alembic (Python) | Rails Migrations (Ruby) | golang-migrate (Go) |
+|---------|---------------|---------------|------------------|------------------|-------------------------|---------------------|
+| **Language** | TypeScript/JavaScript | Java/JVM | Java/JVM | Python | Ruby | Go |
+| **Migration Format** | TypeScript + SQL | SQL | SQL, XML, YAML, JSON | Python | Ruby DSL | SQL + Go |
+| **Concurrent Protection** | ✅ Database locks | ✅ Database locks | ✅ Database locks | ❌ None | ❌ None | ⚠️ Via custom locks |
+| **Transaction Support** | ✅ Configurable + retry | ✅ Automatic | ✅ Automatic | ✅ Automatic | ✅ Automatic | ⚠️ Manual |
+| **Rollback** | ✅ Multiple strategies | ✅ Undo migrations | ✅ Rollback tags | ✅ Down migrations | ✅ Down migrations | ✅ Down migrations |
+| **Dry Run** | ✅ Built-in | ⚠️ Paid (Teams+) | ⚠️ Paid (Pro) | ❌ None | ❌ None | ❌ None |
+| **Enterprise Features** | ❌ None | ✅ Teams/Enterprise | ✅ Pro/Enterprise | ❌ None | ❌ None | ❌ None |
+| **Environment Config** | ✅ 12-factor + .env | ✅ Config files | ✅ Config files | ⚠️ Manual | ✅ Rails config | ⚠️ Manual |
+| **Type Safety** | ✅ Full TypeScript | ❌ SQL only | ❌ SQL/XML only | ⚠️ Python types | ❌ DSL only | ⚠️ Go types |
+| **Best For** | Node.js projects | Java/JVM, SQL-first teams | Enterprise, complex requirements | Python/SQLAlchemy | Rails applications | Go projects, simplicity |
 
-When migrations fail in production, you need to know:
-- What succeeded before the failure?
-- What was the exact error?
-- How do I recover?
-
-**MSR's execution summaries** (v0.4.0) provide a detailed trace of every step, making debugging and recovery straightforward.
-
-## Latest Release: v0.7.0
-
-MSR v0.7.0 introduces CLI factory for database adapters, improved architecture with Facade and Factory patterns, and enhanced extensibility for adapter developers.
-
-**[→ View full v0.7.0 feature list](features#feature-highlights-by-version)** | **[→ View migration guide](version-migration/v0.6-to-v0.7)**
-{: .fs-5 }
-
-## Future Roadmap
-
-Upcoming features we're considering:
-
-- **Template Generator** (#83) - Scaffold new migrations easily
-- **Bash Script Adapter** (#99) - Use MSR patterns for infrastructure management
-- **Migration Preview** - Visual diff of schema changes
-
-See our [GitHub milestones](https://github.com/migration-script-runner/msr-core/milestones) for details.
-
-## Contributing
-
-MSR is open source and we welcome contributions! Whether you're:
-- Reporting bugs or requesting features
-- Improving documentation
-- Contributing code
-- Sharing your use case
-
-Visit our [GitHub repository](https://github.com/migration-script-runner/msr-core) to get involved.
+---
 
 ---
 

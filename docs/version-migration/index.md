@@ -9,7 +9,11 @@ has_children: true
 
 This section contains guides for upgrading between major versions of MSR. Each guide includes detailed instructions, breaking changes, and examples to help you migrate smoothly.
 
-## Available Upgrade Guides
+## Current Upgrade Guide
+
+- [**v0.7.x → v0.8.0**](v0.7-to-v0.8.md) - **Non-Breaking:** Migration locking, handler generic type, down migration fix, npm provenance
+
+## Previous Releases
 
 - [**v0.6.x → v0.7.0**](v0.6-to-v0.7.md) - **Breaking:** Single parameter constructor, config moved into dependencies, extensible ConfigLoader
 - [**v0.5.x → v0.6.0**](v0.5-to-v0.6.md) - **Breaking:** Generic type parameters (required), constructor signature change, metrics collection

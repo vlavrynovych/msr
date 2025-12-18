@@ -13,6 +13,7 @@ export interface CLIFlags {
     tableName?: string;
     displayLimit?: number;
     dryRun?: boolean;
+    noLock?: boolean;
     logger?: 'console' | 'file' | 'silent';
     logLevel?: 'error' | 'warn' | 'info' | 'debug';
     logFile?: string;
@@ -56,6 +57,10 @@ export function mapFlagsToConfig(config: Config, flags: CLIFlags): ILogger | und
 
     if (flags.dryRun !== undefined) {
         config.dryRun = flags.dryRun;
+    }
+
+    if (flags.noLock !== undefined) {
+        config.locking.enabled = !flags.noLock;
     }
 
     // Handle logger creation
