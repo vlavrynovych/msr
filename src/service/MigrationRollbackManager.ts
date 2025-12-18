@@ -126,6 +126,42 @@ export class MigrationRollbackManager<DB extends IDB> implements IMigrationRollb
     }
 
     /**
+     * Match migrated records from database with actual script files from filesystem.
+     *
+     * Database records contain only name/timestamp but lack filepath needed for loading.
+     * This method finds the corresponding MigrationScript instances with filepath from
+     * the filesystem scan results.
+     *
+     * @param migratedRecords - Plain migration records from database (no filepath)
+     * @param allScripts - All migration script files found in filesystem (with filepath)
+     * @returns Array of MigrationScript instances ready for rollback execution
+     * @throws {Error} If a migrated record cannot be matched with a filesystem script
+     * @private
+     */
+    private matchMigratedWithScripts(
+        migratedRecords: MigrationScript<DB>[],
+        allScripts: MigrationScript<DB>[]
+    ): MigrationScript<DB>[] {
+        const matched: MigrationScript<DB>[] = [];
+
+        for (const record of migratedRecords) {
+            const script = allScripts.find(s => s.timestamp === record.timestamp);
+
+            if (!script) {
+                throw new Error(
+                    `Cannot rollback migration ${record.name} (timestamp: ${record.timestamp}): ` +
+                    `Migration file not found in filesystem. The migration was executed but the ` +
+                    `script file is missing or has been deleted.`
+                );
+            }
+
+            matched.push(script);
+        }
+
+        return matched;
+    }
+
+    /**
      * Roll back database to a specific target version.
      *
      * Calls down() methods on migrations with timestamps > targetVersion in reverse
@@ -144,11 +180,14 @@ export class MigrationRollbackManager<DB extends IDB> implements IMigrationRollb
         await this.schemaVersionService.init(this.config.tableName);
         const scripts = await this.migrationScanner.scan();
 
-        const toRollback = this.selector.getMigratedDownTo(scripts.migrated, targetVersion);
+        const migratedToRollback = this.selector.getMigratedDownTo(scripts.migrated, targetVersion);
 
-        if (!toRollback.length) {
+        if (!migratedToRollback.length) {
             return this.handleNoRollbackNeeded(scripts, targetVersion);
         }
+
+        // Match migrated records (from DB) with actual script files (from filesystem)
+        const toRollback = this.matchMigratedWithScripts(migratedToRollback, scripts.all);
 
         await this.prepareRollbackScripts(toRollback);
         await this.hooks?.onStart?.(scripts.all.length, toRollback.length);

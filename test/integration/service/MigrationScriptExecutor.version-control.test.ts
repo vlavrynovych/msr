@@ -1155,5 +1155,42 @@ describe('MigrationScriptExecutor - Version Control', () => {
 
             scanStub.restore();
         });
+
+        /**
+         * Test: downTo throws error when migration file is missing from filesystem
+         * Covers the case where a migration was executed but the file has been deleted
+         */
+        it('should throw error when migration file is missing from filesystem', async () => {
+            // Create migrated record (from DB) - plain object without filepath
+            const migratedRecord = {
+                timestamp: 999,
+                name: 'V999_deleted_migration.ts'
+            } as MigrationScript<IDB>;
+
+            // Simulate: migration is in DB but NOT in filesystem
+            scripts = [migratedRecord];
+
+            const scanStub = sinon.stub((executor as any).core.scanner, 'scan');
+            scanStub.resolves({
+                all: [], // Empty - no files in filesystem
+                migrated: [migratedRecord], // But it's in the database
+                pending: [],
+                ignored: [],
+                executed: []
+            });
+
+            // Try to roll back - should fail with specific error
+            try {
+                await executor.down(0);
+                expect.fail('Should have thrown error for missing migration file');
+            } catch (error: any) {
+                expect(error.message).to.include('Cannot rollback migration');
+                expect(error.message).to.include('V999_deleted_migration.ts');
+                expect(error.message).to.include('Migration file not found in filesystem');
+                expect(error.message).to.include('timestamp: 999');
+            }
+
+            scanStub.restore();
+        });
     });
 });
