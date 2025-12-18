@@ -62,7 +62,12 @@ export function addLockStatusCommand<DB extends IDB>(
 
                 process.exit(EXIT_CODES.SUCCESS);
             } catch (error) {
-                const message = error instanceof Error ? (error.message || String(error)) : String(error);
+                let message: string;
+                if (error instanceof Error) {
+                    message = error.message ? error.message : String(error);
+                } else {
+                    message = String(error);
+                }
                 console.error(`✗ Lock status error:`, message);
                 process.exit(EXIT_CODES.GENERAL_ERROR);
             }

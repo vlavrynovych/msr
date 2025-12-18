@@ -11,6 +11,7 @@ import * as readline from 'node:readline';
  *
  * @param program - Commander program instance
  * @param createExecutor - Factory function to create MigrationScriptExecutor
+ * @param promptFunction - Optional function for user confirmation (for testing)
  *
  * @example
  * ```bash
@@ -23,7 +24,8 @@ import * as readline from 'node:readline';
  */
 export function addLockReleaseCommand<DB extends IDB>(
     program: Command,
-    createExecutor: () => MigrationScriptExecutor<DB>
+    createExecutor: () => MigrationScriptExecutor<DB>,
+    promptFunction: (question: string) => Promise<boolean> = askForConfirmation
 ): void {
     program
         .command('lock:release')
@@ -72,7 +74,7 @@ export function addLockReleaseCommand<DB extends IDB>(
                 console.log('\nOnly proceed if you are CERTAIN the migration process has crashed.\n');
 
                 // Ask for confirmation
-                const confirmed = await askForConfirmation('Are you sure you want to release this lock? (y/N): ');
+                const confirmed = await promptFunction('Are you sure you want to release this lock? (y/N): ');
 
                 if (!confirmed) {
                     console.log('\n✓ Operation cancelled');
@@ -87,7 +89,12 @@ export function addLockReleaseCommand<DB extends IDB>(
                 console.log('You can now run migrations again.\n');
                 process.exit(EXIT_CODES.SUCCESS);
             } catch (error) {
-                const message = error instanceof Error ? (error.message || String(error)) : String(error);
+                let message: string;
+                if (error instanceof Error) {
+                    message = error.message ? error.message : String(error);
+                } else {
+                    message = String(error);
+                }
                 console.error(`✗ Lock release error:`, message);
                 process.exit(EXIT_CODES.GENERAL_ERROR);
             }
@@ -98,13 +105,23 @@ export function addLockReleaseCommand<DB extends IDB>(
  * Ask user for confirmation via stdin.
  *
  * @param question - Question to ask
+ * @param input - Input stream (defaults to process.stdin)
+ * @param output - Output stream (defaults to process.stdout)
  * @returns Promise that resolves to true if user confirms (y/yes), false otherwise
  */
-function askForConfirmation(question: string): Promise<boolean> {
+export function askForConfirmation(
+    question: string,
+    input?: NodeJS.ReadableStream,
+    output?: NodeJS.WritableStream
+): Promise<boolean> {
+    // Handle defaults in function body for better testability
+    const actualInput = input || process.stdin;
+    const actualOutput = output || process.stdout;
+
     return new Promise((resolve) => {
         const rl = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout
+            input: actualInput,
+            output: actualOutput
         });
 
         rl.question(question, (answer) => {

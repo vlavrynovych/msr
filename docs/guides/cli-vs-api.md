@@ -529,16 +529,6 @@ export async function teardownTestDatabase() {
 
 ---
 
-## Related Documentation
-
-- [Production Deployment Guide](production-deployment) - Detailed production patterns
-- [CI/CD Integration](ci-cd-integration) - Pipeline examples
-- [Docker & Kubernetes](docker-kubernetes) - Container patterns
-- [CLI Adapter Development](cli-adapter-development) - Creating CLIs for adapters
-- [Environment Variables](environment-variables) - Configuration options
-
----
-
 ## FAQ
 
 ### Q: Can I use the API in production if I'm careful?
