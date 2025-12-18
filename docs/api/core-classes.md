@@ -106,6 +106,103 @@ The `MigrationScriptExecutor` provides high-level methods for migration operatio
 
 #### Methods
 
+##### getHandler()
+
+Get the database migration handler instance.
+
+{: .new }
+> **NEW in v0.8.1:** Provides external access to the handler for CLI operations and custom commands.
+
+```typescript
+executor.getHandler(): THandler
+```
+
+**Returns:** `THandler` - The database migration handler instance, fully typed according to the THandler generic parameter
+
+**Behavior:**
+- Returns the handler passed to the constructor
+- Preserves full type information through THandler generic
+- Enables CLI custom commands to access handler functionality
+- Allows external code to access handler properties and methods
+
+**Use Cases:**
+- CLI custom commands that need database operations
+- Accessing handler configuration or metadata
+- Type-safe handler access with THandler generic parameter
+- Custom integrations that need direct handler access
+
+**Example (Basic Handler Access):**
+```typescript
+const executor = new MigrationScriptExecutor({ handler, config });
+const h = executor.getHandler();
+
+console.log(`Database: ${h.getName()}`);
+console.log(`Version: ${h.getVersion()}`);
+```
+
+**Example (CLI Custom Commands):**
+```typescript
+import { createCLI } from '@migration-script-runner/core';
+
+const program = createCLI({
+  createExecutor: (config) => new MigrationScriptExecutor({ handler, config }),
+  extendCLI: (program, createExecutor) => {
+    program
+      .command('vacuum')
+      .description('Run VACUUM ANALYZE on database')
+      .action(async () => {
+        const executor = createExecutor();
+        const handler = executor.getHandler();
+
+        // Direct database operation
+        await handler.db.query('VACUUM ANALYZE');
+        console.log('✓ Vacuum completed');
+      });
+
+    program
+      .command('connection-info')
+      .description('Display database connection details')
+      .action(async () => {
+        const executor = createExecutor();
+        const handler = executor.getHandler();
+
+        console.log(`Database: ${handler.getName()}`);
+        console.log(`Version: ${handler.getVersion()}`);
+      });
+  }
+});
+```
+
+**Example (Type-Safe Adapter with THandler Generic):**
+```typescript
+// Define custom handler interface
+interface PostgresHandler extends IDatabaseMigrationHandler<IDB> {
+  pool: { totalCount: number; idleCount: number };
+  getConnectionInfo(): { host: string; port: number };
+}
+
+// Create adapter with THandler generic
+class PostgresAdapter extends MigrationScriptExecutor<IDB, PostgresHandler> {
+  displayPoolStats() {
+    // Internal: this.handler is typed as PostgresHandler
+    console.log(`Pool size: ${this.handler.pool.totalCount}`);
+  }
+}
+
+// External access is also type-safe
+const adapter = new PostgresAdapter({ handler: postgresHandler, config });
+const handler = adapter.getHandler();  // Typed as PostgresHandler!
+
+console.log(`Idle connections: ${handler.pool.idleCount}`);
+const info = handler.getConnectionInfo();  // ✓ Full type safety!
+console.log(`Connected to ${info.host}:${info.port}`);
+```
+
+{: .note }
+> Prior to v0.8.1, adapters needed custom `getHandler()` methods to expose the handler. This is now provided by the base class, removing the need for adapter-specific workarounds.
+
+---
+
 ##### migrate()
 
 Execute all pending migrations and return a structured result.

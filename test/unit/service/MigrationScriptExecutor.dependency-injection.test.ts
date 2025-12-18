@@ -410,6 +410,100 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
         });
     });
 
+    describe('getHandler() method', () => {
+        /**
+         * Test: getHandler() returns the handler instance
+         * Validates that the getHandler() public method returns the handler that was passed
+         * to the constructor, enabling external access to handler functionality.
+         */
+        it('should return the handler instance', () => {
+            const executor = new MigrationScriptExecutor<IDB>({
+                handler: handler,
+                logger: new SilentLogger(),
+                config: config
+            });
+
+            const retrievedHandler = executor.getHandler();
+
+            expect(retrievedHandler).to.equal(handler);
+            expect(retrievedHandler.getName()).to.equal('TestHandler');
+            expect(retrievedHandler.getVersion()).to.equal('1.0.0-test');
+        });
+
+        /**
+         * Test: getHandler() preserves handler type information
+         * Validates that the returned handler maintains all its properties and methods,
+         * enabling type-safe access to handler-specific functionality.
+         */
+        it('should preserve handler type information', () => {
+            const executor = new MigrationScriptExecutor<IDB>({
+                handler: handler,
+                logger: new SilentLogger(),
+                config: config
+            });
+
+            const retrievedHandler = executor.getHandler();
+
+            // Verify all handler properties are accessible
+            expect(retrievedHandler).to.have.property('db');
+            expect(retrievedHandler).to.have.property('schemaVersion');
+            expect(retrievedHandler.getName).to.be.a('function');
+            expect(retrievedHandler.getVersion).to.be.a('function');
+        });
+
+        /**
+         * Test: getHandler() works with custom handler types (THandler generic)
+         * Validates that when using the THandler generic parameter, getHandler() returns
+         * a properly typed handler that includes custom properties and methods.
+         */
+        it('should work with custom handler types using THandler generic', () => {
+            // Create custom handler interface with additional properties
+            interface CustomHandler extends IDatabaseMigrationHandler<IDB> {
+                customProperty: string;
+                customMethod(): string;
+            }
+
+            const customHandler: CustomHandler = {
+                ...handler,
+                customProperty: 'custom-value',
+                customMethod: () => 'custom-result'
+            };
+
+            // Create executor with THandler generic
+            class CustomExecutor extends MigrationScriptExecutor<IDB, CustomHandler> {}
+
+            const executor = new CustomExecutor({
+                handler: customHandler,
+                logger: new SilentLogger(),
+                config: config
+            });
+
+            const retrievedHandler = executor.getHandler();
+
+            // Verify custom properties are accessible (TypeScript would catch type errors at compile time)
+            expect(retrievedHandler.customProperty).to.equal('custom-value');
+            expect(retrievedHandler.customMethod()).to.equal('custom-result');
+            expect(retrievedHandler.getName()).to.equal('TestHandler');
+        });
+
+        /**
+         * Test: getHandler() is a public method accessible externally
+         * Validates that getHandler() can be called from external code (not just internally),
+         * enabling CLI commands and external integrations to access the handler.
+         */
+        it('should be accessible as a public method', () => {
+            const executor = new MigrationScriptExecutor<IDB>({
+                handler: handler,
+                logger: new SilentLogger(),
+                config: config
+            });
+
+            // Verify method exists and is callable
+            expect(executor.getHandler).to.be.a('function');
+            expect(executor.getHandler()).to.exist;
+        });
+    });
+
     describe('Banner display control', () => {
         /**
          * Test: Banner is displayed by default (showBanner: true)
