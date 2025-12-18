@@ -264,6 +264,71 @@ export class MigrationScriptExecutor<
     }
 
     /**
+     * Get the database migration handler.
+     *
+     * Provides access to the handler for CLI operations, custom commands,
+     * and adapter-specific functionality. The returned handler is fully typed
+     * according to the THandler generic parameter.
+     *
+     * @returns The database migration handler
+     * @since v0.8.1
+     *
+     * @example
+     * ```typescript
+     * // Basic usage - access handler properties
+     * const executor = new MigrationScriptExecutor({ handler });
+     * const h = executor.getHandler();
+     * console.log(`${h.getName()} v${h.getVersion()}`);
+     * ```
+     *
+     * @example
+     * ```typescript
+     * // CLI custom commands - database operations
+     * import { createCLI } from '@migration-script-runner/core';
+     *
+     * const program = createCLI({
+     *   createExecutor: (config) => new MigrationScriptExecutor({ handler, config }),
+     *   extendCLI: (program, createExecutor) => {
+     *     program
+     *       .command('vacuum')
+     *       .description('Run VACUUM ANALYZE')
+     *       .action(async () => {
+     *         const executor = createExecutor();
+     *         const handler = executor.getHandler();
+     *         await handler.db.query('VACUUM ANALYZE');
+     *         console.log('✓ Vacuum completed');
+     *       });
+     *   }
+     * });
+     * ```
+     *
+     * @example
+     * ```typescript
+     * // Type-safe handler access with THandler generic
+     * interface PostgresHandler extends IDatabaseMigrationHandler<IDB> {
+     *   pool: { totalCount: number; idleCount: number };
+     *   getConnectionInfo(): { host: string; port: number };
+     * }
+     *
+     * class PostgresAdapter extends MigrationScriptExecutor<IDB, PostgresHandler> {
+     *   displayPoolStats() {
+     *     // this.handler is typed as PostgresHandler (internal use)
+     *     console.log(`Pool size: ${this.handler.pool.totalCount}`);
+     *   }
+     * }
+     *
+     * // External access also type-safe
+     * const adapter = new PostgresAdapter({ handler: postgresHandler });
+     * const handler = adapter.getHandler();  // Typed as PostgresHandler!
+     * console.log(`Idle connections: ${handler.pool.idleCount}`);
+     * const info = handler.getConnectionInfo();  // ✓ Type-safe!
+     * ```
+     */
+    public getHandler(): THandler {
+        return this.handler;
+    }
+
+    /**
      * Alias for up() method - executes database migrations.
      *
      * Provided for convenience and clarity. Delegates to up() method.
