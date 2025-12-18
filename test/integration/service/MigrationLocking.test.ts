@@ -262,10 +262,10 @@ describe('Migration Locking Mechanism', () => {
                 /Failed to acquire migration lock after 1 attempt/
             );
 
-            // Should attempt once, no verify, but getLockStatus called
+            // Should attempt once, no verify, getLockStatus called twice (orchestrator + error message)
             expect(lockAcquireCalls).to.have.lengthOf(1);
             expect(lockVerifyCalls).to.have.lengthOf(0);
-            expect(lockStatusCalls).to.equal(1);
+            expect(lockStatusCalls).to.equal(2);
         });
 
         it('should retry lock acquisition based on config', async () => {

@@ -19,6 +19,7 @@ import {MigrationScriptSelector} from "./MigrationScriptSelector";
 import {ITransactionManager} from "../interface/service/ITransactionManager";
 import {IDatabaseMigrationHandler} from "../interface/IDatabaseMigrationHandler";
 import {IMigrationService} from "../interface/service/IMigrationService";
+import {LockingOrchestrator} from "./LockingOrchestrator";
 import {randomUUID} from "node:crypto";
 import {hostname} from "node:os";
 
@@ -162,6 +163,7 @@ export class MigrationWorkflowOrchestrator<DB extends IDB> implements IMigration
     private readonly hooks?: IMigrationHooks<DB>;
     private readonly handler: IDatabaseMigrationHandler<DB>;
     private readonly migrationService: IMigrationService<DB>;
+    private readonly lockingOrchestrator?: LockingOrchestrator<DB>;
 
     constructor(dependencies: MigrationWorkflowOrchestratorDependencies<DB>) {
         this.migrationScanner = dependencies.migrationScanner;
@@ -180,6 +182,16 @@ export class MigrationWorkflowOrchestrator<DB extends IDB> implements IMigration
         this.hooks = dependencies.hooks;
         this.handler = dependencies.handler;
         this.migrationService = dependencies.migrationService;
+
+        // Create locking orchestrator if handler provides locking service
+        if (dependencies.handler.lockingService) {
+            this.lockingOrchestrator = new LockingOrchestrator(
+                dependencies.handler.lockingService,
+                dependencies.config.locking,
+                dependencies.logger
+                // TODO: Add ILockingHooks support - currently IMigrationHooks doesn't include locking hooks
+            );
+        }
     }
 
     /**
@@ -253,10 +265,11 @@ export class MigrationWorkflowOrchestrator<DB extends IDB> implements IMigration
     /**
      * Acquire migration lock with retry logic.
      *
-     * Implements two-phase locking:
+     * Delegates to LockingOrchestrator which implements:
      * 1. Clean up expired locks
      * 2. Attempt to acquire lock (with retries if configured)
-     * 3. Verify ownership of acquired lock
+     * 3. Verify ownership of acquired lock (two-phase locking)
+     * 4. Invoke hooks for observability
      *
      * @private
      * @param executorId - Unique identifier for this executor
@@ -264,8 +277,7 @@ export class MigrationWorkflowOrchestrator<DB extends IDB> implements IMigration
      * @throws Error if lock acquisition fails or ownership verification fails
      */
     private async acquireLockWithRetries(executorId: string): Promise<void> {
-        const lockingService = this.handler.lockingService;
-        if (!lockingService) {
+        if (!this.lockingOrchestrator) {
             return; // Locking not configured
         }
 
@@ -274,61 +286,31 @@ export class MigrationWorkflowOrchestrator<DB extends IDB> implements IMigration
             return;
         }
 
-        // Step 1: Clean up expired locks
-        this.logger.debug('Cleaning up expired locks...');
-        await lockingService.checkAndReleaseExpiredLock();
+        // Clean up expired locks before attempting acquisition
+        await this.lockingOrchestrator.checkAndReleaseExpiredLock();
 
-        // Step 2: Acquire lock with retries
-        const maxAttempts = this.config.locking.retryAttempts + 1; // +1 for initial attempt
-        let attempts = 0;
+        // Attempt to acquire lock (orchestrator handles retry logic and hooks)
+        const acquired = await this.lockingOrchestrator.acquireLock(executorId);
 
-        while (attempts < maxAttempts) {
-            attempts++;
-            this.logger.debug(`Attempting to acquire lock (attempt ${attempts}/${maxAttempts})...`);
+        if (!acquired) {
+            // Get current lock status for error message
+            const status = await this.lockingOrchestrator.getLockStatus();
+            const lockInfo = status?.isLocked
+                ? `currently held by: ${status.lockedBy}${status.expiresAt ? ` (expires: ${status.expiresAt.toISOString()})` : ''}`
+                : 'lock status unknown';
 
-            const acquired = await lockingService.acquireLock(executorId);
-
-            if (acquired) {
-                // Step 3: Verify ownership (two-phase verification)
-                this.logger.debug('Lock acquired, verifying ownership...');
-                const verified = await lockingService.verifyLockOwnership(executorId);
-
-                if (verified) {
-                    this.logger.info(`Migration lock acquired successfully (executor: ${executorId})`);
-                    return;
-                } else {
-                    throw new Error(
-                        `Lock ownership verification failed. Lock was acquired but is no longer owned by this executor. ` +
-                        `This may indicate a race condition or clock skew between servers.`
-                    );
-                }
-            }
-
-            // Lock not acquired
-            if (attempts < maxAttempts) {
-                this.logger.debug(
-                    `Lock already held by another executor, waiting ${this.config.locking.retryDelay}ms before retry...`
-                );
-                await this.sleep(this.config.locking.retryDelay);
-            }
+            throw new Error(
+                `Failed to acquire migration lock after ${this.config.locking.retryAttempts + 1} attempt(s). ` +
+                `Another migration is likely running (${lockInfo}). ` +
+                `If you believe this is a stale lock, use: msr lock:release --force`
+            );
         }
-
-        // All attempts exhausted
-        const status = await lockingService.getLockStatus();
-        const lockInfo = status?.isLocked
-            ? `currently held by: ${status.lockedBy}${status.expiresAt ? ` (expires: ${status.expiresAt.toISOString()})` : ''}`
-            : 'lock status unknown';
-
-        throw new Error(
-            `Failed to acquire migration lock after ${maxAttempts} attempt(s). ` +
-            `Another migration is likely running (${lockInfo}). ` +
-            `If you believe this is a stale lock, use: msr lock:release --force`
-        );
     }
 
     /**
      * Release migration lock.
      *
+     * Delegates to LockingOrchestrator for consistent lock release with hooks.
      * Safe to call even if lock was never acquired.
      * Logs errors but doesn't throw to ensure cleanup can continue.
      *
@@ -336,8 +318,7 @@ export class MigrationWorkflowOrchestrator<DB extends IDB> implements IMigration
      * @param executorId - Unique identifier for this executor
      */
     private async releaseLock(executorId: string): Promise<void> {
-        const lockingService = this.handler.lockingService;
-        if (!lockingService) {
+        if (!this.lockingOrchestrator) {
             return; // Locking not configured
         }
 
@@ -346,23 +327,11 @@ export class MigrationWorkflowOrchestrator<DB extends IDB> implements IMigration
         }
 
         try {
-            this.logger.debug(`Releasing migration lock (executor: ${executorId})...`);
-            await lockingService.releaseLock(executorId);
-            this.logger.info('Migration lock released successfully');
+            await this.lockingOrchestrator.releaseLock(executorId);
         } catch (error) {
             // Log but don't throw - we don't want lock release failure to mask original error
             this.logger.warn(`Failed to release migration lock: ${error}`);
         }
-    }
-
-    /**
-     * Sleep for specified milliseconds.
-     *
-     * @private
-     * @param ms - Milliseconds to sleep
-     */
-    private sleep(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     /**
