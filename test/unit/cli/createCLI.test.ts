@@ -86,12 +86,12 @@ describe('createCLI', () => {
         });
 
         /**
-         * Test: Registers exactly 5 base commands
+         * Test: Registers exactly 7 base commands
          * Validates that no extra commands are added
          */
-        it('should register exactly 5 base commands', () => {
+        it('should register exactly 7 base commands', () => {
             const program = createCLI({createExecutor: createExecutorStub});
-            expect(program.commands.length).to.equal(5);
+            expect(program.commands.length).to.equal(7);
         });
 
         /**
@@ -108,7 +108,7 @@ describe('createCLI', () => {
 
             const commands = program.commands.map(cmd => cmd.name());
             expect(commands).to.include('custom');
-            expect(program.commands.length).to.equal(6);
+            expect(program.commands.length).to.equal(8);
         });
     });
 
