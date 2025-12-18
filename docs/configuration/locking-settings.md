@@ -364,10 +364,134 @@ class MyLockingService implements ILockingService<MyDB> {
   async checkAndReleaseExpiredLock(): Promise<void> {
     // Clean up locks past their timeout
   }
+
+  // NEW in v0.8.1: Required initialization methods
+  async initLockStorage(): Promise<void> {
+    // Create lock storage (tables, indexes, paths)
+    // Example: CREATE TABLE IF NOT EXISTS migration_locks (...)
+    // Throws on setup failures for fail-fast behavior
+  }
+
+  async ensureLockStorageAccessible(): Promise<boolean> {
+    // Pre-flight check for storage accessibility
+    // Returns true if accessible, false otherwise
+    // Example: SELECT 1 FROM migration_locks LIMIT 1
+  }
 }
 
 // Add to handler
 handler.lockingService = new MyLockingService(handler.db);
+```
+
+{: .new }
+> **NEW in v0.8.1:** The required `initLockStorage()` and `ensureLockStorageAccessible()` methods enable explicit lock storage setup and pre-flight validation. See examples below.
+
+### Initialization Methods (v0.8.1+)
+
+**Required lifecycle methods for explicit storage setup and validation.**
+
+#### initLockStorage()
+
+Creates lock storage structures (tables, collections, paths) before first use.
+
+**When to Implement:**
+- Database adapters requiring table/collection creation
+- Adapters needing indexes or constraints
+- File-based or cloud storage requiring path setup
+
+**Benefits:**
+- ✅ Fail-fast: Errors during setup, not during first lock
+- ✅ Explicit: Clear when storage is initialized
+- ✅ Testable: Can test setup separately from lock operations
+
+**Example (PostgreSQL):**
+```typescript
+class PostgresLockingService implements ILockingService<IPostgresDB> {
+  async initLockStorage(): Promise<void> {
+    await this.db.query(`
+      CREATE TABLE IF NOT EXISTS migration_locks (
+        id SERIAL PRIMARY KEY,
+        executor_id VARCHAR(255) UNIQUE NOT NULL,
+        locked_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        expires_at TIMESTAMP NOT NULL
+      )
+    `);
+
+    // Create index for expired lock cleanup
+    await this.db.query(`
+      CREATE INDEX IF NOT EXISTS idx_migration_locks_expires_at
+      ON migration_locks(expires_at)
+    `);
+  }
+}
+```
+
+**Example (MongoDB):**
+```typescript
+class MongoLockingService implements ILockingService<IMongoDBInterface> {
+  async initLockStorage(): Promise<void> {
+    const db = this.db.client.db();
+
+    // Create collection if needed
+    const collections = await db.listCollections({ name: 'migration_locks' }).toArray();
+    if (collections.length === 0) {
+      await db.createCollection('migration_locks');
+    }
+
+    // Create unique index on executor_id
+    await db.collection('migration_locks').createIndex(
+      { executor_id: 1 },
+      { unique: true }
+    );
+  }
+}
+```
+
+#### ensureLockStorageAccessible()
+
+Verifies lock storage is accessible before attempting lock operations.
+
+**When to Implement:**
+- Pre-deployment validation in CI/CD
+- Remote storage with network connectivity checks
+- Permission validation
+
+**Benefits:**
+- ✅ Early detection of configuration issues
+- ✅ Clear error messages before migrations start
+- ✅ CI/CD validation without running migrations
+
+**Example:**
+```typescript
+class PostgresLockingService implements ILockingService<IPostgresDB> {
+  async ensureLockStorageAccessible(): Promise<boolean> {
+    try {
+      await this.db.query('SELECT 1 FROM migration_locks LIMIT 1');
+      return true;
+    } catch (error) {
+      // Table doesn't exist or no permissions
+      return false;
+    }
+  }
+}
+```
+
+**Usage in Handler:**
+```typescript
+class MyHandler implements IDatabaseMigrationHandler<IDB> {
+  async initialize(): Promise<void> {
+    // Initialize lock storage
+    if (this.lockingService) {
+      await this.lockingService.initLockStorage();
+
+      // Verify storage is accessible
+      const accessible = await this.lockingService.ensureLockStorageAccessible();
+      if (!accessible) {
+        throw new Error('Lock storage not accessible. Check permissions and run initLockStorage().');
+      }
+    }
+  }
+}
 ```
 
 See adapter-specific documentation for implementation examples.

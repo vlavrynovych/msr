@@ -42,6 +42,8 @@ describe('MigrationScriptExecutor - Lock Management Methods', () => {
             };
 
             const lockingService: ILockingService<IDB> = {
+                initLockStorage: async () => {},
+                ensureLockStorageAccessible: async () => true,
                 acquireLock: async () => true,
                 releaseLock: async () => {},
                 verifyLockOwnership: async () => true,
@@ -84,6 +86,8 @@ describe('MigrationScriptExecutor - Lock Management Methods', () => {
             };
 
             const lockingService: ILockingService<IDB> = {
+                initLockStorage: async () => {},
+                ensureLockStorageAccessible: async () => true,
                 acquireLock: async () => true,
                 releaseLock: async () => {},
                 verifyLockOwnership: async () => true,
@@ -153,6 +157,8 @@ describe('MigrationScriptExecutor - Lock Management Methods', () => {
             let forceReleaseWasCalled = false;
 
             const lockingService: ILockingService<IDB> = {
+                initLockStorage: async () => {},
+                ensureLockStorageAccessible: async () => true,
                 acquireLock: async () => true,
                 releaseLock: async () => {},
                 verifyLockOwnership: async () => true,
@@ -189,6 +195,8 @@ describe('MigrationScriptExecutor - Lock Management Methods', () => {
 
         it('should propagate errors from locking service', async () => {
             const lockingService: ILockingService<IDB> = {
+                initLockStorage: async () => {},
+                ensureLockStorageAccessible: async () => true,
                 acquireLock: async () => true,
                 releaseLock: async () => {},
                 verifyLockOwnership: async () => true,

@@ -31,6 +31,15 @@ describe('Migration Locking Mechanism', () => {
         public shouldFailAcquire = false;
         public shouldFailVerify = false;
         public failAcquireAttempts = 0; // Fail first N attempts, then succeed
+        private storageInitialized = true; // Default to initialized for backwards compat tests
+
+        async initLockStorage(): Promise<void> {
+            this.storageInitialized = true;
+        }
+
+        async ensureLockStorageAccessible(): Promise<boolean> {
+            return this.storageInitialized;
+        }
 
         async acquireLock(executorId: string): Promise<boolean> {
             lockAcquireCalls.push(executorId);
@@ -587,6 +596,157 @@ describe('Migration Locking Mechanism', () => {
                 // Should not crash when expiresAt is null
                 expect(errorMsg).to.not.include('undefined');
             }
+        });
+    });
+
+    describe('Initialization Methods (v0.8.1)', () => {
+        /**
+         * Test: Locking service must implement initialization methods
+         * Verifies that all locking services implement required methods.
+         */
+        it('should have initLockStorage and ensureLockStorageAccessible methods', async () => {
+            const lockingService = new MockLockingService();
+
+            expect(lockingService.initLockStorage).to.be.a('function');
+            expect(lockingService.ensureLockStorageAccessible).to.be.a('function');
+        });
+
+        /**
+         * Test: initLockStorage can be called
+         * Verifies that initLockStorage method can be invoked.
+         */
+        it('should call initLockStorage', async () => {
+            let initCalled = false;
+
+            class LockingServiceWithInit extends MockLockingService {
+                async initLockStorage(): Promise<void> {
+                    initCalled = true;
+                    await super.initLockStorage();
+                }
+            }
+
+            const lockingService = new LockingServiceWithInit();
+
+            await lockingService.initLockStorage();
+
+            expect(initCalled).to.be.true;
+        });
+
+        /**
+         * Test: ensureLockStorageAccessible returns true when storage is accessible
+         * Verifies the pre-flight check functionality.
+         */
+        it('should return true from ensureLockStorageAccessible when storage is accessible', async () => {
+            class LockingServiceWithAccessCheck extends MockLockingService {
+                async ensureLockStorageAccessible(): Promise<boolean> {
+                    return true;
+                }
+            }
+
+            const lockingService = new LockingServiceWithAccessCheck();
+
+            const accessible = await lockingService.ensureLockStorageAccessible();
+            expect(accessible).to.be.true;
+        });
+
+        /**
+         * Test: ensureLockStorageAccessible returns false when storage is not accessible
+         * Verifies the check can detect inaccessible storage.
+         */
+        it('should return false from ensureLockStorageAccessible when storage is not accessible', async () => {
+            class LockingServiceWithFailedCheck extends MockLockingService {
+                async ensureLockStorageAccessible(): Promise<boolean> {
+                    return false;
+                }
+            }
+
+            const lockingService = new LockingServiceWithFailedCheck();
+
+            const accessible = await lockingService.ensureLockStorageAccessible();
+            expect(accessible).to.be.false;
+        });
+
+        /**
+         * Test: initLockStorage throws error on setup failure
+         * Verifies that initialization errors are propagated correctly.
+         */
+        it('should throw error from initLockStorage when setup fails', async () => {
+            class LockingServiceWithFailedInit extends MockLockingService {
+                async initLockStorage(): Promise<void> {
+                    throw new Error('Failed to create lock table: permission denied');
+                }
+            }
+
+            const lockingService = new LockingServiceWithFailedInit();
+
+            await expect(
+                lockingService.initLockStorage()
+            ).to.be.rejectedWith('Failed to create lock table: permission denied');
+        });
+
+        /**
+         * Test: initLockStorage is idempotent
+         * Verifies that calling initLockStorage multiple times is safe.
+         */
+        it('should allow initLockStorage to be called multiple times (idempotent)', async () => {
+            let callCount = 0;
+
+            class IdempotentLockingService extends MockLockingService {
+                async initLockStorage(): Promise<void> {
+                    callCount++;
+                    await super.initLockStorage();
+                    // Simulate CREATE TABLE IF NOT EXISTS behavior - safe to call multiple times
+                }
+            }
+
+            const lockingService = new IdempotentLockingService();
+
+            await lockingService.initLockStorage();
+            await lockingService.initLockStorage();
+            await lockingService.initLockStorage();
+
+            expect(callCount).to.equal(3);
+            // Should not throw error on multiple calls
+        });
+
+        /**
+         * Test: Both initialization methods work together
+         * Verifies the typical initialization workflow: init then check.
+         */
+        it('should work with both initialization methods', async () => {
+            let initCalled = false;
+            let checkCalled = false;
+
+            class FullyInitializableLockingService extends MockLockingService {
+                private initialized = false;
+
+                async initLockStorage(): Promise<void> {
+                    initCalled = true;
+                    this.initialized = true;
+                    // Simulate creating lock storage
+                }
+
+                async ensureLockStorageAccessible(): Promise<boolean> {
+                    checkCalled = true;
+                    // Return true only if init was called
+                    return this.initialized;
+                }
+            }
+
+            const lockingService = new FullyInitializableLockingService();
+
+            // Check before init - should return false
+            let accessible = await lockingService.ensureLockStorageAccessible();
+            expect(accessible).to.be.false;
+            expect(checkCalled).to.be.true;
+
+            // Initialize
+            await lockingService.initLockStorage();
+            expect(initCalled).to.be.true;
+
+            // Check after init - should return true
+            accessible = await lockingService.ensureLockStorageAccessible();
+            expect(accessible).to.be.true;
         });
     });
 });
