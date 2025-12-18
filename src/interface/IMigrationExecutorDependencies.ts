@@ -11,8 +11,10 @@ import {IConfigLoader} from "./IConfigLoader";
  *
  * **Generic Type Parameters:**
  * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ * - `THandler` - Your specific handler type extending IDatabaseMigrationHandler<DB> (OPTIONAL, v0.8.0)
  *
  * @template DB - Database interface type
+ * @template THandler - Handler interface type (defaults to IDatabaseMigrationHandler<DB>)
  *
  * **New in v0.7.0:**
  * - Extends IExecutorOptions for better adapter ergonomics
@@ -64,15 +66,20 @@ import {IConfigLoader} from "./IConfigLoader";
  * });
  * ```
  */
-export interface IMigrationExecutorDependencies<DB extends IDB> extends IExecutorOptions<DB> {
+export interface IMigrationExecutorDependencies<
+    DB extends IDB,
+    THandler extends IDatabaseMigrationHandler<DB> = IDatabaseMigrationHandler<DB>
+> extends IExecutorOptions<DB> {
     /**
      * Database migration handler (REQUIRED).
      * Implements database-specific operations for migrations.
      *
+     * **New in v0.8.0:** Can be typed with specific handler type using THandler generic parameter.
      * **New in v0.6.0:** Moved from constructor parameter to dependencies object.
      *
      * @example
      * ```typescript
+     * // Basic usage - handler type inferred
      * const handler: IDatabaseMigrationHandler<IDB> = {
      *     db: myDB,
      *     schemaVersion: mySchemaVersion,
@@ -82,9 +89,14 @@ export interface IMigrationExecutorDependencies<DB extends IDB> extends IExecuto
      * };
      *
      * const executor = new MigrationScriptExecutor<IDB>({ handler });
+     *
+     * // v0.8.0: Specify handler type for better type safety in adapters
+     * class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler> {
+     *     // this.handler is now typed as MyHandler instead of IDatabaseMigrationHandler<IDB>
+     * }
      * ```
      */
-    handler: IDatabaseMigrationHandler<DB>;
+    handler: THandler;
 
     /**
      * Config loader for loading and processing configuration (v0.7.0).
