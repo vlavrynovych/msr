@@ -24,7 +24,7 @@ import {IDB} from '../../interface';
  */
 export function addDownCommand<DB extends IDB>(
     program: Command,
-    createExecutor: () => MigrationScriptExecutor<DB>
+    createExecutor: () => Promise<MigrationScriptExecutor<DB>>
 ): void {
     program
         .command('down <targetVersion>')
@@ -32,7 +32,7 @@ export function addDownCommand<DB extends IDB>(
         .description('Roll back migrations to target version')
         .action(async (targetVersion: string) => {
             try {
-                const executor = createExecutor();
+                const executor = await createExecutor();
                 const target = parseInt(targetVersion, 10);
 
                 if (isNaN(target)) {

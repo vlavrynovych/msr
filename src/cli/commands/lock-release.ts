@@ -24,7 +24,7 @@ import * as readline from 'node:readline';
  */
 export function addLockReleaseCommand<DB extends IDB>(
     program: Command,
-    createExecutor: () => MigrationScriptExecutor<DB>,
+    createExecutor: () => Promise<MigrationScriptExecutor<DB>>,
     promptFunction: (question: string) => Promise<boolean> = askForConfirmation
 ): void {
     program
@@ -43,7 +43,7 @@ export function addLockReleaseCommand<DB extends IDB>(
                     return;
                 }
 
-                const executor = createExecutor();
+                const executor = await createExecutor();
                 const status = await executor.getLockStatus();
 
                 if (!status) {

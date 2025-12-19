@@ -9,7 +9,7 @@ import {IDB} from '../../interface';
  * Lists all migrations with their execution status.
  *
  * @param program - Commander program instance
- * @param createExecutor - Factory function to create MigrationScriptExecutor
+ * @param createExecutor - Factory function to create MigrationScriptExecutor (returns Promise in v0.8.2+)
  *
  * @example
  * ```bash
@@ -26,7 +26,7 @@ import {IDB} from '../../interface';
  */
 export function addListCommand<DB extends IDB>(
     program: Command,
-    createExecutor: () => MigrationScriptExecutor<DB>
+    createExecutor: () => Promise<MigrationScriptExecutor<DB>>
 ): void {
     program
         .command('list')
@@ -34,7 +34,7 @@ export function addListCommand<DB extends IDB>(
         .option('-n, --number <count>', 'Number of migrations to display (0=all)', '0')
         .action(async (options: { number: string }) => {
             try {
-                const executor = createExecutor();
+                const executor = await createExecutor();
                 const count = parseInt(options.number, 10);
 
                 if (isNaN(count) || count < 0) {

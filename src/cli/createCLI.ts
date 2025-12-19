@@ -28,18 +28,31 @@ export interface CLIOptions<DB extends IDB, TExecutor extends MigrationScriptExe
      * Receives the final merged Config (defaults → file → env vars → CLI flags)
      * and should return an instance of MigrationScriptExecutor or adapter that extends it.
      *
+     * **NEW in v0.8.2:** Supports both synchronous and asynchronous executor creation.
+     * Use async when your database adapter requires async initialization (connections, auth, etc).
+     *
      * @param config - Final merged configuration with CLI flags applied
-     * @returns MigrationScriptExecutor instance or adapter extending it
+     * @returns MigrationScriptExecutor instance (or Promise) or adapter extending it
      *
      * @example
      * ```typescript
+     * // Synchronous executor (backward compatible)
      * createExecutor: (config) => {
      *   const handler = new MongoHandler(config.mongoUri);
      *   return new MongoAdapter({ handler, config });
      * }
      * ```
+     *
+     * @example
+     * ```typescript
+     * // Asynchronous executor (NEW in v0.8.2)
+     * createExecutor: async (config) => {
+     *   const handler = await FirebaseHandler.getInstance(config);
+     *   return new FirebaseAdapter({ handler, config });
+     * }
+     * ```
      */
-    createExecutor: (config: Config) => TExecutor;
+    createExecutor: (config: Config) => TExecutor | Promise<TExecutor>;
 
     /**
      * CLI metadata (optional).
@@ -66,8 +79,10 @@ export interface CLIOptions<DB extends IDB, TExecutor extends MigrationScriptExe
      * Called after base commands are registered but before program is returned.
      * Use this to add adapter-specific commands that call custom methods on your adapter.
      *
+     * **NEW in v0.8.2:** createExecutor returns Promise to support async initialization.
+     *
      * @param program - Commander program to extend with custom commands
-     * @param createExecutor - Factory function that creates your adapter with merged config
+     * @param createExecutor - Factory function that creates your adapter with merged config (returns Promise)
      *
      * @example
      * ```typescript
@@ -76,7 +91,7 @@ export interface CLIOptions<DB extends IDB, TExecutor extends MigrationScriptExe
      *     .command('vacuum')
      *     .description('Run VACUUM ANALYZE on PostgreSQL database')
      *     .action(async () => {
-     *       const adapter = createExecutor(); // Typed as PostgresAdapter
+     *       const adapter = await createExecutor(); // NEW: await required
      *       await adapter.vacuum(); // Custom method on adapter
      *       console.log('✓ Vacuum completed');
      *       process.exit(0);
@@ -84,7 +99,7 @@ export interface CLIOptions<DB extends IDB, TExecutor extends MigrationScriptExe
      * }
      * ```
      */
-    extendCLI?: (program: Command, createExecutor: () => TExecutor) => void;
+    extendCLI?: (program: Command, createExecutor: () => Promise<TExecutor>) => void;
 }
 
 /**
@@ -184,7 +199,7 @@ export function createCLI<DB extends IDB, TExecutor extends MigrationScriptExecu
         .option('--format <format>', 'Output format (table|json)');
 
     // Factory function to create executor based on parsed CLI flags
-    const createExecutorWithFlags = (): TExecutor => {
+    const createExecutorWithFlags = async (): Promise<TExecutor> => {
         const opts = program.opts<CLIFlags>();
 
         // 1. Load base config using waterfall (defaults → file → env vars)
@@ -201,8 +216,11 @@ export function createCLI<DB extends IDB, TExecutor extends MigrationScriptExecu
         // 3. Map CLI flags to config (highest priority)
         const logger = mapFlagsToConfig(config, opts);
 
-        // 4. Call adapter's factory function with final merged config
-        const executor = options.createExecutor(config);
+        // 4. Call adapter's factory function with final merged config (supports both sync and async)
+        const executorOrPromise = options.createExecutor(config);
+        const executor = executorOrPromise instanceof Promise
+            ? await executorOrPromise
+            : executorOrPromise;
 
         // 5. If logger was created from CLI flags, override executor's logger
         if (logger) {

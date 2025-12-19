@@ -9,7 +9,7 @@ import {IDB} from '../../interface';
  * Executes pending database migrations. Can optionally target a specific version.
  *
  * @param program - Commander program instance
- * @param createExecutor - Factory function to create MigrationScriptExecutor
+ * @param createExecutor - Factory function to create MigrationScriptExecutor (returns Promise in v0.8.2+)
  *
  * @example
  * ```bash
@@ -25,7 +25,7 @@ import {IDB} from '../../interface';
  */
 export function addMigrateCommand<DB extends IDB>(
     program: Command,
-    createExecutor: () => MigrationScriptExecutor<DB>
+    createExecutor: () => Promise<MigrationScriptExecutor<DB>>
 ): void {
     program
         .command('migrate [targetVersion]')
@@ -33,7 +33,7 @@ export function addMigrateCommand<DB extends IDB>(
         .description('Run pending migrations')
         .action(async (targetVersion?: string) => {
             try {
-                const executor = createExecutor();
+                const executor = await createExecutor();
                 const target = targetVersion ? parseInt(targetVersion, 10) : undefined;
 
                 if (targetVersion && isNaN(target!)) {

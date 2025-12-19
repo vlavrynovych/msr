@@ -423,7 +423,7 @@ describe('createCLI', () => {
                         .command('custom')
                         .description('Custom command')
                         .action(async () => {
-                            const executor = createExec();
+                            const executor = await createExec();
                             customActionSpy(executor);
                         });
                 }
@@ -463,9 +463,9 @@ describe('createCLI', () => {
                 extendCLI: (prog, createExec) => {
                     prog
                         .command('custom-typed')
-                        .action(() => {
+                        .action(async () => {
                             // TypeScript should infer this as CustomAdapter
-                            const adapter = createExec();
+                            const adapter = await createExec();
                             capturedExecutor = adapter;
                         });
                 }
@@ -508,8 +508,8 @@ describe('createCLI', () => {
                 extendCLI: (prog, createExec) => {
                     prog
                         .command('test-config')
-                        .action(() => {
-                            createExec();
+                        .action(async () => {
+                            await createExec();
                         });
                 }
             });
@@ -520,6 +520,64 @@ describe('createCLI', () => {
 
             expect(executorConfig).to.exist;
             expect(executorConfig!.folder).to.equal('./override-folder');
+        });
+    });
+
+    describe('Async executor support (v0.8.2)', () => {
+        /**
+         * Test: synchronous executor (backward compatibility)
+         * Tests the instanceof Promise === false branch
+         */
+        it('should handle synchronous executor creation', async () => {
+            mockExecutor.validate.resolves({pending: [], migrated: []});
+
+            // Return executor directly (not a Promise)
+            const syncStub = sinon.stub().returns(mockExecutor);
+
+            // Stub process.exit to prevent test hanging
+            const exitStub = sinon.stub(process, 'exit');
+
+            try {
+                const program = createCLI({
+                    createExecutor: syncStub
+                });
+
+                program.exitOverride();
+
+                await program.parseAsync(['node', 'test', 'validate']);
+
+                expect(syncStub.calledOnce).to.be.true;
+            } finally {
+                exitStub.restore();
+            }
+        });
+
+        /**
+         * Test: asynchronous executor (new in v0.8.2)
+         * Tests the instanceof Promise === true branch
+         */
+        it('should handle asynchronous executor creation', async () => {
+            mockExecutor.validate.resolves({pending: [], migrated: []});
+
+            // Return a Promise
+            const asyncStub = sinon.stub().returns(Promise.resolve(mockExecutor));
+
+            // Stub process.exit to prevent test hanging
+            const exitStub = sinon.stub(process, 'exit');
+
+            try {
+                const program = createCLI({
+                    createExecutor: asyncStub
+                });
+
+                program.exitOverride();
+
+                await program.parseAsync(['node', 'test', 'validate']);
+
+                expect(asyncStub.calledOnce).to.be.true;
+            } finally {
+                exitStub.restore();
+            }
         });
     });
 });
