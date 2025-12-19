@@ -2,6 +2,7 @@ import {IDatabaseMigrationHandler} from "./IDatabaseMigrationHandler";
 import {IDB} from "./dao";
 import {IExecutorOptions} from "./IExecutorOptions";
 import {IConfigLoader} from "./IConfigLoader";
+import {Config} from "../model";
 
 /**
  * Dependencies for MigrationScriptExecutor.
@@ -11,10 +12,17 @@ import {IConfigLoader} from "./IConfigLoader";
  *
  * **Generic Type Parameters:**
  * - `DB` - Your specific database interface extending IDB (REQUIRED)
- * - `THandler` - Your specific handler type extending IDatabaseMigrationHandler<DB> (OPTIONAL, v0.8.0)
+ * - `THandler` - Your specific handler type extending IDatabaseMigrationHandler<DB> (OPTIONAL, v0.8.0, defaults to IDatabaseMigrationHandler<DB>)
+ * - `TConfig` - Your specific config type extending Config (OPTIONAL, v0.8.2, defaults to Config)
  *
  * @template DB - Database interface type
  * @template THandler - Handler interface type (defaults to IDatabaseMigrationHandler<DB>)
+ * @template TConfig - Config type (defaults to base Config class)
+ *
+ * **New in v0.8.2:**
+ * - Added TConfig generic parameter for custom config types
+ * - Enables adapters to properly type database-specific config properties
+ * - Fully backward compatible (defaults to Config)
  *
  * **New in v0.7.0:**
  * - Extends IExecutorOptions for better adapter ergonomics
@@ -27,15 +35,25 @@ import {IConfigLoader} from "./IConfigLoader";
  *
  * @example
  * ```typescript
- * // Minimal usage - just handler
+ * // Minimal usage - just handler (backward compatible)
  * const executor = new MigrationScriptExecutor<IDB>({
  *     handler: myDatabaseHandler
  * });
  *
- * // With config (v0.7.0+)
+ * // With config (v0.7.0+, backward compatible)
  * const executor = new MigrationScriptExecutor<IDB>({
  *     handler: myDatabaseHandler,
  *     config: myConfig  // Now in dependencies object
+ * });
+ *
+ * // v0.8.2: With custom config type
+ * class AppConfig extends Config {
+ *     databaseUrl?: string;
+ * }
+ *
+ * const executor = new MigrationScriptExecutor<IDB, IDatabaseMigrationHandler<IDB>, AppConfig>({
+ *     handler: myDatabaseHandler,
+ *     config: new AppConfig({ databaseUrl: 'https://...' })
  * });
  *
  * // With custom config loader (v0.7.0+)
@@ -68,8 +86,9 @@ import {IConfigLoader} from "./IConfigLoader";
  */
 export interface IMigrationExecutorDependencies<
     DB extends IDB,
-    THandler extends IDatabaseMigrationHandler<DB> = IDatabaseMigrationHandler<DB>
-> extends IExecutorOptions<DB> {
+    THandler extends IDatabaseMigrationHandler<DB> = IDatabaseMigrationHandler<DB>,
+    TConfig extends Config = Config
+> extends IExecutorOptions<DB, TConfig> {
     /**
      * Database migration handler (REQUIRED).
      * Implements database-specific operations for migrations.
@@ -130,5 +149,5 @@ export interface IMigrationExecutorDependencies<
      * });
      * ```
      */
-    configLoader?: IConfigLoader;
+    configLoader?: IConfigLoader<TConfig>;
 }

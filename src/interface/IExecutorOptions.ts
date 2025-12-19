@@ -19,10 +19,17 @@ import {Config} from "../model";
  * This interface contains all customizable services and configuration that can be overridden.
  * Used by both core MigrationScriptExecutor and database-specific adapters.
  *
- * **Generic Type Parameters (v0.7.0):**
- * - `DB` - Your specific database interface extending IDB (REQUIRED)
+ * **Generic Type Parameters:**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED, v0.7.0)
+ * - `TConfig` - Your specific config type extending Config (OPTIONAL, v0.8.2, defaults to Config)
  *
  * @template DB - Database interface type
+ * @template TConfig - Config type (defaults to base Config class)
+ *
+ * **New in v0.8.2:**
+ * - Added TConfig generic parameter for custom config types
+ * - Enables adapters to properly type database-specific config properties
+ * - Fully backward compatible (defaults to Config)
  *
  * **New in v0.7.0:**
  * - Split from IMigrationExecutorDependencies for better adapter ergonomics
@@ -31,7 +38,7 @@ import {Config} from "../model";
  *
  * @example
  * ```typescript
- * // Use with custom services
+ * // Use with custom services (backward compatible)
  * const options: IExecutorOptions<IDB> = {
  *     config: myConfig,
  *     logger: new FileLogger('./migrations.log'),
@@ -39,32 +46,59 @@ import {Config} from "../model";
  *     metricsCollectors: [new ConsoleMetricsCollector()]
  * };
  *
- * // Adapter extending IExecutorOptions
- * interface IPostgreSqlOptions extends IExecutorOptions<PostgreSqlDB> {
- *     connectionString?: string;
- *     poolConfig?: IPoolConfig;
- *     // Inherits: config, logger, hooks, all services
+ * // v0.8.2: Use with custom config type
+ * class AppConfig extends Config {
+ *     databaseUrl?: string;
+ *     credentials?: string;
+ * }
+ *
+ * const options: IExecutorOptions<IDB, AppConfig> = {
+ *     config: new AppConfig({ databaseUrl: 'https://...' }),
+ *     logger: myLogger
+ * };
+ *
+ * // Adapter with custom config
+ * interface IFirebaseOptions extends IExecutorOptions<IFirebaseDB, AppConfig> {
+ *     // config is now typed as AppConfig, not base Config
+ *     // Inherits: logger, hooks, all services
  * }
  * ```
  */
-export interface IExecutorOptions<DB extends IDB> {
+export interface IExecutorOptions<
+    DB extends IDB,
+    TConfig extends Config = Config
+> {
     /**
      * Configuration for migration execution.
      * If not provided, will be loaded using ConfigLoader (from file or defaults).
      *
+     * **New in v0.8.2:** Can be typed with custom config class using TConfig generic parameter.
      * **New in v0.7.0:** Moved from constructor's second parameter to this interface.
      *
      * @example
      * ```typescript
+     * // Backward compatible - base Config
      * const options: IExecutorOptions<IDB> = {
      *     config: new Config({
      *         folder: './migrations',
      *         logLevel: 'debug'
      *     })
      * };
+     *
+     * // v0.8.2: Custom config type
+     * class AppConfig extends Config {
+     *     databaseUrl?: string;
+     * }
+     *
+     * const options: IExecutorOptions<IDB, AppConfig> = {
+     *     config: new AppConfig({
+     *         folder: './migrations',
+     *         databaseUrl: 'https://mydb.example.com'
+     *     })
+     * };
      * ```
      */
-    config?: Config;
+    config?: TConfig;
 
     /**
      * Custom backup service implementation.

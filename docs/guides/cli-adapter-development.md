@@ -105,6 +105,255 @@ program.parse(process.argv);
 
 ---
 
+## Custom Configuration Types
+
+{: .new }
+> **NEW in v0.8.2:** Type-safe custom configuration with `TConfig` generic parameter
+
+MSR allows you to extend the base `Config` class with adapter-specific properties, providing full type safety throughout your adapter implementation.
+
+### Why Custom Config?
+
+Database adapters often need additional configuration beyond MSR's base settings:
+
+- **Connection Strings**: Database URLs, host/port combinations
+- **Pool Settings**: Connection pool size, timeout settings
+- **Authentication**: API keys, OAuth tokens, service account paths
+- **Database-Specific Options**: Region, cluster name, replica set name
+
+Instead of casting or using workarounds, v0.8.2 enables proper type-safe configuration.
+
+### Basic Example
+
+```typescript
+import { Config, MigrationScriptExecutor, IDB, IDatabaseMigrationHandler } from '@migration-script-runner/core';
+
+// 1. Extend Config with adapter-specific properties
+class AppConfig extends Config {
+  databaseUrl?: string;
+  connectionPoolSize?: number;
+  apiKey?: string;
+}
+
+// 2. Use TConfig generic in your adapter
+class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler, AppConfig> {
+  // this.config is now typed as AppConfig!
+
+  async initializeConnection(): Promise<void> {
+    // Full IDE autocomplete for custom properties
+    const url = this.config.databaseUrl;
+    const poolSize = this.config.connectionPoolSize ?? 10;
+    const apiKey = this.config.apiKey;
+
+    // Use properties to configure connection
+    await this.handler.connect(url, { poolSize, apiKey });
+  }
+}
+
+// 3. Pass config instance to executor
+const config = new AppConfig();
+config.databaseUrl = 'https://my-db.example.com';
+config.connectionPoolSize = 20;
+config.apiKey = process.env.API_KEY;
+
+const adapter = new MyAdapter({
+  handler: new MyHandler(),
+  config: config  // Typed as AppConfig
+});
+```
+
+### CLI Integration
+
+Use custom config with `createCLI()`:
+
+```typescript
+import { createCLI, IExecutorOptions } from '@migration-script-runner/core';
+
+class FirebaseConfig extends Config {
+  databaseUrl?: string;
+  projectId?: string;
+  serviceAccountPath?: string;
+}
+
+const program = createCLI<IDB, MyHandler, FirebaseConfig>({
+  name: 'msr-firebase',
+  version: '1.0.0',
+  createExecutor: (config: FirebaseConfig) => {
+    // config is typed as FirebaseConfig
+    const handler = new MyHandler({
+      databaseUrl: config.databaseUrl,
+      projectId: config.projectId,
+      serviceAccountPath: config.serviceAccountPath
+    });
+
+    return new MyAdapter({
+      handler,
+      config  // No casting needed!
+    });
+  }
+});
+
+program.parse(process.argv);
+```
+
+### Loading Custom Config from Files
+
+Users can define custom properties in configuration files:
+
+**msr.config.json:**
+```json
+{
+  "migrationsPath": "./migrations",
+  "databaseUrl": "https://my-project.firebaseio.com",
+  "projectId": "my-project-id",
+  "connectionPoolSize": 15,
+  "apiKey": "${API_KEY}"
+}
+```
+
+**msr.config.js:**
+```javascript
+module.exports = {
+  migrationsPath: './migrations',
+  databaseUrl: process.env.DATABASE_URL,
+  projectId: 'my-project',
+  connectionPoolSize: 15
+};
+```
+
+The config loader automatically picks up custom properties when loading from files.
+
+### Advanced: Custom Config Loader
+
+For complex config needs, implement a custom `IConfigLoader<TConfig>`:
+
+```typescript
+import { IConfigLoader, ConfigLoader } from '@migration-script-runner/core';
+
+class FirebaseConfigLoader implements IConfigLoader<FirebaseConfig> {
+  load(): FirebaseConfig {
+    // Load base config
+    const baseLoader = new ConfigLoader<FirebaseConfig>();
+    const config = baseLoader.load();
+
+    // Add Firebase-specific defaults
+    if (!config.databaseUrl) {
+      config.databaseUrl = process.env.FIREBASE_DATABASE_URL;
+    }
+    if (!config.projectId) {
+      config.projectId = process.env.FIREBASE_PROJECT_ID;
+    }
+
+    // Validate Firebase-specific config
+    if (!config.databaseUrl) {
+      throw new TypeError('databaseUrl is required for Firebase adapter');
+    }
+
+    return config;
+  }
+}
+
+// Use custom loader in executor
+const adapter = new MyAdapter({
+  handler: new MyHandler(),
+  configLoader: new FirebaseConfigLoader()  // Custom loader
+});
+```
+
+### Type Safety Benefits
+
+**Before v0.8.2** (without TConfig):
+```typescript
+class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler> {
+  initializeConnection() {
+    // Need to cast or use 'any' ❌
+    const url = (this.config as any).databaseUrl;
+    // OR create wrapper interface ❌
+  }
+}
+```
+
+**After v0.8.2** (with TConfig):
+```typescript
+class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler, AppConfig> {
+  initializeConnection() {
+    // Full type safety ✅
+    const url = this.config.databaseUrl;
+    // IDE autocomplete works ✅
+    // Compile-time validation ✅
+  }
+}
+```
+
+### Common Patterns
+
+#### 1. Connection Configuration
+```typescript
+class MongoConfig extends Config {
+  mongoUri?: string;
+  replicaSet?: string;
+  authDatabase?: string;
+}
+```
+
+#### 2. Cloud Service Configuration
+```typescript
+class FirebaseConfig extends Config {
+  databaseUrl?: string;
+  projectId?: string;
+  serviceAccountPath?: string;
+  storageBucket?: string;
+}
+```
+
+#### 3. Performance Tuning
+```typescript
+class PostgresConfig extends Config {
+  connectionString?: string;
+  maxConnections?: number;
+  idleTimeoutMs?: number;
+  statementTimeout?: number;
+}
+```
+
+#### 4. Multi-Environment Configuration
+```typescript
+class AppConfig extends Config {
+  environment?: 'development' | 'staging' | 'production';
+  databaseUrl?: string;
+  enableDebugLogging?: boolean;
+  metricsEndpoint?: string;
+}
+```
+
+### Best Practices
+
+1. **Optional Properties**: Make custom properties optional (`?`) with sensible defaults
+2. **Environment Variables**: Support env vars for sensitive data (API keys, connection strings)
+3. **Validation**: Validate required custom properties in your handler constructor
+4. **Documentation**: Document custom config properties in your adapter's README
+5. **Type Safety**: Leverage TypeScript - avoid `any` or type assertions
+
+### Backward Compatibility
+
+The `TConfig` generic parameter is **fully backward compatible**:
+
+```typescript
+// Still works - defaults to base Config
+class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler> {
+  // this.config is typed as Config (base class)
+}
+
+// Or explicitly use base Config
+class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler, Config> {
+  // Same as above
+}
+```
+
+Existing adapters continue to work without changes.
+
+---
+
 ## CLI Options
 
 The `createCLI()` function accepts a `CLIOptions` object:

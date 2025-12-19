@@ -24,13 +24,16 @@ import {OrchestrationServices} from "./facade/OrchestrationServices";
  * - Restoring from backup on failure
  * - Displaying migration status and results
  *
- * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
- * - `DB` - Your specific database interface extending IDB (REQUIRED)
- * - `THandler` - Your specific handler type extending IDatabaseMigrationHandler<DB> (OPTIONAL, v0.8.0)
+ * **Generic Type Parameters:**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED, v0.6.0)
+ * - `THandler` - Your specific handler type extending IDatabaseMigrationHandler<DB> (OPTIONAL, v0.8.0, defaults to IDatabaseMigrationHandler<DB>)
+ * - `TConfig` - Your specific config type extending Config (OPTIONAL, v0.8.2, defaults to Config)
  *
  * @template DB - Database interface type
  * @template THandler - Handler interface type (defaults to IDatabaseMigrationHandler<DB>)
+ * @template TConfig - Config type (defaults to base Config class)
  *
+ * **New in v0.8.2:** Added TConfig generic parameter for custom config types
  * **New in v0.5.0:** Automatic transaction management with configurable modes
  * **Breaking Change in v0.6.0:** Constructor signature changed to `(dependencies, config?)`
  *
@@ -40,13 +43,13 @@ import {OrchestrationServices} from "./facade/OrchestrationServices";
  *
  * const handler = new MyDatabaseHandler();
  *
- * // Option 1: Minimal - just handler, uses waterfall config loading
+ * // Option 1: Minimal - just handler, uses waterfall config loading (backward compatible)
  * const executor = new MigrationScriptExecutor<IDB>({ handler });
  * // Loads config from: MSR_* env vars → ./msr.config.js → defaults
  *
- * // Option 2: With explicit config
+ * // Option 2: With explicit config (backward compatible)
  * const config = new Config();
- * const executor = new MigrationScriptExecutor<IDB>({ handler }, config);
+ * const executor = new MigrationScriptExecutor<IDB>({ handler, config });
  *
  * // Run all pending migrations
  * await executor.up();
@@ -72,15 +75,30 @@ import {OrchestrationServices} from "./facade/OrchestrationServices";
  *         this.handler.customMethod();  // Type-safe access!
  *     }
  * }
+ *
+ * // **New in v0.8.2:** Using custom config type
+ * class AppConfig extends Config {
+ *     databaseUrl?: string;
+ *     credentials?: string;
+ * }
+ *
+ * class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler, AppConfig> {
+ *     constructor(dependencies: IMigrationExecutorDependencies<IDB, MyHandler, AppConfig>) {
+ *         super(dependencies);
+ *         // this.config is now typed as AppConfig (not base Config!)
+ *         console.log(this.config.databaseUrl); // Type-safe access!
+ *     }
+ * }
  * ```
  */
 export class MigrationScriptExecutor<
     DB extends IDB,
-    THandler extends IDatabaseMigrationHandler<DB> = IDatabaseMigrationHandler<DB>
+    THandler extends IDatabaseMigrationHandler<DB> = IDatabaseMigrationHandler<DB>,
+    TConfig extends Config = Config
 > {
 
     /** Configuration for the migration system */
-    protected readonly config: Config;
+    protected readonly config: TConfig;
 
     /** Database migration handler implementing database-specific operations */
     protected readonly handler: THandler;
@@ -163,7 +181,7 @@ export class MigrationScriptExecutor<
      * });
      * ```
      */
-    constructor(dependencies: IMigrationExecutorDependencies<DB, THandler>) {
+    constructor(dependencies: IMigrationExecutorDependencies<DB, THandler, TConfig>) {
         // Initialize all services via factory
         const services = createMigrationServices(dependencies);
 

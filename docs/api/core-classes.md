@@ -26,6 +26,7 @@ The main class for executing database migrations.
 **Generic Type Parameters:**
 - **v0.6.0:** Database type parameter (`DB extends IDB`) provides database-specific type safety
 - **v0.8.0:** Handler type parameter (`THandler extends IDatabaseMigrationHandler<DB>`) provides type-safe handler access in adapters
+- **v0.8.2:** Config type parameter (`TConfig extends Config`) enables custom configuration types for adapter-specific settings
 
 ```typescript
 import { MigrationScriptExecutor, IDatabaseMigrationHandler, Config, IDB } from '@migration-script-runner/core';
@@ -47,11 +48,37 @@ class MyAdapter extends MigrationScriptExecutor<IMyDatabase, MyDatabaseHandler> 
     return this.handler.customProperty;  // Full IDE autocomplete
   }
 }
+
+// v0.8.2: Type-safe adapter with custom config
+class AppConfig extends Config {
+  databaseUrl?: string;
+  connectionPoolSize?: number;
+}
+
+class MyAdvancedAdapter extends MigrationScriptExecutor<IMyDatabase, MyDatabaseHandler, AppConfig> {
+  // this.config is now typed as AppConfig (not base Config!)
+  initializeConnection() {
+    const url = this.config.databaseUrl;  // Full IDE autocomplete for custom properties
+    const poolSize = this.config.connectionPoolSize ?? 10;
+    // ... initialize connection
+  }
+}
 ```
 
 #### Constructor
 
-**Signature (v0.8.0+):**
+**Signature (v0.8.2+):**
+```typescript
+constructor<
+    DB extends IDB,
+    THandler extends IDatabaseMigrationHandler<DB> = IDatabaseMigrationHandler<DB>,
+    TConfig extends Config = Config
+>(
+    dependencies: IMigrationExecutorDependencies<DB, THandler, TConfig>
+)
+```
+
+**Signature (v0.8.0 - v0.8.1):**
 ```typescript
 constructor<
     DB extends IDB,
@@ -76,11 +103,11 @@ constructor<DB extends IDB>(
 )
 ```
 
-**Parameters (v0.7.0+):**
+**Parameters (v0.8.2+):**
 - `dependencies`: Object containing required and optional dependencies
   - `handler` (required): Database migration handler implementing `IDatabaseMigrationHandler<DB>`
-  - `config?`: Configuration object (defaults to `ConfigLoader.load()` if not provided) - **MOVED from second parameter in v0.7.0**
-  - `configLoader?`: Custom config loader implementing `IConfigLoader` (defaults to `ConfigLoader`) - **NEW in v0.7.0**
+  - `config?`: Configuration object typed as `TConfig` (defaults to `ConfigLoader.load()` if not provided) - **MOVED from second parameter in v0.7.0, typed with TConfig in v0.8.2**
+  - `configLoader?`: Custom config loader implementing `IConfigLoader<TConfig>` (defaults to `ConfigLoader<TConfig>`) - **NEW in v0.7.0, made generic in v0.8.2**
   - `logger?`: Custom logger implementation (defaults to `ConsoleLogger`). **Note:** Automatically wrapped with `LevelAwareLogger` for log level filtering based on `config.logLevel`
   - `backupService?`: Custom backup service implementing `IBackupService` (defaults to `BackupService<DB>`)
   - `rollbackService?`: Custom rollback service implementing `IRollbackService<DB>` (defaults to `RollbackService<DB>`)
@@ -93,6 +120,9 @@ constructor<DB extends IDB>(
   - `hooks?`: Lifecycle hooks for migration events implementing `IMigrationHooks<DB>` (defaults to `undefined`)
   - `metricsCollectors?`: Array of metrics collectors implementing `IMetricsCollector[]` (defaults to `[]`)
   - `loaderRegistry?`: Custom loader registry implementing `ILoaderRegistry<DB>` (defaults to `LoaderRegistry.createDefault()`)
+
+{: .new }
+> **Non-Breaking Enhancement (v0.8.2):** Added `TConfig extends Config` generic parameter for custom configuration types. Fully backward compatible - defaults to base `Config` class. Enables adapters to define database-specific config properties (e.g., connection strings, pool sizes) with full type safety. See [CLI Adapter Development Guide](../guides/cli-adapter-development#custom-configuration-types) for examples.
 
 {: .important }
 > **Breaking Change (v0.7.0):** Constructor now takes single parameter. Config moved from second parameter into `dependencies.config`. This improves adapter ergonomics and enables extensible configuration loading via `configLoader`.
