@@ -5,10 +5,19 @@ import {IConfigLoader} from "./IConfigLoader";
 import {Config} from "../model";
 
 /**
- * Dependencies for MigrationScriptExecutor.
+ * **INTERNAL API** - Dependencies for MigrationScriptExecutor constructor.
  *
- * Requires database migration handler and optionally allows customization of
- * configuration loading and all service implementations through dependency injection.
+ * Use this interface in your adapter's **private constructor** only.
+ * This interface REQUIRES the database handler, which must be initialized before construction.
+ *
+ * **⚠️ For public factory methods, use `IExecutorOptions` instead!**
+ * `IExecutorOptions` doesn't include the handler - you create it in your factory method,
+ * then spread the options into this interface: `{ handler, ...options }`
+ *
+ * **Purpose:**
+ * - Internal API for adapter constructors
+ * - Extends `IExecutorOptions` but adds required `handler` property
+ * - Used by MSR Core internals
  *
  * **Generic Type Parameters:**
  * - `DB` - Your specific database interface extending IDB (REQUIRED)
@@ -18,71 +27,41 @@ import {Config} from "../model";
  * @template DB - Database interface type
  * @template THandler - Handler interface type (defaults to IDatabaseMigrationHandler<DB>)
  * @template TConfig - Config type (defaults to base Config class)
- *
- * **New in v0.8.2:**
- * - Added TConfig generic parameter for custom config types
- * - Enables adapters to properly type database-specific config properties
- * - Fully backward compatible (defaults to Config)
- *
- * **New in v0.7.0:**
- * - Extends IExecutorOptions for better adapter ergonomics
- * - Config moved from constructor's second parameter to this interface (via IExecutorOptions)
- * - Added configLoader for extensible configuration loading
- * - Single parameter constructor: `constructor(dependencies)`
- *
- * **Previous Versions:**
- * - v0.6.0: Constructor signature was `constructor(dependencies, config?)`
+ * @internal
+ * @since v0.6.0
  *
  * @example
  * ```typescript
- * // Minimal usage - just handler (backward compatible)
- * const executor = new MigrationScriptExecutor<IDB>({
- *     handler: myDatabaseHandler
- * });
+ * // ✅ CORRECT: Use in private constructor
+ * export class FirebaseRunner extends MigrationScriptExecutor<IFirebaseDB, FirebaseHandler> {
+ *     private constructor(deps: IMigrationExecutorDependencies<IFirebaseDB, FirebaseHandler>) {
+ *         super(deps);  // ✅ Has handler
+ *     }
  *
- * // With config (v0.7.0+, backward compatible)
- * const executor = new MigrationScriptExecutor<IDB>({
- *     handler: myDatabaseHandler,
- *     config: myConfig  // Now in dependencies object
- * });
- *
- * // v0.8.2: With custom config type
- * class AppConfig extends Config {
- *     databaseUrl?: string;
+ *     static async getInstance(options: IExecutorOptions<IFirebaseDB>): Promise<FirebaseRunner> {
+ *         const handler = await FirebaseHandler.connect(options.config);
+ *         return new FirebaseRunner({ handler, ...options });  // Spread IExecutorOptions
+ *     }
  * }
  *
- * const executor = new MigrationScriptExecutor<IDB, IDatabaseMigrationHandler<IDB>, AppConfig>({
- *     handler: myDatabaseHandler,
- *     config: new AppConfig({ databaseUrl: 'https://...' })
- * });
+ * // ✅ CORRECT: Sync adapter
+ * export class SimpleAdapter extends MigrationScriptExecutor<IDB, SimpleHandler> {
+ *     constructor(options: IExecutorOptions<IDB>) {
+ *         const handler = new SimpleHandler(options.config);  // Create handler
+ *         super({ handler, ...options });  // Pass to base constructor
+ *     }
+ * }
  *
- * // With custom config loader (v0.7.0+)
- * const executor = new MigrationScriptExecutor<IDB>({
- *     handler: myDatabaseHandler,
- *     configLoader: new CustomConfigLoader()
- * });
- *
- * // Use custom logger across all services
- * const executor = new MigrationScriptExecutor<IDB>({
- *     handler: myDatabaseHandler,
- *     logger: new FileLogger('./migrations.log')
- * });
- *
- * // Use JSON output for CI/CD
- * const executor = new MigrationScriptExecutor<IDB>({
- *     handler: myDatabaseHandler,
- *     renderStrategy: new JsonRenderStrategy()
- * });
- *
- * // Inject mock services for testing
- * const executor = new MigrationScriptExecutor<IDB>({
- *     handler: mockHandler,
- *     backupService: mockBackupService,
- *     schemaVersionService: mockSchemaVersionService,
- *     migrationRenderer: mockRenderer,
- *     migrationService: mockMigrationService
- * });
+ * // ❌ WRONG: Using IExecutorOptions in constructor
+ * class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler> {
+ *     constructor(options: IExecutorOptions<IDB>) {  // ❌ Missing handler!
+ *         super(options);  // ❌ Runtime Error: Handler is required
+ *     }
+ * }
  * ```
+ *
+ * @see {@link IExecutorOptions} - Public API for factory methods (no handler)
+ * @see https://github.com/migration-script-runner/msr-core/blob/master/docs/guides/cli-adapter-development.md
  */
 export interface IMigrationExecutorDependencies<
     DB extends IDB,

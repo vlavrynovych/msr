@@ -14,10 +14,18 @@ import {IMetricsCollector} from "./IMetricsCollector";
 import {Config} from "../model";
 
 /**
- * Optional services and configuration for MigrationScriptExecutor.
+ * **PUBLIC API** - Optional services and configuration for MigrationScriptExecutor.
  *
- * This interface contains all customizable services and configuration that can be overridden.
- * Used by both core MigrationScriptExecutor and database-specific adapters.
+ * Use this interface in your adapter's **public factory methods** (e.g., `getInstance()`).
+ * This interface does NOT include the handler - that must be created by your factory method.
+ *
+ * **⚠️ Do NOT use this interface in your constructor!**
+ * Use `IMigrationExecutorDependencies` instead, which includes the required handler.
+ *
+ * **Purpose:**
+ * - Public API for adapter users to configure the executor
+ * - Used in factory methods (sync or async)
+ * - Spread into `IMigrationExecutorDependencies` after creating handler
  *
  * **Generic Type Parameters:**
  * - `DB` - Your specific database interface extending IDB (REQUIRED, v0.7.0)
@@ -25,44 +33,38 @@ import {Config} from "../model";
  *
  * @template DB - Database interface type
  * @template TConfig - Config type (defaults to base Config class)
- *
- * **New in v0.8.2:**
- * - Added TConfig generic parameter for custom config types
- * - Enables adapters to properly type database-specific config properties
- * - Fully backward compatible (defaults to Config)
- *
- * **New in v0.7.0:**
- * - Split from IMigrationExecutorDependencies for better adapter ergonomics
- * - Config moved from constructor parameter to this interface
- * - Adapters can extend this interface to add database-specific options
+ * @public
+ * @since v0.7.0
  *
  * @example
  * ```typescript
- * // Use with custom services (backward compatible)
- * const options: IExecutorOptions<IDB> = {
- *     config: myConfig,
- *     logger: new FileLogger('./migrations.log'),
- *     hooks: new SlackNotificationHooks(webhookUrl),
- *     metricsCollectors: [new ConsoleMetricsCollector()]
- * };
+ * // ✅ CORRECT: Use in public factory method
+ * export class FirebaseRunner extends MigrationScriptExecutor<IFirebaseDB, FirebaseHandler> {
+ *     private constructor(deps: IMigrationExecutorDependencies<IFirebaseDB, FirebaseHandler>) {
+ *         super(deps);
+ *     }
  *
- * // v0.8.2: Use with custom config type
- * class AppConfig extends Config {
- *     databaseUrl?: string;
- *     credentials?: string;
+ *     static async getInstance(options: IExecutorOptions<IFirebaseDB>): Promise<FirebaseRunner> {
+ *         const handler = await FirebaseHandler.connect(options.config);
+ *         return new FirebaseRunner({ handler, ...options });  // Spread options into deps
+ *     }
  * }
  *
- * const options: IExecutorOptions<IDB, AppConfig> = {
- *     config: new AppConfig({ databaseUrl: 'https://...' }),
- *     logger: myLogger
- * };
+ * // ✅ CORRECT: Extend for adapter-specific options
+ * interface IFirebaseRunnerOptions extends IExecutorOptions<IFirebaseDB, FirebaseConfig> {
+ *     credentialPath?: string;  // Add your custom options
+ * }
  *
- * // Adapter with custom config
- * interface IFirebaseOptions extends IExecutorOptions<IFirebaseDB, AppConfig> {
- *     // config is now typed as AppConfig, not base Config
- *     // Inherits: logger, hooks, all services
+ * // ❌ WRONG: Don't use in constructor
+ * class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler> {
+ *     constructor(options: IExecutorOptions<IDB>) {  // ❌ Missing handler!
+ *         super(options);  // ❌ Error: Property 'handler' is missing
+ *     }
  * }
  * ```
+ *
+ * @see {@link IMigrationExecutorDependencies} - Internal API for constructors (includes handler)
+ * @see https://github.com/migration-script-runner/msr-core/blob/master/docs/guides/cli-adapter-development.md
  */
 export interface IExecutorOptions<
     DB extends IDB,

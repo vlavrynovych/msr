@@ -772,4 +772,72 @@ describe('MigrationScriptExecutor - Dependency Injection', () => {
             expect(runner).to.be.instanceOf(MigrationScriptExecutor);
         });
     });
+
+    describe('Runtime validation (v0.8.2)', () => {
+        /**
+         * Test: Constructor throws helpful error when handler is missing
+         * Validates that developers get clear guidance when they make common mistakes.
+         */
+        it('should throw helpful error when handler is missing', () => {
+            expect(() => {
+                // @ts-expect-error - Intentionally missing handler for test
+                new MigrationScriptExecutor<IDB>({ config });
+            }).to.throw(TypeError, /Handler is required in IMigrationExecutorDependencies/);
+        });
+
+        /**
+         * Test: Error message includes solution for async initialization
+         */
+        it('should include async factory pattern in error message', () => {
+            try {
+                // @ts-expect-error - Intentionally missing handler for test
+                new MigrationScriptExecutor<IDB>({ config });
+                expect.fail('Should have thrown error');
+            } catch (error) {
+                expect(error).to.be.instanceOf(TypeError);
+                expect((error as Error).message).to.include('static async getInstance');
+                expect((error as Error).message).to.include('MyHandler.connect');
+            }
+        });
+
+        /**
+         * Test: Error message includes solution for sync initialization
+         */
+        it('should include sync pattern in error message', () => {
+            try {
+                // @ts-expect-error - Intentionally missing handler for test
+                new MigrationScriptExecutor<IDB>({ config });
+                expect.fail('Should have thrown error');
+            } catch (error) {
+                expect(error).to.be.instanceOf(TypeError);
+                expect((error as Error).message).to.include('constructor(options: IExecutorOptions');
+                expect((error as Error).message).to.include('super({ handler, ...options })');
+            }
+        });
+
+        /**
+         * Test: Error message includes link to documentation
+         */
+        it('should include documentation link in error message', () => {
+            try {
+                // @ts-expect-error - Intentionally missing handler for test
+                new MigrationScriptExecutor<IDB>({ config });
+                expect.fail('Should have thrown error');
+            } catch (error) {
+                expect(error).to.be.instanceOf(TypeError);
+                expect((error as Error).message).to.include('https://github.com/migration-script-runner/msr-core');
+                expect((error as Error).message).to.include('cli-adapter-development.md');
+            }
+        });
+
+        /**
+         * Test: Constructor succeeds when handler is provided
+         * Validates that normal operation is not affected by validation.
+         */
+        it('should not throw when handler is provided', () => {
+            expect(() => {
+                new MigrationScriptExecutor<IDB>({ handler, config, logger: new SilentLogger() });
+            }).to.not.throw();
+        });
+    });
 });

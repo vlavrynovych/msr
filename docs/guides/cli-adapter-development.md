@@ -1395,6 +1395,193 @@ describe('CLI Integration', () => {
 
 ---
 
+## Troubleshooting
+
+### Error: "Property 'handler' is missing"
+
+**Full Error:**
+```
+TypeError: Handler is required in IMigrationExecutorDependencies.
+```
+
+**Cause:** You're likely using `IExecutorOptions` in your constructor instead of `IMigrationExecutorDependencies`, or forgetting to create the handler before calling `super()`.
+
+**Solution (Async Initialization):**
+```typescript
+// ✅ CORRECT
+export class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler> {
+    private constructor(deps: IMigrationExecutorDependencies<IDB, MyHandler>) {
+        super(deps);  // ✅ Has handler
+    }
+
+    static async getInstance(options: IExecutorOptions<IDB>): Promise<MyAdapter> {
+        const handler = await MyHandler.connect(options.config);
+        return new MyAdapter({ handler, ...options });  // Spread options
+    }
+}
+```
+
+**Solution (Sync Initialization):**
+```typescript
+// ✅ CORRECT
+export class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler> {
+    constructor(options: IExecutorOptions<IDB>) {
+        const handler = new MyHandler(options.config);  // Create handler first
+        super({ handler, ...options });  // Pass to parent
+    }
+}
+```
+
+**Wrong Pattern:**
+```typescript
+// ❌ WRONG
+export class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler> {
+    constructor(options: IExecutorOptions<IDB>) {  // Missing handler!
+        super(options);  // ❌ Error
+    }
+}
+```
+
+---
+
+### Error: Generic Type Mismatch
+
+**Full Error:**
+```
+Type 'IMigrationExecutorDependencies<IDB>' is not assignable to parameter of type 'IMigrationExecutorDependencies<IDB, MyHandler>'
+```
+
+**Cause:** You didn't specify the handler type in your constructor parameter.
+
+**Solution:**
+```typescript
+// ❌ WRONG - Missing THandler generic
+constructor(deps: IMigrationExecutorDependencies<IDB>) {
+    super(deps);
+}
+
+// ✅ CORRECT - Include THandler
+constructor(deps: IMigrationExecutorDependencies<IDB, MyHandler>) {
+    super(deps);
+}
+```
+
+---
+
+### IExecutorOptions vs IMigrationExecutorDependencies
+
+**When to use each:**
+
+| Interface | Use In | Includes Handler? | Purpose |
+|-----------|--------|-------------------|---------|
+| `IExecutorOptions` | Public factory methods (`getInstance()`) | ❌ No | Public API for users |
+| `IMigrationExecutorDependencies` | Private constructor | ✅ Yes (required) | Internal API for construction |
+
+**Pattern:**
+```typescript
+export class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler> {
+    // Private constructor - uses IMigrationExecutorDependencies
+    private constructor(deps: IMigrationExecutorDependencies<IDB, MyHandler>) {
+        super(deps);
+    }
+
+    // Public factory - uses IExecutorOptions
+    static async getInstance(options: IExecutorOptions<IDB>): Promise<MyAdapter> {
+        const handler = await MyHandler.connect(options.config);
+        // Spread IExecutorOptions into IMigrationExecutorDependencies
+        return new MyAdapter({ handler, ...options });
+    }
+}
+```
+
+---
+
+### TypeScript Errors with Custom Config
+
+**Issue:** You want to use a custom config type but getting type errors.
+
+**Solution (v0.8.2+):**
+```typescript
+// Define custom config
+class AppConfig extends Config {
+    databaseUrl?: string;
+    poolSize?: number;
+}
+
+// Use TConfig generic parameter
+export class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler, AppConfig> {
+    private constructor(deps: IMigrationExecutorDependencies<IDB, MyHandler, AppConfig>) {
+        super(deps);
+        // this.config is now typed as AppConfig
+        console.log(this.config.databaseUrl);  // ✅ Type-safe!
+    }
+
+    static async getInstance(options: IExecutorOptions<IDB, AppConfig>): Promise<MyAdapter> {
+        const handler = await MyHandler.connect(options.config.databaseUrl);
+        return new MyAdapter({ handler, ...options });
+    }
+}
+```
+
+---
+
+### Async Initialization Not Working
+
+**Issue:** Your adapter requires async initialization but getting type errors or runtime issues.
+
+**Solution:** Use the `createInstance` helper (v0.8.2+):
+
+```typescript
+export class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler> {
+    private constructor(deps: IMigrationExecutorDependencies<IDB, MyHandler>) {
+        super(deps);
+    }
+
+    static async getInstance(options: IExecutorOptions<IDB>): Promise<MyAdapter> {
+        return MigrationScriptExecutor.createInstance(
+            MyAdapter,
+            options,
+            async (config) => MyHandler.connect(config)
+        );
+    }
+}
+```
+
+**Benefits:**
+- ✅ Standardized pattern
+- ✅ Reduces boilerplate
+- ✅ Type-safe
+- ✅ Handles option spreading automatically
+
+See [Async Adapter Initialization](#async-adapter-initialization-v082) for details.
+
+---
+
+### CLI Commands Not Working
+
+**Issue:** Custom commands not appearing or getting type errors.
+
+**Solution:** Use `extendCLI` callback with proper typing:
+
+```typescript
+const program = createCLI<IDB, MyAdapter>({
+    name: 'my-cli',
+    createExecutor: async (config) => MyAdapter.getInstance({ config }),
+
+    extendCLI: (program, createExecutor) => {
+        program
+            .command('custom:command')
+            .action(async () => {
+                const adapter = await createExecutor();  // ✅ Typed!
+                const handler = adapter.getHandler();    // ✅ Access handler
+                // Your custom logic
+            });
+    }
+});
+```
+
+---
+
 ## Next Steps
 
 - [Writing Migrations](./writing-migrations.html)

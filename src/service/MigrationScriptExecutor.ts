@@ -183,6 +183,28 @@ export class MigrationScriptExecutor<
      * ```
      */
     constructor(dependencies: IMigrationExecutorDependencies<DB, THandler, TConfig>) {
+        // Validate required dependencies with helpful error message
+        if (!dependencies.handler) {
+            throw new TypeError(
+                'Handler is required in IMigrationExecutorDependencies.\n\n' +
+                'Common causes:\n' +
+                '  1. Using IExecutorOptions in constructor instead of IMigrationExecutorDependencies\n' +
+                '  2. Forgetting to create handler before passing to super()\n\n' +
+                'Solutions:\n' +
+                '  • For async initialization: Use a factory method pattern:\n' +
+                '    static async getInstance(options: IExecutorOptions<DB>): Promise<MyExecutor> {\n' +
+                '      const handler = await MyHandler.connect(options.config);\n' +
+                '      return new MyExecutor({ handler, ...options });\n' +
+                '    }\n\n' +
+                '  • For sync initialization: Create handler before super():\n' +
+                '    constructor(options: IExecutorOptions<DB>) {\n' +
+                '      const handler = new MyHandler(options.config);\n' +
+                '      super({ handler, ...options });\n' +
+                '    }\n\n' +
+                'Learn more: https://github.com/migration-script-runner/msr-core/blob/master/docs/guides/cli-adapter-development.md'
+            );
+        }
+
         // Initialize all services via factory
         const services = createMigrationServices(dependencies);
 
