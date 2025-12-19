@@ -2,6 +2,7 @@ import {MigrationScript} from "../model/MigrationScript";
 import {IDatabaseMigrationHandler} from "../interface/IDatabaseMigrationHandler";
 import {IMigrationResult} from "../interface/IMigrationResult";
 import {IMigrationExecutorDependencies} from "../interface/IMigrationExecutorDependencies";
+import {IExecutorOptions} from "../interface/IExecutorOptions";
 import {IMigrationHooks} from "../interface/IMigrationHooks";
 import {Config} from "../model";
 import {IValidationResult, IValidationIssue, IDB} from "../interface";
@@ -200,6 +201,99 @@ export class MigrationScriptExecutor<
         if (this.config.showBanner) {
             this.output.renderer.drawFiglet();
         }
+    }
+
+    /**
+     * Factory method for creating executor instances with async handler initialization.
+     *
+     * Provides a standardized pattern for database adapters that require asynchronous
+     * initialization (e.g., Firebase, MongoDB, PostgreSQL with connection pooling).
+     * This eliminates boilerplate code and ensures consistency across adapters.
+     *
+     * **Pattern:**
+     * 1. Adapter makes constructor private
+     * 2. Adapter implements static getInstance() that calls this helper
+     * 3. Adapter provides handler creation function
+     *
+     * @template DB - Database interface type
+     * @template THandler - Handler interface type
+     * @template TExecutor - Executor subclass type
+     * @template TConfig - Config type (defaults to base Config class)
+     * @template TOptions - Options type extending IExecutorOptions (allows adapter-specific options)
+     *
+     * @param ExecutorClass - Constructor of the executor subclass
+     * @param options - Executor options (can be adapter-specific interface extending IExecutorOptions)
+     * @param createHandler - Async factory function for creating the handler
+     *
+     * @returns Promise resolving to the executor instance
+     *
+     * @since v0.8.2
+     *
+     * @example
+     * ```typescript
+     * // Firebase adapter
+     * export interface IFirebaseRunnerOptions extends IExecutorOptions<IFirebaseDB, FirebaseConfig> {
+     *     // Can add Firebase-specific options here
+     * }
+     *
+     * export class FirebaseRunner extends MigrationScriptExecutor<IFirebaseDB, FirebaseHandler, FirebaseConfig> {
+     *     private constructor(deps: IMigrationExecutorDependencies<IFirebaseDB, FirebaseHandler, FirebaseConfig>) {
+     *         super(deps);
+     *     }
+     *
+     *     static async getInstance(options: IFirebaseRunnerOptions): Promise<FirebaseRunner> {
+     *         return MigrationScriptExecutor.createInstance(
+     *             FirebaseRunner,
+     *             options,
+     *             (config) => FirebaseHandler.getInstance(config)
+     *         );
+     *     }
+     * }
+     *
+     * // MongoDB adapter with custom initialization
+     * export class MongoRunner extends MigrationScriptExecutor<IMongoDb, MongoHandler> {
+     *     private constructor(deps: IMigrationExecutorDependencies<IMongoDb, MongoHandler>) {
+     *         super(deps);
+     *     }
+     *
+     *     static async getInstance(options: IExecutorOptions<IMongoDb>): Promise<MongoRunner> {
+     *         return MigrationScriptExecutor.createInstance(
+     *             MongoRunner,
+     *             options,
+     *             async (config) => {
+     *                 const client = await MongoClient.connect(config.connectionString);
+     *                 return new MongoHandler(client, config);
+     *             }
+     *         );
+     *     }
+     * }
+     *
+     * // Usage
+     * const runner = await FirebaseRunner.getInstance({
+     *     config: new FirebaseConfig({ ... })
+     * });
+     * await runner.up();
+     * ```
+     */
+    protected static async createInstance<
+        DB extends IDB,
+        THandler extends IDatabaseMigrationHandler<DB>,
+        TExecutor extends MigrationScriptExecutor<DB, THandler, TConfig>,
+        TConfig extends Config = Config,
+        TOptions extends IExecutorOptions<DB, TConfig> = IExecutorOptions<DB, TConfig>
+    >(
+        ExecutorClass: new (deps: IMigrationExecutorDependencies<DB, THandler, TConfig>) => TExecutor,
+        options: TOptions,
+        createHandler: (config: TConfig) => Promise<THandler>
+    ): Promise<TExecutor> {
+        // Create handler using adapter-provided factory
+        const handler = await createHandler(options.config as TConfig);
+
+        // Construct executor with handler and options
+        return new ExecutorClass({
+            handler,
+            ...options
+        });
     }
 
     /**

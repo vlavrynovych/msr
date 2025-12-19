@@ -233,6 +233,90 @@ console.log(`Connected to ${info.host}:${info.port}`);
 
 ---
 
+##### createInstance() (Static Factory Method)
+
+Factory method for creating executor instances with async handler initialization.
+
+{: .new }
+> **NEW in v0.8.2:** Standardized pattern for database adapters requiring asynchronous initialization.
+
+```typescript
+protected static async createInstance<
+    DB extends IDB,
+    THandler extends IDatabaseMigrationHandler<DB>,
+    TExecutor extends MigrationScriptExecutor<DB, THandler, TConfig>,
+    TConfig extends Config = Config,
+    TOptions extends IExecutorOptions<DB, TConfig> = IExecutorOptions<DB, TConfig>
+>(
+    ExecutorClass: new (deps: IMigrationExecutorDependencies<DB, THandler, TConfig>) => TExecutor,
+    options: TOptions,
+    createHandler: (config: TConfig) => Promise<THandler>
+): Promise<TExecutor>
+```
+
+**Parameters:**
+- `ExecutorClass`: Constructor of the executor subclass
+- `options`: Executor options (can be adapter-specific interface extending `IExecutorOptions`)
+- `createHandler`: Async factory function for creating the handler
+
+**Returns:** `Promise<TExecutor>` - Instance of the executor subclass
+
+{: .important }
+> **Best Practice**: Always use `createInstance` for async adapters to ensure consistency across the MSR ecosystem and reduce boilerplate code.
+
+**Example (Firebase Adapter):**
+```typescript
+export interface IFirebaseRunnerOptions extends IExecutorOptions<IFirebaseDB, FirebaseConfig> {
+    // Can add Firebase-specific options here
+}
+
+export class FirebaseRunner extends MigrationScriptExecutor<IFirebaseDB, FirebaseHandler, FirebaseConfig> {
+    private constructor(deps: IMigrationExecutorDependencies<IFirebaseDB, FirebaseHandler, FirebaseConfig>) {
+        super(deps);
+    }
+
+    static async getInstance(options: IFirebaseRunnerOptions): Promise<FirebaseRunner> {
+        return MigrationScriptExecutor.createInstance(
+            FirebaseRunner,
+            options,
+            (config) => FirebaseHandler.getInstance(config)
+        );
+    }
+}
+
+// Usage
+const runner = await FirebaseRunner.getInstance({
+    config: new FirebaseConfig({ credential: './serviceAccount.json' })
+});
+await runner.up();
+```
+
+**Example (MongoDB Adapter with Custom Initialization):**
+```typescript
+export class MongoRunner extends MigrationScriptExecutor<IMongoDb, MongoHandler> {
+    private constructor(deps: IMigrationExecutorDependencies<IMongoDb, MongoHandler>) {
+        super(deps);
+    }
+
+    static async getInstance(options: IExecutorOptions<IMongoDb>): Promise<MongoRunner> {
+        return MigrationScriptExecutor.createInstance(
+            MongoRunner,
+            options,
+            async (config) => {
+                const client = await MongoClient.connect(config.connectionString);
+                return new MongoHandler(client, config);
+            }
+        );
+    }
+}
+```
+
+**Learn More:**
+- [Async Adapter Initialization Guide](../guides/cli-adapter-development#async-adapter-initialization-v082)
+- [Design Patterns: Async Adapter Factory](../development/architecture/design-patterns#async-adapter-initialization-factory-v082)
+
+---
+
 ##### migrate()
 
 Execute all pending migrations and return a structured result.

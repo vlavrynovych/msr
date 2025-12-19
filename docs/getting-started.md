@@ -465,34 +465,97 @@ MSR v0.7.0+ provides a built-in CLI factory that creates a full command-line int
 {: .note }
 > **Recommended for production deployments.** The CLI approach is safer, more auditable, and prevents common production issues.
 
+##### Async Adapter Pattern (Recommended for Most Databases)
+
+Most database adapters require async initialization (connections, authentication, connection pooling, etc.). Use the `createInstance` helper method for clean, standardized async adapters:
+
+{: .important }
+> **Best Practice (v0.8.2+):** Use this pattern for Firebase, MongoDB, PostgreSQL, MySQL, and other databases requiring async connections.
+
 ```typescript
-// create-cli.ts
+// MyAdapter.ts - Create your adapter class
+import {
+    MigrationScriptExecutor,
+    IMigrationExecutorDependencies,
+    IExecutorOptions,
+    IDB
+} from '@migration-script-runner/core';
+import { MyDatabaseHandler } from './MyDatabaseHandler';
+
+export class MyAdapter extends MigrationScriptExecutor<IDB, MyDatabaseHandler> {
+    private constructor(deps: IMigrationExecutorDependencies<IDB, MyDatabaseHandler>) {
+        super(deps);
+    }
+
+    static async getInstance(options: IExecutorOptions<IDB>): Promise<MyAdapter> {
+        return MigrationScriptExecutor.createInstance(
+            MyAdapter,
+            options,
+            async (config) => {
+                // Your async initialization logic
+                return MyDatabaseHandler.connect(config);
+            }
+        );
+    }
+}
+
+// create-cli.ts - Create your CLI
 import { createCLI } from '@migration-script-runner/core';
-import { MyDatabaseHandler } from './database-handler';
-import { Config } from '@migration-script-runner/core';
+import { MyAdapter } from './MyAdapter';
 
 const program = createCLI({
-  name: 'myapp-migrate',
-  description: 'Migration tool for MyApp',
-  version: '1.0.0',
+    name: 'myapp-migrate',
+    description: 'Migration tool for MyApp',
+    version: '1.0.0',
 
-  // Provide default config
-  config: {
-    folder: './migrations',
-    tableName: 'schema_version'
-  },
-
-  // Factory function receives merged config
-  createExecutor: (config: Config) => {
-    const handler = new MyDatabaseHandler();
-    return new MigrationScriptExecutor({ handler, config });
-  }
+    // Async executor creation (v0.8.2+)
+    createExecutor: async (config) => {
+        return MyAdapter.getInstance({ config });
+    }
 });
 
 program.parse(process.argv);
 ```
 
-This automatically provides commands:
+**Benefits:**
+- ✅ Standardized pattern across all async adapters
+- ✅ Reduces boilerplate to 3 lines
+- ✅ Type-safe with full generic support
+- ✅ Handles connection pooling, authentication, etc.
+
+**Learn More:** [Async Adapter Initialization Guide](guides/cli-adapter-development#async-adapter-initialization-v082)
+
+##### Simple Sync Pattern (For Basic Handlers)
+
+For simple handlers without async initialization needs:
+
+```typescript
+// create-cli.ts
+import { createCLI, MigrationScriptExecutor } from '@migration-script-runner/core';
+import { MyDatabaseHandler } from './database-handler';
+
+const program = createCLI({
+    name: 'myapp-migrate',
+    description: 'Migration tool for MyApp',
+    version: '1.0.0',
+
+    // Synchronous executor creation
+    createExecutor: (config) => {
+        const handler = new MyDatabaseHandler();  // Sync initialization
+        return new MigrationScriptExecutor({ handler, config });
+    }
+});
+
+program.parse(process.argv);
+```
+
+{: .note }
+> Use this pattern only when your handler doesn't need async initialization (e.g., in-memory databases, file-based storage).
+
+##### Available Commands
+
+Both patterns automatically provide these commands:
+
 ```bash
 # Run migrations
 myapp-migrate migrate [targetVersion]
@@ -512,7 +575,10 @@ myapp-migrate backup restore [path]
 myapp-migrate backup delete
 ```
 
-Common CLI flags (available on all commands):
+##### Common CLI Flags
+
+Available on all commands:
+
 ```bash
 --config-file <path>     # Configuration file path
 --folder <path>          # Migrations folder
