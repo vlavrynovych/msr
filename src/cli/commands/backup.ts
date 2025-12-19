@@ -31,7 +31,7 @@ import {IDB} from '../../interface';
  */
 export function addBackupCommand<DB extends IDB>(
     program: Command,
-    createExecutor: () => MigrationScriptExecutor<DB>
+    createExecutor: () => Promise<MigrationScriptExecutor<DB>>
 ): void {
     const backup = program
         .command('backup')
@@ -43,7 +43,7 @@ export function addBackupCommand<DB extends IDB>(
         .description('Create a database backup')
         .action(async () => {
             try {
-                const executor = createExecutor();
+                const executor = await createExecutor();
                 const backupPath = await executor.createBackup();
                 console.log(`✓ Backup created successfully: ${backupPath}`);
                 process.exit(EXIT_CODES.SUCCESS);
@@ -60,7 +60,7 @@ export function addBackupCommand<DB extends IDB>(
         .description('Restore from backup file (uses most recent if path not provided)')
         .action(async (backupPath?: string) => {
             try {
-                const executor = createExecutor();
+                const executor = await createExecutor();
                 await executor.restoreFromBackup(backupPath);
                 console.log(`✓ Database restored successfully${backupPath ? ` from ${backupPath}` : ' from most recent backup'}`);
                 process.exit(EXIT_CODES.SUCCESS);
@@ -75,9 +75,9 @@ export function addBackupCommand<DB extends IDB>(
     backup
         .command('delete')
         .description('Delete backup file')
-        .action(() => {
+        .action(async () => {
             try {
-                const executor = createExecutor();
+                const executor = await createExecutor();
                 executor.deleteBackup();
                 console.log(`✓ Backup deleted successfully`);
                 process.exit(EXIT_CODES.SUCCESS);

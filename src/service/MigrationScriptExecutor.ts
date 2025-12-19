@@ -2,6 +2,7 @@ import {MigrationScript} from "../model/MigrationScript";
 import {IDatabaseMigrationHandler} from "../interface/IDatabaseMigrationHandler";
 import {IMigrationResult} from "../interface/IMigrationResult";
 import {IMigrationExecutorDependencies} from "../interface/IMigrationExecutorDependencies";
+import {IExecutorOptions} from "../interface/IExecutorOptions";
 import {IMigrationHooks} from "../interface/IMigrationHooks";
 import {Config} from "../model";
 import {IValidationResult, IValidationIssue, IDB} from "../interface";
@@ -24,13 +25,16 @@ import {OrchestrationServices} from "./facade/OrchestrationServices";
  * - Restoring from backup on failure
  * - Displaying migration status and results
  *
- * **Generic Type Parameters (v0.6.0 - BREAKING CHANGE):**
- * - `DB` - Your specific database interface extending IDB (REQUIRED)
- * - `THandler` - Your specific handler type extending IDatabaseMigrationHandler<DB> (OPTIONAL, v0.8.0)
+ * **Generic Type Parameters:**
+ * - `DB` - Your specific database interface extending IDB (REQUIRED, v0.6.0)
+ * - `THandler` - Your specific handler type extending IDatabaseMigrationHandler<DB> (OPTIONAL, v0.8.0, defaults to IDatabaseMigrationHandler<DB>)
+ * - `TConfig` - Your specific config type extending Config (OPTIONAL, v0.8.2, defaults to Config)
  *
  * @template DB - Database interface type
  * @template THandler - Handler interface type (defaults to IDatabaseMigrationHandler<DB>)
+ * @template TConfig - Config type (defaults to base Config class)
  *
+ * **New in v0.8.2:** Added TConfig generic parameter for custom config types
  * **New in v0.5.0:** Automatic transaction management with configurable modes
  * **Breaking Change in v0.6.0:** Constructor signature changed to `(dependencies, config?)`
  *
@@ -40,13 +44,13 @@ import {OrchestrationServices} from "./facade/OrchestrationServices";
  *
  * const handler = new MyDatabaseHandler();
  *
- * // Option 1: Minimal - just handler, uses waterfall config loading
+ * // Option 1: Minimal - just handler, uses waterfall config loading (backward compatible)
  * const executor = new MigrationScriptExecutor<IDB>({ handler });
  * // Loads config from: MSR_* env vars → ./msr.config.js → defaults
  *
- * // Option 2: With explicit config
+ * // Option 2: With explicit config (backward compatible)
  * const config = new Config();
- * const executor = new MigrationScriptExecutor<IDB>({ handler }, config);
+ * const executor = new MigrationScriptExecutor<IDB>({ handler, config });
  *
  * // Run all pending migrations
  * await executor.up();
@@ -72,15 +76,30 @@ import {OrchestrationServices} from "./facade/OrchestrationServices";
  *         this.handler.customMethod();  // Type-safe access!
  *     }
  * }
+ *
+ * // **New in v0.8.2:** Using custom config type
+ * class AppConfig extends Config {
+ *     databaseUrl?: string;
+ *     credentials?: string;
+ * }
+ *
+ * class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler, AppConfig> {
+ *     constructor(dependencies: IMigrationExecutorDependencies<IDB, MyHandler, AppConfig>) {
+ *         super(dependencies);
+ *         // this.config is now typed as AppConfig (not base Config!)
+ *         console.log(this.config.databaseUrl); // Type-safe access!
+ *     }
+ * }
  * ```
  */
 export class MigrationScriptExecutor<
     DB extends IDB,
-    THandler extends IDatabaseMigrationHandler<DB> = IDatabaseMigrationHandler<DB>
+    THandler extends IDatabaseMigrationHandler<DB> = IDatabaseMigrationHandler<DB>,
+    TConfig extends Config = Config
 > {
 
     /** Configuration for the migration system */
-    protected readonly config: Config;
+    protected readonly config: TConfig;
 
     /** Database migration handler implementing database-specific operations */
     protected readonly handler: THandler;
@@ -163,7 +182,29 @@ export class MigrationScriptExecutor<
      * });
      * ```
      */
-    constructor(dependencies: IMigrationExecutorDependencies<DB, THandler>) {
+    constructor(dependencies: IMigrationExecutorDependencies<DB, THandler, TConfig>) {
+        // Validate required dependencies with helpful error message
+        if (!dependencies.handler) {
+            throw new TypeError(
+                'Handler is required in IMigrationExecutorDependencies.\n\n' +
+                'Common causes:\n' +
+                '  1. Using IExecutorOptions in constructor instead of IMigrationExecutorDependencies\n' +
+                '  2. Forgetting to create handler before passing to super()\n\n' +
+                'Solutions:\n' +
+                '  • For async initialization: Use a factory method pattern:\n' +
+                '    static async getInstance(options: IExecutorOptions<DB>): Promise<MyExecutor> {\n' +
+                '      const handler = await MyHandler.connect(options.config);\n' +
+                '      return new MyExecutor({ handler, ...options });\n' +
+                '    }\n\n' +
+                '  • For sync initialization: Create handler before super():\n' +
+                '    constructor(options: IExecutorOptions<DB>) {\n' +
+                '      const handler = new MyHandler(options.config);\n' +
+                '      super({ handler, ...options });\n' +
+                '    }\n\n' +
+                'Learn more: https://github.com/migration-script-runner/msr-core/blob/master/docs/guides/cli-adapter-development.md'
+            );
+        }
+
         // Initialize all services via factory
         const services = createMigrationServices(dependencies);
 
@@ -182,6 +223,99 @@ export class MigrationScriptExecutor<
         if (this.config.showBanner) {
             this.output.renderer.drawFiglet();
         }
+    }
+
+    /**
+     * Factory method for creating executor instances with async handler initialization.
+     *
+     * Provides a standardized pattern for database adapters that require asynchronous
+     * initialization (e.g., Firebase, MongoDB, PostgreSQL with connection pooling).
+     * This eliminates boilerplate code and ensures consistency across adapters.
+     *
+     * **Pattern:**
+     * 1. Adapter makes constructor private
+     * 2. Adapter implements static getInstance() that calls this helper
+     * 3. Adapter provides handler creation function
+     *
+     * @template DB - Database interface type
+     * @template THandler - Handler interface type
+     * @template TExecutor - Executor subclass type
+     * @template TConfig - Config type (defaults to base Config class)
+     * @template TOptions - Options type extending IExecutorOptions (allows adapter-specific options)
+     *
+     * @param ExecutorClass - Constructor of the executor subclass
+     * @param options - Executor options (can be adapter-specific interface extending IExecutorOptions)
+     * @param createHandler - Async factory function for creating the handler
+     *
+     * @returns Promise resolving to the executor instance
+     *
+     * @since v0.8.2
+     *
+     * @example
+     * ```typescript
+     * // Firebase adapter
+     * export interface IFirebaseRunnerOptions extends IExecutorOptions<IFirebaseDB, FirebaseConfig> {
+     *     // Can add Firebase-specific options here
+     * }
+     *
+     * export class FirebaseRunner extends MigrationScriptExecutor<IFirebaseDB, FirebaseHandler, FirebaseConfig> {
+     *     private constructor(deps: IMigrationExecutorDependencies<IFirebaseDB, FirebaseHandler, FirebaseConfig>) {
+     *         super(deps);
+     *     }
+     *
+     *     static async getInstance(options: IFirebaseRunnerOptions): Promise<FirebaseRunner> {
+     *         return MigrationScriptExecutor.createInstance(
+     *             FirebaseRunner,
+     *             options,
+     *             (config) => FirebaseHandler.getInstance(config)
+     *         );
+     *     }
+     * }
+     *
+     * // MongoDB adapter with custom initialization
+     * export class MongoRunner extends MigrationScriptExecutor<IMongoDb, MongoHandler> {
+     *     private constructor(deps: IMigrationExecutorDependencies<IMongoDb, MongoHandler>) {
+     *         super(deps);
+     *     }
+     *
+     *     static async getInstance(options: IExecutorOptions<IMongoDb>): Promise<MongoRunner> {
+     *         return MigrationScriptExecutor.createInstance(
+     *             MongoRunner,
+     *             options,
+     *             async (config) => {
+     *                 const client = await MongoClient.connect(config.connectionString);
+     *                 return new MongoHandler(client, config);
+     *             }
+     *         );
+     *     }
+     * }
+     *
+     * // Usage
+     * const runner = await FirebaseRunner.getInstance({
+     *     config: new FirebaseConfig({ ... })
+     * });
+     * await runner.up();
+     * ```
+     */
+    protected static async createInstance<
+        DB extends IDB,
+        THandler extends IDatabaseMigrationHandler<DB>,
+        TExecutor extends MigrationScriptExecutor<DB, THandler, TConfig>,
+        TConfig extends Config = Config,
+        TOptions extends IExecutorOptions<DB, TConfig> = IExecutorOptions<DB, TConfig>
+    >(
+        ExecutorClass: new (deps: IMigrationExecutorDependencies<DB, THandler, TConfig>) => TExecutor,
+        options: TOptions,
+        createHandler: (config: TConfig) => Promise<THandler>
+    ): Promise<TExecutor> {
+        // Create handler using adapter-provided factory
+        const handler = await createHandler(options.config as TConfig);
+
+        // Construct executor with handler and options
+        return new ExecutorClass({
+            handler,
+            ...options
+        });
     }
 
     /**

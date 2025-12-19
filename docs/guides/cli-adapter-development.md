@@ -36,34 +36,55 @@ MSR Core provides a `createCLI()` factory function that creates a fully-featured
 
 ## Quick Start
 
-### Basic CLI Creation
+### Async Adapter (Recommended Pattern)
+
+Most database adapters require async initialization. Use the `createInstance` helper for clean, standardized adapters:
+
+{: .important }
+> **Best Practice:** Use this pattern for MongoDB, PostgreSQL, Firebase, MySQL, and most production databases.
 
 ```typescript
-import {createCLI} from '@migration-script-runner/core';
-import {MongoAdapter} from './MongoAdapter';
+import {createCLI, MigrationScriptExecutor, IExecutorOptions} from '@migration-script-runner/core';
 import {MongoHandler} from './MongoHandler';
+import {IMongoDb} from './types';
 
-// Create CLI with your adapter
+// Define your adapter with async initialization
+class MongoAdapter extends MigrationScriptExecutor<IMongoDb, MongoHandler> {
+  private constructor(deps: any) {
+    super(deps);
+  }
+
+  static async getInstance(options: IExecutorOptions<IMongoDb>): Promise<MongoAdapter> {
+    return MigrationScriptExecutor.createInstance(
+      MongoAdapter,
+      options,
+      async (config) => MongoHandler.connect(config.mongoUri || 'mongodb://localhost')
+    );
+  }
+}
+
+// Create CLI with async executor
 const program = createCLI({
   name: 'msr-mongodb',
   description: 'MongoDB Migration Runner',
   version: '1.0.0',
-  createExecutor: (config) => {
-    const handler = new MongoHandler(config.mongoUri || 'mongodb://localhost');
-    return new MongoAdapter({handler, config});
-  },
+  createExecutor: async (config) => {
+    return MongoAdapter.getInstance({config});
+  }
 });
 
-// Parse command-line arguments
 program.parse(process.argv);
 ```
 
-{: .note }
-> See [examples/simple-cli.ts](../../examples/simple-cli.ts) for a runnable example showing the CLI structure without a full database implementation.
+**Benefits:**
+- ✅ Handles async connections, authentication, pooling
+- ✅ Standardized pattern across ecosystem
+- ✅ Type-safe with zero boilerplate
+- ✅ Consistent with other MSR adapters
 
-### With Custom Commands (Recommended)
+### With Custom Commands
 
-Add database-specific commands using the `extendCLI` callback for full type safety:
+Add database-specific commands using the `extendCLI` callback:
 
 ```typescript
 import {createCLI} from '@migration-script-runner/core';
@@ -71,7 +92,7 @@ import {MongoAdapter} from './MongoAdapter';
 
 const program = createCLI({
   name: 'msr-mongodb',
-  createExecutor: (config) => new MongoAdapter({handler, config}),
+  createExecutor: async (config) => MongoAdapter.getInstance({config}),
 
   // Add custom commands with full type safety
   extendCLI: (program, createExecutor) => {
@@ -79,8 +100,8 @@ const program = createCLI({
       .command('mongo:stats')
       .description('Show database statistics')
       .action(async () => {
-        const adapter = createExecutor(); // ✓ Typed as MongoAdapter!
-        const stats = await adapter.getStats(); // ✓ No casting needed!
+        const adapter = await createExecutor(); // ✓ Typed as MongoAdapter!
+        const stats = await adapter.getHandler().getStats(); // ✓ Type-safe!
         console.table(stats);
         process.exit(0);
       });
@@ -90,18 +111,276 @@ const program = createCLI({
 program.parse(process.argv);
 ```
 
-### Minimal Example
+### Sync Adapter (For Simple Cases)
+
+For handlers without async initialization needs (in-memory databases, file-based storage):
 
 ```typescript
-import {createCLI} from '@migration-script-runner/core';
-import {MyAdapter} from './MyAdapter';
+import {createCLI, MigrationScriptExecutor} from '@migration-script-runner/core';
+import {SimpleHandler} from './SimpleHandler';
 
 const program = createCLI({
-  createExecutor: (config) => new MyAdapter({config}),
+  name: 'msr-simple',
+  createExecutor: (config) => {
+    const handler = new SimpleHandler();  // Synchronous
+    return new MigrationScriptExecutor({handler, config});
+  }
 });
 
 program.parse(process.argv);
 ```
+
+{: .note }
+> Use sync pattern only when your handler doesn't need async initialization. See [examples/simple-cli.ts](../../examples/simple-cli.ts) for a runnable example.
+
+---
+
+## Custom Configuration Types
+
+{: .new }
+> **NEW in v0.8.2:** Type-safe custom configuration with `TConfig` generic parameter
+
+MSR allows you to extend the base `Config` class with adapter-specific properties, providing full type safety throughout your adapter implementation.
+
+### Why Custom Config?
+
+Database adapters often need additional configuration beyond MSR's base settings:
+
+- **Connection Strings**: Database URLs, host/port combinations
+- **Pool Settings**: Connection pool size, timeout settings
+- **Authentication**: API keys, OAuth tokens, service account paths
+- **Database-Specific Options**: Region, cluster name, replica set name
+
+Instead of casting or using workarounds, v0.8.2 enables proper type-safe configuration.
+
+### Basic Example
+
+```typescript
+import { Config, MigrationScriptExecutor, IDB, IDatabaseMigrationHandler } from '@migration-script-runner/core';
+
+// 1. Extend Config with adapter-specific properties
+class AppConfig extends Config {
+  databaseUrl?: string;
+  connectionPoolSize?: number;
+  apiKey?: string;
+}
+
+// 2. Use TConfig generic in your adapter
+class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler, AppConfig> {
+  // this.config is now typed as AppConfig!
+
+  async initializeConnection(): Promise<void> {
+    // Full IDE autocomplete for custom properties
+    const url = this.config.databaseUrl;
+    const poolSize = this.config.connectionPoolSize ?? 10;
+    const apiKey = this.config.apiKey;
+
+    // Use properties to configure connection
+    await this.handler.connect(url, { poolSize, apiKey });
+  }
+}
+
+// 3. Pass config instance to executor
+const config = new AppConfig();
+config.databaseUrl = 'https://my-db.example.com';
+config.connectionPoolSize = 20;
+config.apiKey = process.env.API_KEY;
+
+const adapter = new MyAdapter({
+  handler: new MyHandler(),
+  config: config  // Typed as AppConfig
+});
+```
+
+### CLI Integration
+
+Use custom config with `createCLI()`:
+
+```typescript
+import { createCLI, IExecutorOptions } from '@migration-script-runner/core';
+
+class FirebaseConfig extends Config {
+  databaseUrl?: string;
+  projectId?: string;
+  serviceAccountPath?: string;
+}
+
+const program = createCLI<IDB, MyHandler, FirebaseConfig>({
+  name: 'msr-firebase',
+  version: '1.0.0',
+  createExecutor: (config: FirebaseConfig) => {
+    // config is typed as FirebaseConfig
+    const handler = new MyHandler({
+      databaseUrl: config.databaseUrl,
+      projectId: config.projectId,
+      serviceAccountPath: config.serviceAccountPath
+    });
+
+    return new MyAdapter({
+      handler,
+      config  // No casting needed!
+    });
+  }
+});
+
+program.parse(process.argv);
+```
+
+### Loading Custom Config from Files
+
+Users can define custom properties in configuration files:
+
+**msr.config.json:**
+```json
+{
+  "migrationsPath": "./migrations",
+  "databaseUrl": "https://my-project.firebaseio.com",
+  "projectId": "my-project-id",
+  "connectionPoolSize": 15,
+  "apiKey": "${API_KEY}"
+}
+```
+
+**msr.config.js:**
+```javascript
+module.exports = {
+  migrationsPath: './migrations',
+  databaseUrl: process.env.DATABASE_URL,
+  projectId: 'my-project',
+  connectionPoolSize: 15
+};
+```
+
+The config loader automatically picks up custom properties when loading from files.
+
+### Advanced: Custom Config Loader
+
+For complex config needs, implement a custom `IConfigLoader<TConfig>`:
+
+```typescript
+import { IConfigLoader, ConfigLoader } from '@migration-script-runner/core';
+
+class FirebaseConfigLoader implements IConfigLoader<FirebaseConfig> {
+  load(): FirebaseConfig {
+    // Load base config
+    const baseLoader = new ConfigLoader<FirebaseConfig>();
+    const config = baseLoader.load();
+
+    // Add Firebase-specific defaults
+    if (!config.databaseUrl) {
+      config.databaseUrl = process.env.FIREBASE_DATABASE_URL;
+    }
+    if (!config.projectId) {
+      config.projectId = process.env.FIREBASE_PROJECT_ID;
+    }
+
+    // Validate Firebase-specific config
+    if (!config.databaseUrl) {
+      throw new TypeError('databaseUrl is required for Firebase adapter');
+    }
+
+    return config;
+  }
+}
+
+// Use custom loader in executor
+const adapter = new MyAdapter({
+  handler: new MyHandler(),
+  configLoader: new FirebaseConfigLoader()  // Custom loader
+});
+```
+
+### Type Safety Benefits
+
+**Before v0.8.2** (without TConfig):
+```typescript
+class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler> {
+  initializeConnection() {
+    // Need to cast or use 'any' ❌
+    const url = (this.config as any).databaseUrl;
+    // OR create wrapper interface ❌
+  }
+}
+```
+
+**After v0.8.2** (with TConfig):
+```typescript
+class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler, AppConfig> {
+  initializeConnection() {
+    // Full type safety ✅
+    const url = this.config.databaseUrl;
+    // IDE autocomplete works ✅
+    // Compile-time validation ✅
+  }
+}
+```
+
+### Common Patterns
+
+#### 1. Connection Configuration
+```typescript
+class MongoConfig extends Config {
+  mongoUri?: string;
+  replicaSet?: string;
+  authDatabase?: string;
+}
+```
+
+#### 2. Cloud Service Configuration
+```typescript
+class FirebaseConfig extends Config {
+  databaseUrl?: string;
+  projectId?: string;
+  serviceAccountPath?: string;
+  storageBucket?: string;
+}
+```
+
+#### 3. Performance Tuning
+```typescript
+class PostgresConfig extends Config {
+  connectionString?: string;
+  maxConnections?: number;
+  idleTimeoutMs?: number;
+  statementTimeout?: number;
+}
+```
+
+#### 4. Multi-Environment Configuration
+```typescript
+class AppConfig extends Config {
+  environment?: 'development' | 'staging' | 'production';
+  databaseUrl?: string;
+  enableDebugLogging?: boolean;
+  metricsEndpoint?: string;
+}
+```
+
+### Best Practices
+
+1. **Optional Properties**: Make custom properties optional (`?`) with sensible defaults
+2. **Environment Variables**: Support env vars for sensitive data (API keys, connection strings)
+3. **Validation**: Validate required custom properties in your handler constructor
+4. **Documentation**: Document custom config properties in your adapter's README
+5. **Type Safety**: Leverage TypeScript - avoid `any` or type assertions
+
+### Backward Compatibility
+
+The `TConfig` generic parameter is **fully backward compatible**:
+
+```typescript
+// Still works - defaults to base Config
+class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler> {
+  // this.config is typed as Config (base class)
+}
+
+// Or explicitly use base Config
+class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler, Config> {
+  // Same as above
+}
+```
+
+Existing adapters continue to work without changes.
 
 ---
 
@@ -606,6 +885,217 @@ extendCLI: (program, createExecutor) => {
 
 ---
 
+## Async Adapter Initialization (v0.8.2)
+
+Many database adapters require asynchronous initialization - connecting to a database, authenticating, setting up connection pools, etc. MSR Core v0.8.2 provides a standardized factory pattern to eliminate boilerplate code and ensure consistency across adapters.
+
+### The Problem
+
+Without the factory pattern, every adapter must implement the same boilerplate:
+
+```typescript
+export class FirebaseRunner extends MigrationScriptExecutor<IFirebaseDB, FirebaseHandler> {
+    private constructor(deps: IMigrationExecutorDependencies<IFirebaseDB, FirebaseHandler>) {
+        super(deps);
+    }
+
+    static async getInstance(options: IFirebaseRunnerOptions): Promise<FirebaseRunner> {
+        // Boilerplate: Create handler async
+        const handler = await FirebaseHandler.getInstance(options.config);
+        // Boilerplate: Construct with handler + options
+        return new FirebaseRunner({ handler, ...options });
+    }
+}
+```
+
+**Problems:**
+- ❌ Code duplication across every async adapter
+- ❌ Easy to forget spreading `...options`
+- ❌ Inconsistent patterns between adapters
+
+### The Solution: `createInstance` Factory Method
+
+MSR Core v0.8.2 provides a `protected static createInstance()` helper that standardizes the pattern:
+
+```typescript
+export class FirebaseRunner extends MigrationScriptExecutor<IFirebaseDB, FirebaseHandler> {
+    private constructor(deps: IMigrationExecutorDependencies<IFirebaseDB, FirebaseHandler>) {
+        super(deps);
+    }
+
+    static async getInstance(options: IFirebaseRunnerOptions): Promise<FirebaseRunner> {
+        return MigrationScriptExecutor.createInstance(
+            FirebaseRunner,                                    // Executor class
+            options,                                           // Options (IExecutorOptions or extension)
+            (config) => FirebaseHandler.getInstance(config)    // Handler factory function
+        );
+    }
+}
+```
+
+**Benefits:**
+- ✅ Reduces boilerplate to 3 lines
+- ✅ Consistent pattern across all adapters
+- ✅ Type-safe with full generic support
+- ✅ Handles option spreading automatically
+
+### Type Parameters
+
+The `createInstance` method supports all executor generics:
+
+```typescript
+protected static async createInstance<
+    DB extends IDB,                                           // Your database interface
+    THandler extends IDatabaseMigrationHandler<DB>,           // Your handler type
+    TExecutor extends MigrationScriptExecutor<DB, THandler, TConfig>,  // Your executor subclass
+    TConfig extends Config = Config,                          // Custom config type
+    TOptions extends IExecutorOptions<DB, TConfig> = IExecutorOptions<DB, TConfig>  // Custom options
+>(
+    ExecutorClass: new (deps: IMigrationExecutorDependencies<DB, THandler, TConfig>) => TExecutor,
+    options: TOptions,
+    createHandler: (config: TConfig) => Promise<THandler>
+): Promise<TExecutor>
+```
+
+### Example: Firebase Adapter
+
+```typescript
+// Firebase-specific config
+export class FirebaseConfig extends Config {
+    credential?: string;
+    databaseURL?: string;
+}
+
+// Firebase-specific options (optional - can extend IExecutorOptions)
+export interface IFirebaseRunnerOptions extends IExecutorOptions<IFirebaseDB, FirebaseConfig> {
+    // Can add Firebase-specific options here if needed
+}
+
+export class FirebaseRunner extends MigrationScriptExecutor<IFirebaseDB, FirebaseHandler, FirebaseConfig> {
+    private constructor(deps: IMigrationExecutorDependencies<IFirebaseDB, FirebaseHandler, FirebaseConfig>) {
+        super(deps);
+    }
+
+    static async getInstance(options: IFirebaseRunnerOptions): Promise<FirebaseRunner> {
+        return MigrationScriptExecutor.createInstance(
+            FirebaseRunner,
+            options,
+            async (config) => {
+                // Your async initialization logic
+                const app = await initializeApp(config.credential);
+                return new FirebaseHandler(app, config);
+            }
+        );
+    }
+}
+
+// Usage
+const runner = await FirebaseRunner.getInstance({
+    config: new FirebaseConfig({
+        credential: './serviceAccount.json',
+        databaseURL: 'https://my-app.firebaseio.com'
+    })
+});
+
+await runner.up();
+```
+
+### Example: MongoDB Adapter
+
+```typescript
+export class MongoRunner extends MigrationScriptExecutor<IMongoDb, MongoHandler> {
+    private constructor(deps: IMigrationExecutorDependencies<IMongoDb, MongoHandler>) {
+        super(deps);
+    }
+
+    static async getInstance(options: IExecutorOptions<IMongoDb>): Promise<MongoRunner> {
+        return MigrationScriptExecutor.createInstance(
+            MongoRunner,
+            options,
+            async (config) => {
+                // Connect to MongoDB
+                const client = await MongoClient.connect(config.connectionString);
+                const db = client.db(config.database);
+                return new MongoHandler(db, config);
+            }
+        );
+    }
+}
+```
+
+### When to Use
+
+**Use `createInstance` when:**
+- ✅ Handler requires async initialization (database connections, authentication, etc.)
+- ✅ You want consistency with other async adapters
+- ✅ You want to reduce boilerplate code
+
+**Don't use `createInstance` when:**
+- ⛔ Handler is synchronous (no async initialization needed)
+- ⛔ You need custom constructor logic before handler creation
+- ⛔ Your initialization pattern doesn't fit the factory approach
+
+### Synchronous Adapters
+
+Synchronous adapters don't need the factory pattern - just use the regular constructor:
+
+```typescript
+export class SimpleAdapter extends MigrationScriptExecutor<IDB, SimpleHandler> {
+    constructor(options: IExecutorOptions<IDB>) {
+        const handler = new SimpleHandler(options.config);  // Synchronous
+        super({ handler, ...options });
+    }
+}
+
+// Usage
+const adapter = new SimpleAdapter({ config });
+await adapter.up();
+```
+
+### Error Handling
+
+The factory method propagates errors from handler creation:
+
+```typescript
+static async getInstance(options: IExecutorOptions<IDB>): Promise<MyRunner> {
+    return MigrationScriptExecutor.createInstance(
+        MyRunner,
+        options,
+        async (config) => {
+            try {
+                const client = await DatabaseClient.connect(config.connectionString);
+                return new MyHandler(client, config);
+            } catch (error) {
+                throw new Error(`Failed to connect to database: ${error.message}`);
+            }
+        }
+    );
+}
+```
+
+### CLI Integration
+
+Use the factory method with async executor support (v0.8.2):
+
+```typescript
+import {createCLI} from '@migration-script-runner/core';
+import {FirebaseRunner} from './FirebaseRunner';
+import {FirebaseConfig} from './FirebaseConfig';
+
+const program = createCLI({
+    name: 'firebase-migrations',
+    createExecutor: async (config) => {
+        return FirebaseRunner.getInstance({
+            config: config as FirebaseConfig
+        });
+    }
+});
+
+program.parse(process.argv);
+```
+
+---
+
 ## Complete Example
 
 Here's a complete example of a MongoDB adapter CLI:
@@ -656,12 +1146,29 @@ export class MongoHandler implements IDatabaseMigrationHandler<MongoDBInterface>
 ### `src/MongoAdapter.ts`
 
 ```typescript
-import {MigrationScriptExecutor, Config} from '@migration-script-runner/core';
+import {
+  MigrationScriptExecutor,
+  IMigrationExecutorDependencies,
+  IExecutorOptions
+} from '@migration-script-runner/core';
 import {MongoHandler, MongoDBInterface} from './MongoHandler';
 
-export class MongoAdapter extends MigrationScriptExecutor<MongoDBInterface> {
-  constructor({handler, config}: {handler: MongoHandler; config: Config}) {
-    super({handler, config});
+export class MongoAdapter extends MigrationScriptExecutor<MongoDBInterface, MongoHandler> {
+  private constructor(deps: IMigrationExecutorDependencies<MongoDBInterface, MongoHandler>) {
+    super(deps);
+  }
+
+  // Async factory method using createInstance helper
+  static async getInstance(options: IExecutorOptions<MongoDBInterface>): Promise<MongoAdapter> {
+    return MigrationScriptExecutor.createInstance(
+      MongoAdapter,
+      options,
+      async (config) => {
+        const handler = new MongoHandler(config.mongoUri || 'mongodb://localhost');
+        await handler.connect();  // Async initialization
+        return handler;
+      }
+    );
   }
 
   // Custom MongoDB-specific methods
@@ -691,7 +1198,7 @@ export class MongoAdapter extends MigrationScriptExecutor<MongoDBInterface> {
 ```typescript
 import {createCLI} from '@migration-script-runner/core';
 import {MongoAdapter} from './MongoAdapter';
-import {MongoHandler, MongoDBInterface} from './MongoHandler';
+import {MongoDBInterface} from './MongoHandler';
 
 // Create CLI with custom MongoDB commands using extendCLI
 const program = createCLI<MongoDBInterface, MongoAdapter>({
@@ -703,13 +1210,12 @@ const program = createCLI<MongoDBInterface, MongoAdapter>({
   config: {
     folder: './migrations',
     tableName: '_schema_versions',
+    mongoUri: process.env.MONGO_URI || 'mongodb://localhost:27017/mydb'
   },
 
-  // Factory receives final merged config
-  createExecutor: (config) => {
-    const mongoUri = process.env.MONGO_URI || config.mongoUri || 'mongodb://localhost:27017/mydb';
-    const handler = new MongoHandler(mongoUri);
-    return new MongoAdapter({handler, config});
+  // Async factory using getInstance (v0.8.2+)
+  createExecutor: async (config) => {
+    return MongoAdapter.getInstance({config});
   },
 
   // Add MongoDB-specific commands with full type safety
@@ -719,7 +1225,7 @@ const program = createCLI<MongoDBInterface, MongoAdapter>({
       .description('Show all indexes in database')
       .action(async () => {
         try {
-          const adapter = createExecutor(); // ✓ Typed as MongoAdapter!
+          const adapter = await createExecutor(); // ✓ Typed as MongoAdapter!
           const indexes = await adapter.getIndexes(); // ✓ TypeScript knows this method!
 
           for (const {collection, indexes: collIndexes} of indexes) {
@@ -739,7 +1245,7 @@ const program = createCLI<MongoDBInterface, MongoAdapter>({
       .description('List all collections')
       .action(async () => {
         try {
-          const adapter = createExecutor(); // Config already merged!
+          const adapter = await createExecutor(); // ✓ Async executor support!
           const collections = await adapter.getCollections();
           console.table(collections);
           process.exit(0);
@@ -886,6 +1392,193 @@ describe('CLI Integration', () => {
 6. **Test CLI Commands**: Write both unit and integration tests for your CLI.
 
 7. **Use Environment Variables**: Support environment variables for sensitive data like connection strings.
+
+---
+
+## Troubleshooting
+
+### Error: "Property 'handler' is missing"
+
+**Full Error:**
+```
+TypeError: Handler is required in IMigrationExecutorDependencies.
+```
+
+**Cause:** You're likely using `IExecutorOptions` in your constructor instead of `IMigrationExecutorDependencies`, or forgetting to create the handler before calling `super()`.
+
+**Solution (Async Initialization):**
+```typescript
+// ✅ CORRECT
+export class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler> {
+    private constructor(deps: IMigrationExecutorDependencies<IDB, MyHandler>) {
+        super(deps);  // ✅ Has handler
+    }
+
+    static async getInstance(options: IExecutorOptions<IDB>): Promise<MyAdapter> {
+        const handler = await MyHandler.connect(options.config);
+        return new MyAdapter({ handler, ...options });  // Spread options
+    }
+}
+```
+
+**Solution (Sync Initialization):**
+```typescript
+// ✅ CORRECT
+export class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler> {
+    constructor(options: IExecutorOptions<IDB>) {
+        const handler = new MyHandler(options.config);  // Create handler first
+        super({ handler, ...options });  // Pass to parent
+    }
+}
+```
+
+**Wrong Pattern:**
+```typescript
+// ❌ WRONG
+export class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler> {
+    constructor(options: IExecutorOptions<IDB>) {  // Missing handler!
+        super(options);  // ❌ Error
+    }
+}
+```
+
+---
+
+### Error: Generic Type Mismatch
+
+**Full Error:**
+```
+Type 'IMigrationExecutorDependencies<IDB>' is not assignable to parameter of type 'IMigrationExecutorDependencies<IDB, MyHandler>'
+```
+
+**Cause:** You didn't specify the handler type in your constructor parameter.
+
+**Solution:**
+```typescript
+// ❌ WRONG - Missing THandler generic
+constructor(deps: IMigrationExecutorDependencies<IDB>) {
+    super(deps);
+}
+
+// ✅ CORRECT - Include THandler
+constructor(deps: IMigrationExecutorDependencies<IDB, MyHandler>) {
+    super(deps);
+}
+```
+
+---
+
+### IExecutorOptions vs IMigrationExecutorDependencies
+
+**When to use each:**
+
+| Interface | Use In | Includes Handler? | Purpose |
+|-----------|--------|-------------------|---------|
+| `IExecutorOptions` | Public factory methods (`getInstance()`) | ❌ No | Public API for users |
+| `IMigrationExecutorDependencies` | Private constructor | ✅ Yes (required) | Internal API for construction |
+
+**Pattern:**
+```typescript
+export class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler> {
+    // Private constructor - uses IMigrationExecutorDependencies
+    private constructor(deps: IMigrationExecutorDependencies<IDB, MyHandler>) {
+        super(deps);
+    }
+
+    // Public factory - uses IExecutorOptions
+    static async getInstance(options: IExecutorOptions<IDB>): Promise<MyAdapter> {
+        const handler = await MyHandler.connect(options.config);
+        // Spread IExecutorOptions into IMigrationExecutorDependencies
+        return new MyAdapter({ handler, ...options });
+    }
+}
+```
+
+---
+
+### TypeScript Errors with Custom Config
+
+**Issue:** You want to use a custom config type but getting type errors.
+
+**Solution (v0.8.2+):**
+```typescript
+// Define custom config
+class AppConfig extends Config {
+    databaseUrl?: string;
+    poolSize?: number;
+}
+
+// Use TConfig generic parameter
+export class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler, AppConfig> {
+    private constructor(deps: IMigrationExecutorDependencies<IDB, MyHandler, AppConfig>) {
+        super(deps);
+        // this.config is now typed as AppConfig
+        console.log(this.config.databaseUrl);  // ✅ Type-safe!
+    }
+
+    static async getInstance(options: IExecutorOptions<IDB, AppConfig>): Promise<MyAdapter> {
+        const handler = await MyHandler.connect(options.config.databaseUrl);
+        return new MyAdapter({ handler, ...options });
+    }
+}
+```
+
+---
+
+### Async Initialization Not Working
+
+**Issue:** Your adapter requires async initialization but getting type errors or runtime issues.
+
+**Solution:** Use the `createInstance` helper (v0.8.2+):
+
+```typescript
+export class MyAdapter extends MigrationScriptExecutor<IDB, MyHandler> {
+    private constructor(deps: IMigrationExecutorDependencies<IDB, MyHandler>) {
+        super(deps);
+    }
+
+    static async getInstance(options: IExecutorOptions<IDB>): Promise<MyAdapter> {
+        return MigrationScriptExecutor.createInstance(
+            MyAdapter,
+            options,
+            async (config) => MyHandler.connect(config)
+        );
+    }
+}
+```
+
+**Benefits:**
+- ✅ Standardized pattern
+- ✅ Reduces boilerplate
+- ✅ Type-safe
+- ✅ Handles option spreading automatically
+
+See [Async Adapter Initialization](#async-adapter-initialization-v082) for details.
+
+---
+
+### CLI Commands Not Working
+
+**Issue:** Custom commands not appearing or getting type errors.
+
+**Solution:** Use `extendCLI` callback with proper typing:
+
+```typescript
+const program = createCLI<IDB, MyAdapter>({
+    name: 'my-cli',
+    createExecutor: async (config) => MyAdapter.getInstance({ config }),
+
+    extendCLI: (program, createExecutor) => {
+        program
+            .command('custom:command')
+            .action(async () => {
+                const adapter = await createExecutor();  // ✅ Typed!
+                const handler = adapter.getHandler();    // ✅ Access handler
+                // Your custom logic
+            });
+    }
+});
+```
 
 ---
 

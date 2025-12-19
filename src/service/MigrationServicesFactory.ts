@@ -1,5 +1,5 @@
 import {IMigrationExecutorDependencies} from "../interface/IMigrationExecutorDependencies";
-import {IDB} from "../interface";
+import {IConfigLoader, IDB} from "../interface";
 import {Config} from "../model";
 import {IDatabaseMigrationHandler} from "../interface/IDatabaseMigrationHandler";
 import {ILogger} from "../interface/ILogger";
@@ -48,9 +48,9 @@ import {MigrationWorkflowOrchestrator} from "./MigrationWorkflowOrchestrator";
  *
  * @since v0.7.0
  */
-export interface MigrationServicesFacades<DB extends IDB> {
+export interface MigrationServicesFacades<DB extends IDB, TConfig extends Config = Config> {
     /** Loaded configuration */
-    config: Config;
+    config: TConfig;
 
     /** Database migration handler */
     handler: IDatabaseMigrationHandler<DB>;
@@ -86,14 +86,18 @@ export interface MigrationServicesFacades<DB extends IDB> {
  *
  * @since v0.7.0
  */
-export function createMigrationServices<DB extends IDB>(
-    dependencies: IMigrationExecutorDependencies<DB>
-): MigrationServicesFacades<DB> {
+export function createMigrationServices<
+    DB extends IDB,
+    THandler extends IDatabaseMigrationHandler<DB> = IDatabaseMigrationHandler<DB>,
+    TConfig extends Config = Config
+>(
+    dependencies: IMigrationExecutorDependencies<DB, THandler, TConfig>
+): MigrationServicesFacades<DB, TConfig> {
 
     const handler = dependencies.handler;
 
     // Load configuration
-    const configLoader = dependencies.configLoader ?? new ConfigLoader();
+    const configLoader:IConfigLoader<TConfig> = dependencies.configLoader ?? new ConfigLoader<TConfig>();
     const config = dependencies.config ?? configLoader.load();
 
     // Create logger

@@ -625,6 +625,82 @@ function createTransactionManager<DB extends IDB>(...): ITransactionManager<DB> 
 }
 ```
 
+### Async Adapter Initialization Factory (v0.8.2)
+
+**New in v0.8.2:** The `createInstance` static method provides a standardized factory pattern for database adapters requiring asynchronous initialization.
+
+#### Pattern Overview
+
+Many database adapters need async initialization (connections, authentication, etc.). The `createInstance` helper eliminates boilerplate:
+
+```typescript
+// MigrationScriptExecutor provides:
+protected static async createInstance<DB, THandler, TExecutor, TConfig, TOptions>(
+    ExecutorClass: new (deps: IMigrationExecutorDependencies<DB, THandler, TConfig>) => TExecutor,
+    options: TOptions,
+    createHandler: (config: TConfig) => Promise<THandler>
+): Promise<TExecutor>
+```
+
+#### Benefits
+
+1. **Reduces Boilerplate**: From ~10 lines to 3 lines per adapter
+2. **Standardizes Pattern**: Consistent across all async adapters
+3. **Type Safety**: Full generic support with proper type inference
+4. **Error Prevention**: Automatically handles `...options` spreading
+
+#### Adapter Implementation
+
+**With `createInstance` (Recommended):**
+
+```typescript
+export class FirebaseRunner extends MigrationScriptExecutor<IFirebaseDB, FirebaseHandler> {
+    private constructor(deps: IMigrationExecutorDependencies<IFirebaseDB, FirebaseHandler>) {
+        super(deps);
+    }
+
+    static async getInstance(options: IFirebaseRunnerOptions): Promise<FirebaseRunner> {
+        return MigrationScriptExecutor.createInstance(
+            FirebaseRunner,
+            options,
+            (config) => FirebaseHandler.getInstance(config)
+        );
+    }
+}
+```
+
+**Without `createInstance` (Manual):**
+
+```typescript
+export class FirebaseRunner extends MigrationScriptExecutor<IFirebaseDB, FirebaseHandler> {
+    private constructor(deps: IMigrationExecutorDependencies<IFirebaseDB, FirebaseHandler>) {
+        super(deps);
+    }
+
+    static async getInstance(options: IFirebaseRunnerOptions): Promise<FirebaseRunner> {
+        const handler = await FirebaseHandler.getInstance(options.config);
+        return new FirebaseRunner({ handler, ...options });  // Easy to forget ...options!
+    }
+}
+```
+
+#### When to Use
+
+**Use `createInstance` when:**
+- ✅ Handler requires async initialization (database connections, auth, etc.)
+- ✅ Building adapters for the MSR ecosystem
+- ✅ Want consistency with other adapters
+
+**Don't use `createInstance` when:**
+- ⛔ Handler is synchronous
+- ⛔ Need custom logic before handler creation
+- ⛔ Initialization pattern doesn't fit factory approach
+
+{: .important }
+> **Best Practice**: Always use `createInstance` for async adapters to ensure consistency across the MSR ecosystem and reduce boilerplate code.
+
+**Learn More:** [Async Adapter Initialization](../../guides/cli-adapter-development#async-adapter-initialization-v082)
+
 ### Pattern Interaction
 
 The Facade and Factory patterns work together:

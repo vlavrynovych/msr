@@ -22,14 +22,14 @@ import {IDB} from '../../interface';
  */
 export function addLockStatusCommand<DB extends IDB>(
     program: Command,
-    createExecutor: () => MigrationScriptExecutor<DB>
+    createExecutor: () => Promise<MigrationScriptExecutor<DB>>
 ): void {
     program
         .command('lock:status')
         .description('Display current migration lock status')
         .action(async () => {
             try {
-                const executor = createExecutor();
+                const executor = await createExecutor();
                 const status = await executor.getLockStatus();
 
                 if (!status) {

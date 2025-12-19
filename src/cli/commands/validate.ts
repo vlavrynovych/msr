@@ -24,14 +24,14 @@ import {ValidationIssueType} from '../../model/ValidationIssueType';
  */
 export function addValidateCommand<DB extends IDB>(
     program: Command,
-    createExecutor: () => MigrationScriptExecutor<DB>
+    createExecutor: () => Promise<MigrationScriptExecutor<DB>>
 ): void {
     program
         .command('validate')
         .description('Validate migration scripts without executing them')
         .action(async () => {
             try {
-                const executor = createExecutor();
+                const executor = await createExecutor();
                 const results = await executor.validate();
 
                 const pendingCount = results.pending.length;
