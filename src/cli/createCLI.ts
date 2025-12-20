@@ -20,8 +20,13 @@ import {
  *
  * @template DB - Database interface type
  * @template TExecutor - Executor type (MigrationScriptExecutor or adapter extending it)
+ * @template TConfig - Configuration type (Config or adapter-specific config extending it)
  */
-export interface CLIOptions<DB extends IDB, TExecutor extends MigrationScriptExecutor<DB> = MigrationScriptExecutor<DB>> {
+export interface CLIOptions<
+    DB extends IDB,
+    TExecutor extends MigrationScriptExecutor<DB> = MigrationScriptExecutor<DB>,
+    TConfig extends Config = Config
+> {
     /**
      * Factory function to create MigrationScriptExecutor instance.
      *
@@ -30,6 +35,9 @@ export interface CLIOptions<DB extends IDB, TExecutor extends MigrationScriptExe
      *
      * **NEW in v0.8.2:** Supports both synchronous and asynchronous executor creation.
      * Use async when your database adapter requires async initialization (connections, auth, etc).
+     *
+     * **NEW in v0.8.4:** Supports custom config types via TConfig generic parameter.
+     * Use this when your adapter has FirebaseConfig extends Config with custom properties.
      *
      * @param config - Final merged configuration with CLI flags applied
      * @returns MigrationScriptExecutor instance (or Promise) or adapter extending it
@@ -51,8 +59,22 @@ export interface CLIOptions<DB extends IDB, TExecutor extends MigrationScriptExe
      *   return new FirebaseAdapter({ handler, config });
      * }
      * ```
+     *
+     * @example
+     * ```typescript
+     * // With custom config type (NEW in v0.8.4)
+     * interface FirebaseConfig extends Config {
+     *   databaseUrl: string;
+     *   applicationCredentials: string;
+     * }
+     *
+     * createExecutor: async (config: FirebaseConfig) => {
+     *   // ✅ config.databaseUrl is typed and autocompletes!
+     *   return FirebaseAdapter.getInstance({ config });
+     * }
+     * ```
      */
-    createExecutor: (config: Config) => TExecutor | Promise<TExecutor>;
+    createExecutor: (config: TConfig) => TExecutor | Promise<TExecutor>;
 
     /**
      * CLI metadata (optional).
@@ -65,13 +87,13 @@ export interface CLIOptions<DB extends IDB, TExecutor extends MigrationScriptExe
      * Initial config to merge with defaults (optional).
      * Will be merged after waterfall config loading but before CLI flags.
      */
-    config?: Partial<Config>;
+    config?: Partial<TConfig>;
 
     /**
      * Custom config loader (optional).
      * If not provided, uses default ConfigLoader.
      */
-    configLoader?: IConfigLoader<Config>;
+    configLoader?: IConfigLoader<TConfig>;
 
     /**
      * Optional callback to extend the CLI with custom commands.
@@ -155,7 +177,9 @@ export interface CLIOptions<DB extends IDB, TExecutor extends MigrationScriptExe
      *
      * **NEW in v0.8.3**
      *
-     * @param config - Config object to update with custom flag values
+     * **NEW in v0.8.4:** Config parameter is typed as TConfig for full type safety with custom configs.
+     *
+     * @param config - Config object to update with custom flag values (typed as TConfig)
      * @param flags - Parsed CLI flags from Commander.js (includes both standard and custom flags)
      *
      * @example
@@ -182,8 +206,30 @@ export interface CLIOptions<DB extends IDB, TExecutor extends MigrationScriptExe
      *   createExecutor: (config) => new MongoAdapter({ config })
      * });
      * ```
+     *
+     * @example
+     * ```typescript
+     * // Firebase adapter with custom config type (NEW in v0.8.4)
+     * interface FirebaseConfig extends Config {
+     *   databaseUrl: string;
+     *   applicationCredentials: string;
+     * }
+     *
+     * const program = createCLI<IFirebaseDB, FirebaseAdapter, FirebaseConfig>({
+     *   extendFlags: (config, flags) => {
+     *     // ✅ config is typed as FirebaseConfig - full IntelliSense!
+     *     config.databaseUrl = flags.databaseUrl as string;
+     *     config.applicationCredentials = flags.credentials as string;
+     *   },
+     *
+     *   createExecutor: async (config) => {
+     *     // ✅ config.databaseUrl is typed!
+     *     return FirebaseAdapter.getInstance({ config });
+     *   }
+     * });
+     * ```
      */
-    extendFlags?: (config: Config, flags: CLIFlags) => void;
+    extendFlags?: (config: TConfig, flags: CLIFlags) => void;
 }
 
 /**
@@ -205,6 +251,7 @@ export interface CLIOptions<DB extends IDB, TExecutor extends MigrationScriptExe
  *
  * @template DB - Database interface type
  * @template TExecutor - Executor type (inferred from createExecutor return type)
+ * @template TConfig - Configuration type (Config or adapter-specific config extending it)
  * @param options - CLI creation options
  * @returns Commander program ready for parsing or extension
  *
@@ -257,9 +304,43 @@ export interface CLIOptions<DB extends IDB, TExecutor extends MigrationScriptExe
  *
  * program.parse(process.argv);
  * ```
+ *
+ * @example
+ * ```typescript
+ * // With custom config type (NEW in v0.8.4)
+ * interface FirebaseConfig extends Config {
+ *   databaseUrl: string;
+ *   applicationCredentials: string;
+ * }
+ *
+ * const program = createCLI<IFirebaseDB, FirebaseAdapter, FirebaseConfig>({
+ *   name: 'msr-firebase',
+ *
+ *   addCustomOptions: (program) => {
+ *     program
+ *       .option('--database-url <url>', 'Firebase Database URL')
+ *       .option('--credentials <path>', 'Service account key');
+ *   },
+ *
+ *   extendFlags: (config, flags) => {
+ *     // ✅ config is typed as FirebaseConfig!
+ *     config.databaseUrl = flags.databaseUrl as string;
+ *     config.applicationCredentials = flags.credentials as string;
+ *   },
+ *
+ *   createExecutor: async (config) => {
+ *     // ✅ config is typed as FirebaseConfig!
+ *     return FirebaseAdapter.getInstance({ config });
+ *   }
+ * });
+ * ```
  */
-export function createCLI<DB extends IDB, TExecutor extends MigrationScriptExecutor<DB> = MigrationScriptExecutor<DB>>(
-    options: CLIOptions<DB, TExecutor>
+export function createCLI<
+    DB extends IDB,
+    TExecutor extends MigrationScriptExecutor<DB> = MigrationScriptExecutor<DB>,
+    TConfig extends Config = Config
+>(
+    options: CLIOptions<DB, TExecutor, TConfig>
 ): Command {
     const program = new Command();
 
@@ -292,8 +373,8 @@ export function createCLI<DB extends IDB, TExecutor extends MigrationScriptExecu
         const opts = program.opts<CLIFlags>();
 
         // 1. Load base config using waterfall (defaults → file → env vars)
-        const configLoader = options.configLoader || new ConfigLoader<Config>();
-        const config = opts.configFile
+        const configLoader = options.configLoader || new ConfigLoader<TConfig>();
+        const config: TConfig = opts.configFile
             ? configLoader.load({}, {baseDir: opts.configFile})
             : configLoader.load(); // Uses waterfall without explicit file
 

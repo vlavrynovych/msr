@@ -1198,23 +1198,65 @@ static async getInstance(options: IExecutorOptions<IDB>): Promise<MyRunner> {
 
 ### CLI Integration
 
-Use the factory method with async executor support (v0.8.2):
+Use the factory method with async executor support (v0.8.2) and custom config type (v0.8.4):
 
 ```typescript
 import {createCLI} from '@migration-script-runner/core';
 import {FirebaseRunner} from './FirebaseRunner';
 import {FirebaseConfig} from './FirebaseConfig';
+import {IFirebaseDB} from './FirebaseHandler';
 
-const program = createCLI({
+// ✅ NEW in v0.8.4: Use TConfig generic for type-safe config
+const program = createCLI<IFirebaseDB, FirebaseRunner, FirebaseConfig>({
     name: 'firebase-migrations',
+
+    // Custom CLI flags (v0.8.3)
+    addCustomOptions: (program) => {
+        program
+            .option('--database-url <url>', 'Firebase Realtime Database URL')
+            .option('--credentials <path>', 'Path to service account key file');
+    },
+
+    // ✅ config is typed as FirebaseConfig - no casting needed!
+    extendFlags: (config, flags) => {
+        if (flags.databaseUrl) {
+            config.databaseURL = flags.databaseUrl as string;
+        }
+        if (flags.credentials) {
+            config.credential = flags.credentials as string;
+        }
+    },
+
+    // ✅ config is typed as FirebaseConfig - no casting needed!
     createExecutor: async (config) => {
+        return FirebaseRunner.getInstance({ config });
+    }
+});
+
+program.parse(process.argv);
+```
+
+**Before v0.8.4 (required type casting):**
+```typescript
+const program = createCLI({
+    createExecutor: async (config) => {
+        // ❌ Required cast because config was typed as base Config
         return FirebaseRunner.getInstance({
             config: config as FirebaseConfig
         });
     }
 });
+```
 
-program.parse(process.argv);
+**After v0.8.4 (type-safe with TConfig):**
+```typescript
+// ✅ Third generic parameter provides type safety
+const program = createCLI<IFirebaseDB, FirebaseRunner, FirebaseConfig>({
+    createExecutor: async (config) => {
+        // ✅ config is automatically typed as FirebaseConfig!
+        return FirebaseRunner.getInstance({ config });
+    }
+});
 ```
 
 ---

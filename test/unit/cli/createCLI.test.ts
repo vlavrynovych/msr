@@ -808,4 +808,170 @@ describe('createCLI', () => {
             }
         });
     });
+
+    describe('Custom config type support (v0.8.4)', () => {
+        /**
+         * Custom config interface extending base Config
+         */
+        interface FirebaseConfig extends Config {
+            databaseUrl: string;
+            applicationCredentials: string;
+            connectionTimeout?: number;
+        }
+
+        /**
+         * Test: extendFlags receives custom config type
+         * Validates that TConfig generic provides type-safe config access in extendFlags
+         */
+        it('should support custom config type in extendFlags callback', async () => {
+            mockExecutor.migrate.resolves({success: true, executed: [], migrated: [], ignored: []});
+
+            let capturedConfig: FirebaseConfig | undefined;
+            const exitStub = sinon.stub(process, 'exit');
+
+            try {
+                const program = createCLI<MockDB, MigrationScriptExecutor<MockDB>, FirebaseConfig>({
+                    createExecutor: createExecutorStub,
+                    addCustomOptions: (prog) => {
+                        prog
+                            .option('--database-url <url>', 'Firebase Database URL')
+                            .option('--credentials <path>', 'Service account key path');
+                    },
+                    extendFlags: (config, flags) => {
+                        // ✅ config is typed as FirebaseConfig
+                        config.databaseUrl = flags.databaseUrl as string;
+                        config.applicationCredentials = flags.credentials as string;
+                        capturedConfig = config;
+                    }
+                });
+
+                program.exitOverride();
+
+                await program.parseAsync([
+                    'node', 'test', 'migrate',
+                    '--database-url', 'https://test.firebaseio.com',
+                    '--credentials', './key.json'
+                ]);
+
+                expect(capturedConfig).to.exist;
+                expect(capturedConfig!.databaseUrl).to.equal('https://test.firebaseio.com');
+                expect(capturedConfig!.applicationCredentials).to.equal('./key.json');
+            } finally {
+                exitStub.restore();
+            }
+        });
+
+        /**
+         * Test: createExecutor receives custom config type
+         * Validates that TConfig generic provides type-safe config access in createExecutor
+         */
+        it('should support custom config type in createExecutor callback', async () => {
+            mockExecutor.migrate.resolves({success: true, executed: [], migrated: [], ignored: []});
+
+            let capturedConfig: FirebaseConfig | undefined;
+            const customCreateExecutor = sinon.stub().callsFake((config: FirebaseConfig) => {
+                capturedConfig = config;
+                return mockExecutor;
+            });
+
+            const exitStub = sinon.stub(process, 'exit');
+
+            try {
+                const program = createCLI<MockDB, MigrationScriptExecutor<MockDB>, FirebaseConfig>({
+                    createExecutor: customCreateExecutor,
+                    addCustomOptions: (prog) => {
+                        prog.option('--database-url <url>', 'Firebase Database URL');
+                    },
+                    extendFlags: (config, flags) => {
+                        config.databaseUrl = flags.databaseUrl as string;
+                        config.applicationCredentials = 'default-credentials.json';
+                    }
+                });
+
+                program.exitOverride();
+
+                await program.parseAsync([
+                    'node', 'test', 'migrate',
+                    '--database-url', 'https://test.firebaseio.com'
+                ]);
+
+                expect(customCreateExecutor.calledOnce).to.be.true;
+                expect(capturedConfig).to.exist;
+                expect(capturedConfig!.databaseUrl).to.equal('https://test.firebaseio.com');
+                expect(capturedConfig!.applicationCredentials).to.equal('default-credentials.json');
+            } finally {
+                exitStub.restore();
+            }
+        });
+
+        /**
+         * Test: Backward compatibility without TConfig generic
+         * Validates that omitting TConfig generic defaults to base Config type
+         */
+        it('should default to base Config type when TConfig not specified', async () => {
+            mockExecutor.migrate.resolves({success: true, executed: [], migrated: [], ignored: []});
+
+            let capturedConfig: Config | undefined;
+            const exitStub = sinon.stub(process, 'exit');
+
+            try {
+                // No third generic parameter - defaults to Config
+                const program = createCLI<MockDB, MigrationScriptExecutor<MockDB>>({
+                    createExecutor: createExecutorStub,
+                    extendFlags: (config, flags) => {
+                        // config is typed as base Config
+                        capturedConfig = config;
+                    }
+                });
+
+                program.exitOverride();
+
+                await program.parseAsync(['node', 'test', 'migrate']);
+
+                expect(capturedConfig).to.exist;
+                expect(capturedConfig).to.be.an('object');
+            } finally {
+                exitStub.restore();
+            }
+        });
+
+        /**
+         * Test: Custom config with async executor
+         * Validates that TConfig works with async createExecutor (v0.8.2 feature)
+         */
+        it('should support custom config type with async createExecutor', async () => {
+            mockExecutor.migrate.resolves({success: true, executed: [], migrated: [], ignored: []});
+
+            let capturedConfig: FirebaseConfig | undefined;
+            const asyncCreateExecutor = sinon.stub().callsFake(async (config: FirebaseConfig) => {
+                capturedConfig = config;
+                // Simulate async initialization
+                await new Promise(resolve => setTimeout(resolve, 10));
+                return mockExecutor;
+            });
+
+            const exitStub = sinon.stub(process, 'exit');
+
+            try {
+                const program = createCLI<MockDB, MigrationScriptExecutor<MockDB>, FirebaseConfig>({
+                    createExecutor: asyncCreateExecutor,
+                    extendFlags: (config, flags) => {
+                        config.databaseUrl = 'https://async-test.firebaseio.com';
+                        config.applicationCredentials = './async-key.json';
+                    }
+                });
+
+                program.exitOverride();
+
+                await program.parseAsync(['node', 'test', 'migrate']);
+
+                expect(asyncCreateExecutor.calledOnce).to.be.true;
+                expect(capturedConfig).to.exist;
+                expect(capturedConfig!.databaseUrl).to.equal('https://async-test.firebaseio.com');
+                expect(capturedConfig!.applicationCredentials).to.equal('./async-key.json');
+            } finally {
+                exitStub.restore();
+            }
+        });
+    });
 });
