@@ -537,6 +537,129 @@ const program = createCLI({
 {: .note }
 > The `createExecutor` function passed to `extendCLI` returns your adapter with the exact type you specified, enabling full IntelliSense and compile-time checking.
 
+#### `addCustomOptions` & `extendFlags` (NEW in v0.8.3)
+
+Add adapter-specific CLI options that integrate seamlessly with the config waterfall.
+
+**Type**:
+- `addCustomOptions`: `(program: Command) => void`
+- `extendFlags`: `(config: Config, flags: CLIFlags) => void`
+
+**Use Cases**:
+- Database connection parameters (URLs, hosts, ports, credentials)
+- Authentication settings (service account keys, tokens)
+- Performance tuning (connection pools, timeouts)
+- Feature flags (enable/disable specific functionality)
+
+**Benefits**:
+- ✅ Single command execution - no environment variable setup needed
+- ✅ Highest priority in config waterfall (overrides file, env, and options.config)
+- ✅ Follows familiar Commander.js patterns
+- ✅ Appears in `--help` output automatically
+- ✅ Perfect for CI/CD pipelines and quick testing
+
+**Example - Firebase Adapter**:
+```typescript
+const program = createCLI({
+  name: 'msr-firebase',
+
+  // Step 1: Add custom CLI flags
+  addCustomOptions: (program) => {
+    program
+      .option('--database-url <url>', 'Firebase Realtime Database URL')
+      .option('--credentials <path>', 'Path to service account key file')
+      .option('--timeout [ms]', 'Connection timeout in milliseconds');
+  },
+
+  // Step 2: Map flag values to config
+  extendFlags: (config, flags) => {
+    if (flags.databaseUrl) {
+      config.databaseUrl = flags.databaseUrl;
+    }
+    if (flags.credentials) {
+      config.applicationCredentials = flags.credentials;
+    }
+    if (flags.timeout) {
+      config.connectionTimeout = parseInt(flags.timeout, 10);
+    }
+  },
+
+  createExecutor: async (config) => {
+    // config now contains databaseUrl, applicationCredentials, and connectionTimeout
+    return FirebaseAdapter.getInstance({ config });
+  }
+});
+```
+
+**Usage**:
+```bash
+# All config from CLI flags - no environment variables needed
+npx msr-firebase migrate \
+  --database-url https://my-project.firebaseio.com \
+  --credentials ./serviceAccountKey.json \
+  --timeout 30000
+
+# Flags work with all commands
+npx msr-firebase list --database-url https://my-project.firebaseio.com
+npx msr-firebase validate --credentials ./key.json
+```
+
+**Example - MongoDB Adapter**:
+```typescript
+const program = createCLI({
+  name: 'msr-mongodb',
+
+  addCustomOptions: (program) => {
+    program
+      .option('--mongo-uri <uri>', 'MongoDB connection string')
+      .option('--auth-source [source]', 'Authentication database (default: admin)')
+      .option('--ssl', 'Enable SSL/TLS connection');
+  },
+
+  extendFlags: (config, flags) => {
+    if (flags.mongoUri) {
+      config.mongoUri = flags.mongoUri;
+    }
+    if (flags.authSource) {
+      config.authSource = flags.authSource;
+    }
+    if (flags.ssl) {
+      config.useSSL = flags.ssl;
+    }
+  },
+
+  createExecutor: (config) => new MongoAdapter({ config })
+});
+```
+
+**Commander.js Flag Syntax**:
+- Required value: `--flag <value>` (must be provided)
+- Optional value: `--flag [value]` (can be omitted)
+- Boolean flag: `--flag` (presence = true, absence = false)
+- Short + long: `-f, --flag <value>` (both work)
+
+**Flag Name Conversion**:
+Commander.js automatically converts kebab-case flags to camelCase:
+- `--database-url` becomes `flags.databaseUrl`
+- `--auth-source` becomes `flags.authSource`
+- `--connection-timeout` becomes `flags.connectionTimeout`
+
+**Config Waterfall Priority**:
+```
+1. Built-in defaults (lowest)
+2. Config file (if --config-file flag provided)
+3. Environment variables (MSR_*)
+4. options.config (if provided)
+5. Standard CLI flags (--folder, --table-name, etc.)
+6. Custom CLI flags via extendFlags (highest priority)
+```
+
+{: .tip }
+> **Best Practice**: Use `addCustomOptions` for database-specific parameters and `extendCLI` for database-specific commands. This keeps your CLI clean and follows the single responsibility principle.
+
+{: .warning }
+> **Type Safety**: The `flags` parameter in `extendFlags` has type `CLIFlags` which uses an index signature. You may need to cast values when assigning to strongly-typed config properties (e.g., `flags.timeout as string`).
+
 ---
 
 ## Built-in Commands

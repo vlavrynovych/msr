@@ -100,6 +100,90 @@ export interface CLIOptions<DB extends IDB, TExecutor extends MigrationScriptExe
      * ```
      */
     extendCLI?: (program: Command, createExecutor: () => Promise<TExecutor>) => void;
+
+    /**
+     * Optional callback to add adapter-specific CLI options.
+     *
+     * Called during program setup to register custom command-line flags for your adapter.
+     * Use this to add database-specific options that are available on all commands.
+     *
+     * **NEW in v0.8.3**
+     *
+     * @param program - Commander program to add custom options to
+     *
+     * @example
+     * ```typescript
+     * // Firebase adapter with database URL and credentials flags
+     * const program = createCLI({
+     *   name: 'msr-firebase',
+     *
+     *   // Add custom options
+     *   addCustomOptions: (program) => {
+     *     program
+     *       .option('--database-url <url>', 'Firebase Realtime Database URL')
+     *       .option('--credentials <path>', 'Path to service account key file');
+     *   },
+     *
+     *   // Map custom flags to config
+     *   extendFlags: (config, flags) => {
+     *     if (flags.databaseUrl) {
+     *       config.databaseUrl = flags.databaseUrl;
+     *     }
+     *     if (flags.credentials) {
+     *       config.applicationCredentials = flags.credentials;
+     *     }
+     *   },
+     *
+     *   createExecutor: async (config) => {
+     *     // config.databaseUrl and config.applicationCredentials available here
+     *     return FirebaseAdapter.getInstance({ config });
+     *   }
+     * });
+     *
+     * // Usage:
+     * // npx msr-firebase migrate --database-url https://my-project.firebaseio.com --credentials ./key.json
+     * ```
+     */
+    addCustomOptions?: (program: Command) => void;
+
+    /**
+     * Optional callback to map custom CLI flags to config properties.
+     *
+     * Called after standard config loading but before createExecutor, allowing you to
+     * map your custom CLI flags to config properties. Custom flags have highest priority
+     * in the config waterfall (override defaults → file → env → options.config → custom flags).
+     *
+     * **NEW in v0.8.3**
+     *
+     * @param config - Config object to update with custom flag values
+     * @param flags - Parsed CLI flags from Commander.js (includes both standard and custom flags)
+     *
+     * @example
+     * ```typescript
+     * // MongoDB adapter mapping connection string and auth options
+     * const program = createCLI({
+     *   name: 'msr-mongodb',
+     *
+     *   addCustomOptions: (program) => {
+     *     program
+     *       .option('--mongo-uri <uri>', 'MongoDB connection string')
+     *       .option('--auth-source [source]', 'Authentication database');
+     *   },
+     *
+     *   extendFlags: (config, flags) => {
+     *     if (flags.mongoUri) {
+     *       config.mongoUri = flags.mongoUri;
+     *     }
+     *     if (flags.authSource) {
+     *       config.authSource = flags.authSource;
+     *     }
+     *   },
+     *
+     *   createExecutor: (config) => new MongoAdapter({ config })
+     * });
+     * ```
+     */
+    extendFlags?: (config: Config, flags: CLIFlags) => void;
 }
 
 /**
@@ -198,6 +282,11 @@ export function createCLI<DB extends IDB, TExecutor extends MigrationScriptExecu
         .option('--log-file <path>', 'Log file path (required with --logger file)')
         .option('--format <format>', 'Output format (table|json)');
 
+    // Call adapter's custom options callback if provided
+    if (options.addCustomOptions) {
+        options.addCustomOptions(program);
+    }
+
     // Factory function to create executor based on parsed CLI flags
     const createExecutorWithFlags = async (): Promise<TExecutor> => {
         const opts = program.opts<CLIFlags>();
@@ -216,13 +305,18 @@ export function createCLI<DB extends IDB, TExecutor extends MigrationScriptExecu
         // 3. Map CLI flags to config (highest priority)
         const logger = mapFlagsToConfig(config, opts);
 
-        // 4. Call adapter's factory function with final merged config (supports both sync and async)
+        // 4. Call adapter's custom flag mapper if provided (highest priority)
+        if (options.extendFlags) {
+            options.extendFlags(config, opts);
+        }
+
+        // 5. Call adapter's factory function with final merged config (supports both sync and async)
         const executorOrPromise = options.createExecutor(config);
         const executor = executorOrPromise instanceof Promise
             ? await executorOrPromise
             : executorOrPromise;
 
-        // 5. If logger was created from CLI flags, override executor's logger
+        // 6. If logger was created from CLI flags, override executor's logger
         if (logger) {
             // Note: This assumes executor has a way to set logger
             // We'll need to verify this works with the executor's implementation

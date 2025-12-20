@@ -580,4 +580,232 @@ describe('createCLI', () => {
             }
         });
     });
+
+    describe('Custom CLI options support (v0.8.3)', () => {
+        /**
+         * Test: addCustomOptions callback is called when provided
+         * Validates that the addCustomOptions callback is invoked with the program
+         */
+        it('should call addCustomOptions callback when provided', () => {
+            const addCustomOptionsSpy = sinon.spy();
+
+            const program = createCLI({
+                createExecutor: createExecutorStub,
+                addCustomOptions: addCustomOptionsSpy
+            });
+
+            expect(addCustomOptionsSpy.calledOnce).to.be.true;
+            expect(addCustomOptionsSpy.firstCall.args[0]).to.equal(program);
+        });
+
+        /**
+         * Test: custom options are registered on the program
+         * Validates that options added via addCustomOptions appear in program.options
+         */
+        it('should register custom options on the program', () => {
+            const program = createCLI({
+                createExecutor: createExecutorStub,
+                addCustomOptions: (prog) => {
+                    prog
+                        .option('--database-url <url>', 'Firebase Database URL')
+                        .option('--credentials <path>', 'Service account key path');
+                }
+            });
+
+            const optionFlags = program.options.map(opt => opt.long);
+            expect(optionFlags).to.include('--database-url');
+            expect(optionFlags).to.include('--credentials');
+        });
+
+        /**
+         * Test: extendFlags callback is called when provided
+         * Validates that the extendFlags callback is invoked with config and flags
+         */
+        it('should call extendFlags callback when provided', async () => {
+            mockExecutor.migrate.resolves({success: true, executed: [], migrated: [], ignored: []});
+
+            const extendFlagsSpy = sinon.spy();
+            const exitStub = sinon.stub(process, 'exit');
+
+            try {
+                const program = createCLI({
+                    createExecutor: createExecutorStub,
+                    addCustomOptions: (prog) => {
+                        prog.option('--database-url <url>', 'Database URL');
+                    },
+                    extendFlags: extendFlagsSpy
+                });
+
+                program.exitOverride();
+
+                await program.parseAsync(['node', 'test', 'migrate', '--database-url', 'https://test.db']);
+
+                expect(extendFlagsSpy.calledOnce).to.be.true;
+                expect(extendFlagsSpy.firstCall.args[0]).to.be.an('object'); // config
+                expect(extendFlagsSpy.firstCall.args[1]).to.be.an('object'); // flags
+                expect(extendFlagsSpy.firstCall.args[1].databaseUrl).to.equal('https://test.db');
+            } finally {
+                exitStub.restore();
+            }
+        });
+
+        /**
+         * Test: custom flags are mapped to config via extendFlags
+         * Validates that config values are properly set from custom flags
+         */
+        it('should map custom flags to config via extendFlags', async () => {
+            mockExecutor.migrate.resolves({success: true, executed: [], migrated: [], ignored: []});
+
+            let capturedConfig: Config | undefined;
+            const exitStub = sinon.stub(process, 'exit');
+
+            try {
+                const program = createCLI({
+                    createExecutor: (config) => {
+                        capturedConfig = config;
+                        return createExecutorStub(config);
+                    },
+                    addCustomOptions: (prog) => {
+                        prog
+                            .option('--mongo-uri <uri>', 'MongoDB connection string')
+                            .option('--auth-source [source]', 'Authentication database');
+                    },
+                    extendFlags: (config, flags) => {
+                        if (flags.mongoUri) {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            (config as any).mongoUri = flags.mongoUri;
+                        }
+                        if (flags.authSource) {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            (config as any).authSource = flags.authSource;
+                        }
+                    }
+                });
+
+                program.exitOverride();
+
+                await program.parseAsync(['node', 'test', 'migrate', '--mongo-uri', 'mongodb://localhost', '--auth-source', 'admin']);
+
+                expect(capturedConfig).to.exist;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                expect((capturedConfig as any).mongoUri).to.equal('mongodb://localhost');
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                expect((capturedConfig as any).authSource).to.equal('admin');
+            } finally {
+                exitStub.restore();
+            }
+        });
+
+        /**
+         * Test: custom flags have highest priority in config merging
+         * Validates that custom flags override options.config
+         */
+        it('should give custom flags highest priority in config waterfall', async () => {
+            mockExecutor.migrate.resolves({success: true, executed: [], migrated: [], ignored: []});
+
+            let capturedConfig: Config | undefined;
+            const exitStub = sinon.stub(process, 'exit');
+
+            try {
+                const program = createCLI({
+                    createExecutor: (config) => {
+                        capturedConfig = config;
+                        return createExecutorStub(config);
+                    },
+                    config: {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        folder: './default-folder' as any
+                    },
+                    addCustomOptions: (prog) => {
+                        prog.option('--custom-folder <path>', 'Custom folder path');
+                    },
+                    extendFlags: (config, flags) => {
+                        if (flags.customFolder) {
+                            config.folder = flags.customFolder as string;
+                        }
+                    }
+                });
+
+                program.exitOverride();
+
+                await program.parseAsync(['node', 'test', 'migrate', '--custom-folder', './override-folder']);
+
+                expect(capturedConfig).to.exist;
+                expect(capturedConfig!.folder).to.equal('./override-folder');
+            } finally {
+                exitStub.restore();
+            }
+        });
+
+        /**
+         * Test: addCustomOptions not called when not provided
+         * Validates that addCustomOptions is optional
+         */
+        it('should not fail when addCustomOptions is not provided', () => {
+            expect(() => {
+                createCLI({createExecutor: createExecutorStub});
+            }).to.not.throw();
+        });
+
+        /**
+         * Test: extendFlags not called when not provided
+         * Validates that extendFlags is optional
+         */
+        it('should not fail when extendFlags is not provided', async () => {
+            mockExecutor.migrate.resolves({success: true, executed: [], migrated: [], ignored: []});
+
+            // Stub process.exit to prevent test hanging
+            const exitStub = sinon.stub(process, 'exit');
+
+            try {
+                const program = createCLI({
+                    createExecutor: createExecutorStub,
+                    addCustomOptions: (prog) => {
+                        prog.option('--custom-flag <value>', 'Custom flag');
+                    }
+                });
+
+                program.exitOverride();
+
+                await expect(
+                    program.parseAsync(['node', 'test', 'migrate', '--custom-flag', 'test'])
+                ).to.not.be.rejected;
+            } finally {
+                exitStub.restore();
+            }
+        });
+
+        /**
+         * Test: Commander.js converts kebab-case to camelCase
+         * Validates that flags like --database-url become databaseUrl in flags object
+         */
+        it('should convert kebab-case flags to camelCase', async () => {
+            mockExecutor.migrate.resolves({success: true, executed: [], migrated: [], ignored: []});
+
+            let capturedFlags: any;
+            const exitStub = sinon.stub(process, 'exit');
+
+            try {
+                const program = createCLI({
+                    createExecutor: createExecutorStub,
+                    addCustomOptions: (prog) => {
+                        prog.option('--database-url <url>', 'Database URL');
+                    },
+                    extendFlags: (config, flags) => {
+                        capturedFlags = flags;
+                    }
+                });
+
+                program.exitOverride();
+
+                await program.parseAsync(['node', 'test', 'migrate', '--database-url', 'https://test.db']);
+
+                expect(capturedFlags).to.exist;
+                expect(capturedFlags.databaseUrl).to.equal('https://test.db');
+                expect(capturedFlags['database-url']).to.be.undefined;
+            } finally {
+                exitStub.restore();
+            }
+        });
+    });
 });

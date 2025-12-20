@@ -6,6 +6,9 @@ import {ILogger} from '../../interface/ILogger';
 
 /**
  * Common CLI flags that map to Config properties.
+ *
+ * Supports both standard MSR flags and custom adapter-specific flags
+ * via index signature.
  */
 export interface CLIFlags {
     configFile?: string;
@@ -18,13 +21,30 @@ export interface CLIFlags {
     logLevel?: 'error' | 'warn' | 'info' | 'debug';
     logFile?: string;
     format?: 'table' | 'json';
+
+    /**
+     * Allow dynamic custom flags from adapters.
+     *
+     * Custom flags defined via customOptions in createCLI will be accessible here.
+     *
+     * @example
+     * ```typescript
+     * // With customOptions: [{ flags: '--database-url <url>', configKey: 'databaseUrl' }]
+     * const flags: CLIFlags = {
+     *   databaseUrl: 'https://my-project.firebaseio.com'
+     * };
+     * ```
+     */
+    [key: string]: string | number | boolean | undefined;
 }
 
 /**
  * Maps CLI flags to Config object.
  *
  * Takes CLI flag values and updates the provided Config object accordingly.
- * Handles special cases like logger creation based on type.
+ * Handles standard MSR flags and special cases like logger creation.
+ *
+ * Custom adapter-specific flags should be handled by the mapCustomFlags callback in CLIOptions.
  *
  * @param config - Config object to update
  * @param flags - CLI flags from commander
